@@ -11,7 +11,7 @@ class AuthMockDataSource {
   // Mock user database
   static final Map<String, Map<String, dynamic>> _mockUsers = {
     '555123456': {
-      'password': '123456',
+      'password': 'asdfasdf',
       'user': {
         'id': 1,
         'uuid': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',

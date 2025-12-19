@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/config/theme/app_theme.dart';
 import 'core/di/injection.dart';
@@ -49,6 +50,11 @@ class TrasPhoneApp extends StatelessWidget {
             // Localization
             locale: const Locale('ar'),
             supportedLocales: const [Locale('ar'), Locale('en')],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
 
             // Router
             routerConfig: appRouter,
