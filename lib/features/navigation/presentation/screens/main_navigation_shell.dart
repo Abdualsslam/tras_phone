@@ -72,7 +72,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
       padding: EdgeInsets.only(
         left: 20.w,
         right: 20.w,
-        bottom: MediaQuery.of(context).padding.bottom + 16.h,
+        bottom: MediaQuery.of(context).padding.bottom,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28.r),
@@ -98,7 +98,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
               border: Border.all(
                 color: isDark
                     ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.white.withValues(alpha: 0.6),
+                    : Colors.grey.withValues(alpha: 0.25),
                 width: 1.5,
               ),
               boxShadow: [
