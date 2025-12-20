@@ -86,12 +86,12 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        const Color(0xFF1C1C1E).withValues(alpha: 0.9),
-                        const Color(0xFF2C2C2E).withValues(alpha: 0.85),
+                        const Color(0xFF1C1C1E).withValues(alpha: 0.75),
+                        const Color(0xFF2C2C2E).withValues(alpha: 0.7),
                       ]
                     : [
-                        Colors.white.withValues(alpha: 0.9),
-                        Colors.white.withValues(alpha: 0.8),
+                        Colors.white.withValues(alpha: 0.75),
+                        Colors.white.withValues(alpha: 0.65),
                       ],
               ),
               borderRadius: BorderRadius.circular(28.r),
