@@ -38,7 +38,7 @@ class NotificationsScreen extends StatelessWidget {
       ),
       _Notification(
         title: 'رصيد جديد',
-        body: 'تمت إضافة 500 ر.ي إلى محفظتك',
+        body: 'تمت إضافة 500 ر.س إلى محفظتك',
         time: DateTime.now().subtract(const Duration(days: 2)),
         type: _NotificationType.wallet,
         isRead: true,

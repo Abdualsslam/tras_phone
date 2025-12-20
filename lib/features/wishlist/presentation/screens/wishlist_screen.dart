@@ -129,7 +129,7 @@ class WishlistScreen extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '${item.price} ر.ي',
+                      '${item.price} ر.س',
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w700,
@@ -139,7 +139,7 @@ class WishlistScreen extends StatelessWidget {
                     if (item.originalPrice != null) ...[
                       SizedBox(width: 8.w),
                       Text(
-                        '${item.originalPrice} ر.ي',
+                        '${item.originalPrice} ر.س',
                         style: TextStyle(
                           fontSize: 12.sp,
                           color: AppColors.textTertiaryLight,

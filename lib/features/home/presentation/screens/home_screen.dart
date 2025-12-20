@@ -441,7 +441,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   price: product.price,
                   originalPrice: product.originalPrice,
                   stockQuantity: product.stockQuantity,
-                  onTap: () => context.push('/product/${product.id}'),
+                  onTap: () =>
+                      context.push('/product/${product.id}', extra: product),
                   onAddToCart: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

@@ -96,7 +96,7 @@ class ProfileScreen extends StatelessWidget {
               _MenuItem(
                 icon: Iconsax.wallet,
                 title: 'محفظتي',
-                subtitle: '٥٠٠ ر.ي',
+                subtitle: '٥٠٠ ر.س',
                 onTap: () {},
               ),
               _MenuItem(
@@ -278,7 +278,7 @@ class ProfileScreen extends StatelessWidget {
             isDark,
             icon: Iconsax.wallet_money,
             value: '${customer?.walletBalance?.toStringAsFixed(0) ?? '500'}',
-            label: 'ر.ي',
+            label: 'ر.س',
             color: Colors.green,
           ),
         ),

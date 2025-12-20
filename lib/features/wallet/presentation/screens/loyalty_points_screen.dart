@@ -283,7 +283,7 @@ class LoyaltyPointsScreen extends StatelessWidget {
             ),
           ),
           SizedBox(height: 16.h),
-          _buildEarnRow(theme, 'اطلب منتجات', 'نقطة لكل 100 ر.ي'),
+          _buildEarnRow(theme, 'اطلب منتجات', 'نقطة لكل 100 ر.س'),
           SizedBox(height: 12.h),
           _buildEarnRow(theme, 'قيّم مشترياتك', '5 نقاط لكل تقييم'),
           SizedBox(height: 12.h),

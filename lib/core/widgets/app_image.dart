@@ -56,6 +56,22 @@ class AppImage extends StatelessWidget {
       );
     }
 
+    // Check if it's a local asset
+    final isLocalAsset = imageUrl!.startsWith('assets/');
+
+    if (isLocalAsset) {
+      return ClipRRect(
+        borderRadius: borderRadius ?? BorderRadius.zero,
+        child: Image.asset(
+          imageUrl!,
+          width: width?.w,
+          height: height?.h,
+          fit: fit,
+          errorBuilder: (context, error, stackTrace) => placeholder,
+        ),
+      );
+    }
+
     return ClipRRect(
       borderRadius: borderRadius ?? BorderRadius.zero,
       child: CachedNetworkImage(

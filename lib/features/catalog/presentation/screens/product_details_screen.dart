@@ -174,19 +174,34 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   setState(() => _currentImageIndex = index);
                 },
                 itemBuilder: (context, index) {
+                  final imageUrl = images[index];
+                  final isLocalAsset = imageUrl.startsWith('assets/');
+
                   return Container(
                     color: isDark ? AppColors.surfaceDark : Colors.grey[100],
-                    child: Image.network(
-                      images[index],
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Center(
-                        child: Icon(
-                          Iconsax.image,
-                          size: 80.sp,
-                          color: AppColors.textTertiaryLight,
-                        ),
-                      ),
-                    ),
+                    child: isLocalAsset
+                        ? Image.asset(
+                            imageUrl,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Center(
+                              child: Icon(
+                                Iconsax.image,
+                                size: 80.sp,
+                                color: AppColors.textTertiaryLight,
+                              ),
+                            ),
+                          )
+                        : Image.network(
+                            imageUrl,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Center(
+                              child: Icon(
+                                Iconsax.image,
+                                size: 80.sp,
+                                color: AppColors.textTertiaryLight,
+                              ),
+                            ),
+                          ),
                   );
                 },
               )
@@ -325,7 +340,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text(
-          '${product.price.toStringAsFixed(0)} ر.ي',
+          '${product.price.toStringAsFixed(0)} ر.س',
           style: TextStyle(
             fontSize: 28.sp,
             fontWeight: FontWeight.w700,
@@ -335,7 +350,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         if (product.hasDiscount) ...[
           SizedBox(width: 12.w),
           Text(
-            '${product.originalPrice!.toStringAsFixed(0)} ر.ي',
+            '${product.originalPrice!.toStringAsFixed(0)} ر.س',
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.w500,
@@ -529,7 +544,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     ),
                   ),
                   Text(
-                    '${(product.price * _quantity).toStringAsFixed(0)} ر.ي',
+                    '${(product.price * _quantity).toStringAsFixed(0)} ر.س',
                     style: TextStyle(
                       fontSize: 22.sp,
                       fontWeight: FontWeight.w700,

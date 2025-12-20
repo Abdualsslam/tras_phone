@@ -256,7 +256,7 @@ class _OrderCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${order.total.toStringAsFixed(0)} ر.ي',
+                  '${order.total.toStringAsFixed(0)} ر.س',
                   style: TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.w700,

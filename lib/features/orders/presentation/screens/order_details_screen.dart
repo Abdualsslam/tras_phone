@@ -284,7 +284,7 @@ class OrderDetailsScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                '$qty × $price ر.ي',
+                '$qty × $price ر.س',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.textTertiaryLight,
                 ),
@@ -293,7 +293,7 @@ class OrderDetailsScreen extends StatelessWidget {
           ),
         ),
         Text(
-          '${(qty * price).toStringAsFixed(0)} ر.ي',
+          '${(qty * price).toStringAsFixed(0)} ر.س',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             color: AppColors.primary,
@@ -344,18 +344,18 @@ class OrderDetailsScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildSummaryRow(theme, 'المجموع الفرعي', '1,325 ر.ي'),
+          _buildSummaryRow(theme, 'المجموع الفرعي', '1,325 ر.س'),
           SizedBox(height: 8.h),
-          _buildSummaryRow(theme, 'الشحن', '50 ر.ي'),
+          _buildSummaryRow(theme, 'الشحن', '50 ر.س'),
           SizedBox(height: 8.h),
           _buildSummaryRow(
             theme,
             'الخصم (TRAS10)',
-            '-132.5 ر.ي',
+            '-132.5 ر.س',
             valueColor: AppColors.success,
           ),
           Divider(height: 24.h),
-          _buildSummaryRow(theme, 'الإجمالي', '1,242.5 ر.ي', isTotal: true),
+          _buildSummaryRow(theme, 'الإجمالي', '1,242.5 ر.س', isTotal: true),
         ],
       ),
     );

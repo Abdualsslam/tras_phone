@@ -326,14 +326,14 @@ class _CartScreenState extends State<CartScreen> {
           _buildSummaryRow(
             theme,
             'المجموع الفرعي',
-            '${cart.subtotal.toStringAsFixed(0)} ر.ي',
+            '${cart.subtotal.toStringAsFixed(0)} ر.س',
           ),
           SizedBox(height: 8.h),
           _buildSummaryRow(
             theme,
             'الشحن',
             cart.shippingCost > 0
-                ? '${cart.shippingCost.toStringAsFixed(0)} ر.ي'
+                ? '${cart.shippingCost.toStringAsFixed(0)} ر.س'
                 : 'مجاني',
           ),
           if (cart.discount > 0) ...[
@@ -341,7 +341,7 @@ class _CartScreenState extends State<CartScreen> {
             _buildSummaryRow(
               theme,
               'الخصم',
-              '-${cart.discount.toStringAsFixed(0)} ر.ي',
+              '-${cart.discount.toStringAsFixed(0)} ر.س',
               valueColor: AppColors.success,
             ),
           ],
@@ -349,7 +349,7 @@ class _CartScreenState extends State<CartScreen> {
           _buildSummaryRow(
             theme,
             'الإجمالي',
-            '${cart.total.toStringAsFixed(0)} ر.ي',
+            '${cart.total.toStringAsFixed(0)} ر.س',
             isTotal: true,
           ),
         ],
@@ -440,7 +440,7 @@ class _CartScreenState extends State<CartScreen> {
               const Icon(Iconsax.card),
               SizedBox(width: 8.w),
               Text(
-                'إتمام الشراء • ${cart.total.toStringAsFixed(0)} ر.ي',
+                'إتمام الشراء • ${cart.total.toStringAsFixed(0)} ر.س',
                 style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
               ),
             ],
@@ -543,7 +543,7 @@ class _CartItemCard extends StatelessWidget {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  '${item.unitPrice.toStringAsFixed(0)} ر.ي',
+                  '${item.unitPrice.toStringAsFixed(0)} ر.س',
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w700,
@@ -586,7 +586,7 @@ class _CartItemCard extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      '${item.totalPrice.toStringAsFixed(0)} ر.ي',
+                      '${item.totalPrice.toStringAsFixed(0)} ر.س',
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),

@@ -71,7 +71,7 @@ class WalletScreen extends StatelessWidget {
           ),
           SizedBox(height: 16.h),
           Text(
-            '٥٠٠.٠٠ ر.ي',
+            '٥٠٠.٠٠ ر.س',
             style: TextStyle(
               fontSize: 36.sp,
               fontWeight: FontWeight.w700,
@@ -289,7 +289,7 @@ class WalletScreen extends StatelessWidget {
         ),
       ),
       trailing: Text(
-        '${isPositive ? '+' : ''}${tx.amount.toStringAsFixed(0)} ر.ي',
+        '${isPositive ? '+' : ''}${tx.amount.toStringAsFixed(0)} ر.س',
         style: TextStyle(
           fontSize: 14.sp,
           fontWeight: FontWeight.w700,
@@ -355,7 +355,7 @@ class WalletScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Text(
-                      '$amount ر.ي',
+                      '$amount ر.س',
                       style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w600,

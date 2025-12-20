@@ -171,6 +171,11 @@ class CatalogMockDataSource {
       isFeatured: true,
       rating: 4.8,
       reviewsCount: 23,
+      imageUrl: 'assets/images/products/screen_1.jpg',
+      images: [
+        'assets/images/products/screen_1.jpg',
+        'assets/images/products/screen_2.jpg',
+      ],
     ),
     const ProductEntity(
       id: 2,
@@ -185,6 +190,11 @@ class CatalogMockDataSource {
       isFeatured: true,
       rating: 4.7,
       reviewsCount: 45,
+      imageUrl: 'assets/images/products/screen_2.jpg',
+      images: [
+        'assets/images/products/screen_2.jpg',
+        'assets/images/products/screen_1.jpg',
+      ],
     ),
     const ProductEntity(
       id: 3,
@@ -199,6 +209,11 @@ class CatalogMockDataSource {
       stockQuantity: 50,
       rating: 4.5,
       reviewsCount: 67,
+      imageUrl: 'assets/images/products/bettary_1.jpg',
+      images: [
+        'assets/images/products/bettary_1.jpg',
+        'assets/images/products/bettary_2.jpg',
+      ],
     ),
     const ProductEntity(
       id: 4,
@@ -213,6 +228,11 @@ class CatalogMockDataSource {
       isFeatured: true,
       rating: 4.9,
       reviewsCount: 12,
+      imageUrl: 'assets/images/products/screen_1.jpg',
+      images: [
+        'assets/images/products/screen_1.jpg',
+        'assets/images/products/screen_2.jpg',
+      ],
     ),
     const ProductEntity(
       id: 5,
@@ -227,6 +247,11 @@ class CatalogMockDataSource {
       stockQuantity: 18,
       rating: 4.6,
       reviewsCount: 34,
+      imageUrl: 'assets/images/products/screen_2.jpg',
+      images: [
+        'assets/images/products/screen_2.jpg',
+        'assets/images/products/screen_1.jpg',
+      ],
     ),
     const ProductEntity(
       id: 6,
@@ -240,6 +265,11 @@ class CatalogMockDataSource {
       stockQuantity: 65,
       rating: 4.4,
       reviewsCount: 28,
+      imageUrl: 'assets/images/products/bettary_2.jpg',
+      images: [
+        'assets/images/products/bettary_2.jpg',
+        'assets/images/products/bettary_1.jpg',
+      ],
     ),
     const ProductEntity(
       id: 7,
@@ -253,6 +283,11 @@ class CatalogMockDataSource {
       stockQuantity: 100,
       rating: 4.3,
       reviewsCount: 89,
+      imageUrl: 'assets/images/products/charger_port_1.jpg',
+      images: [
+        'assets/images/products/charger_port_1.jpg',
+        'assets/images/products/charger_port_2.jpg',
+      ],
     ),
     const ProductEntity(
       id: 8,
@@ -267,6 +302,11 @@ class CatalogMockDataSource {
       isFeatured: true,
       rating: 4.7,
       reviewsCount: 8,
+      imageUrl: 'assets/images/products/camera_1.png',
+      images: [
+        'assets/images/products/camera_1.png',
+        'assets/images/products/camera_2.png',
+      ],
     ),
     const ProductEntity(
       id: 9,
@@ -280,6 +320,11 @@ class CatalogMockDataSource {
       stockQuantity: 20,
       rating: 4.5,
       reviewsCount: 15,
+      imageUrl: 'assets/images/products/screen_1.jpg',
+      images: [
+        'assets/images/products/screen_1.jpg',
+        'assets/images/products/screen_2.jpg',
+      ],
     ),
     const ProductEntity(
       id: 10,
@@ -294,6 +339,11 @@ class CatalogMockDataSource {
       stockQuantity: 30,
       rating: 4.4,
       reviewsCount: 22,
+      imageUrl: 'assets/images/products/screen_2.jpg',
+      images: [
+        'assets/images/products/screen_2.jpg',
+        'assets/images/products/screen_1.jpg',
+      ],
     ),
   ];
 

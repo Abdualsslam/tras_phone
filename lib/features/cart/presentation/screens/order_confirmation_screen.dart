@@ -90,7 +90,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildInfoItem(theme, 'الإجمالي', '1,242.5 ر.ي'),
+                        _buildInfoItem(theme, 'الإجمالي', '1,242.5 ر.س'),
                         Container(
                           width: 1,
                           height: 40.h,
