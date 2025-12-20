@@ -1,6 +1,7 @@
 /// Brands List Screen - Displays all product brands
 library;
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -57,7 +58,7 @@ class _BrandsListScreenState extends State<BrandsListScreen> {
                 padding: EdgeInsets.all(16.w),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
-                  childAspectRatio: 0.85,
+                  childAspectRatio: 0.8,
                   crossAxisSpacing: 12.w,
                   mainAxisSpacing: 12.h,
                 ),
@@ -68,7 +69,7 @@ class _BrandsListScreenState extends State<BrandsListScreen> {
                     brand: brand,
                     isDark: isDark,
                     onTap: () {
-                      // Navigate to products by brand
+                      context.push('/brand/${brand.id}/products');
                     },
                   );
                 },
@@ -95,59 +96,101 @@ class _BrandCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Brand Logo
-            Container(
-              width: 60.w,
-              height: 60.w,
-              padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: AppColors.dividerLight, width: 1),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18.r),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        Colors.white.withValues(alpha: 0.1),
+                        Colors.white.withValues(alpha: 0.05),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: 0.9),
+                        Colors.white.withValues(alpha: 0.7),
+                      ],
               ),
-              child: brand.logo != null
-                  ? Image.network(
-                      brand.logo!,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Iconsax.tag,
-                        size: 30.sp,
-                        color: AppColors.primary,
-                      ),
-                    )
-                  : Icon(Iconsax.tag, size: 30.sp, color: AppColors.primary),
-            ),
-            SizedBox(height: 12.h),
-
-            // Brand Name
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
-              child: Text(
-                brand.nameAr ?? brand.name,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+              borderRadius: BorderRadius.circular(18.r),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : AppColors.primary.withValues(alpha: 0.12),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+              ],
             ),
-          ],
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Brand Logo with glassmorphism container
+                Container(
+                  width: 58.w,
+                  height: 58.w,
+                  padding: EdgeInsets.all(10.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: brand.logo != null
+                      ? Image.network(
+                          brand.logo!,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Icon(
+                            Iconsax.tag,
+                            size: 28.sp,
+                            color: AppColors.primary,
+                          ),
+                        )
+                      : Icon(
+                          Iconsax.tag,
+                          size: 28.sp,
+                          color: AppColors.primary,
+                        ),
+                ),
+                SizedBox(height: 10.h),
+
+                // Brand Name
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w),
+                  child: Text(
+                    brand.nameAr ?? brand.name,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimaryLight,
+                      fontSize: 12.sp,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

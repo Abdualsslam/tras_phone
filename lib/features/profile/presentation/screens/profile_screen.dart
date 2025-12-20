@@ -1,6 +1,7 @@
 /// Profile Screen - User account information and settings
 library;
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -305,37 +306,86 @@ class ProfileScreen extends StatelessWidget {
     required String label,
     required Color color,
   }) {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 40.w,
-            height: 40.w,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18.r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [
+                      Colors.white.withValues(alpha: 0.1),
+                      Colors.white.withValues(alpha: 0.05),
+                    ]
+                  : [
+                      Colors.white.withValues(alpha: 0.9),
+                      Colors.white.withValues(alpha: 0.7),
+                    ],
             ),
-            child: Icon(icon, size: 20.sp, color: color),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            value,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
+            borderRadius: BorderRadius.circular(18.r),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : color.withValues(alpha: 0.2),
+              width: 1.5,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.15),
+                blurRadius: 15,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textTertiaryLight,
-            ),
+          child: Column(
+            children: [
+              Container(
+                width: 44.w,
+                height: 44.w,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withValues(alpha: 0.2),
+                      color.withValues(alpha: 0.1),
+                    ],
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: color.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: Icon(icon, size: 22.sp, color: color),
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                value,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -355,70 +405,131 @@ class ProfileScreen extends StatelessWidget {
             title,
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
             ),
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.cardDark : AppColors.cardLight,
-            borderRadius: BorderRadius.circular(16.r),
-          ),
-          child: Column(
-            children: items.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              return Column(
-                children: [
-                  _buildMenuItem(theme, item),
-                  if (index < items.length - 1)
-                    Divider(
-                      height: 1,
-                      indent: 56.w,
-                      color: AppColors.dividerLight,
-                    ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(18.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          Colors.white.withValues(alpha: 0.08),
+                          Colors.white.withValues(alpha: 0.04),
+                        ]
+                      : [
+                          Colors.white.withValues(alpha: 0.9),
+                          Colors.white.withValues(alpha: 0.75),
+                        ],
+                ),
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : AppColors.primary.withValues(alpha: 0.1),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.06),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
                 ],
-              );
-            }).toList(),
+              ),
+              child: Column(
+                children: items.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+                  return Column(
+                    children: [
+                      _buildMenuItem(theme, item, isDark),
+                      if (index < items.length - 1)
+                        Divider(
+                          height: 1,
+                          indent: 56.w,
+                          color: isDark
+                              ? AppColors.dividerDark
+                              : AppColors.dividerLight,
+                        ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMenuItem(ThemeData theme, _MenuItem item) {
+  Widget _buildMenuItem(ThemeData theme, _MenuItem item, bool isDark) {
     return ListTile(
       onTap: () {
         HapticFeedback.selectionClick();
         item.onTap();
       },
       leading: Container(
-        width: 40.w,
-        height: 40.w,
+        width: 42.w,
+        height: 42.w,
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(10.r),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primary.withValues(alpha: 0.15),
+              AppColors.primaryLight.withValues(alpha: 0.08),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.2),
+            width: 1,
+          ),
         ),
         child: Icon(item.icon, size: 20.sp, color: AppColors.primary),
       ),
       title: Text(
         item.title,
-        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+        style: theme.textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: isDark
+              ? AppColors.textPrimaryDark
+              : AppColors.textPrimaryLight,
+        ),
       ),
       subtitle: item.subtitle != null
           ? Text(
               item.subtitle!,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textTertiaryLight,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textTertiaryLight,
               ),
             )
           : null,
-      trailing: Icon(
-        Iconsax.arrow_left_2,
-        size: 18.sp,
-        color: AppColors.textTertiaryLight,
+      trailing: Container(
+        width: 28.w,
+        height: 28.w,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Icon(
+          Iconsax.arrow_left_2,
+          size: 16.sp,
+          color: AppColors.primary,
+        ),
       ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
     );
   }
 

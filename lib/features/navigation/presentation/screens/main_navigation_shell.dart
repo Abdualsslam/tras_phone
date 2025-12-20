@@ -1,7 +1,10 @@
 /// Main Navigation Shell - Bottom navigation bar wrapper
+/// Floating Island Design with Glassmorphism
 library;
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
@@ -18,8 +21,10 @@ class MainNavigationShell extends StatefulWidget {
   State<MainNavigationShell> createState() => _MainNavigationShellState();
 }
 
-class _MainNavigationShellState extends State<MainNavigationShell> {
+class _MainNavigationShellState extends State<MainNavigationShell>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+  late AnimationController _animationController;
 
   final List<Widget> _screens = const [
     HomeScreen(),
@@ -30,52 +35,132 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _onItemTapped(int index) {
+    if (_currentIndex != index) {
+      HapticFeedback.lightImpact();
+      setState(() => _currentIndex = index);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
+      extendBody: true,
+      bottomNavigationBar: _buildFloatingNavBar(isDark),
+    );
+  }
+
+  Widget _buildFloatingNavBar(bool isDark) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20.w,
+        right: 20.w,
+        bottom: MediaQuery.of(context).padding.bottom + 16.h,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28.r),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 70.h,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        const Color(0xFF1C1C1E).withValues(alpha: 0.9),
+                        const Color(0xFF2C2C2E).withValues(alpha: 0.85),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: 0.9),
+                        Colors.white.withValues(alpha: 0.8),
+                      ],
+              ),
+              borderRadius: BorderRadius.circular(28.r),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.white.withValues(alpha: 0.6),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark
+                      ? Colors.black.withValues(alpha: 0.4)
+                      : Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                  spreadRadius: 0,
+                ),
+                if (!isDark)
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 5),
+                  ),
+              ],
             ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildNavItem(
-                  index: 0,
-                  icon: Iconsax.home_2,
-                  activeIcon: Iconsax.home_25,
-                  label: 'الرئيسية',
+                SizedBox(
+                  width: 52.w,
+                  child: _buildNavItem(
+                    index: 0,
+                    icon: Iconsax.home_2,
+                    activeIcon: Iconsax.home_25,
+                    isDark: isDark,
+                  ),
                 ),
-                _buildNavItem(
-                  index: 1,
-                  icon: Iconsax.box,
-                  activeIcon: Iconsax.box5,
-                  label: 'الطلبات',
+                SizedBox(
+                  width: 52.w,
+                  child: _buildNavItem(
+                    index: 1,
+                    icon: Iconsax.box,
+                    activeIcon: Iconsax.box5,
+                    isDark: isDark,
+                  ),
                 ),
-                _buildNavItem(
-                  index: 2,
-                  icon: Iconsax.heart,
-                  activeIcon: Iconsax.heart5,
-                  label: 'المفضلة',
+                SizedBox(
+                  width: 62.w,
+                  height: 62.w,
+                  child: _buildCenterButton(isDark),
                 ),
-                _buildCartNavItem(),
-                _buildNavItem(
-                  index: 4,
-                  icon: Iconsax.user,
-                  activeIcon: Iconsax.user,
-                  label: 'حسابي',
+                SizedBox(
+                  width: 52.w,
+                  child: _buildNavItem(
+                    index: 2,
+                    icon: Iconsax.heart,
+                    activeIcon: Iconsax.heart5,
+                    isDark: isDark,
+                  ),
+                ),
+                SizedBox(
+                  width: 52.w,
+                  child: _buildNavItem(
+                    index: 4,
+                    icon: Iconsax.user,
+                    activeIcon: Iconsax.user,
+                    isDark: isDark,
+                  ),
                 ),
               ],
             ),
@@ -89,123 +174,158 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     required int index,
     required IconData icon,
     required IconData activeIcon,
-    required String label,
+    required bool isDark,
   }) {
     final isSelected = _currentIndex == index;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: () => _onItemTapped(index),
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              size: 24.sp,
-              color: isSelected
-                  ? AppColors.primary
-                  : (isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11.sp,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected
-                    ? AppColors.primary
-                    : (isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondaryLight),
-              ),
-            ),
-          ],
+      child: Center(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          width: 46.w,
+          height: 46.w,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: isSelected
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.2),
+                      AppColors.primaryLight.withValues(alpha: 0.12),
+                    ],
+                  )
+                : null,
+            border: isSelected
+                ? Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    width: 1.5,
+                  )
+                : null,
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      spreadRadius: 0,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Icon(
+            isSelected ? activeIcon : icon,
+            size: 24.sp,
+            color: isSelected
+                ? AppColors.primary
+                : (isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCartNavItem() {
+  Widget _buildCenterButton(bool isDark) {
     final isSelected = _currentIndex == 3;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = 3),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      onTap: () => _onItemTapped(3),
+      child: Center(
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
           children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 48.w,
-                  height: 48.w,
+            // Outer glow effect
+            if (isSelected)
+              Positioned.fill(
+                child: Container(
                   decoration: BoxDecoration(
-                    gradient: isSelected ? AppColors.primaryGradient : null,
-                    color: isSelected
-                        ? null
-                        : (isDark
-                              ? AppColors.cardDark
-                              : AppColors.backgroundLight),
                     shape: BoxShape.circle,
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                        blurRadius: 25,
+                        spreadRadius: 2,
+                      ),
+                    ],
                   ),
+                ),
+              ),
+            // Main button
+            Container(
+              width: 58.w,
+              height: 58.w,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.4),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: AppColors.primaryDark.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
                   child: Icon(
                     isSelected ? Iconsax.shopping_cart5 : Iconsax.shopping_cart,
-                    size: 24.sp,
-                    color: isSelected
-                        ? Colors.white
-                        : (isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight),
+                    key: ValueKey(isSelected),
+                    size: 26.sp,
+                    color: Colors.white,
                   ),
                 ),
-                // Cart badge
-                Positioned(
-                  right: -4.w,
-                  top: -4.h,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 6.w,
-                      vertical: 2.h,
+              ),
+            ),
+            // Cart badge
+            Positioned(
+              right: -2.w,
+              top: -2.h,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF6B6B), Color(0xFFFF4757)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF4757).withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
-                    decoration: BoxDecoration(
-                      color: AppColors.error,
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                    child: Text(
-                      '3',
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
+                  ],
+                ),
+                child: Text(
+                  '3',
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
                 ),
-              ],
+              ),
             ),
           ],
         ),

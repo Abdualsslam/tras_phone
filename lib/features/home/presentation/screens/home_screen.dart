@@ -1,6 +1,7 @@
 /// Home Screen - Main dashboard with banners, categories, products
 library;
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -10,7 +11,6 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
 import '../../../../core/widgets/app_error.dart';
-import '../../../../core/widgets/app_image.dart';
 import '../../../../core/widgets/app_loading.dart';
 import '../../../../core/widgets/product_card.dart';
 import '../../../catalog/domain/entities/banner_entity.dart';
@@ -296,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         SizedBox(height: 12.h),
         SizedBox(
-          height: 100.h,
+          height: 110.h,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -306,47 +306,90 @@ class _HomeScreenState extends State<HomeScreen> {
               final category = categories[index];
               return GestureDetector(
                 onTap: () => context.push('/category/${category.id}/products'),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 64.w,
-                      height: 64.w,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18.r),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      width: 80.w,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 12.h,
+                        horizontal: 8.w,
+                      ),
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? AppColors.cardDark
-                            : AppColors.backgroundLight,
-                        borderRadius: BorderRadius.circular(16.r),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: isDark
+                              ? [
+                                  Colors.white.withValues(alpha: 0.1),
+                                  Colors.white.withValues(alpha: 0.05),
+                                ]
+                              : [
+                                  Colors.white.withValues(alpha: 0.9),
+                                  Colors.white.withValues(alpha: 0.7),
+                                ],
+                        ),
+                        borderRadius: BorderRadius.circular(18.r),
                         border: Border.all(
                           color: isDark
-                              ? AppColors.dividerDark
-                              : AppColors.dividerLight,
-                          width: 1,
+                              ? Colors.white.withValues(alpha: 0.15)
+                              : AppColors.primary.withValues(alpha: 0.15),
+                          width: 1.5,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
                       ),
-                      child: Icon(
-                        _getCategoryIcon(category.slug),
-                        size: 28.sp,
-                        color: AppColors.primary,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 48.w,
+                            height: 48.w,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  AppColors.primary.withValues(alpha: 0.2),
+                                  AppColors.primaryLight.withValues(alpha: 0.1),
+                                ],
+                              ),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Icon(
+                              _getCategoryIcon(category.slug),
+                              size: 24.sp,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            category.nameAr ?? category.name,
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimaryLight,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 8.h),
-                    SizedBox(
-                      width: 70.w,
-                      child: Text(
-                        category.nameAr ?? category.name,
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimaryLight,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               );
             },
@@ -367,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         SizedBox(height: 12.h),
         SizedBox(
-          height: 50.h,
+          height: 55.h,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -377,27 +420,74 @@ class _HomeScreenState extends State<HomeScreen> {
               final brand = brands[index];
               return GestureDetector(
                 onTap: () => context.push('/brand/${brand.id}/products'),
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.cardDark : AppColors.cardLight,
-                    borderRadius: AppTheme.radiusMd,
-                    border: Border.all(
-                      color: isDark
-                          ? AppColors.dividerDark
-                          : AppColors.dividerLight,
-                      width: 1,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      brand.nameAr ?? brand.name,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimaryLight,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14.r),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 22.w,
+                        vertical: 10.h,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: isDark
+                              ? [
+                                  Colors.white.withValues(alpha: 0.1),
+                                  Colors.white.withValues(alpha: 0.05),
+                                ]
+                              : [
+                                  Colors.white.withValues(alpha: 0.9),
+                                  Colors.white.withValues(alpha: 0.7),
+                                ],
+                        ),
+                        borderRadius: BorderRadius.circular(14.r),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.12)
+                              : AppColors.primary.withValues(alpha: 0.12),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 28.w,
+                              height: 28.w,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Iconsax.tag,
+                                size: 14.sp,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            SizedBox(width: 10.w),
+                            Text(
+                              brand.nameAr ?? brand.name,
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimaryLight,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

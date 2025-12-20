@@ -1,6 +1,7 @@
 /// Categories List Screen - Displays all product categories
 library;
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -57,9 +58,9 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                 padding: EdgeInsets.all(16.w),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.9,
-                  crossAxisSpacing: 12.w,
-                  mainAxisSpacing: 12.h,
+                  childAspectRatio: 0.85,
+                  crossAxisSpacing: 14.w,
+                  mainAxisSpacing: 14.h,
                 ),
                 itemCount: _categories.length,
                 itemBuilder: (context, index) {
@@ -68,7 +69,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                     category: category,
                     isDark: isDark,
                     onTap: () {
-                      // Navigate to products by category
+                      context.push('/category/${category.id}/products');
                     },
                   );
                 },
@@ -95,75 +96,135 @@ class _CategoryCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(20.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Category Icon/Image
-            Container(
-              width: 80.w,
-              height: 80.w,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22.r),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        Colors.white.withValues(alpha: 0.1),
+                        Colors.white.withValues(alpha: 0.05),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: 0.9),
+                        Colors.white.withValues(alpha: 0.7),
+                      ],
               ),
-              child: category.imageUrl != null
-                  ? ClipOval(
-                      child: Image.network(
-                        category.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(
+              borderRadius: BorderRadius.circular(22.r),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : AppColors.primary.withValues(alpha: 0.15),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Category Icon/Image with gradient background
+                Container(
+                  width: 75.w,
+                  height: 75.w,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.primary.withValues(alpha: 0.2),
+                        AppColors.primaryLight.withValues(alpha: 0.1),
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: category.imageUrl != null
+                      ? ClipOval(
+                          child: Image.network(
+                            category.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Iconsax.category,
+                              size: 36.sp,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        )
+                      : Icon(
                           Iconsax.category,
-                          size: 40.sp,
+                          size: 36.sp,
                           color: AppColors.primary,
                         ),
-                      ),
-                    )
-                  : Icon(
-                      Iconsax.category,
-                      size: 40.sp,
-                      color: AppColors.primary,
-                    ),
-            ),
-            SizedBox(height: 16.h),
-
-            // Category Name
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
-              child: Text(
-                category.nameAr ?? category.name,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+                SizedBox(height: 14.h),
 
-            // Products Count
-            if (category.productsCount != null)
-              Padding(
-                padding: EdgeInsets.only(top: 4.h),
-                child: Text(
-                  '${category.productsCount} منتج',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textTertiaryLight,
+                // Category Name
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w),
+                  child: Text(
+                    category.nameAr ?? category.name,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimaryLight,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ),
-          ],
+
+                // Products Count with badge style
+                if (category.productsCount != null) ...[
+                  SizedBox(height: 8.h),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 4.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      '${category.productsCount} منتج',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11.sp,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );
