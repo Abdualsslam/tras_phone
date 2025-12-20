@@ -137,11 +137,12 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                     icon: Iconsax.box,
                     activeIcon: Iconsax.box5,
                     isDark: isDark,
+                    selectedOffset: 22.w,
                   ),
                 ),
                 SizedBox(
-                  width: 62.w,
-                  height: 62.w,
+                  width: 56.w,
+                  height: 56.w,
                   child: _buildCenterButton(isDark),
                 ),
                 SizedBox(
@@ -175,8 +176,10 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     required IconData icon,
     required IconData activeIcon,
     required bool isDark,
+    double? selectedOffset,
   }) {
     final isSelected = _currentIndex == index;
+    final hasOffset = selectedOffset != null && selectedOffset > 0;
 
     return GestureDetector(
       onTap: () => _onItemTapped(index),
@@ -185,8 +188,8 @@ class _MainNavigationShellState extends State<MainNavigationShell>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
-          width: 46.w,
-          height: 46.w,
+          width: 40.w,
+          height: 40.w,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: isSelected
@@ -215,14 +218,21 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                   ]
                 : null,
           ),
-          child: Icon(
-            isSelected ? activeIcon : icon,
-            size: 24.sp,
-            color: isSelected
-                ? AppColors.primary
-                : (isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight),
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(
+              left: hasOffset && isSelected ? selectedOffset : 0,
+            ),
+            child: Icon(
+              isSelected ? activeIcon : icon,
+              size: 24.sp,
+              color: isSelected
+                  ? AppColors.primary
+                  : (isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight),
+            ),
           ),
         ),
       ),
@@ -257,8 +267,8 @@ class _MainNavigationShellState extends State<MainNavigationShell>
               ),
             // Main button
             Container(
-              width: 58.w,
-              height: 58.w,
+              width: 52.w,
+              height: 52.w,
               decoration: BoxDecoration(
                 gradient: AppColors.primaryGradient,
                 shape: BoxShape.circle,
@@ -269,14 +279,14 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.primary.withValues(alpha: 0.4),
-                    blurRadius: 15,
-                    offset: const Offset(0, 6),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                     spreadRadius: 0,
                   ),
                   BoxShadow(
                     color: AppColors.primaryDark.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
@@ -286,7 +296,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                   child: Icon(
                     isSelected ? Iconsax.shopping_cart5 : Iconsax.shopping_cart,
                     key: ValueKey(isSelected),
-                    size: 26.sp,
+                    size: 22.sp,
                     color: Colors.white,
                   ),
                 ),
