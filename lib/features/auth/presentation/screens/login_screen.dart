@@ -81,17 +81,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Logo
                     Center(
                       child: Container(
-                        width: 80.w,
-                        height: 80.w,
+                        width: 100.w,
+                        height: 100.w,
                         decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(20.r),
+                          color: isDark ? AppColors.cardDark : Colors.white,
+                          borderRadius: BorderRadius.circular(24.r),
                           boxShadow: AppTheme.shadowMd,
                         ),
-                        child: Icon(
-                          Icons.phone_android,
-                          size: 40.sp,
-                          color: Colors.white,
+                        padding: EdgeInsets.all(12.w),
+                        child: Image.asset(
+                          isDark
+                              ? 'assets/images/logo_dark.png'
+                              : 'assets/images/logo.png',
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),

@@ -97,25 +97,35 @@ class _SplashScreenState extends State<SplashScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         // Logo Icon
-                        Container(
-                          width: 100.w,
-                          height: 100.w,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 30,
-                                offset: const Offset(0, 10),
+                        Builder(
+                          builder: (context) {
+                            final isDark =
+                                Theme.of(context).brightness == Brightness.dark;
+                            return Container(
+                              width: 120.w,
+                              height: 120.w,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppColors.cardDark
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(28.r),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 30,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.phone_android,
-                            size: 50.sp,
-                            color: AppColors.primary,
-                          ),
+                              padding: EdgeInsets.all(16.w),
+                              child: Image.asset(
+                                isDark
+                                    ? 'assets/images/logo_dark.png'
+                                    : 'assets/images/logo.png',
+                                fit: BoxFit.contain,
+                              ),
+                            );
+                          },
                         ),
                         SizedBox(height: 24.h),
                         // App Name
