@@ -110,7 +110,7 @@ class _OrdersListScreenState extends State<OrdersListScreen>
               status: _tabs[_tabController.index].status,
             ),
             child: ListView.separated(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 100.h),
               itemCount: orders.length,
               separatorBuilder: (_, __) => SizedBox(height: 12.h),
               itemBuilder: (context, index) {

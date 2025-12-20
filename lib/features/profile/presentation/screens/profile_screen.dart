@@ -177,7 +177,7 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: 32.h),
+          SizedBox(height: 100.h), // Extra space for floating bottom nav bar
         ],
       ),
     );

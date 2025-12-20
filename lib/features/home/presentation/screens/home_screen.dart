@@ -172,6 +172,9 @@ class _HomeScreenState extends State<HomeScreen> {
             products: state.bestSellers,
             onSeeAll: () => context.push('/products?sort=bestselling'),
           ),
+
+        // Extra space for floating bottom nav bar
+        SizedBox(height: 100.h),
       ],
     );
   }
