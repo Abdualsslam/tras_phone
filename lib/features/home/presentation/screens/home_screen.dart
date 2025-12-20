@@ -10,6 +10,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/widgets/app_error.dart';
 import '../../../../core/widgets/app_loading.dart';
 import '../../../../core/widgets/product_card.dart';
@@ -459,35 +460,49 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       child: Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 28.w,
-                              height: 28.w,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
+                        child: _getBrandLogo(brand.slug) != null
+                            ? SvgPicture.asset(
+                                _getBrandLogo(brand.slug)!,
+                                width: 80.w,
+                                height: 30.h,
+                                colorFilter: ColorFilter.mode(
+                                  isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight,
+                                  BlendMode.srcIn,
+                                ),
+                              )
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 28.w,
+                                    height: 28.w,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Iconsax.tag,
+                                      size: 14.sp,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  SizedBox(width: 10.w),
+                                  Text(
+                                    brand.nameAr ?? brand.name,
+                                    style: TextStyle(
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? AppColors.textPrimaryDark
+                                          : AppColors.textPrimaryLight,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              child: Icon(
-                                Iconsax.tag,
-                                size: 14.sp,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            SizedBox(width: 10.w),
-                            Text(
-                              brand.nameAr ?? brand.name,
-                              style: TextStyle(
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? AppColors.textPrimaryDark
-                                    : AppColors.textPrimaryLight,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ),
@@ -619,5 +634,15 @@ class _HomeScreenState extends State<HomeScreen> {
       default:
         return Iconsax.cpu;
     }
+  }
+
+  String? _getBrandLogo(String slug) {
+    final brandLogos = {
+      'apple': 'assets/images/brands/apple-13.svg',
+      'samsung': 'assets/images/brands/samsung-8.svg',
+      'huawei': 'assets/images/brands/huawei-pure-.svg',
+      'xiaomi': 'assets/images/brands/xiaomi-3.svg',
+    };
+    return brandLogos[slug.toLowerCase()];
   }
 }
