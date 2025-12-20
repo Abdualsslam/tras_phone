@@ -76,23 +76,16 @@ flutter:
     - assets/animations/
   
   fonts:
-    - family: Inter
+    # iOS Arabic Fonts
+    - family: SFArabic
       fonts:
-        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/SFArabic-Regular.ttf
           weight: 400
-        - asset: assets/fonts/Inter-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Inter-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Inter-Bold.ttf
-          weight: 700
-    - family: Cairo
+    - family: SFArabicRounded
       fonts:
-        - asset: assets/fonts/Cairo-Regular.ttf
+        - asset: assets/fonts/SFArabicRounded-Regular.ttf
           weight: 400
-        - asset: assets/fonts/Cairo-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Cairo-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Cairo-Bold.ttf
-          weight: 700
+    - family: AbdoMaster
+      fonts:
+        - asset: assets/fonts/Abdo-Master-Regular.otf
+          weight: 400

@@ -423,10 +423,11 @@ class _HomeScreenState extends State<HomeScreen> {
         _buildSectionHeader(title: title, onSeeAll: onSeeAll),
         SizedBox(height: 12.h),
         SizedBox(
-          height: 280.h,
+          height: 290.h,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 10.h),
+            clipBehavior: Clip.none,
             itemCount: products.length,
             separatorBuilder: (_, __) => SizedBox(width: 12.w),
             itemBuilder: (context, index) {
@@ -468,16 +469,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w700,
-              color: isDark
-                  ? AppColors.textPrimaryDark
-                  : AppColors.textPrimaryLight,
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w700,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           if (onSeeAll != null)
@@ -487,6 +491,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 8.w),
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'عرض الكل',

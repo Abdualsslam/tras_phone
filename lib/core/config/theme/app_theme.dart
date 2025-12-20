@@ -10,9 +10,9 @@ import 'app_colors.dart';
 class AppTheme {
   AppTheme._();
 
-  // Font Families
-  static const String fontFamilyEn = 'Inter';
-  static const String fontFamilyAr = 'Cairo';
+  // Font Families - iOS Style
+  static const String fontFamilyEn = 'Inter'; // Similar to SF Pro
+  static const String fontFamilyAr = 'SFArabic'; // iOS Arabic System Font
 
   // Border Radius
   static BorderRadius radiusXs = BorderRadius.circular(4.r);
@@ -38,7 +38,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      fontFamily: fontFamilyEn,
+      fontFamily: fontFamilyAr, // Use SFArabic for Arabic app
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.backgroundLight,
 
@@ -186,7 +186,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      fontFamily: fontFamilyEn,
+      fontFamily: fontFamilyAr, // Use SFArabic for Arabic app
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.backgroundDark,
 
