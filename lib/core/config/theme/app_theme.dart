@@ -65,7 +65,7 @@ class AppTheme {
         foregroundColor: AppColors.textPrimaryLight,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
         titleTextStyle: TextStyle(
-          fontFamily: fontFamilyEn,
+          fontFamily: fontFamilyAr,
           fontSize: 17.sp,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimaryLight,
@@ -118,7 +118,7 @@ class AppTheme {
           padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
           shape: RoundedRectangleBorder(borderRadius: radiusMd),
           textStyle: TextStyle(
-            fontFamily: fontFamilyEn,
+            fontFamily: fontFamilyAr,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -130,7 +130,7 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
           textStyle: TextStyle(
-            fontFamily: fontFamilyEn,
+            fontFamily: fontFamilyAr,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -146,7 +146,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: radiusMd),
           side: const BorderSide(color: AppColors.primary),
           textStyle: TextStyle(
-            fontFamily: fontFamilyEn,
+            fontFamily: fontFamilyAr,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -213,7 +213,7 @@ class AppTheme {
         foregroundColor: AppColors.textPrimaryDark,
         systemOverlayStyle: SystemUiOverlayStyle.light,
         titleTextStyle: TextStyle(
-          fontFamily: fontFamilyEn,
+          fontFamily: fontFamilyAr,
           fontSize: 17.sp,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimaryDark,
@@ -266,7 +266,7 @@ class AppTheme {
           padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
           shape: RoundedRectangleBorder(borderRadius: radiusMd),
           textStyle: TextStyle(
-            fontFamily: fontFamilyEn,
+            fontFamily: fontFamilyAr,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -278,7 +278,7 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
           textStyle: TextStyle(
-            fontFamily: fontFamilyEn,
+            fontFamily: fontFamilyAr,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -294,7 +294,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: radiusMd),
           side: const BorderSide(color: AppColors.primary),
           textStyle: TextStyle(
-            fontFamily: fontFamilyEn,
+            fontFamily: fontFamilyAr,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),

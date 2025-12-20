@@ -75,14 +75,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return AppBar(
       title: Row(
         children: [
-          Container(
+          Image.asset(
+            isDark ? 'assets/images/logo_dark.png' : 'assets/images/logo.png',
             width: 36.w,
             height: 36.w,
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient,
-              borderRadius: BorderRadius.circular(10.r),
-            ),
-            child: Icon(Icons.phone_android, size: 20.sp, color: Colors.white),
+            fit: BoxFit.contain,
           ),
           SizedBox(width: 10.w),
           Text(

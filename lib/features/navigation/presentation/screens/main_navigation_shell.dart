@@ -9,6 +9,7 @@ import '../../../cart/presentation/screens/cart_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 import '../../../orders/presentation/screens/orders_list_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
+import '../../../wishlist/presentation/screens/wishlist_screen.dart';
 
 class MainNavigationShell extends StatefulWidget {
   const MainNavigationShell({super.key});
@@ -23,6 +24,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   final List<Widget> _screens = const [
     HomeScreen(),
     OrdersListScreen(),
+    WishlistScreen(),
     CartScreen(),
     ProfileScreen(),
   ];
@@ -62,9 +64,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   activeIcon: Iconsax.box5,
                   label: 'الطلبات',
                 ),
+                _buildNavItem(
+                  index: 2,
+                  icon: Iconsax.heart,
+                  activeIcon: Iconsax.heart5,
+                  label: 'المفضلة',
+                ),
                 _buildCartNavItem(),
                 _buildNavItem(
-                  index: 3,
+                  index: 4,
                   icon: Iconsax.user,
                   activeIcon: Iconsax.user,
                   label: 'حسابي',
@@ -129,11 +137,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   Widget _buildCartNavItem() {
-    final isSelected = _currentIndex == 2;
+    final isSelected = _currentIndex == 3;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = 2),
+      onTap: () => setState(() => _currentIndex = 3),
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
