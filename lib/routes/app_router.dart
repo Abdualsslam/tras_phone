@@ -1,8 +1,8 @@
 /// App Router - GoRouter configuration
 library;
 
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/onboarding_screen.dart';
@@ -12,6 +12,10 @@ import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/catalog/presentation/screens/screens.dart';
 import '../features/catalog/domain/entities/product_entity.dart';
 import '../features/navigation/presentation/screens/main_navigation_shell.dart';
+import '../features/wallet/presentation/screens/wallet_screen.dart';
+import '../features/wallet/presentation/screens/loyalty_points_screen.dart';
+import '../features/notifications/presentation/screens/notifications_screen.dart';
+import '../features/settings/presentation/screens/settings_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -67,7 +71,6 @@ final GoRouter appRouter = GoRouter(
         if (product != null) {
           return ProductDetailsScreen(product: product);
         }
-        // Fallback - would load from API in real app
         return Scaffold(
           appBar: AppBar(title: const Text('المنتج')),
           body: const Center(child: Text('المنتج غير موجود')),
@@ -111,16 +114,24 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
 
     // ═══════════════════════════════════════════════════════════════════════
+    // WALLET & LOYALTY ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(path: '/wallet', builder: (context, state) => const WalletScreen()),
+    GoRoute(
+      path: '/loyalty-points',
+      builder: (context, state) => const LoyaltyPointsScreen(),
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
     // OTHER ROUTES
     // ═══════════════════════════════════════════════════════════════════════
-
-    // Notifications
     GoRoute(
       path: '/notifications',
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(title: const Text('الإشعارات')),
-        body: const Center(child: Text('Notifications')),
-      ),
+      builder: (context, state) => const NotificationsScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
     ),
   ],
 );
