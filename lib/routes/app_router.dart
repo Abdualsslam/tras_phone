@@ -16,6 +16,24 @@ import '../features/wallet/presentation/screens/wallet_screen.dart';
 import '../features/wallet/presentation/screens/loyalty_points_screen.dart';
 import '../features/notifications/presentation/screens/notifications_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
+import '../features/cart/presentation/screens/checkout_screen.dart';
+import '../features/cart/presentation/screens/order_confirmation_screen.dart';
+import '../features/wishlist/presentation/screens/wishlist_screen.dart';
+import '../features/reviews/presentation/screens/product_reviews_screen.dart';
+import '../features/reviews/presentation/screens/write_review_screen.dart';
+import '../features/returns/presentation/screens/returns_list_screen.dart';
+import '../features/returns/presentation/screens/create_return_screen.dart';
+import '../features/support/presentation/screens/support_tickets_screen.dart';
+import '../features/support/presentation/screens/ticket_chat_screen.dart';
+import '../features/support/presentation/screens/create_ticket_screen.dart';
+import '../features/education/presentation/screens/faq_screen.dart';
+import '../features/education/presentation/screens/static_page_screen.dart';
+import '../features/orders/presentation/screens/order_details_screen.dart';
+import '../features/orders/presentation/screens/order_tracking_screen.dart';
+import '../features/profile/presentation/screens/addresses_list_screen.dart';
+import '../features/profile/presentation/screens/edit_profile_screen.dart';
+import '../features/profile/presentation/screens/change_password_screen.dart';
+import '../features/admin/presentation/screens/admin_dashboard_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -62,56 +80,93 @@ final GoRouter appRouter = GoRouter(
     // ═══════════════════════════════════════════════════════════════════════
     // CATALOG ROUTES
     // ═══════════════════════════════════════════════════════════════════════
-
-    // Product routes
     GoRoute(
       path: '/product/:id',
       builder: (context, state) {
         final product = state.extra as ProductEntity?;
-        if (product != null) {
-          return ProductDetailsScreen(product: product);
-        }
+        if (product != null) return ProductDetailsScreen(product: product);
         return Scaffold(
           appBar: AppBar(title: const Text('المنتج')),
           body: const Center(child: Text('المنتج غير موجود')),
         );
       },
     ),
-
-    // Category routes
     GoRoute(
       path: '/categories',
       builder: (context, state) => const CategoriesListScreen(),
     ),
     GoRoute(
-      path: '/category/:id/products',
-      builder: (context, state) {
-        final id = state.pathParameters['id'] ?? '';
-        return Scaffold(
-          appBar: AppBar(title: Text('القسم #$id')),
-          body: Center(child: Text('Category Products: $id')),
-        );
-      },
-    ),
-
-    // Brand routes
-    GoRoute(
       path: '/brands',
       builder: (context, state) => const BrandsListScreen(),
     ),
+    GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CART & CHECKOUT ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
     GoRoute(
-      path: '/brand/:id/products',
+      path: '/checkout',
+      builder: (context, state) => const CheckoutScreen(),
+    ),
+    GoRoute(
+      path: '/order-confirmation',
+      builder: (context, state) => const OrderConfirmationScreen(),
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ORDER ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(
+      path: '/order/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+        return OrderDetailsScreen(orderId: id);
+      },
+    ),
+    GoRoute(
+      path: '/order/:id/tracking',
       builder: (context, state) {
         final id = state.pathParameters['id'] ?? '';
-        return Scaffold(
-          appBar: AppBar(title: Text('الماركة #$id')),
-          body: Center(child: Text('Brand Products: $id')),
-        );
+        return OrderTrackingScreen(orderNumber: 'ORD-2024-$id');
       },
     ),
 
-    // Search
-    GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
+    // ═══════════════════════════════════════════════════════════════════════
+    // WISHLIST & REVIEWS ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(
+      path: '/wishlist',
+      builder: (context, state) => const WishlistScreen(),
+    ),
+    GoRoute(
+      path: '/product/:id/reviews',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+        return ProductReviewsScreen(productId: id);
+      },
+    ),
+    GoRoute(
+      path: '/product/:id/write-review',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+        return WriteReviewScreen(productId: id, productName: 'منتج');
+      },
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // RETURNS ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(
+      path: '/returns',
+      builder: (context, state) => const ReturnsListScreen(),
+    ),
+    GoRoute(
+      path: '/returns/create/:orderId',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['orderId'] ?? '') ?? 0;
+        return CreateReturnScreen(orderId: id);
+      },
+    ),
 
     // ═══════════════════════════════════════════════════════════════════════
     // WALLET & LOYALTY ROUTES
@@ -120,6 +175,61 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/loyalty-points',
       builder: (context, state) => const LoyaltyPointsScreen(),
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PROFILE ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(
+      path: '/addresses',
+      builder: (context, state) => const AddressesListScreen(),
+    ),
+    GoRoute(
+      path: '/edit-profile',
+      builder: (context, state) => const EditProfileScreen(),
+    ),
+    GoRoute(
+      path: '/change-password',
+      builder: (context, state) => const ChangePasswordScreen(),
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SUPPORT ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(
+      path: '/support',
+      builder: (context, state) => const SupportTicketsScreen(),
+    ),
+    GoRoute(
+      path: '/support/create',
+      builder: (context, state) => const CreateTicketScreen(),
+    ),
+    GoRoute(
+      path: '/support/:id/chat',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+        return TicketChatScreen(ticketId: id, subject: 'تذكرة دعم');
+      },
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // EDUCATION ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(path: '/faq', builder: (context, state) => const FaqScreen()),
+    GoRoute(
+      path: '/terms',
+      builder: (context, state) =>
+          const StaticPageScreen(title: 'الشروط والأحكام', slug: 'terms'),
+    ),
+    GoRoute(
+      path: '/privacy',
+      builder: (context, state) =>
+          const StaticPageScreen(title: 'سياسة الخصوصية', slug: 'privacy'),
+    ),
+    GoRoute(
+      path: '/about',
+      builder: (context, state) =>
+          const StaticPageScreen(title: 'عن التطبيق', slug: 'about'),
     ),
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -132,6 +242,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/settings',
       builder: (context, state) => const SettingsScreen(),
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ADMIN ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(
+      path: '/admin',
+      builder: (context, state) => const AdminDashboardScreen(),
     ),
   ],
 );
