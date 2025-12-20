@@ -9,6 +9,8 @@ import '../features/auth/presentation/screens/onboarding_screen.dart';
 import '../features/auth/presentation/screens/otp_verification_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
+import '../features/catalog/presentation/screens/screens.dart';
+import '../features/catalog/domain/entities/product_entity.dart';
 import '../features/navigation/presentation/screens/main_navigation_shell.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -53,32 +55,30 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const MainNavigationShell(),
     ),
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // CATALOG ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+
     // Product routes
     GoRoute(
       path: '/product/:id',
       builder: (context, state) {
-        final id = state.pathParameters['id'] ?? '';
+        final product = state.extra as ProductEntity?;
+        if (product != null) {
+          return ProductDetailsScreen(product: product);
+        }
+        // Fallback - would load from API in real app
         return Scaffold(
-          appBar: AppBar(title: Text('المنتج #$id')),
-          body: Center(child: Text('Product Details: $id')),
+          appBar: AppBar(title: const Text('المنتج')),
+          body: const Center(child: Text('المنتج غير موجود')),
         );
       },
-    ),
-    GoRoute(
-      path: '/products',
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(title: const Text('المنتجات')),
-        body: const Center(child: Text('Products List')),
-      ),
     ),
 
     // Category routes
     GoRoute(
       path: '/categories',
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(title: const Text('الأقسام')),
-        body: const Center(child: Text('Categories')),
-      ),
+      builder: (context, state) => const CategoriesListScreen(),
     ),
     GoRoute(
       path: '/category/:id/products',
@@ -94,10 +94,7 @@ final GoRouter appRouter = GoRouter(
     // Brand routes
     GoRoute(
       path: '/brands',
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(title: const Text('الماركات')),
-        body: const Center(child: Text('Brands')),
-      ),
+      builder: (context, state) => const BrandsListScreen(),
     ),
     GoRoute(
       path: '/brand/:id/products',
@@ -111,13 +108,11 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // Search
-    GoRoute(
-      path: '/search',
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(title: const Text('البحث')),
-        body: const Center(child: Text('Search')),
-      ),
-    ),
+    GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // OTHER ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
 
     // Notifications
     GoRoute(

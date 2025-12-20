@@ -12,7 +12,9 @@ import 'core/storage/secure_storage.dart';
 import 'features/auth/data/datasources/auth_mock_datasource.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
+import 'features/cart/presentation/cubit/cart_cubit.dart';
 import 'features/home/presentation/cubit/home_cubit.dart';
+import 'features/orders/presentation/cubit/orders_cubit.dart';
 import 'routes/app_router.dart';
 
 class TrasPhoneApp extends StatelessWidget {
@@ -37,6 +39,8 @@ class TrasPhoneApp extends StatelessWidget {
               ),
             ),
             BlocProvider(create: (_) => HomeCubit()),
+            BlocProvider(create: (_) => CartCubit()),
+            BlocProvider(create: (_) => OrdersCubit()),
           ],
           child: MaterialApp.router(
             title: 'تراس فون',
