@@ -27,9 +27,7 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Iconsax.setting_2),
-            onPressed: () {
-              // Navigate to settings
-            },
+            onPressed: () => context.push('/settings'),
           ),
         ],
       ),
@@ -60,7 +58,7 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         children: [
           // Profile Header
-          _buildProfileHeader(theme, isDark, customer),
+          _buildProfileHeader(context, theme, isDark, customer),
           SizedBox(height: 24.h),
 
           // Stats Cards
@@ -77,13 +75,13 @@ class ProfileScreen extends StatelessWidget {
                 icon: Iconsax.box,
                 title: 'طلباتي',
                 subtitle: 'تتبع وإدارة طلباتك',
-                onTap: () {},
+                onTap: () => context.push('/orders'),
               ),
               _MenuItem(
                 icon: Iconsax.rotate_left,
                 title: 'المرتجعات',
                 subtitle: 'طلبات الإرجاع والاستبدال',
-                onTap: () {},
+                onTap: () => context.push('/returns'),
               ),
             ],
           ),
@@ -98,13 +96,13 @@ class ProfileScreen extends StatelessWidget {
                 icon: Iconsax.wallet,
                 title: 'محفظتي',
                 subtitle: '٥٠٠ ر.س',
-                onTap: () {},
+                onTap: () => context.push('/wallet'),
               ),
               _MenuItem(
                 icon: Iconsax.medal_star,
                 title: 'نقاط الولاء',
                 subtitle: '١٥٠ نقطة',
-                onTap: () {},
+                onTap: () => context.push('/loyalty-points'),
               ),
             ],
           ),
@@ -118,17 +116,17 @@ class ProfileScreen extends StatelessWidget {
               _MenuItem(
                 icon: Iconsax.user_edit,
                 title: 'تعديل الملف الشخصي',
-                onTap: () {},
+                onTap: () => context.push('/edit-profile'),
               ),
               _MenuItem(
                 icon: Iconsax.location,
                 title: 'العناوين',
-                onTap: () {},
+                onTap: () => context.push('/addresses'),
               ),
               _MenuItem(
                 icon: Iconsax.lock,
                 title: 'تغيير كلمة المرور',
-                onTap: () {},
+                onTap: () => context.push('/change-password'),
               ),
             ],
           ),
@@ -142,17 +140,17 @@ class ProfileScreen extends StatelessWidget {
               _MenuItem(
                 icon: Iconsax.message_question,
                 title: 'الأسئلة الشائعة',
-                onTap: () {},
+                onTap: () => context.push('/faq'),
               ),
               _MenuItem(
                 icon: Iconsax.headphone,
                 title: 'الدعم الفني',
-                onTap: () {},
+                onTap: () => context.push('/support'),
               ),
               _MenuItem(
                 icon: Iconsax.document_text,
                 title: 'الشروط والأحكام',
-                onTap: () {},
+                onTap: () => context.push('/terms'),
               ),
             ],
           ),
@@ -183,7 +181,12 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileHeader(ThemeData theme, bool isDark, dynamic customer) {
+  Widget _buildProfileHeader(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    dynamic customer,
+  ) {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
@@ -251,7 +254,7 @@ class ProfileScreen extends StatelessWidget {
 
           // Edit Button
           IconButton(
-            onPressed: () {},
+            onPressed: () => context.push('/edit-profile'),
             icon: const Icon(Iconsax.edit, color: Colors.white),
           ),
         ],

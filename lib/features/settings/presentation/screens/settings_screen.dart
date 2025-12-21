@@ -85,21 +85,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 theme,
                 icon: Iconsax.lock,
                 title: 'تغيير كلمة المرور',
-                onTap: () {},
+                onTap: () => context.push('/change-password'),
               ),
               _buildDivider(),
               _buildNavigationTile(
                 theme,
                 icon: Iconsax.finger_scan,
                 title: 'البصمة / Face ID',
-                onTap: () {},
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('ميزة قيد التطوير')),
+                  );
+                },
               ),
               _buildDivider(),
               _buildNavigationTile(
                 theme,
                 icon: Iconsax.shield_tick,
                 title: 'سياسة الخصوصية',
-                onTap: () {},
+                onTap: () => context.push('/privacy'),
               ),
             ]),
             SizedBox(height: 24.h),
@@ -112,21 +116,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Iconsax.info_circle,
                 title: 'عن التطبيق',
                 subtitle: 'الإصدار 1.0.0',
-                onTap: () {},
+                onTap: () => context.push('/about'),
               ),
               _buildDivider(),
               _buildNavigationTile(
                 theme,
                 icon: Iconsax.star,
                 title: 'قيّم التطبيق',
-                onTap: () {},
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('شكراً لتقييمك!')),
+                  );
+                },
               ),
               _buildDivider(),
               _buildNavigationTile(
                 theme,
                 icon: Iconsax.share,
                 title: 'شارك التطبيق',
-                onTap: () {},
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('جاري فتح المشاركة...')),
+                  );
+                },
               ),
             ]),
             SizedBox(height: 24.h),
