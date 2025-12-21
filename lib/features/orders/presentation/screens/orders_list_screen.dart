@@ -9,6 +9,7 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../domain/entities/order_entity.dart';
 import '../cubit/orders_cubit.dart';
 import '../cubit/orders_state.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class OrdersListScreen extends StatefulWidget {
   const OrdersListScreen({super.key});
@@ -59,7 +60,7 @@ class _OrdersListScreenState extends State<OrdersListScreen>
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('طلباتي'),
+        title: Text(AppLocalizations.of(context)!.orders),
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(48.h),
           child: TabBar(
@@ -92,7 +93,7 @@ class _OrdersListScreenState extends State<OrdersListScreen>
                   SizedBox(height: 16.h),
                   ElevatedButton(
                     onPressed: () => context.read<OrdersCubit>().loadOrders(),
-                    child: const Text('إعادة المحاولة'),
+                    child: Text(AppLocalizations.of(context)!.tryAgain),
                   ),
                 ],
               ),
@@ -138,7 +139,7 @@ class _OrdersListScreenState extends State<OrdersListScreen>
           Icon(Iconsax.box, size: 80.sp, color: AppColors.textTertiaryLight),
           SizedBox(height: 24.h),
           Text(
-            'لا توجد طلبات',
+            AppLocalizations.of(context)!.noResults,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -250,13 +251,13 @@ class _OrderCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'الإجمالي',
+                  AppLocalizations.of(context)!.total,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondaryLight,
                   ),
                 ),
                 Text(
-                  '${order.total.toStringAsFixed(0)} ر.س',
+                  '${order.total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
                   style: TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.w700,

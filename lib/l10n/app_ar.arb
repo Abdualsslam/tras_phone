@@ -1,0 +1,564 @@
+{
+  "@@locale": "ar",
+  "@@author": "TRAS Phone Team",
+  
+  "appName": "تراس فون",
+  "@appName": {
+    "description": "اسم التطبيق"
+  },
+
+  "home": "الرئيسية",
+  "@home": {
+    "description": "عنصر التنقل للصفحة الرئيسية"
+  },
+
+  "categories": "الأقسام",
+  "@categories": {
+    "description": "عنوان قسم الأقسام"
+  },
+
+  "brands": "الماركات",
+  "@brands": {
+    "description": "عنوان قسم الماركات"
+  },
+
+  "featuredProducts": "منتجات مميزة",
+  "@featuredProducts": {
+    "description": "عنوان قسم المنتجات المميزة"
+  },
+
+  "newArrivals": "وصل حديثاً",
+  "@newArrivals": {
+    "description": "عنوان قسم المنتجات الجديدة"
+  },
+
+  "bestSellers": "الأكثر مبيعاً",
+  "@bestSellers": {
+    "description": "عنوان قسم الأكثر مبيعاً"
+  },
+
+  "viewAll": "عرض الكل",
+  "@viewAll": {
+    "description": "زر عرض الكل"
+  },
+
+  "shopNow": "تسوق الآن",
+  "@shopNow": {
+    "description": "زر التسوق"
+  },
+
+  "search": "بحث",
+  "@search": {
+    "description": "عنوان البحث"
+  },
+
+  "searchHint": "ابحث عن منتجات...",
+  "@searchHint": {
+    "description": "نص تلميح البحث"
+  },
+
+  "notifications": "الإشعارات",
+  "@notifications": {
+    "description": "عنوان الإشعارات"
+  },
+
+  "cart": "السلة",
+  "@cart": {
+    "description": "عنوان السلة"
+  },
+
+  "profile": "الملف الشخصي",
+  "@profile": {
+    "description": "عنوان الملف الشخصي"
+  },
+
+  "settings": "الإعدادات",
+  "@settings": {
+    "description": "عنوان الإعدادات"
+  },
+
+  "language": "اللغة",
+  "@language": {
+    "description": "عنوان إعداد اللغة"
+  },
+
+  "arabic": "العربية",
+  "@arabic": {
+    "description": "اسم اللغة العربية"
+  },
+
+  "english": "English",
+  "@english": {
+    "description": "اسم اللغة الإنجليزية"
+  },
+
+  "orders": "طلباتي",
+  "@orders": {
+    "description": "عنوان الطلبات"
+  },
+
+  "wishlist": "المفضلة",
+  "@wishlist": {
+    "description": "عنوان المفضلة"
+  },
+
+  "favorites": "المفضلة",
+  "@favorites": {
+    "description": "عنوان قائمة المفضلة"
+  },
+
+  "noNotifications": "لا توجد إشعارات",
+  "@noNotifications": {
+    "description": "رسالة عدم وجود إشعارات"
+  },
+
+  "wallet": "المحفظة",
+  "@wallet": {
+    "description": "عنوان المحفظة"
+  },
+
+  "addresses": "العناوين",
+  "@addresses": {
+    "description": "عنوان العناوين"
+  },
+
+  "support": "الدعم الفني",
+  "@support": {
+    "description": "عنوان الدعم الفني"
+  },
+
+  "aboutUs": "من نحن",
+  "@aboutUs": {
+    "description": "عنوان صفحة من نحن"
+  },
+
+  "privacyPolicy": "سياسة الخصوصية",
+  "@privacyPolicy": {
+    "description": "عنوان سياسة الخصوصية"
+  },
+
+  "termsAndConditions": "الشروط والأحكام",
+  "@termsAndConditions": {
+    "description": "عنوان الشروط والأحكام"
+  },
+
+  "logout": "تسجيل الخروج",
+  "@logout": {
+    "description": "زر تسجيل الخروج"
+  },
+
+  "login": "تسجيل الدخول",
+  "@login": {
+    "description": "زر تسجيل الدخول"
+  },
+
+  "register": "إنشاء حساب",
+  "@register": {
+    "description": "زر إنشاء حساب"
+  },
+
+  "phone": "رقم الهاتف",
+  "@phone": {
+    "description": "حقل رقم الهاتف"
+  },
+
+  "password": "كلمة المرور",
+  "@password": {
+    "description": "حقل كلمة المرور"
+  },
+
+  "confirmPassword": "تأكيد كلمة المرور",
+  "@confirmPassword": {
+    "description": "حقل تأكيد كلمة المرور"
+  },
+
+  "name": "الاسم",
+  "@name": {
+    "description": "حقل الاسم"
+  },
+
+  "email": "البريد الإلكتروني",
+  "@email": {
+    "description": "حقل البريد الإلكتروني"
+  },
+
+  "forgotPassword": "نسيت كلمة المرور؟",
+  "@forgotPassword": {
+    "description": "رابط نسيت كلمة المرور"
+  },
+
+  "verifyOtp": "تأكيد الرمز",
+  "@verifyOtp": {
+    "description": "عنوان صفحة تأكيد الرمز"
+  },
+
+  "otpSent": "تم إرسال رمز التحقق إلى",
+  "@otpSent": {
+    "description": "رسالة إرسال رمز التحقق"
+  },
+
+  "resendOtp": "إعادة إرسال الرمز",
+  "@resendOtp": {
+    "description": "زر إعادة إرسال الرمز"
+  },
+
+  "verify": "تحقق",
+  "@verify": {
+    "description": "زر التحقق"
+  },
+
+  "addToCart": "أضف للسلة",
+  "@addToCart": {
+    "description": "زر الإضافة للسلة"
+  },
+
+  "addedToCart": "تمت الإضافة للسلة",
+  "@addedToCart": {
+    "description": "رسالة تأكيد الإضافة للسلة"
+  },
+
+  "buyNow": "اشتر الآن",
+  "@buyNow": {
+    "description": "زر الشراء الآن"
+  },
+
+  "productDetails": "تفاصيل المنتج",
+  "@productDetails": {
+    "description": "عنوان تفاصيل المنتج"
+  },
+
+  "description": "الوصف",
+  "@description": {
+    "description": "عنوان الوصف"
+  },
+
+  "specifications": "المواصفات",
+  "@specifications": {
+    "description": "عنوان المواصفات"
+  },
+
+  "reviews": "التقييمات",
+  "@reviews": {
+    "description": "عنوان التقييمات"
+  },
+
+  "inStock": "متوفر",
+  "@inStock": {
+    "description": "حالة المنتج المتوفر"
+  },
+
+  "outOfStock": "غير متوفر",
+  "@outOfStock": {
+    "description": "حالة المنتج غير المتوفر"
+  },
+
+  "quantity": "الكمية",
+  "@quantity": {
+    "description": "عنوان الكمية"
+  },
+
+  "total": "الإجمالي",
+  "@total": {
+    "description": "عنوان الإجمالي"
+  },
+
+  "subtotal": "المجموع الفرعي",
+  "@subtotal": {
+    "description": "عنوان المجموع الفرعي"
+  },
+
+  "shipping": "الشحن",
+  "@shipping": {
+    "description": "عنوان الشحن"
+  },
+
+  "discount": "الخصم",
+  "@discount": {
+    "description": "عنوان الخصم"
+  },
+
+  "checkout": "إتمام الطلب",
+  "@checkout": {
+    "description": "زر إتمام الطلب"
+  },
+
+  "continueShopping": "متابعة التسوق",
+  "@continueShopping": {
+    "description": "زر متابعة التسوق"
+  },
+
+  "emptyCart": "السلة فارغة",
+  "@emptyCart": {
+    "description": "رسالة السلة الفارغة"
+  },
+
+  "orderPlaced": "تم تقديم الطلب بنجاح",
+  "@orderPlaced": {
+    "description": "رسالة نجاح الطلب"
+  },
+
+  "orderNumber": "رقم الطلب",
+  "@orderNumber": {
+    "description": "عنوان رقم الطلب"
+  },
+
+  "orderStatus": "حالة الطلب",
+  "@orderStatus": {
+    "description": "عنوان حالة الطلب"
+  },
+
+  "pending": "قيد الانتظار",
+  "@pending": {
+    "description": "حالة الطلب قيد الانتظار"
+  },
+
+  "confirmed": "مؤكد",
+  "@confirmed": {
+    "description": "حالة الطلب مؤكد"
+  },
+
+  "processing": "قيد المعالجة",
+  "@processing": {
+    "description": "حالة الطلب قيد المعالجة"
+  },
+
+  "shipped": "تم الشحن",
+  "@shipped": {
+    "description": "حالة الطلب تم الشحن"
+  },
+
+  "delivered": "تم التوصيل",
+  "@delivered": {
+    "description": "حالة الطلب تم التوصيل"
+  },
+
+  "cancelled": "ملغي",
+  "@cancelled": {
+    "description": "حالة الطلب ملغي"
+  },
+
+  "error": "حدث خطأ",
+  "@error": {
+    "description": "رسالة خطأ عامة"
+  },
+
+  "tryAgain": "حاول مرة أخرى",
+  "@tryAgain": {
+    "description": "زر إعادة المحاولة"
+  },
+
+  "noResults": "لا توجد نتائج",
+  "@noResults": {
+    "description": "رسالة عدم وجود نتائج"
+  },
+
+  "loading": "جاري التحميل...",
+  "@loading": {
+    "description": "رسالة التحميل"
+  },
+
+  "success": "تمت العملية بنجاح",
+  "@success": {
+    "description": "رسالة نجاح عامة"
+  },
+
+  "cancel": "إلغاء",
+  "@cancel": {
+    "description": "زر الإلغاء"
+  },
+
+  "confirm": "تأكيد",
+  "@confirm": {
+    "description": "زر التأكيد"
+  },
+
+  "save": "حفظ",
+  "@save": {
+    "description": "زر الحفظ"
+  },
+
+  "edit": "تعديل",
+  "@edit": {
+    "description": "زر التعديل"
+  },
+
+  "delete": "حذف",
+  "@delete": {
+    "description": "زر الحذف"
+  },
+
+  "close": "إغلاق",
+  "@close": {
+    "description": "زر الإغلاق"
+  },
+
+  "currency": "ر.س",
+  "@currency": {
+    "description": "رمز العملة"
+  },
+
+  "faq": "الأسئلة الشائعة",
+  "@faq": {
+    "description": "عنوان الأسئلة الشائعة"
+  },
+
+  "education": "المركز التعليمي",
+  "@education": {
+    "description": "عنوان المركز التعليمي"
+  },
+
+  "returns": "المرتجعات",
+  "@returns": {
+    "description": "عنوان المرتجعات"
+  },
+
+  "invoice": "الفاتورة",
+  "@invoice": {
+    "description": "عنوان الفاتورة"
+  },
+
+  "devices": "الأجهزة",
+  "@devices": {
+    "description": "عنوان الأجهزة"
+  },
+
+  "products": "المنتجات",
+  "@products": {
+    "description": "عنوان المنتجات"
+  },
+
+  "filter": "تصفية",
+  "@filter": {
+    "description": "زر التصفية"
+  },
+
+  "sort": "ترتيب",
+  "@sort": {
+    "description": "زر الترتيب"
+  },
+
+  "priceHighToLow": "السعر: من الأعلى للأقل",
+  "@priceHighToLow": {
+    "description": "خيار الترتيب حسب السعر تنازلياً"
+  },
+
+  "priceLowToHigh": "السعر: من الأقل للأعلى",
+  "@priceLowToHigh": {
+    "description": "خيار الترتيب حسب السعر تصاعدياً"
+  },
+
+  "newest": "الأحدث",
+  "@newest": {
+    "description": "خيار الترتيب حسب الأحدث"
+  },
+
+  "paymentMethod": "طريقة الدفع",
+  "@paymentMethod": {
+    "description": "عنوان طريقة الدفع"
+  },
+
+  "cashOnDelivery": "الدفع عند الاستلام",
+  "@cashOnDelivery": {
+    "description": "خيار الدفع عند الاستلام"
+  },
+
+  "bankTransfer": "تحويل بنكي",
+  "@bankTransfer": {
+    "description": "خيار التحويل البنكي"
+  },
+
+  "walletPayment": "الدفع من المحفظة",
+  "@walletPayment": {
+    "description": "خيار الدفع من المحفظة"
+  },
+
+  "changePassword": "تغيير كلمة المرور",
+  "@changePassword": {
+    "description": "عنوان تغيير كلمة المرور"
+  },
+
+  "currentPassword": "كلمة المرور الحالية",
+  "@currentPassword": {
+    "description": "حقل كلمة المرور الحالية"
+  },
+
+  "newPassword": "كلمة المرور الجديدة",
+  "@newPassword": {
+    "description": "حقل كلمة المرور الجديدة"
+  },
+
+  "editProfile": "تعديل الملف الشخصي",
+  "@editProfile": {
+    "description": "عنوان تعديل الملف الشخصي"
+  },
+
+  "addAddress": "إضافة عنوان",
+  "@addAddress": {
+    "description": "زر إضافة عنوان"
+  },
+
+  "editAddress": "تعديل العنوان",
+  "@editAddress": {
+    "description": "عنوان تعديل العنوان"
+  },
+
+  "city": "المدينة",
+  "@city": {
+    "description": "حقل المدينة"
+  },
+
+  "street": "الشارع",
+  "@street": {
+    "description": "حقل الشارع"
+  },
+
+  "building": "المبنى",
+  "@building": {
+    "description": "حقل المبنى"
+  },
+
+  "floor": "الطابق",
+  "@floor": {
+    "description": "حقل الطابق"
+  },
+
+  "apartment": "الشقة",
+  "@apartment": {
+    "description": "حقل الشقة"
+  },
+
+  "notes": "ملاحظات",
+  "@notes": {
+    "description": "حقل الملاحظات"
+  },
+
+  "setAsDefault": "تعيين كعنوان افتراضي",
+  "@setAsDefault": {
+    "description": "خيار تعيين كعنوان افتراضي"
+  },
+
+  "required": "هذا الحقل مطلوب",
+  "@required": {
+    "description": "رسالة خطأ الحقل المطلوب"
+  },
+
+  "invalidPhone": "رقم الهاتف غير صالح",
+  "@invalidPhone": {
+    "description": "رسالة خطأ رقم الهاتف"
+  },
+
+  "invalidEmail": "البريد الإلكتروني غير صالح",
+  "@invalidEmail": {
+    "description": "رسالة خطأ البريد الإلكتروني"
+  },
+
+  "passwordTooShort": "كلمة المرور قصيرة جداً",
+  "@passwordTooShort": {
+    "description": "رسالة خطأ كلمة المرور القصيرة"
+  },
+
+  "passwordsDoNotMatch": "كلمات المرور غير متطابقة",
+  "@passwordsDoNotMatch": {
+    "description": "رسالة خطأ عدم تطابق كلمات المرور"
+  }
+}

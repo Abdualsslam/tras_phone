@@ -12,6 +12,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -85,7 +86,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       },
       builder: (context, state) {
         return Scaffold(
-          appBar: AppBar(title: const Text('إنشاء حساب')),
+          appBar: AppBar(title: Text(AppLocalizations.of(context)!.register)),
           body: SafeArea(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(24.w),
@@ -134,7 +135,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     // Phone Field
                     AppTextField(
-                      label: 'رقم الجوال',
+                      label: AppLocalizations.of(context)!.phone,
                       hint: '5XXXXXXXX',
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
@@ -161,7 +162,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     // City Dropdown
                     Text(
-                      'المدينة',
+                      AppLocalizations.of(context)!.city,
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w500,
@@ -200,7 +201,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     // Password Field
                     AppTextField(
-                      label: 'كلمة المرور',
+                      label: AppLocalizations.of(context)!.password,
                       hint: 'أدخل كلمة المرور',
                       controller: _passwordController,
                       obscureText: true,
@@ -212,7 +213,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     // Confirm Password Field
                     AppTextField(
-                      label: 'تأكيد كلمة المرور',
+                      label: AppLocalizations.of(context)!.confirmPassword,
                       hint: 'أعد إدخال كلمة المرور',
                       controller: _confirmPasswordController,
                       obscureText: true,
@@ -228,7 +229,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     // Register Button
                     AppButton(
-                      text: 'إنشاء الحساب',
+                      text: AppLocalizations.of(context)!.register,
                       onPressed: _handleRegister,
                       isLoading: _isLoading,
                     ),
@@ -250,7 +251,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextButton(
                           onPressed: () => context.pop(),
                           child: Text(
-                            'سجل الدخول',
+                            AppLocalizations.of(context)!.login,
                             style: TextStyle(
                               fontSize: 15.sp,
                               fontWeight: FontWeight.w600,

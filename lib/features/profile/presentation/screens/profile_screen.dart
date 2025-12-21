@@ -11,6 +11,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -23,7 +24,7 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('حسابي'),
+        title: Text(AppLocalizations.of(context)!.profile),
         actions: [
           IconButton(
             icon: const Icon(Iconsax.setting_2),
@@ -69,18 +70,18 @@ class ProfileScreen extends StatelessWidget {
           _buildMenuSection(
             theme,
             isDark,
-            title: 'طلباتي',
+            title: AppLocalizations.of(context)!.orders,
             items: [
               _MenuItem(
                 icon: Iconsax.box,
-                title: 'طلباتي',
-                subtitle: 'تتبع وإدارة طلباتك',
+                title: AppLocalizations.of(context)!.orders,
+                subtitle: null,
                 onTap: () => context.push('/orders'),
               ),
               _MenuItem(
                 icon: Iconsax.rotate_left,
-                title: 'المرتجعات',
-                subtitle: 'طلبات الإرجاع والاستبدال',
+                title: AppLocalizations.of(context)!.returns,
+                subtitle: null,
                 onTap: () => context.push('/returns'),
               ),
             ],
@@ -90,12 +91,12 @@ class ProfileScreen extends StatelessWidget {
           _buildMenuSection(
             theme,
             isDark,
-            title: 'المحفظة والنقاط',
+            title: AppLocalizations.of(context)!.wallet,
             items: [
               _MenuItem(
                 icon: Iconsax.wallet,
-                title: 'محفظتي',
-                subtitle: '٥٠٠ ر.س',
+                title: AppLocalizations.of(context)!.wallet,
+                subtitle: null,
                 onTap: () => context.push('/wallet'),
               ),
               _MenuItem(
@@ -111,21 +112,21 @@ class ProfileScreen extends StatelessWidget {
           _buildMenuSection(
             theme,
             isDark,
-            title: 'حسابي',
+            title: AppLocalizations.of(context)!.profile,
             items: [
               _MenuItem(
                 icon: Iconsax.user_edit,
-                title: 'تعديل الملف الشخصي',
+                title: AppLocalizations.of(context)!.editProfile,
                 onTap: () => context.push('/edit-profile'),
               ),
               _MenuItem(
                 icon: Iconsax.location,
-                title: 'العناوين',
+                title: AppLocalizations.of(context)!.addresses,
                 onTap: () => context.push('/addresses'),
               ),
               _MenuItem(
                 icon: Iconsax.lock,
-                title: 'تغيير كلمة المرور',
+                title: AppLocalizations.of(context)!.changePassword,
                 onTap: () => context.push('/change-password'),
               ),
             ],
@@ -135,21 +136,21 @@ class ProfileScreen extends StatelessWidget {
           _buildMenuSection(
             theme,
             isDark,
-            title: 'المساعدة',
+            title: AppLocalizations.of(context)!.support,
             items: [
               _MenuItem(
                 icon: Iconsax.message_question,
-                title: 'الأسئلة الشائعة',
+                title: AppLocalizations.of(context)!.faq,
                 onTap: () => context.push('/faq'),
               ),
               _MenuItem(
                 icon: Iconsax.headphone,
-                title: 'الدعم الفني',
+                title: AppLocalizations.of(context)!.support,
                 onTap: () => context.push('/support'),
               ),
               _MenuItem(
                 icon: Iconsax.document_text,
-                title: 'الشروط والأحكام',
+                title: AppLocalizations.of(context)!.termsAndConditions,
                 onTap: () => context.push('/terms'),
               ),
             ],
@@ -162,9 +163,9 @@ class ProfileScreen extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: () => _showLogoutDialog(context),
               icon: const Icon(Iconsax.logout, color: AppColors.error),
-              label: const Text(
-                'تسجيل الخروج',
-                style: TextStyle(color: AppColors.error),
+              label: Text(
+                AppLocalizations.of(context)!.logout,
+                style: const TextStyle(color: AppColors.error),
               ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: AppColors.error),
@@ -566,7 +567,7 @@ class ProfileScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               padding: EdgeInsets.symmetric(horizontal: 48.w, vertical: 16.h),
             ),
-            child: const Text('تسجيل الدخول'),
+            child: Text(AppLocalizations.of(context)!.login),
           ),
         ],
       ),
@@ -577,12 +578,12 @@ class ProfileScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('تسجيل الخروج'),
-        content: const Text('هل أنت متأكد من تسجيل الخروج؟'),
+        title: Text(AppLocalizations.of(context)!.logout),
+        content: Text(AppLocalizations.of(context)!.logout),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('إلغاء'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () {

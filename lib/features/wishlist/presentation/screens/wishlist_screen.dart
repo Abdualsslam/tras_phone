@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class WishlistScreen extends StatelessWidget {
   const WishlistScreen({super.key});
@@ -43,7 +44,9 @@ class WishlistScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('المفضلة (${wishlistItems.length})'),
+        title: Text(
+          '${AppLocalizations.of(context)!.favorites} (${wishlistItems.length})',
+        ),
         actions: [
           if (wishlistItems.isNotEmpty)
             TextButton(onPressed: () {}, child: const Text('مسح الكل')),
@@ -56,7 +59,12 @@ class WishlistScreen extends StatelessWidget {
               itemCount: wishlistItems.length,
               separatorBuilder: (_, __) => SizedBox(height: 12.h),
               itemBuilder: (context, index) {
-                return _buildWishlistCard(theme, isDark, wishlistItems[index]);
+                return _buildWishlistCard(
+                  context,
+                  theme,
+                  isDark,
+                  wishlistItems[index],
+                );
               },
             ),
     );
@@ -87,7 +95,12 @@ class WishlistScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWishlistCard(ThemeData theme, bool isDark, _WishlistItem item) {
+  Widget _buildWishlistCard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    _WishlistItem item,
+  ) {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
@@ -129,7 +142,7 @@ class WishlistScreen extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '${item.price} ر.س',
+                      '${item.price} ${AppLocalizations.of(context)!.currency}',
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w700,
@@ -139,7 +152,7 @@ class WishlistScreen extends StatelessWidget {
                     if (item.originalPrice != null) ...[
                       SizedBox(width: 8.w),
                       Text(
-                        '${item.originalPrice} ر.س',
+                        '${item.originalPrice} ${AppLocalizations.of(context)!.currency}',
                         style: TextStyle(
                           fontSize: 12.sp,
                           color: AppColors.textTertiaryLight,
@@ -151,7 +164,9 @@ class WishlistScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  item.inStock ? 'متوفر' : 'غير متوفر',
+                  item.inStock
+                      ? AppLocalizations.of(context)!.inStock
+                      : AppLocalizations.of(context)!.outOfStock,
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: item.inStock ? AppColors.success : AppColors.error,

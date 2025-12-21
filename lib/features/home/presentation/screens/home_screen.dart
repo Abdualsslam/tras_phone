@@ -20,6 +20,7 @@ import '../../../catalog/domain/entities/category_entity.dart';
 import '../../../catalog/domain/entities/product_entity.dart';
 import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -84,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           SizedBox(width: 10.w),
           Text(
-            'تراس فون',
+            AppLocalizations.of(context)!.appName,
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.w700,
@@ -148,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
         // Featured Products
         if (state.featuredProducts.isNotEmpty)
           _buildProductsSection(
-            title: 'منتجات مميزة',
+            title: AppLocalizations.of(context)!.featuredProducts,
             products: state.featuredProducts,
             onSeeAll: () => context.push('/products?featured=true'),
           ),
@@ -158,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
         // New Arrivals
         if (state.newArrivals.isNotEmpty)
           _buildProductsSection(
-            title: 'وصل حديثاً',
+            title: AppLocalizations.of(context)!.newArrivals,
             products: state.newArrivals,
             onSeeAll: () => context.push('/products?sort=newest'),
           ),
@@ -168,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
         // Best Sellers
         if (state.bestSellers.isNotEmpty)
           _buildProductsSection(
-            title: 'الأكثر مبيعاً',
+            title: AppLocalizations.of(context)!.bestSellers,
             products: state.bestSellers,
             onSeeAll: () => context.push('/products?sort=bestselling'),
           ),
@@ -254,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   borderRadius: AppTheme.radiusSm,
                                 ),
                                 child: Text(
-                                  'تسوق الآن',
+                                  AppLocalizations.of(context)!.shopNow,
                                   style: TextStyle(
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.w600,
@@ -295,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         _buildSectionHeader(
-          title: 'الأقسام',
+          title: AppLocalizations.of(context)!.categories,
           onSeeAll: () => context.push('/categories'),
         ),
         SizedBox(height: 12.h),
@@ -409,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         _buildSectionHeader(
-          title: 'الماركات',
+          title: AppLocalizations.of(context)!.brands,
           onSeeAll: () => context.push('/brands'),
         ),
         SizedBox(height: 12.h),
@@ -553,7 +554,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'تمت الإضافة للسلة: ${product.nameAr ?? product.name}',
+                          '${AppLocalizations.of(context)!.addedToCart}: ${product.nameAr ?? product.name}',
                         ),
                         behavior: SnackBarBehavior.floating,
                       ),
@@ -599,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'عرض الكل',
+                    AppLocalizations.of(context)!.viewAll,
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w500,

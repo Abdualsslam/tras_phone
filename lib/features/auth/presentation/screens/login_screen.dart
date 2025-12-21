@@ -13,6 +13,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -128,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Phone Field
                     AppTextField(
-                      label: 'رقم الجوال',
+                      label: AppLocalizations.of(context)!.phone,
                       hint: '5XXXXXXXX',
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
@@ -140,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Password Field
                     AppTextField(
-                      label: 'كلمة المرور',
+                      label: AppLocalizations.of(context)!.password,
                       hint: 'أدخل كلمة المرور',
                       controller: _passwordController,
                       obscureText: true,
@@ -157,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: TextButton(
                         onPressed: () => context.push('/forgot-password'),
                         child: Text(
-                          'نسيت كلمة المرور؟',
+                          AppLocalizations.of(context)!.forgotPassword,
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w500,
@@ -170,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Login Button
                     AppButton(
-                      text: 'تسجيل الدخول',
+                      text: AppLocalizations.of(context)!.login,
                       onPressed: _handleLogin,
                       isLoading: _isLoading,
                     ),
@@ -224,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextButton(
                           onPressed: () => context.push('/register'),
                           child: Text(
-                            'سجل الآن',
+                            AppLocalizations.of(context)!.register,
                             style: TextStyle(
                               fontSize: 15.sp,
                               fontWeight: FontWeight.w600,

@@ -2,10 +2,13 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/cubit/locale_cubit.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -17,7 +20,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _darkModeEnabled = false;
-  String _selectedLanguage = 'العربية';
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('الإعدادات'),
+        title: Text(AppLocalizations.of(context)!.settings),
         leading: IconButton(
           icon: const Icon(Iconsax.arrow_right_3),
           onPressed: () => context.pop(),
@@ -39,7 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Appearance Section
-            _buildSectionTitle(theme, 'المظهر'),
+            _buildSectionTitle(theme, AppLocalizations.of(context)!.settings),
             _buildSettingsCard(isDark, [
               _buildSwitchTile(
                 theme,
@@ -52,24 +54,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
               _buildDivider(),
-              _buildNavigationTile(
-                theme,
-                icon: Iconsax.language_square,
-                title: 'اللغة',
-                subtitle: _selectedLanguage,
-                onTap: () => _showLanguageDialog(),
+              BlocBuilder<LocaleCubit, LocaleState>(
+                builder: (context, state) {
+                  final isArabic = state.locale.languageCode == 'ar';
+                  return _buildNavigationTile(
+                    theme,
+                    icon: Iconsax.language_square,
+                    title: AppLocalizations.of(context)!.language,
+                    subtitle: isArabic
+                        ? AppLocalizations.of(context)!.arabic
+                        : AppLocalizations.of(context)!.english,
+                    onTap: () => _showLanguageDialog(),
+                  );
+                },
               ),
             ]),
             SizedBox(height: 24.h),
 
             // Notifications Section
-            _buildSectionTitle(theme, 'الإشعارات'),
+            _buildSectionTitle(
+              theme,
+              AppLocalizations.of(context)!.notifications,
+            ),
             _buildSettingsCard(isDark, [
               _buildSwitchTile(
                 theme,
                 icon: Iconsax.notification,
-                title: 'الإشعارات',
-                subtitle: 'تفعيل إشعارات التطبيق',
+                title: AppLocalizations.of(context)!.notifications,
+                subtitle: null,
                 value: _notificationsEnabled,
                 onChanged: (value) {
                   setState(() => _notificationsEnabled = value);
@@ -79,12 +91,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SizedBox(height: 24.h),
 
             // Privacy Section
-            _buildSectionTitle(theme, 'الخصوصية والأمان'),
+            _buildSectionTitle(
+              theme,
+              AppLocalizations.of(context)!.privacyPolicy,
+            ),
             _buildSettingsCard(isDark, [
               _buildNavigationTile(
                 theme,
                 icon: Iconsax.lock,
-                title: 'تغيير كلمة المرور',
+                title: AppLocalizations.of(context)!.changePassword,
                 onTap: () => context.push('/change-password'),
               ),
               _buildDivider(),
@@ -102,19 +117,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildNavigationTile(
                 theme,
                 icon: Iconsax.shield_tick,
-                title: 'سياسة الخصوصية',
+                title: AppLocalizations.of(context)!.privacyPolicy,
                 onTap: () => context.push('/privacy'),
               ),
             ]),
             SizedBox(height: 24.h),
 
             // About Section
-            _buildSectionTitle(theme, 'حول التطبيق'),
+            _buildSectionTitle(theme, AppLocalizations.of(context)!.aboutUs),
             _buildSettingsCard(isDark, [
               _buildNavigationTile(
                 theme,
                 icon: Iconsax.info_circle,
-                title: 'عن التطبيق',
+                title: AppLocalizations.of(context)!.aboutUs,
                 subtitle: 'الإصدار 1.0.0',
                 onTap: () => context.push('/about'),
               ),
@@ -158,7 +173,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Version
             Center(
               child: Text(
-                'تراس فون v1.0.0',
+                '${AppLocalizations.of(context)!.appName} v1.0.0',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.textTertiaryLight,
                 ),
@@ -284,12 +299,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('اختر اللغة'),
+        title: Text(AppLocalizations.of(context)!.language),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildLanguageOption(ctx, 'العربية', 'ar'),
-            _buildLanguageOption(ctx, 'English', 'en'),
+            _buildLanguageOption(
+              ctx,
+              AppLocalizations.of(context)!.arabic,
+              'ar',
+            ),
+            _buildLanguageOption(
+              ctx,
+              AppLocalizations.of(context)!.english,
+              'en',
+            ),
           ],
         ),
       ),
@@ -297,14 +320,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildLanguageOption(BuildContext ctx, String name, String code) {
-    final isSelected = _selectedLanguage == name;
+    final currentLocale = context.read<LocaleCubit>().state.locale.languageCode;
+    final isSelected = currentLocale == code;
     return ListTile(
       title: Text(name),
       trailing: isSelected
           ? const Icon(Iconsax.tick_circle, color: AppColors.primary)
           : null,
       onTap: () {
-        setState(() => _selectedLanguage = name);
+        context.read<LocaleCubit>().changeLocale(Locale(code));
         Navigator.pop(ctx);
       },
     );
@@ -321,7 +345,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('إلغاء'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),

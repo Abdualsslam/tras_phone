@@ -10,6 +10,7 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/widgets/product_card.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -116,7 +117,7 @@ class _SearchScreenState extends State<SearchScreen> {
         onSubmitted: _performSearch,
         style: theme.textTheme.bodyLarge,
         decoration: InputDecoration(
-          hintText: 'ابحث عن منتج...',
+          hintText: AppLocalizations.of(context)!.search,
           hintStyle: TextStyle(
             color: AppColors.textTertiaryLight,
             fontSize: 16.sp,
@@ -306,7 +307,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             SizedBox(height: 16.h),
             Text(
-              'لا توجد نتائج',
+              AppLocalizations.of(context)!.noResults,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -361,7 +362,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 onAddToCart: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('تمت الإضافة إلى السلة'),
+                      content: Text(AppLocalizations.of(context)!.addedToCart),
                       backgroundColor: AppColors.success,
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(

@@ -12,6 +12,7 @@ import '../../domain/entities/cart_entity.dart';
 import '../../domain/entities/cart_item_entity.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/cart_state.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -43,7 +44,7 @@ class _CartScreenState extends State<CartScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('سلة التسوق'),
+        title: Text(AppLocalizations.of(context)!.cart),
         actions: [
           BlocBuilder<CartCubit, CartState>(
             builder: (context, state) {
@@ -75,7 +76,7 @@ class _CartScreenState extends State<CartScreen> {
                   SizedBox(height: 16.h),
                   ElevatedButton(
                     onPressed: () => context.read<CartCubit>().loadCart(),
-                    child: const Text('إعادة المحاولة'),
+                    child: Text(AppLocalizations.of(context)!.tryAgain),
                   ),
                 ],
               ),
@@ -116,7 +117,7 @@ class _CartScreenState extends State<CartScreen> {
           ),
           SizedBox(height: 24.h),
           Text(
-            'سلتك فارغة',
+            AppLocalizations.of(context)!.emptyCart,
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -132,7 +133,7 @@ class _CartScreenState extends State<CartScreen> {
           ElevatedButton.icon(
             onPressed: () => context.go('/home'),
             icon: const Icon(Iconsax.shop),
-            label: const Text('تصفح المنتجات'),
+            label: Text(AppLocalizations.of(context)!.products),
             style: ElevatedButton.styleFrom(
               padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
             ),
@@ -317,7 +318,7 @@ class _CartScreenState extends State<CartScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'ملخص الطلب',
+            AppLocalizations.of(context)!.subtotal,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -325,13 +326,13 @@ class _CartScreenState extends State<CartScreen> {
           SizedBox(height: 16.h),
           _buildSummaryRow(
             theme,
-            'المجموع الفرعي',
-            '${cart.subtotal.toStringAsFixed(0)} ر.س',
+            AppLocalizations.of(context)!.subtotal,
+            '${cart.subtotal.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
           ),
           SizedBox(height: 8.h),
           _buildSummaryRow(
             theme,
-            'الشحن',
+            AppLocalizations.of(context)!.shipping,
             cart.shippingCost > 0
                 ? '${cart.shippingCost.toStringAsFixed(0)} ر.س'
                 : 'مجاني',
@@ -340,16 +341,16 @@ class _CartScreenState extends State<CartScreen> {
             SizedBox(height: 8.h),
             _buildSummaryRow(
               theme,
-              'الخصم',
-              '-${cart.discount.toStringAsFixed(0)} ر.س',
+              AppLocalizations.of(context)!.discount,
+              '-${cart.discount.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
               valueColor: AppColors.success,
             ),
           ],
           Divider(height: 24.h),
           _buildSummaryRow(
             theme,
-            'الإجمالي',
-            '${cart.total.toStringAsFixed(0)} ر.س',
+            AppLocalizations.of(context)!.total,
+            '${cart.total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
             isTotal: true,
           ),
         ],
@@ -440,7 +441,7 @@ class _CartScreenState extends State<CartScreen> {
               const Icon(Iconsax.card),
               SizedBox(width: 8.w),
               Text(
-                'إتمام الشراء • ${cart.total.toStringAsFixed(0)} ر.س',
+                '${AppLocalizations.of(context)!.checkout} • ${cart.total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
                 style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
               ),
             ],
@@ -459,7 +460,7 @@ class _CartScreenState extends State<CartScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('إلغاء'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () {

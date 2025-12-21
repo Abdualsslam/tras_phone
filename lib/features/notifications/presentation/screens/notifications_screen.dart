@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -55,13 +56,13 @@ class NotificationsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('الإشعارات'),
+        title: Text(AppLocalizations.of(context)!.notifications),
         actions: [
           TextButton(onPressed: () {}, child: const Text('تحديد الكل كمقروء')),
         ],
       ),
       body: notifications.isEmpty
-          ? _buildEmptyState(theme)
+          ? _buildEmptyState(context, theme)
           : ListView.separated(
               padding: EdgeInsets.symmetric(vertical: 8.h),
               itemCount: notifications.length,
@@ -81,7 +82,7 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme) {
+  Widget _buildEmptyState(BuildContext context, ThemeData theme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -93,7 +94,7 @@ class NotificationsScreen extends StatelessWidget {
           ),
           SizedBox(height: 24.h),
           Text(
-            'لا توجد إشعارات',
+            AppLocalizations.of(context)!.noNotifications,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),

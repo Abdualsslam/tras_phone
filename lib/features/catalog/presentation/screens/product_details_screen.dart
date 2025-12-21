@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../domain/entities/product_entity.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final ProductEntity product;
@@ -340,7 +341,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text(
-          '${product.price.toStringAsFixed(0)} ر.س',
+          '${product.price.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
           style: TextStyle(
             fontSize: 28.sp,
             fontWeight: FontWeight.w700,
@@ -350,7 +351,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         if (product.hasDiscount) ...[
           SizedBox(width: 12.w),
           Text(
-            '${product.originalPrice!.toStringAsFixed(0)} ر.س',
+            '${product.originalPrice!.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.w500,
@@ -373,7 +374,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       child: Row(
         children: [
           Text(
-            'الكمية',
+            AppLocalizations.of(context)!.quantity,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -449,7 +450,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'الوصف',
+          AppLocalizations.of(context)!.description,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
           ),
@@ -494,7 +495,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isInStock ? 'متوفر في المخزون' : 'غير متوفر حالياً',
+                product.isInStock
+                    ? AppLocalizations.of(context)!.inStock
+                    : AppLocalizations.of(context)!.outOfStock,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: isInStock ? AppColors.success : AppColors.error,
@@ -538,13 +541,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'الإجمالي',
+                    AppLocalizations.of(context)!.total,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.textTertiaryLight,
                     ),
                   ),
                   Text(
-                    '${(product.price * _quantity).toStringAsFixed(0)} ر.س',
+                    '${(product.price * _quantity).toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
                     style: TextStyle(
                       fontSize: 22.sp,
                       fontWeight: FontWeight.w700,
@@ -563,7 +566,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         HapticFeedback.mediumImpact();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text('تمت الإضافة إلى السلة'),
+                            content: Text(
+                              AppLocalizations.of(context)!.addedToCart,
+                            ),
                             backgroundColor: AppColors.success,
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
@@ -574,7 +579,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       }
                     : null,
                 icon: const Icon(Iconsax.shopping_cart),
-                label: const Text('أضف للسلة'),
+                label: Text(AppLocalizations.of(context)!.addToCart),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 16.h),
                   shape: RoundedRectangleBorder(
