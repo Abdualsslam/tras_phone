@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 enum TicketStatus { open, inProgress, resolved, closed }
 
@@ -39,7 +40,7 @@ class SupportTicketsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('الدعم الفني')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.support)),
       body: tickets.isEmpty
           ? _buildEmptyState(theme)
           : ListView.separated(

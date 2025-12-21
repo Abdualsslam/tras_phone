@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 enum ReturnStatus { pending, approved, rejected, completed }
 
@@ -37,7 +38,7 @@ class ReturnsListScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('طلبات الإرجاع')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.returns)),
       body: returns.isEmpty
           ? _buildEmptyState(theme)
           : ListView.separated(

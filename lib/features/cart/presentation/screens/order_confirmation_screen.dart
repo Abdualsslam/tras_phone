@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class OrderConfirmationScreen extends StatelessWidget {
   final String? orderNumber;
@@ -42,7 +43,7 @@ class OrderConfirmationScreen extends StatelessWidget {
               SizedBox(height: 32.h),
 
               Text(
-                'تم تأكيد طلبك بنجاح!',
+                AppLocalizations.of(context)!.orderPlaced,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -70,7 +71,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      'رقم الطلب',
+                      AppLocalizations.of(context)!.orderNumber,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: AppColors.textSecondaryLight,
                       ),
@@ -90,7 +91,11 @@ class OrderConfirmationScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildInfoItem(theme, 'الإجمالي', '1,242.5 ر.س'),
+                        _buildInfoItem(
+                          theme,
+                          AppLocalizations.of(context)!.total,
+                          '1,242.5 ${AppLocalizations.of(context)!.currency}',
+                        ),
                         Container(
                           width: 1,
                           height: 40.h,
@@ -140,7 +145,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14.r),
                     ),
                   ),
-                  child: const Text('متابعة التسوق'),
+                  child: Text(AppLocalizations.of(context)!.continueShopping),
                 ),
               ),
               SizedBox(height: 12.h),

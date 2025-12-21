@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AddressesListScreen extends StatelessWidget {
   const AddressesListScreen({super.key});
@@ -34,7 +35,7 @@ class AddressesListScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('عناويني')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.addresses)),
       body: addresses.isEmpty
           ? _buildEmptyState(theme)
           : ListView.separated(
@@ -48,7 +49,7 @@ class AddressesListScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {},
         icon: const Icon(Iconsax.add),
-        label: const Text('إضافة عنوان'),
+        label: Text(AppLocalizations.of(context)!.addAddress),
       ),
     );
   }

@@ -9,6 +9,7 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class DevicesListScreen extends StatefulWidget {
   const DevicesListScreen({super.key});
@@ -119,7 +120,7 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الأجهزة'),
+        title: Text(AppLocalizations.of(context)!.devices),
         actions: [
           IconButton(
             onPressed: () => context.push('/search'),

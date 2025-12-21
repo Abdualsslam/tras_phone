@@ -9,6 +9,7 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/widgets/product_card.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class CategoryProductsScreen extends StatefulWidget {
   final String categoryId;
@@ -58,7 +59,9 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.categoryName ?? 'المنتجات'),
+        title: Text(
+          widget.categoryName ?? AppLocalizations.of(context)!.products,
+        ),
         actions: [
           IconButton(
             onPressed: () => context.push('/search'),

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class WalletScreen extends StatelessWidget {
   const WalletScreen({super.key});
@@ -17,7 +18,7 @@ class WalletScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('محفظتي')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.wallet)),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.w),
         child: Column(

@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class OrderDetailsScreen extends StatelessWidget {
   final int orderId;
@@ -21,7 +22,7 @@ class OrderDetailsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('تفاصيل الطلب'),
+        title: Text(AppLocalizations.of(context)!.orderStatus),
         leading: IconButton(
           icon: const Icon(Iconsax.arrow_right_3),
           onPressed: () => context.pop(),

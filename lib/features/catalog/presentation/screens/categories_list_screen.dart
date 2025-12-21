@@ -9,6 +9,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class CategoriesListScreen extends StatefulWidget {
   const CategoriesListScreen({super.key});
@@ -44,7 +45,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('الفئات'),
+        title: Text(AppLocalizations.of(context)!.categories),
         leading: IconButton(
           icon: const Icon(Iconsax.arrow_right_3),
           onPressed: () => context.pop(),

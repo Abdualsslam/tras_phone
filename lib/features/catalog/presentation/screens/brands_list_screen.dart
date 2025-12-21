@@ -9,6 +9,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class BrandsListScreen extends StatefulWidget {
   const BrandsListScreen({super.key});
@@ -44,7 +45,7 @@ class _BrandsListScreenState extends State<BrandsListScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('العلامات التجارية'),
+        title: Text(AppLocalizations.of(context)!.brands),
         leading: IconButton(
           icon: const Icon(Iconsax.arrow_right_3),
           onPressed: () => context.pop(),

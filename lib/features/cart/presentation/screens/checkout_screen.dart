@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -65,7 +66,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('إتمام الطلب'),
+        title: Text(AppLocalizations.of(context)!.checkout),
         leading: IconButton(
           icon: const Icon(Iconsax.arrow_right_3),
           onPressed: () => context.pop(),
@@ -77,7 +78,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Address Section
-            _buildSectionTitle(theme, 'عنوان التوصيل'),
+            _buildSectionTitle(theme, AppLocalizations.of(context)!.addresses),
             SizedBox(height: 12.h),
             ..._addresses.asMap().entries.map((entry) {
               return _buildAddressCard(theme, isDark, entry.key, entry.value);
@@ -85,12 +86,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             TextButton.icon(
               onPressed: () {},
               icon: const Icon(Iconsax.add),
-              label: const Text('إضافة عنوان جديد'),
+              label: Text(AppLocalizations.of(context)!.addAddress),
             ),
             SizedBox(height: 24.h),
 
             // Payment Section
-            _buildSectionTitle(theme, 'طريقة الدفع'),
+            _buildSectionTitle(
+              theme,
+              AppLocalizations.of(context)!.paymentMethod,
+            ),
             SizedBox(height: 12.h),
             ..._paymentMethods.asMap().entries.map((entry) {
               return _buildPaymentCard(theme, isDark, entry.key, entry.value);
@@ -318,7 +322,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'ملخص الطلب',
+            AppLocalizations.of(context)!.subtotal,
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -404,7 +408,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ),
           child: Text(
-            'تأكيد الطلب • 1,242.5 ر.س',
+            '${AppLocalizations.of(context)!.confirm} • 1,242.5 ${AppLocalizations.of(context)!.currency}',
             style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
           ),
         ),
