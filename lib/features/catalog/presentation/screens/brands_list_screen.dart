@@ -69,7 +69,7 @@ class _BrandsListScreenState extends State<BrandsListScreen> {
                     brand: brand,
                     isDark: isDark,
                     onTap: () {
-                      context.push('/brand/${brand.id}/products');
+                      context.push('/brand/${brand.id}');
                     },
                   );
                 },

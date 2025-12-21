@@ -423,7 +423,7 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (context, index) {
               final brand = brands[index];
               return GestureDetector(
-                onTap: () => context.push('/brand/${brand.id}/products'),
+                onTap: () => context.push('/brand/${brand.id}'),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(14.r),
                   child: BackdropFilter(

@@ -468,4 +468,18 @@ class CatalogMockDataSource {
         .take(5)
         .toList();
   }
+
+  Future<List<ProductEntity>> getProductsByCategory(String categoryId) async {
+    await Future.delayed(_delay);
+    final catId = int.tryParse(categoryId);
+    if (catId == null) return _mockProducts;
+    return _mockProducts.where((p) => p.categoryId == catId).toList();
+  }
+
+  Future<List<ProductEntity>> getProductsByBrand(String brandId) async {
+    await Future.delayed(_delay);
+    final bId = int.tryParse(brandId);
+    if (bId == null) return _mockProducts;
+    return _mockProducts.where((p) => p.brandId == bId).toList();
+  }
 }
