@@ -69,7 +69,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                     category: category,
                     isDark: isDark,
                     onTap: () {
-                      context.push('/category/${category.id}/products');
+                      context.push('/category/${category.id}');
                     },
                   );
                 },

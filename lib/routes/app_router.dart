@@ -57,6 +57,13 @@ import '../features/profile/presentation/screens/add_edit_address_screen.dart';
 import '../features/admin/presentation/screens/admin_dashboard_screen.dart';
 import '../features/admin/presentation/screens/admin_orders_screen.dart';
 import '../features/admin/presentation/screens/admin_customers_screen.dart';
+import '../features/admin/presentation/screens/admin_order_details_screen.dart';
+import '../features/catalog/presentation/screens/advanced_search_screen.dart';
+import '../features/catalog/presentation/screens/product_search_results_screen.dart';
+import '../features/reviews/presentation/screens/pending_reviews_screen.dart';
+import '../features/support/presentation/screens/ticket_details_screen.dart';
+import '../features/support/presentation/screens/live_chat_screen.dart';
+import '../features/wishlist/presentation/screens/wishlist_empty_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -444,6 +451,63 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final id = state.pathParameters['id'] ?? '';
         return ReturnDetailsScreen(returnId: id);
+      },
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NEW SEARCH ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(
+      path: '/advanced-search',
+      builder: (context, state) => const AdvancedSearchScreen(),
+    ),
+    GoRoute(
+      path: '/search-results',
+      builder: (context, state) {
+        final filters = state.extra as Map<String, dynamic>?;
+        return ProductSearchResultsScreen(filters: filters);
+      },
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NEW REVIEWS ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(
+      path: '/pending-reviews',
+      builder: (context, state) => const PendingReviewsScreen(),
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NEW SUPPORT ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(
+      path: '/ticket/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id'] ?? '';
+        return TicketDetailsScreen(ticketId: id);
+      },
+    ),
+    GoRoute(
+      path: '/live-chat',
+      builder: (context, state) => const LiveChatScreen(),
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NEW WISHLIST ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(
+      path: '/wishlist-empty',
+      builder: (context, state) => const WishlistEmptyScreen(),
+    ),
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NEW ADMIN ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+    GoRoute(
+      path: '/admin/order/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id'] ?? '';
+        return AdminOrderDetailsScreen(orderId: id);
       },
     ),
   ],

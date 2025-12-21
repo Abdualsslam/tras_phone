@@ -166,7 +166,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
         crossAxisCount: 2,
         mainAxisSpacing: 12.h,
         crossAxisSpacing: 12.w,
-        childAspectRatio: 0.65,
+        childAspectRatio: 0.60,
       ),
       itemCount: _products.length,
       itemBuilder: (context, index) {
