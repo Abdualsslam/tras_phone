@@ -1,16 +1,41 @@
-# tras_phone
+# TRAS Phone - Monorepo
 
-A new Flutter project.
+مشروع متعدد التطبيقات (Monorepo) يحتوي على تطبيق الموبايل والـ Backend.
 
-## Getting Started
+## هيكل المشروع
 
-This project is a starting point for a Flutter application.
+```
+tras_phone/
+├── mobile/          # تطبيق Flutter للموبايل
+├── backend/         # مشروع NestJS للـ Backend
+├── docs/            # توثيق الـ API والمتطلبات
+└── README.md        # شرح عام للمشروع
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Mobile (Flutter)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+تطبيق الموبايل مبني باستخدام Flutter.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+cd mobile
+flutter pub get
+flutter run
+```
+
+## Backend (NestJS)
+
+سيتم إنشاء مشروع الـ Backend باستخدام NestJS.
+
+```bash
+cd backend
+# سيقوم المطور بإنشاء المشروع هنا
+```
+
+## Documentation
+
+يحتوي مجلد `docs/` على توثيق الـ API والمتطلبات الفنية.
+
+## المساهمون
+
+- **Flutter Developer**: تطوير تطبيق الموبايل
+- **Backend Developer**: تطوير الـ API باستخدام NestJS
