@@ -201,7 +201,7 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
                   Switch(
                     value: _isDefault,
                     onChanged: (value) => setState(() => _isDefault = value),
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                   ),
                 ],
               ),

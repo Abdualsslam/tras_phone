@@ -2,7 +2,6 @@
 library;
 
 import '../models/customer_model.dart';
-import '../models/user_model.dart';
 
 class AuthMockDataSource {
   // Simulated delay for network calls

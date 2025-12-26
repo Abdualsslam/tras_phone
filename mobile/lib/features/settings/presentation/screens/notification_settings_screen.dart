@@ -92,7 +92,7 @@ class _NotificationSettingsScreenState
                 Switch(
                   value: _pushEnabled,
                   onChanged: (v) => setState(() => _pushEnabled = v),
-                  activeColor: Colors.white,
+                  activeThumbColor: Colors.white,
                   activeTrackColor: Colors.white24,
                 ),
               ],
@@ -233,7 +233,7 @@ class _NotificationSettingsScreenState
           Switch(
             value: value && _pushEnabled,
             onChanged: _pushEnabled ? onChanged : null,
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
           ),
         ],
       ),
