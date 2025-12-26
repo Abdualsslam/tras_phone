@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # ═══════════════════════════════════════
+  # 🚀 NestJS Application
+  # ═══════════════════════════════════════
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tras-phone-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongo:27017/tras_phone
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - tras-network
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+
+  # ═══════════════════════════════════════
+  # 🗄️ MongoDB Database
+  # ═══════════════════════════════════════
+  mongo:
+    image: mongo:7
+    container_name: tras-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=tras_phone
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    networks:
+      - tras-network
+
+  # ═══════════════════════════════════════
+  # 🔴 Redis Cache
+  # ═══════════════════════════════════════
+  redis:
+    image: redis:7-alpine
+    container_name: tras-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - tras-network
+    command: redis-server --appendonly yes
+
+networks:
+  tras-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  mongo-config:
+  redis-data:
