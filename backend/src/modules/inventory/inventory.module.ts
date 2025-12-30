@@ -1,5 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Warehouse, WarehouseSchema } from './schemas/warehouse.schema';
 import { StockLocation, StockLocationSchema } from './schemas/stock-location.schema';
 import { StockMovement, StockMovementSchema } from './schemas/stock-movement.schema';
@@ -24,6 +26,16 @@ import { InventoryController } from './inventory.controller';
             { name: LowStockAlert.name, schema: LowStockAlertSchema },
             { name: ProductStock.name, schema: ProductStockSchema },
         ]),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: {
+                    expiresIn: configService.get<string>('JWT_EXPIRATION', '15m'),
+                },
+            }),
+            inject: [ConfigService],
+        }),
     ],
     controllers: [InventoryController],
     providers: [InventoryService, WarehousesService],

@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Promotion, PromotionSchema } from './schemas/promotion.schema';
 import { PromotionProduct, PromotionProductSchema } from './schemas/promotion-product.schema';
 import { PromotionCategory, PromotionCategorySchema } from './schemas/promotion-category.schema';
@@ -22,6 +24,16 @@ import { PromotionsController } from './promotions.controller';
             { name: Coupon.name, schema: CouponSchema },
             { name: CouponUsage.name, schema: CouponUsageSchema },
         ]),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: {
+                    expiresIn: configService.get<string>('JWT_EXPIRATION', '15m'),
+                },
+            }),
+            inject: [ConfigService],
+        }),
     ],
     controllers: [PromotionsController],
     providers: [PromotionsService, CouponsService],

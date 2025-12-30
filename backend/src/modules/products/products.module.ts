@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Product, ProductSchema } from './schemas/product.schema';
 import { ProductPrice, ProductPriceSchema } from './schemas/product-price.schema';
 import { ProductReview, ProductReviewSchema } from './schemas/product-review.schema';
@@ -17,6 +19,16 @@ import { ProductsController } from './products.controller';
             { name: Wishlist.name, schema: WishlistSchema },
             { name: PriceLevel.name, schema: PriceLevelSchema },
         ]),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: {
+                    expiresIn: configService.get<string>('JWT_EXPIRATION', '15m'),
+                },
+            }),
+            inject: [ConfigService],
+        }),
     ],
     controllers: [ProductsController],
     providers: [ProductsService],

@@ -1,5 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ReturnRequest, ReturnRequestSchema } from './schemas/return-request.schema';
 import { ReturnItem, ReturnItemSchema } from './schemas/return-item.schema';
 import { ReturnStatusHistory, ReturnStatusHistorySchema } from './schemas/return-status-history.schema';
@@ -17,6 +19,16 @@ import { ReturnsController } from './returns.controller';
             { name: Refund.name, schema: RefundSchema },
             { name: ReturnReason.name, schema: ReturnReasonSchema },
         ]),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: {
+                    expiresIn: configService.get<string>('JWT_EXPIRATION', '15m'),
+                },
+            }),
+            inject: [ConfigService],
+        }),
     ],
     controllers: [ReturnsController],
     providers: [ReturnsService],

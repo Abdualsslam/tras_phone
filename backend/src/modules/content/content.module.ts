@@ -1,5 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { FaqCategory, FaqCategorySchema } from './schemas/faq-category.schema';
 import { Faq, FaqSchema } from './schemas/faq.schema';
 import { Page, PageSchema } from './schemas/page.schema';
@@ -19,6 +21,16 @@ import { ContentController } from './content.controller';
             { name: Slider.name, schema: SliderSchema },
             { name: Testimonial.name, schema: TestimonialSchema },
         ]),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: {
+                    expiresIn: configService.get<string>('JWT_EXPIRATION', '15m'),
+                },
+            }),
+            inject: [ConfigService],
+        }),
     ],
     controllers: [ContentController],
     providers: [ContentService],

@@ -4,65 +4,45 @@ services:
   # ═══════════════════════════════════════
   # 🚀 NestJS Application
   # ═══════════════════════════════════════
-  app:
+  tras-backend: # غيرت الاسم ليكون مميزاً
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: tras-phone-api
+    container_name: tras-backend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongo:27017/tras_phone
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+    # نستخدم expose لكي لا يتعارض البورت 3000 مع التطبيقات الاخرى في السيرفر
+    expose:
+      - '3000'
+    env_file:
+      - .env
     depends_on:
-      - mongo
-      - redis
+      - tras-redis
     networks:
-      - tras-network
+      - web-network # الشبكة الخارجية للتواصل مع Nginx Proxy Manager
     volumes:
       - ./logs:/app/logs
       - ./uploads:/app/uploads
 
   # ═══════════════════════════════════════
-  # 🗄️ MongoDB Database
-  # ═══════════════════════════════════════
-  mongo:
-    image: mongo:7
-    container_name: tras-mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_DATABASE=tras_phone
-    volumes:
-      - mongo-data:/data/db
-      - mongo-config:/data/configdb
-    networks:
-      - tras-network
-
-  # ═══════════════════════════════════════
   # 🔴 Redis Cache
   # ═══════════════════════════════════════
-  redis:
+  tras-redis:
     image: redis:7-alpine
     container_name: tras-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    # Redis لا يحتاج expose للعالم الخارجي، فقط داخلياً للباك إند
+    expose:
+      - '6379'
     volumes:
       - redis-data:/data
     networks:
-      - tras-network
+      - web-network
     command: redis-server --appendonly yes
 
+# الشبكة الموجودة مسبقاً في السيرفر
 networks:
-  tras-network:
-    driver: bridge
+  web-network:
+    external: true
 
 volumes:
-  mongo-data:
-  mongo-config:
   redis-data:

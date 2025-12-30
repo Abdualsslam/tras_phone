@@ -8,7 +8,7 @@ import {
     Get,
     Patch,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
 
 import { AuthService } from './auth.service';
@@ -25,6 +25,8 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { Public } from '@decorators/public.decorator';
 import { CurrentUser } from '@decorators/current-user.decorator';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
+import { ApiResponseDto } from '@common/dto/api-response.dto';
+import { ApiPublicErrorResponses, ApiAuthErrorResponses } from '@common/decorators/api-error-responses.decorator';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -48,7 +50,16 @@ export class AuthController {
     @Public()
     @Post('register')
     @HttpCode(HttpStatus.CREATED)
-    @ApiOperation({ summary: 'Register a new user' })
+    @ApiOperation({
+        summary: 'Register a new user',
+        description: 'Register a new user account. Requires phone verification via OTP. User can be either customer or admin type.',
+    })
+    @ApiResponse({
+        status: 201,
+        description: 'User registered successfully',
+        type: ApiResponseDto,
+    })
+    @ApiPublicErrorResponses()
     async register(@Body() registerDto: RegisterDto) {
         const result = await this.authService.register(registerDto);
 
@@ -62,7 +73,16 @@ export class AuthController {
     @Public()
     @Post('login')
     @HttpCode(HttpStatus.OK)
-    @ApiOperation({ summary: 'Login user' })
+    @ApiOperation({
+        summary: 'Login user',
+        description: 'Authenticate user with phone number and password. Returns access token and refresh token.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Login successful',
+        type: ApiResponseDto,
+    })
+    @ApiPublicErrorResponses()
     async login(@Body() loginDto: LoginDto) {
         const result = await this.authService.login(loginDto);
 
@@ -76,7 +96,16 @@ export class AuthController {
     @Public()
     @Post('refresh')
     @HttpCode(HttpStatus.OK)
-    @ApiOperation({ summary: 'Refresh access token' })
+    @ApiOperation({
+        summary: 'Refresh access token',
+        description: 'Get a new access token using a valid refresh token.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Token refreshed successfully',
+        type: ApiResponseDto,
+    })
+    @ApiPublicErrorResponses()
     async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
         const result = await this.authService.refreshToken(
             refreshTokenDto.refreshToken,
@@ -96,7 +125,16 @@ export class AuthController {
     @Public()
     @Post('send-otp')
     @HttpCode(HttpStatus.OK)
-    @ApiOperation({ summary: 'Send OTP to phone number' })
+    @ApiOperation({
+        summary: 'Send OTP to phone number',
+        description: 'Send a one-time password (OTP) to the specified phone number for verification purposes (registration, login, password reset, etc.)',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'OTP sent successfully',
+        type: ApiResponseDto,
+    })
+    @ApiPublicErrorResponses()
     async sendOtp(@Body() sendOtpDto: SendOtpDto) {
         const result = await this.otpService.sendOtp(
             sendOtpDto.phone,
@@ -113,7 +151,16 @@ export class AuthController {
     @Public()
     @Post('verify-otp')
     @HttpCode(HttpStatus.OK)
-    @ApiOperation({ summary: 'Verify OTP code' })
+    @ApiOperation({
+        summary: 'Verify OTP code',
+        description: 'Verify the OTP code sent to the phone number. Must match the purpose for which OTP was sent.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'OTP verified successfully',
+        type: ApiResponseDto,
+    })
+    @ApiPublicErrorResponses()
     async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
         await this.otpService.verifyOtp(
             verifyOtpDto.phone,
@@ -135,7 +182,16 @@ export class AuthController {
     @Public()
     @Post('forgot-password')
     @HttpCode(HttpStatus.OK)
-    @ApiOperation({ summary: 'Request password reset OTP' })
+    @ApiOperation({
+        summary: 'Request password reset OTP',
+        description: 'Request a password reset OTP to be sent to the user\'s phone number',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Password reset OTP sent',
+        type: ApiResponseDto,
+    })
+    @ApiPublicErrorResponses()
     async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
         const result = await this.passwordResetService.requestPasswordReset(
             forgotPasswordDto.phone,
@@ -151,7 +207,16 @@ export class AuthController {
     @Public()
     @Post('verify-reset-otp')
     @HttpCode(HttpStatus.OK)
-    @ApiOperation({ summary: 'Verify password reset OTP and get token' })
+    @ApiOperation({
+        summary: 'Verify password reset OTP and get token',
+        description: 'Verify the OTP code for password reset and receive a reset token to use in the reset-password endpoint',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'OTP verified. Use the reset token to set new password.',
+        type: ApiResponseDto,
+    })
+    @ApiPublicErrorResponses()
     async verifyResetOtp(@Body() verifyOtpDto: VerifyOtpDto) {
         const result = await this.passwordResetService.verifyResetOtp(
             verifyOtpDto.phone,
@@ -168,7 +233,16 @@ export class AuthController {
     @Public()
     @Post('reset-password')
     @HttpCode(HttpStatus.OK)
-    @ApiOperation({ summary: 'Reset password using reset token' })
+    @ApiOperation({
+        summary: 'Reset password using reset token',
+        description: 'Reset user password using the reset token obtained from verify-reset-otp endpoint',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Password reset successfully',
+        type: ApiResponseDto,
+    })
+    @ApiPublicErrorResponses()
     async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
         await this.passwordResetService.resetPassword(
             resetPasswordDto.resetToken,
@@ -185,7 +259,16 @@ export class AuthController {
     @Patch('change-password')
     @HttpCode(HttpStatus.OK)
     @ApiBearerAuth('JWT-auth')
-    @ApiOperation({ summary: 'Change password for authenticated user' })
+    @ApiOperation({
+        summary: 'Change password for authenticated user',
+        description: 'Change password for the currently authenticated user. Requires current password.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Password changed successfully',
+        type: ApiResponseDto,
+    })
+    @ApiAuthErrorResponses()
     async changePassword(
         @CurrentUser() user: any,
         @Body() changePasswordDto: ChangePasswordDto,
@@ -209,7 +292,16 @@ export class AuthController {
 
     @Get('me')
     @ApiBearerAuth('JWT-auth')
-    @ApiOperation({ summary: 'Get current user profile' })
+    @ApiOperation({
+        summary: 'Get current user profile',
+        description: 'Retrieve the profile information of the currently authenticated user',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Profile retrieved successfully',
+        type: ApiResponseDto,
+    })
+    @ApiAuthErrorResponses()
     async getProfile(@CurrentUser() user: any) {
         return ResponseBuilder.success(
             user,
@@ -221,7 +313,16 @@ export class AuthController {
     @Post('logout')
     @HttpCode(HttpStatus.OK)
     @ApiBearerAuth('JWT-auth')
-    @ApiOperation({ summary: 'Logout user' })
+    @ApiOperation({
+        summary: 'Logout user',
+        description: 'Logout the currently authenticated user. Invalidates the current session.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Logout successful',
+        type: ApiResponseDto,
+    })
+    @ApiAuthErrorResponses()
     async logout(@CurrentUser() user: any) {
         return ResponseBuilder.success(
             null,

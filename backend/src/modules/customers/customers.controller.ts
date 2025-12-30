@@ -12,7 +12,9 @@ import {
     HttpStatus,
     Patch,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiResponseDto } from '@common/dto/api-response.dto';
+import { ApiCommonErrorResponses } from '@common/decorators/api-error-responses.decorator';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -41,7 +43,16 @@ export class CustomersController {
     @Post()
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
     @HttpCode(HttpStatus.CREATED)
-    @ApiOperation({ summary: 'Create new customer' })
+    @ApiOperation({
+        summary: 'Create new customer',
+        description: 'Create a new customer account. The user must already exist with userType=customer.',
+    })
+    @ApiResponse({
+        status: 201,
+        description: 'Customer created successfully',
+        type: ApiResponseDto,
+    })
+    @ApiCommonErrorResponses()
     async create(@Body() createCustomerDto: CreateCustomerDto) {
         const customer = await this.customersService.create(createCustomerDto);
 
@@ -57,14 +68,23 @@ export class CustomersController {
      */
     @Get()
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    @ApiOperation({ summary: 'Get all customers' })
-    @ApiQuery({ name: 'page', required: false })
-    @ApiQuery({ name: 'limit', required: false })
-    @ApiQuery({ name: 'search', required: false })
-    @ApiQuery({ name: 'cityId', required: false })
-    @ApiQuery({ name: 'priceLevelId', required: false })
-    @ApiQuery({ name: 'loyaltyTier', required: false })
-    @ApiQuery({ name: 'businessType', required: false })
+    @ApiOperation({
+        summary: 'Get all customers',
+        description: 'Retrieve a paginated list of all customers with optional filtering',
+    })
+    @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Page number' })
+    @ApiQuery({ name: 'limit', required: false, type: Number, example: 20, description: 'Items per page' })
+    @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by shop name or customer code' })
+    @ApiQuery({ name: 'cityId', required: false, type: String, description: 'Filter by city ID' })
+    @ApiQuery({ name: 'priceLevelId', required: false, type: String, description: 'Filter by price level ID' })
+    @ApiQuery({ name: 'loyaltyTier', required: false, enum: ['bronze', 'silver', 'gold', 'platinum'], description: 'Filter by loyalty tier' })
+    @ApiQuery({ name: 'businessType', required: false, enum: ['shop', 'technician', 'distributor', 'other'], description: 'Filter by business type' })
+    @ApiResponse({
+        status: 200,
+        description: 'Customers retrieved successfully',
+        type: ApiResponseDto,
+    })
+    @ApiCommonErrorResponses()
     async findAll(@Query() query: any) {
         const result = await this.customersService.findAll(query);
 
@@ -80,7 +100,17 @@ export class CustomersController {
      * Get customer by ID
      */
     @Get(':id')
-    @ApiOperation({ summary: 'Get customer by ID' })
+    @ApiOperation({
+        summary: 'Get customer by ID',
+        description: 'Retrieve detailed information about a specific customer',
+    })
+    @ApiParam({ name: 'id', description: 'Customer ID', example: '507f1f77bcf86cd799439011' })
+    @ApiResponse({
+        status: 200,
+        description: 'Customer retrieved successfully',
+        type: ApiResponseDto,
+    })
+    @ApiCommonErrorResponses()
     async findById(@Param('id') id: string) {
         const customer = await this.customersService.findById(id);
 
@@ -96,7 +126,17 @@ export class CustomersController {
      */
     @Put(':id')
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    @ApiOperation({ summary: 'Update customer' })
+    @ApiOperation({
+        summary: 'Update customer',
+        description: 'Update customer information. All fields are optional.',
+    })
+    @ApiParam({ name: 'id', description: 'Customer ID', example: '507f1f77bcf86cd799439011' })
+    @ApiResponse({
+        status: 200,
+        description: 'Customer updated successfully',
+        type: ApiResponseDto,
+    })
+    @ApiCommonErrorResponses()
     async update(
         @Param('id') id: string,
         @Body() updateCustomerDto: UpdateCustomerDto,
@@ -115,7 +155,17 @@ export class CustomersController {
      */
     @Patch(':id/approve')
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    @ApiOperation({ summary: 'Approve customer registration' })
+    @ApiOperation({
+        summary: 'Approve customer registration',
+        description: 'Approve a pending customer registration',
+    })
+    @ApiParam({ name: 'id', description: 'Customer ID', example: '507f1f77bcf86cd799439011' })
+    @ApiResponse({
+        status: 200,
+        description: 'Customer approved successfully',
+        type: ApiResponseDto,
+    })
+    @ApiCommonErrorResponses()
     async approve(@Param('id') id: string, @Body('adminId') adminId: string) {
         const customer = await this.customersService.approve(id, adminId);
 
@@ -131,7 +181,17 @@ export class CustomersController {
      */
     @Patch(':id/reject')
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    @ApiOperation({ summary: 'Reject customer registration' })
+    @ApiOperation({
+        summary: 'Reject customer registration',
+        description: 'Reject a pending customer registration with a reason',
+    })
+    @ApiParam({ name: 'id', description: 'Customer ID', example: '507f1f77bcf86cd799439011' })
+    @ApiResponse({
+        status: 200,
+        description: 'Customer rejected successfully',
+        type: ApiResponseDto,
+    })
+    @ApiCommonErrorResponses()
     async reject(@Param('id') id: string, @Body('reason') reason: string) {
         const customer = await this.customersService.reject(id, reason);
 
@@ -148,7 +208,16 @@ export class CustomersController {
     @Delete(':id')
     @Roles(UserRole.SUPER_ADMIN)
     @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({ summary: 'Delete customer' })
+    @ApiOperation({
+        summary: 'Delete customer',
+        description: 'Delete a customer. This action cannot be undone.',
+    })
+    @ApiParam({ name: 'id', description: 'Customer ID', example: '507f1f77bcf86cd799439011' })
+    @ApiResponse({
+        status: 204,
+        description: 'Customer deleted successfully',
+    })
+    @ApiCommonErrorResponses()
     async delete(@Param('id') id: string) {
         await this.customersService.delete(id);
 
@@ -167,7 +236,17 @@ export class CustomersController {
      * Get customer addresses
      */
     @Get(':id/addresses')
-    @ApiOperation({ summary: 'Get customer addresses' })
+    @ApiOperation({
+        summary: 'Get customer addresses',
+        description: 'Retrieve all addresses for a customer',
+    })
+    @ApiParam({ name: 'id', description: 'Customer ID', example: '507f1f77bcf86cd799439011' })
+    @ApiResponse({
+        status: 200,
+        description: 'Addresses retrieved successfully',
+        type: ApiResponseDto,
+    })
+    @ApiCommonErrorResponses()
     async getAddresses(@Param('id') id: string) {
         const addresses = await this.customersService.getAddresses(id);
 
@@ -182,7 +261,17 @@ export class CustomersController {
      * Create address
      */
     @Post(':id/addresses')
-    @ApiOperation({ summary: 'Create customer address' })
+    @ApiOperation({
+        summary: 'Create customer address',
+        description: 'Add a new address for a customer',
+    })
+    @ApiParam({ name: 'id', description: 'Customer ID', example: '507f1f77bcf86cd799439011' })
+    @ApiResponse({
+        status: 201,
+        description: 'Address created successfully',
+        type: ApiResponseDto,
+    })
+    @ApiCommonErrorResponses()
     async createAddress(
         @Param('id') id: string,
         @Body() createAddressDto: CreateAddressDto,
@@ -203,7 +292,18 @@ export class CustomersController {
      * Update address
      */
     @Put(':id/addresses/:addressId')
-    @ApiOperation({ summary: 'Update customer address' })
+    @ApiOperation({
+        summary: 'Update customer address',
+        description: 'Update an existing customer address',
+    })
+    @ApiParam({ name: 'id', description: 'Customer ID', example: '507f1f77bcf86cd799439011' })
+    @ApiParam({ name: 'addressId', description: 'Address ID', example: '507f1f77bcf86cd799439012' })
+    @ApiResponse({
+        status: 200,
+        description: 'Address updated successfully',
+        type: ApiResponseDto,
+    })
+    @ApiCommonErrorResponses()
     async updateAddress(
         @Param('id') id: string,
         @Param('addressId') addressId: string,
@@ -227,7 +327,17 @@ export class CustomersController {
      */
     @Delete(':id/addresses/:addressId')
     @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({ summary: 'Delete customer address' })
+    @ApiOperation({
+        summary: 'Delete customer address',
+        description: 'Delete a customer address',
+    })
+    @ApiParam({ name: 'id', description: 'Customer ID', example: '507f1f77bcf86cd799439011' })
+    @ApiParam({ name: 'addressId', description: 'Address ID', example: '507f1f77bcf86cd799439012' })
+    @ApiResponse({
+        status: 204,
+        description: 'Address deleted successfully',
+    })
+    @ApiCommonErrorResponses()
     async deleteAddress(
         @Param('id') id: string,
         @Param('addressId') addressId: string,

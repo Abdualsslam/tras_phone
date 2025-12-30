@@ -1,5 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TicketCategory, TicketCategorySchema } from './schemas/ticket-category.schema';
 import { Ticket, TicketSchema } from './schemas/ticket.schema';
 import { TicketMessage, TicketMessageSchema } from './schemas/ticket-message.schema';
@@ -21,6 +23,16 @@ import { ChatController } from './chat.controller';
             { name: ChatSession.name, schema: ChatSessionSchema },
             { name: ChatMessage.name, schema: ChatMessageSchema },
         ]),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: {
+                    expiresIn: configService.get<string>('JWT_EXPIRATION', '15m'),
+                },
+            }),
+            inject: [ConfigService],
+        }),
     ],
     controllers: [TicketsController, ChatController],
     providers: [TicketsService, ChatService],

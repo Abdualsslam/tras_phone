@@ -1,5 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AdminUser, AdminUserSchema } from './schemas/admin-user.schema';
 import { Role, RoleSchema } from './schemas/role.schema';
 import { Permission, PermissionSchema } from './schemas/permission.schema';
@@ -27,6 +29,16 @@ import { PermissionsGuard } from '@guards/permissions.guard';
             { name: RolePermission.name, schema: RolePermissionSchema },
             { name: AdminUserRole.name, schema: AdminUserRoleSchema },
         ]),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: {
+                    expiresIn: configService.get<string>('JWT_EXPIRATION', '15m'),
+                },
+            }),
+            inject: [ConfigService],
+        }),
     ],
     controllers: [AdminsController, RolesController],
     providers: [AdminsService, RolesService, PermissionsService, PermissionsGuard],

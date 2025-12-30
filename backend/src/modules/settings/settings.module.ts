@@ -1,5 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Setting, SettingSchema } from './schemas/setting.schema';
 import { Country, CountrySchema } from './schemas/country.schema';
 import { City, CitySchema } from './schemas/city.schema';
@@ -21,6 +23,16 @@ import { SettingsController } from './settings.controller';
             { name: ShippingZone.name, schema: ShippingZoneSchema },
             { name: PaymentMethod.name, schema: PaymentMethodSchema },
         ]),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: {
+                    expiresIn: configService.get<string>('JWT_EXPIRATION', '15m'),
+                },
+            }),
+            inject: [ConfigService],
+        }),
     ],
     controllers: [SettingsController],
     providers: [SettingsService],

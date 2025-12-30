@@ -1,5 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationTemplate, NotificationTemplateSchema } from './schemas/notification-template.schema';
 import { Notification, NotificationSchema } from './schemas/notification.schema';
 import { NotificationCampaign, NotificationCampaignSchema } from './schemas/notification-campaign.schema';
@@ -15,6 +17,16 @@ import { NotificationsController } from './notifications.controller';
             { name: NotificationCampaign.name, schema: NotificationCampaignSchema },
             { name: PushToken.name, schema: PushTokenSchema },
         ]),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: {
+                    expiresIn: configService.get<string>('JWT_EXPIRATION', '15m'),
+                },
+            }),
+            inject: [ConfigService],
+        }),
     ],
     controllers: [NotificationsController],
     providers: [NotificationsService],

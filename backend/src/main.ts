@@ -56,36 +56,75 @@ async function bootstrap() {
 
     // Swagger API Documentation
     const swaggerConfig = new DocumentBuilder()
-        .setTitle('Tras Phone API')
-        .setDescription('TRAS Phone E-Commerce Platform API Documentation')
-        .setVersion('1.0')
-        .addBearerAuth()
-        .addTag('Auth', 'Authentication endpoints')
-        .addTag('Customers', 'Customer management')
-        .addTag('Admin', 'Admin management')
-        .addTag('Products', 'Product catalog')
-        .addTag('Categories', 'Product categories')
-        .addTag('Orders', 'Order management')
-        .addTag('Cart', 'Shopping cart')
-        .addTag('Inventory', 'Inventory management')
-        .addTag('Promotions', 'Promotions & coupons')
-        .addTag('Returns', 'Returns & refunds')
-        .addTag('Wallet', 'Customer wallet')
-        .addTag('Loyalty', 'Loyalty program')
-        .addTag('Notifications', 'Notifications')
-        .addTag('Support', 'Customer support')
-        .addTag('Content', 'CMS content')
-        .addTag('Settings', 'System settings')
-        .addTag('Analytics', 'Analytics & reports')
-        .addTag('Audit', 'Audit logs')
+        .setTitle('TRAS Phone API')
+        .setDescription(
+            `TRAS Phone B2B E-Commerce Platform API Documentation
+
+This API provides comprehensive endpoints for managing:
+- Authentication & Authorization
+- Customer & Admin Management
+- Product Catalog & Inventory
+- Orders & Cart Management
+- Promotions & Loyalty Programs
+- Wallet & Payments
+- Support & Notifications
+- Analytics & Reporting
+
+All endpoints require JWT Bearer token authentication unless marked as public.`
+        )
+        .setVersion('1.0.0')
+        .setContact(
+            'TRAS Phone Team',
+            'https://trasphone.com',
+            'support@trasphone.com'
+        )
+        .setLicense('Proprietary', 'https://trasphone.com/license')
+        .addServer('http://localhost:3000', 'Development Server')
+        .addServer('https://api.trasphone.com', 'Production Server')
+        .addBearerAuth(
+            {
+                type: 'http',
+                scheme: 'bearer',
+                bearerFormat: 'JWT',
+                name: 'JWT',
+                description: 'Enter JWT token',
+                in: 'header',
+            },
+            'JWT-auth'
+        )
+        .addTag('Authentication', 'User authentication and authorization endpoints')
+        .addTag('Customers', 'Customer management and operations')
+        .addTag('Admin Users', 'Administrative user management')
+        .addTag('Products', 'Product catalog and management')
+        .addTag('Catalog', 'Product categories and catalog operations')
+        .addTag('Orders', 'Order management and tracking')
+        .addTag('Cart', 'Shopping cart operations')
+        .addTag('Inventory', 'Inventory and warehouse management')
+        .addTag('Promotions', 'Promotions, coupons, and discount management')
+        .addTag('Returns', 'Product returns and refunds')
+        .addTag('Wallet', 'Customer wallet and balance management')
+        .addTag('Notifications', 'User notifications management')
+        .addTag('Support', 'Customer support tickets and chat')
+        .addTag('Content', 'CMS content management')
+        .addTag('Settings', 'System settings and configuration')
+        .addTag('Analytics', 'Analytics, reports, and insights')
+        .addTag('Audit', 'Audit logs and activity tracking')
+        .addTag('Locations', 'Cities, markets, and location management')
+        .addTag('Suppliers', 'Supplier management')
+        .addTag('Users', 'User account management')
         .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup('api/docs', app, document, {
         swaggerOptions: {
             persistAuthorization: true,
-            docExpansion: 'none',
+            docExpansion: 'list',
+            filter: true,
+            showRequestDuration: true,
+            tryItOutEnabled: true,
         },
+        customSiteTitle: 'TRAS Phone API Documentation',
+        customCss: '.swagger-ui .topbar { display: none }',
     });
 
     // Start server

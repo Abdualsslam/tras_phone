@@ -1,5 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Brand, BrandSchema } from './schemas/brand.schema';
 import { Category, CategorySchema } from './schemas/category.schema';
 import { Device, DeviceSchema } from './schemas/device.schema';
@@ -16,6 +18,16 @@ import { CatalogController } from './catalog.controller';
             { name: Device.name, schema: DeviceSchema },
             { name: QualityType.name, schema: QualityTypeSchema },
         ]),
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+                secret: configService.get<string>('JWT_SECRET'),
+                signOptions: {
+                    expiresIn: configService.get<string>('JWT_EXPIRATION', '15m'),
+                },
+            }),
+            inject: [ConfigService],
+        }),
     ],
     controllers: [CatalogController],
     providers: [CatalogService, CategoriesService],
