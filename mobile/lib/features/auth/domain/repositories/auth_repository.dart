@@ -4,7 +4,6 @@ library;
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../entities/customer_entity.dart';
-import '../entities/user_entity.dart';
 
 abstract class AuthRepository {
   /// Check if user is logged in

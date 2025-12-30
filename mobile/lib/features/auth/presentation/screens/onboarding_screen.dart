@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/config/theme/app_theme.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../cubit/auth_cubit.dart';
 
