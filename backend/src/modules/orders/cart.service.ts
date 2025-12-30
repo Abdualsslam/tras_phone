@@ -135,13 +135,13 @@ export class CartService {
      */
     async applyCoupon(
         customerId: string,
-        couponId: string,
+        couponId: string | undefined,
         couponCode: string,
         discountAmount: number,
     ): Promise<CartDocument> {
         const cart = await this.getCart(customerId);
 
-        cart.couponId = new Types.ObjectId(couponId);
+        cart.couponId = couponId ? new Types.ObjectId(couponId) : undefined;
         cart.couponCode = couponCode;
         cart.couponDiscount = discountAmount;
 
