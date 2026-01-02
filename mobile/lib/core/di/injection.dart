@@ -19,6 +19,11 @@ import '../../features/cart/data/datasources/cart_remote_datasource.dart';
 import '../../features/orders/data/datasources/orders_mock_datasource.dart';
 import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
+import '../../features/wishlist/data/datasources/wishlist_remote_datasource.dart';
+import '../../features/notifications/data/datasources/notifications_remote_datasource.dart';
+import '../../features/returns/data/datasources/returns_remote_datasource.dart';
+import '../../features/support/data/datasources/support_remote_datasource.dart';
+import '../../features/reviews/data/datasources/reviews_remote_datasource.dart';
 
 final getIt = GetIt.instance;
 
@@ -143,6 +148,51 @@ Future<void> setupDependencies() async {
   // DataSources
   getIt.registerLazySingleton<ProfileRemoteDataSource>(
     () => ProfileRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WISHLIST FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<WishlistRemoteDataSource>(
+    () => WishlistRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NOTIFICATIONS FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<NotificationsRemoteDataSource>(
+    () => NotificationsRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RETURNS FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<ReturnsRemoteDataSource>(
+    () => ReturnsRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SUPPORT FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<SupportRemoteDataSource>(
+    () => SupportRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REVIEWS FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<ReviewsRemoteDataSource>(
+    () => ReviewsRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
 }
 
