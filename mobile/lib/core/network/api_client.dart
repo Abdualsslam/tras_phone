@@ -4,9 +4,12 @@ library;
 import 'package:dio/dio.dart';
 import '../config/app_config.dart';
 import '../errors/exceptions.dart';
+import 'auth_interceptor.dart';
+import 'token_manager.dart';
 
 class ApiClient {
   late final Dio _dio;
+  TokenManager? _tokenManager;
 
   ApiClient() {
     _dio = Dio(
@@ -23,6 +26,35 @@ class ApiClient {
   }
 
   Dio get dio => _dio;
+
+  /// Get the token manager if initialized
+  TokenManager? get tokenManager => _tokenManager;
+
+  /// Initialize with TokenManager and interceptors
+  void initialize({
+    required TokenManager tokenManager,
+    OnLogoutCallback? onLogout,
+    bool enableLogging = false,
+  }) {
+    _tokenManager = tokenManager;
+
+    // Clear existing interceptors
+    _dio.interceptors.clear();
+
+    // Add auth interceptor
+    _dio.interceptors.add(
+      AuthInterceptor(
+        dio: _dio,
+        tokenManager: tokenManager,
+        onLogout: onLogout,
+      ),
+    );
+
+    // Add logging interceptor in debug mode
+    if (enableLogging) {
+      _dio.interceptors.add(LoggingInterceptor());
+    }
+  }
 
   void setAuthToken(String token) {
     _dio.options.headers['Authorization'] = 'Bearer $token';
@@ -88,6 +120,24 @@ class ApiClient {
     }
   }
 
+  Future<Response<T>> patch<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.patch<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
   Future<Response<T>> delete<T>(
     String path, {
     dynamic data,
@@ -100,6 +150,31 @@ class ApiClient {
         data: data,
         queryParameters: queryParameters,
         options: options,
+      );
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  /// Upload file with multipart form data
+  Future<Response<T>> uploadFile<T>(
+    String path, {
+    required String filePath,
+    required String fieldName,
+    Map<String, dynamic>? additionalData,
+    void Function(int, int)? onSendProgress,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        fieldName: await MultipartFile.fromFile(filePath),
+        ...?additionalData,
+      });
+
+      return await _dio.post<T>(
+        path,
+        data: formData,
+        onSendProgress: onSendProgress,
+        options: Options(contentType: 'multipart/form-data'),
       );
     } on DioException catch (e) {
       throw _handleDioException(e);

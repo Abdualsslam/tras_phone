@@ -57,12 +57,21 @@ class ApiEndpoints {
   // ═══════════════════════════════════════════════════════════════════════════
   static const String cart = '/cart';
   static const String cartItems = '/cart/items';
+  static const String cartAdd = '/cart/add';
+  static const String cartUpdate = '/cart/update';
+  static const String cartRemove = '/cart/remove';
+  static const String cartClear = '/cart/clear';
+  static const String cartCount = '/cart/count';
+  static const String cartSync = '/cart/sync';
+  static const String cartApplyCoupon = '/cart/apply-coupon';
+  static const String cartRemoveCoupon = '/cart/remove-coupon';
   static const String applyCoupon = '/cart/apply-coupon';
   static const String removeCoupon = '/cart/remove-coupon';
   static const String checkoutSummary = '/checkout/summary';
   static const String placeOrder = '/checkout/place-order';
   static const String paymentMethods = '/checkout/payment-methods';
   static const String bankAccounts = '/checkout/bank-accounts';
+  static const String calculateShipping = '/checkout/calculate-shipping';
   static const String validateCoupon = '/coupons/validate';
   static const String availableCoupons = '/coupons/available';
   static const String activePromotions = '/promotions/active';
@@ -71,6 +80,7 @@ class ApiEndpoints {
   // ORDERS
   // ═══════════════════════════════════════════════════════════════════════════
   static const String orders = '/orders';
+  static const String ordersCreate = '/orders/create';
   static const String ordersStats = '/orders/stats';
   static const String ordersRecent = '/orders/recent';
   static const String ordersPendingPayment = '/orders/pending-payment';

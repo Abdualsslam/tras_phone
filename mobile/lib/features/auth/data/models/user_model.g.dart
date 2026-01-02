@@ -1,10 +1,13 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
-// Manual implementation for user_model.g.dart
 
 part of 'user_model.dart';
 
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
 UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
-  id: json['id'] as int,
+  id: (json['id'] as num).toInt(),
   uuid: json['uuid'] as String,
   phone: json['phone'] as String,
   email: json['email'] as String?,

@@ -198,7 +198,7 @@ class _CategoryCard extends StatelessWidget {
                 ),
 
                 // Products Count with badge style
-                if (category.productsCount != null) ...[
+                if (category.productsCount > 0) ...[
                   SizedBox(height: 8.h),
                   Container(
                     padding: EdgeInsets.symmetric(

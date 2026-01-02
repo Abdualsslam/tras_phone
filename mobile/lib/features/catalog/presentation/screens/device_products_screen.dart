@@ -6,7 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/widgets/product_card.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../data/datasources/catalog_mock_datasource.dart';

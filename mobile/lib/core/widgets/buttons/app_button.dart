@@ -3,8 +3,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../config/theme/app_colors.dart';
-import '../config/theme/app_theme.dart';
+import '../../config/theme/app_colors.dart';
+import '../../config/theme/app_theme.dart';
 
 enum AppButtonType { primary, secondary, outline, text, danger }
 

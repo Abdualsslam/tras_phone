@@ -9,7 +9,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
-import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 
