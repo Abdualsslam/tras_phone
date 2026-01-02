@@ -12,6 +12,12 @@ import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
+import '../../features/catalog/data/datasources/catalog_mock_datasource.dart';
+import '../../features/catalog/data/datasources/catalog_remote_datasource.dart';
+import '../../features/cart/data/datasources/cart_mock_datasource.dart';
+import '../../features/cart/data/datasources/cart_remote_datasource.dart';
+import '../../features/orders/data/datasources/orders_mock_datasource.dart';
+import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 
 final getIt = GetIt.instance;
 
@@ -72,11 +78,18 @@ Future<void> setupDependencies() async {
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CATALOG FEATURE (To be implemented)
+  // CATALOG FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
-  // getIt.registerLazySingleton<CatalogRemoteDataSource>(
-  //   () => CatalogRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
-  // );
+
+  // DataSources
+  getIt.registerLazySingleton<CatalogMockDataSource>(
+    () => CatalogMockDataSource(),
+  );
+  getIt.registerLazySingleton<CatalogRemoteDataSource>(
+    () => CatalogRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Repository and Cubit will be added when implementing presentation layer
   // getIt.registerLazySingleton<CatalogRepository>(
   //   () => CatalogRepositoryImpl(dataSource: getIt<CatalogRemoteDataSource>()),
   // );
@@ -85,11 +98,16 @@ Future<void> setupDependencies() async {
   // );
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CART FEATURE (To be implemented)
+  // CART FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
-  // getIt.registerLazySingleton<CartRemoteDataSource>(
-  //   () => CartRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
-  // );
+
+  // DataSources
+  getIt.registerLazySingleton<CartMockDataSource>(() => CartMockDataSource());
+  getIt.registerLazySingleton<CartRemoteDataSource>(
+    () => CartRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Repository and Cubit will be added when implementing presentation layer
   // getIt.registerLazySingleton<CartRepository>(
   //   () => CartRepositoryImpl(dataSource: getIt<CartRemoteDataSource>()),
   // );
@@ -98,11 +116,18 @@ Future<void> setupDependencies() async {
   // );
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ORDERS FEATURE (To be implemented)
+  // ORDERS FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
-  // getIt.registerLazySingleton<OrdersRemoteDataSource>(
-  //   () => OrdersRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
-  // );
+
+  // DataSources
+  getIt.registerLazySingleton<OrdersMockDataSource>(
+    () => OrdersMockDataSource(),
+  );
+  getIt.registerLazySingleton<OrdersRemoteDataSource>(
+    () => OrdersRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Repository and Cubit will be added when implementing presentation layer
   // getIt.registerLazySingleton<OrdersRepository>(
   //   () => OrdersRepositoryImpl(dataSource: getIt<OrdersRemoteDataSource>()),
   // );

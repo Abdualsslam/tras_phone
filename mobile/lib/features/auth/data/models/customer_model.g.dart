@@ -1,27 +1,30 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
-// Manual implementation for customer_model.g.dart
 
 part of 'customer_model.dart';
 
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
 CustomerModel _$CustomerModelFromJson(Map<String, dynamic> json) =>
     CustomerModel(
-      id: json['id'] as int,
+      id: (json['id'] as num).toInt(),
       user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
       customerCode: json['customer_code'] as String,
       responsiblePersonName: json['responsible_person_name'] as String,
       shopName: json['shop_name'] as String,
       shopNameAr: json['shop_name_ar'] as String?,
       businessType: json['business_type'] as String? ?? 'shop',
-      cityId: json['city_id'] as int,
-      marketId: json['market_id'] as int?,
+      cityId: (json['city_id'] as num).toInt(),
+      marketId: (json['market_id'] as num?)?.toInt(),
       address: json['address'] as String?,
-      priceLevelId: json['price_level_id'] as int,
+      priceLevelId: (json['price_level_id'] as num).toInt(),
       creditLimit: (json['credit_limit'] as num?)?.toDouble() ?? 0.0,
       creditUsed: (json['credit_used'] as num?)?.toDouble() ?? 0.0,
       walletBalance: (json['wallet_balance'] as num?)?.toDouble() ?? 0.0,
-      loyaltyPoints: json['loyalty_points'] as int? ?? 0,
+      loyaltyPoints: (json['loyalty_points'] as num?)?.toInt() ?? 0,
       loyaltyTier: json['loyalty_tier'] as String? ?? 'bronze',
-      totalOrders: json['total_orders'] as int? ?? 0,
+      totalOrders: (json['total_orders'] as num?)?.toInt() ?? 0,
       totalSpent: (json['total_spent'] as num?)?.toDouble() ?? 0.0,
       approvedAt: json['approved_at'] as String?,
       createdAt: json['created_at'] as String?,
@@ -30,7 +33,7 @@ CustomerModel _$CustomerModelFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$CustomerModelToJson(CustomerModel instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'user': instance.user.toJson(),
+      'user': instance.user,
       'customer_code': instance.customerCode,
       'responsible_person_name': instance.responsiblePersonName,
       'shop_name': instance.shopName,
