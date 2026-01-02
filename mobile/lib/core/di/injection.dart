@@ -18,6 +18,7 @@ import '../../features/cart/data/datasources/cart_mock_datasource.dart';
 import '../../features/cart/data/datasources/cart_remote_datasource.dart';
 import '../../features/orders/data/datasources/orders_mock_datasource.dart';
 import '../../features/orders/data/datasources/orders_remote_datasource.dart';
+import '../../features/profile/data/datasources/profile_remote_datasource.dart';
 
 final getIt = GetIt.instance;
 
@@ -134,6 +135,15 @@ Future<void> setupDependencies() async {
   // getIt.registerFactory<OrdersCubit>(
   //   () => OrdersCubit(ordersRepository: getIt<OrdersRepository>()),
   // );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROFILE FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<ProfileRemoteDataSource>(
+    () => ProfileRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
 }
 
 /// Handle forced logout when token refresh fails
