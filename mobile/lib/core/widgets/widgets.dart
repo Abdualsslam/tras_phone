@@ -1,9 +1,20 @@
 /// Widgets barrel file - Export all shared widgets
 library;
 
-export 'app_button.dart';
-export 'app_text_field.dart';
-export 'app_loading.dart';
-export 'app_error.dart';
-export 'app_image.dart';
-export 'product_card.dart';
+// Buttons
+export 'buttons/index.dart';
+
+// Inputs
+export 'inputs/index.dart';
+
+// Loading
+export 'loading/index.dart';
+
+// Feedback
+export 'feedback/index.dart';
+
+// Cards
+export 'cards/index.dart';
+
+// Images
+export 'images/index.dart';

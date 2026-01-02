@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../cubit/auth_cubit.dart';
 
 class OnboardingScreen extends StatefulWidget {

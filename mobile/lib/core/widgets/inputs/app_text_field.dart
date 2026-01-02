@@ -4,8 +4,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../config/theme/app_colors.dart';
-import '../config/theme/app_theme.dart';
+import '../../config/theme/app_colors.dart';
+import '../../config/theme/app_theme.dart';
 
 class AppTextField extends StatefulWidget {
   final String? label;
