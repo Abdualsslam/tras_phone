@@ -4,20 +4,21 @@ library;
 import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
-import '../models/customer_model.dart';
+import '../models/user_model.dart';
+import '../models/token_response.dart';
 
 /// Response model for auth endpoints
 class AuthResponse {
-  final CustomerModel customer;
+  final UserModel user;
   final String accessToken;
   final String refreshToken;
-  final int? expiresIn;
+  final String expiresIn;
 
   const AuthResponse({
-    required this.customer,
+    required this.user,
     required this.accessToken,
     required this.refreshToken,
-    this.expiresIn,
+    required this.expiresIn,
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
@@ -25,17 +26,17 @@ class AuthResponse {
     final data = json['data'] ?? json;
 
     return AuthResponse(
-      customer: CustomerModel.fromJson(data['customer'] ?? data['user']),
-      accessToken: data['access_token'] ?? json['access_token'],
-      refreshToken: data['refresh_token'] ?? json['refresh_token'],
-      expiresIn: data['expires_in'] ?? json['expires_in'],
+      user: UserModel.fromJson(data['user']),
+      accessToken: data['accessToken'],
+      refreshToken: data['refreshToken'],
+      expiresIn: data['expiresIn'] ?? '15m',
     );
   }
 
   Map<String, dynamic> toTokenJson() => {
-    'access_token': accessToken,
-    'refresh_token': refreshToken,
-    'expires_in': expiresIn,
+    'accessToken': accessToken,
+    'refreshToken': refreshToken,
+    'expiresIn': expiresIn,
   };
 }
 
@@ -48,15 +49,11 @@ abstract class AuthRemoteDataSource {
   Future<AuthResponse> register({
     required String phone,
     required String password,
-    required String responsiblePersonName,
-    required String shopName,
-    required int cityId,
-    int? marketId,
-    String? commercialLicense,
+    String? email,
   });
 
   /// Send OTP for verification
-  Future<bool> sendOtp({required String phone, required String purpose});
+  Future<void> sendOtp({required String phone, required String purpose});
 
   /// Verify OTP
   Future<bool> verifyOtp({
@@ -66,40 +63,31 @@ abstract class AuthRemoteDataSource {
   });
 
   /// Forgot password - send reset OTP
-  Future<bool> forgotPassword({required String phone});
+  Future<void> forgotPassword({required String phone});
 
-  /// Reset password with OTP
+  /// Verify OTP for password reset - returns resetToken
+  Future<String> verifyResetOtp({required String phone, required String otp});
+
+  /// Reset password with resetToken
   Future<bool> resetPassword({
-    required String phone,
-    required String otp,
+    required String resetToken,
     required String newPassword,
   });
 
   /// Get current user profile
-  Future<CustomerModel> getCurrentUser();
-
-  /// Update profile
-  Future<CustomerModel> updateProfile({
-    String? responsiblePersonName,
-    String? shopName,
-    String? email,
-    String? address,
-  });
+  Future<UserModel> getProfile();
 
   /// Change password
   Future<bool> changePassword({
-    required String currentPassword,
+    required String oldPassword,
     required String newPassword,
   });
 
   /// Refresh token
-  Future<Map<String, dynamic>> refreshToken({required String refreshToken});
+  Future<TokenResponse> refreshToken({required String refreshToken});
 
   /// Logout
-  Future<bool> logout();
-
-  /// Update FCM token
-  Future<bool> updateFcmToken({required String fcmToken});
+  Future<void> logout();
 }
 
 /// Implementation of AuthRemoteDataSource using API client
@@ -121,18 +109,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: {'phone': phone, 'password': password},
     );
 
-    return AuthResponse.fromJson(response.data);
+    final authResponse = AuthResponse.fromJson(response.data);
+    developer.log('Login successful', name: 'AuthDataSource');
+    return authResponse;
   }
 
   @override
   Future<AuthResponse> register({
     required String phone,
     required String password,
-    required String responsiblePersonName,
-    required String shopName,
-    required int cityId,
-    int? marketId,
-    String? commercialLicense,
+    String? email,
   }) async {
     developer.log('Registering new user: $phone', name: 'AuthDataSource');
 
@@ -141,12 +127,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: {
         'phone': phone,
         'password': password,
-        'password_confirmation': password,
-        'responsible_person_name': responsiblePersonName,
-        'shop_name': shopName,
-        'city_id': cityId,
-        if (marketId != null) 'market_id': marketId,
-        if (commercialLicense != null) 'commercial_license': commercialLicense,
+        'userType': 'customer', // Always customer for mobile app
+        if (email != null) 'email': email,
       },
     );
 
@@ -154,7 +136,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<bool> sendOtp({required String phone, required String purpose}) async {
+  Future<void> sendOtp({required String phone, required String purpose}) async {
     developer.log(
       'Sending OTP to: $phone for: $purpose',
       name: 'AuthDataSource',
@@ -165,7 +147,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: {'phone': phone, 'purpose': purpose},
     );
 
-    return response.statusCode == 200;
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'فشل إرسال OTP',
+      );
+    }
   }
 
   @override
@@ -181,11 +169,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: {'phone': phone, 'otp': otp, 'purpose': purpose},
     );
 
-    return response.statusCode == 200;
+    return response.data['success'] == true;
   }
 
   @override
-  Future<bool> forgotPassword({required String phone}) async {
+  Future<void> forgotPassword({required String phone}) async {
     developer.log('Forgot password for: $phone', name: 'AuthDataSource');
 
     final response = await _apiClient.post(
@@ -193,123 +181,102 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: {'phone': phone},
     );
 
-    return response.statusCode == 200;
-  }
-
-  @override
-  Future<bool> resetPassword({
-    required String phone,
-    required String otp,
-    required String newPassword,
-  }) async {
-    developer.log('Resetting password for: $phone', name: 'AuthDataSource');
-
-    final response = await _apiClient.post(
-      ApiEndpoints.resetPassword,
-      data: {
-        'phone': phone,
-        'otp': otp,
-        'password': newPassword,
-        'password_confirmation': newPassword,
-      },
-    );
-
-    return response.statusCode == 200;
-  }
-
-  @override
-  Future<CustomerModel> getCurrentUser() async {
-    developer.log('Fetching current user', name: 'AuthDataSource');
-
-    final response = await _apiClient.get(ApiEndpoints.me);
-    final data = response.data['data'] ?? response.data;
-
-    return CustomerModel.fromJson(data);
-  }
-
-  @override
-  Future<CustomerModel> updateProfile({
-    String? responsiblePersonName,
-    String? shopName,
-    String? email,
-    String? address,
-  }) async {
-    developer.log('Updating profile', name: 'AuthDataSource');
-
-    final response = await _apiClient.put(
-      ApiEndpoints.profile,
-      data: {
-        if (responsiblePersonName != null)
-          'responsible_person_name': responsiblePersonName,
-        if (shopName != null) 'shop_name': shopName,
-        if (email != null) 'email': email,
-        if (address != null) 'address': address,
-      },
-    );
-
-    final data = response.data['data'] ?? response.data;
-    return CustomerModel.fromJson(data);
-  }
-
-  @override
-  Future<bool> changePassword({
-    required String currentPassword,
-    required String newPassword,
-  }) async {
-    developer.log('Changing password', name: 'AuthDataSource');
-
-    final response = await _apiClient.put(
-      ApiEndpoints.changePassword,
-      data: {
-        'current_password': currentPassword,
-        'password': newPassword,
-        'password_confirmation': newPassword,
-      },
-    );
-
-    return response.statusCode == 200;
-  }
-
-  @override
-  Future<Map<String, dynamic>> refreshToken({
-    required String refreshToken,
-  }) async {
-    developer.log('Refreshing token', name: 'AuthDataSource');
-
-    final response = await _apiClient.post(
-      ApiEndpoints.refreshToken,
-      data: {'refresh_token': refreshToken},
-    );
-
-    return response.data;
-  }
-
-  @override
-  Future<bool> logout() async {
-    developer.log('Logging out', name: 'AuthDataSource');
-
-    try {
-      final response = await _apiClient.post(ApiEndpoints.logout);
-      return response.statusCode == 200;
-    } catch (e) {
-      // Even if logout fails on server, we consider it successful locally
-      developer.log(
-        'Logout API failed, proceeding locally',
-        name: 'AuthDataSource',
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'فشل إرسال رمز إعادة التعيين',
       );
-      return true;
     }
   }
 
   @override
-  Future<bool> updateFcmToken({required String fcmToken}) async {
-    developer.log('Updating FCM token', name: 'AuthDataSource');
+  Future<String> verifyResetOtp({
+    required String phone,
+    required String otp,
+  }) async {
+    developer.log('Verifying reset OTP for: $phone', name: 'AuthDataSource');
 
     final response = await _apiClient.post(
-      ApiEndpoints.fcmToken,
-      data: {'fcm_token': fcmToken},
+      ApiEndpoints.verifyResetOtp,
+      data: {'phone': phone, 'otp': otp, 'purpose': 'password_reset'},
     );
 
-    return response.statusCode == 200;
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'رمز التحقق غير صحيح',
+      );
+    }
+
+    return response.data['data']['resetToken'];
+  }
+
+  @override
+  Future<bool> resetPassword({
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    developer.log('Resetting password', name: 'AuthDataSource');
+
+    final response = await _apiClient.post(
+      ApiEndpoints.resetPassword,
+      data: {'resetToken': resetToken, 'newPassword': newPassword},
+    );
+
+    return response.data['success'] == true;
+  }
+
+  @override
+  Future<UserModel> getProfile() async {
+    developer.log('Fetching current user profile', name: 'AuthDataSource');
+
+    final response = await _apiClient.get(ApiEndpoints.me);
+    final data = response.data['data'] ?? response.data;
+
+    return UserModel.fromJson(data);
+  }
+
+  @override
+  Future<bool> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    developer.log('Changing password', name: 'AuthDataSource');
+
+    final response = await _apiClient.patch(
+      ApiEndpoints.changePassword,
+      data: {'oldPassword': oldPassword, 'newPassword': newPassword},
+    );
+
+    return response.data['success'] == true;
+  }
+
+  @override
+  Future<TokenResponse> refreshToken({required String refreshToken}) async {
+    developer.log('Refreshing token', name: 'AuthDataSource');
+
+    final response = await _apiClient.post(
+      ApiEndpoints.refreshToken,
+      data: {'refreshToken': refreshToken},
+    );
+
+    return TokenResponse.fromJson(response.data);
+  }
+
+  @override
+  Future<void> logout() async {
+    developer.log('Logging out', name: 'AuthDataSource');
+
+    try {
+      await _apiClient.post(ApiEndpoints.logout);
+    } catch (e) {
+      // Even if logout fails on server, we consider it successful locally
+      developer.log(
+        'Logout API failed, proceeding locally: $e',
+        name: 'AuthDataSource',
+      );
+    }
   }
 }

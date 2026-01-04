@@ -3,7 +3,7 @@ library;
 
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../entities/customer_entity.dart';
+import '../entities/user_entity.dart';
 
 abstract class AuthRepository {
   /// Check if user is logged in
@@ -16,22 +16,20 @@ abstract class AuthRepository {
   Future<void> setFirstLaunchComplete();
 
   /// Login with phone and password
-  Future<Either<Failure, CustomerEntity>> login({
+  Future<Either<Failure, UserEntity>> login({
     required String phone,
     required String password,
   });
 
   /// Register new customer
-  Future<Either<Failure, CustomerEntity>> register({
+  Future<Either<Failure, UserEntity>> register({
     required String phone,
     required String password,
-    required String responsiblePersonName,
-    required String shopName,
-    required int cityId,
+    String? email,
   });
 
   /// Send OTP to phone
-  Future<Either<Failure, bool>> sendOtp({
+  Future<Either<Failure, void>> sendOtp({
     required String phone,
     required String purpose,
   });
@@ -43,35 +41,33 @@ abstract class AuthRepository {
     required String purpose,
   });
 
-  /// Forgot password - request reset
-  Future<Either<Failure, bool>> forgotPassword({required String phone});
+  /// Forgot password - request reset OTP
+  Future<Either<Failure, void>> forgotPassword({required String phone});
 
-  /// Reset password with OTP
-  Future<Either<Failure, bool>> resetPassword({
+  /// Verify OTP for password reset - returns resetToken
+  Future<Either<Failure, String>> verifyResetOtp({
     required String phone,
     required String otp,
+  });
+
+  /// Reset password with resetToken
+  Future<Either<Failure, bool>> resetPassword({
+    required String resetToken,
     required String newPassword,
   });
 
-  /// Get current user
-  Future<Either<Failure, CustomerEntity>> getCurrentUser();
-
-  /// Update profile
-  Future<Either<Failure, CustomerEntity>> updateProfile({
-    String? responsiblePersonName,
-    String? shopName,
-    String? email,
-  });
+  /// Get current user profile
+  Future<Either<Failure, UserEntity>> getProfile();
 
   /// Change password
   Future<Either<Failure, bool>> changePassword({
-    required String currentPassword,
+    required String oldPassword,
     required String newPassword,
   });
 
   /// Logout
-  Future<Either<Failure, bool>> logout();
+  Future<Either<Failure, void>> logout();
 
   /// Get cached user
-  CustomerEntity? getCachedUser();
+  UserEntity? getCachedUser();
 }

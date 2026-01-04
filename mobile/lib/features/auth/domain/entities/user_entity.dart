@@ -4,36 +4,34 @@ library;
 import 'package:equatable/equatable.dart';
 
 class UserEntity extends Equatable {
-  final int id;
-  final String uuid;
+  final String id;
   final String phone;
   final String? email;
-  final String userType;
-  final String status;
-  final String? avatar;
-  final bool phoneVerified;
-  final bool emailVerified;
-  final String language;
-  final DateTime? createdAt;
+  final String userType; // 'customer' | 'admin'
+  final String status; // 'pending' | 'active' | 'suspended' | 'deleted'
+  final String? referralCode;
+  final DateTime? lastLoginAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const UserEntity({
     required this.id,
-    required this.uuid,
     required this.phone,
     this.email,
     required this.userType,
     required this.status,
-    this.avatar,
-    this.phoneVerified = false,
-    this.emailVerified = false,
-    this.language = 'ar',
-    this.createdAt,
+    this.referralCode,
+    this.lastLoginAt,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   bool get isActive => status == 'active';
+  bool get isPending => status == 'pending';
+  bool get isSuspended => status == 'suspended';
   bool get isCustomer => userType == 'customer';
   bool get isAdmin => userType == 'admin';
 
   @override
-  List<Object?> get props => [id, uuid, phone, email, userType, status];
+  List<Object?> get props => [id, phone, email, userType, status];
 }

@@ -2,7 +2,7 @@
 library;
 
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/customer_entity.dart';
+import '../../domain/entities/user_entity.dart';
 
 abstract class AuthState extends Equatable {
   const AuthState();
@@ -28,12 +28,12 @@ class AuthLoading extends AuthState {
 
 /// Authenticated state
 class AuthAuthenticated extends AuthState {
-  final CustomerEntity customer;
+  final UserEntity user;
 
-  const AuthAuthenticated(this.customer);
+  const AuthAuthenticated(this.user);
 
   @override
-  List<Object?> get props => [customer];
+  List<Object?> get props => [user];
 }
 
 /// Unauthenticated state
@@ -67,14 +67,15 @@ class AuthOtpSent extends AuthState {
   List<Object?> get props => [phone, purpose];
 }
 
-/// OTP verified state
+/// OTP verified state - includes resetToken for password reset flow
 class AuthOtpVerified extends AuthState {
   final String phone;
+  final String? resetToken;
 
-  const AuthOtpVerified({required this.phone});
+  const AuthOtpVerified({required this.phone, this.resetToken});
 
   @override
-  List<Object?> get props => [phone];
+  List<Object?> get props => [phone, resetToken];
 }
 
 /// Password reset success state
@@ -84,10 +85,10 @@ class AuthPasswordResetSuccess extends AuthState {
 
 /// Profile updated state
 class AuthProfileUpdated extends AuthState {
-  final CustomerEntity customer;
+  final UserEntity user;
 
-  const AuthProfileUpdated(this.customer);
+  const AuthProfileUpdated(this.user);
 
   @override
-  List<Object?> get props => [customer];
+  List<Object?> get props => [user];
 }

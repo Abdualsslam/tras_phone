@@ -7,29 +7,27 @@ part of 'user_model.dart';
 // **************************************************************************
 
 UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
-  id: (json['id'] as num).toInt(),
-  uuid: json['uuid'] as String,
+  id: UserModel._readId(json, '_id') as String,
   phone: json['phone'] as String,
   email: json['email'] as String?,
-  userType: json['user_type'] as String,
+  userType: json['userType'] as String,
   status: json['status'] as String,
-  avatar: json['avatar'] as String?,
-  phoneVerifiedAt: json['phone_verified_at'] as String?,
-  emailVerifiedAt: json['email_verified_at'] as String?,
-  language: json['language'] as String? ?? 'ar',
-  createdAt: json['created_at'] as String?,
+  referralCode: json['referralCode'] as String?,
+  lastLoginAt: json['lastLoginAt'] == null
+      ? null
+      : DateTime.parse(json['lastLoginAt'] as String),
+  createdAt: DateTime.parse(json['createdAt'] as String),
+  updatedAt: DateTime.parse(json['updatedAt'] as String),
 );
 
 Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
-  'id': instance.id,
-  'uuid': instance.uuid,
+  '_id': instance.id,
   'phone': instance.phone,
   'email': instance.email,
-  'user_type': instance.userType,
+  'userType': instance.userType,
   'status': instance.status,
-  'avatar': instance.avatar,
-  'phone_verified_at': instance.phoneVerifiedAt,
-  'email_verified_at': instance.emailVerifiedAt,
-  'language': instance.language,
-  'created_at': instance.createdAt,
+  'referralCode': instance.referralCode,
+  'lastLoginAt': instance.lastLoginAt?.toIso8601String(),
+  'createdAt': instance.createdAt.toIso8601String(),
+  'updatedAt': instance.updatedAt.toIso8601String(),
 };

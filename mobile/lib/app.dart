@@ -8,9 +8,6 @@ import 'core/config/theme/app_theme.dart';
 import 'core/cubit/locale_cubit.dart';
 import 'core/di/injection.dart';
 import 'core/storage/local_storage.dart';
-import 'core/storage/secure_storage.dart';
-import 'features/auth/data/datasources/auth_mock_datasource.dart';
-import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/cart/presentation/cubit/cart_cubit.dart';
 import 'features/home/presentation/cubit/home_cubit.dart';
@@ -35,15 +32,7 @@ class TrasPhoneApp extends StatelessWidget {
                   LocaleCubit(localStorage: getIt<LocalStorage>())
                     ..loadSavedLocale(),
             ),
-            BlocProvider(
-              create: (_) => AuthCubit(
-                repository: AuthRepositoryImpl(
-                  dataSource: AuthMockDataSource(),
-                  localStorage: getIt<LocalStorage>(),
-                  secureStorage: getIt<SecureStorage>(),
-                ),
-              ),
-            ),
+            BlocProvider(create: (_) => getIt<AuthCubit>()),
             BlocProvider(create: (_) => HomeCubit()),
             BlocProvider(create: (_) => CartCubit()),
             BlocProvider(create: (_) => OrdersCubit()),
