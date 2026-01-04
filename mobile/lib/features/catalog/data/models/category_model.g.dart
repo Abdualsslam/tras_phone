@@ -8,34 +8,73 @@ part of 'category_model.dart';
 
 CategoryModel _$CategoryModelFromJson(Map<String, dynamic> json) =>
     CategoryModel(
-      id: (json['id'] as num).toInt(),
+      id: CategoryModel._readId(json, '_id') as String,
       name: json['name'] as String,
-      nameAr: json['name_ar'] as String?,
+      nameAr: json['nameAr'] as String,
       slug: json['slug'] as String,
-      parentId: (json['parent_id'] as num?)?.toInt(),
+      description: json['description'] as String?,
+      descriptionAr: json['descriptionAr'] as String?,
+      image: json['image'] as String?,
       icon: json['icon'] as String?,
-      imageUrl: json['image_url'] as String?,
+      parentId: CategoryModel._readParentId(json, 'parentId') as String?,
+      ancestors:
+          (json['ancestors'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       level: (json['level'] as num?)?.toInt() ?? 0,
-      productsCount: (json['products_count'] as num?)?.toInt() ?? 0,
-      isActive: json['is_active'] as bool? ?? true,
+      path: json['path'] as String?,
+      isActive: json['isActive'] as bool? ?? true,
+      isFeatured: json['isFeatured'] as bool? ?? false,
+      displayOrder: (json['displayOrder'] as num?)?.toInt() ?? 0,
+      productsCount: (json['productsCount'] as num?)?.toInt() ?? 0,
+      childrenCount: (json['childrenCount'] as num?)?.toInt() ?? 0,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
       children:
           (json['children'] as List<dynamic>?)
               ?.map((e) => CategoryModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
-          const [],
+          [],
     );
 
 Map<String, dynamic> _$CategoryModelToJson(CategoryModel instance) =>
     <String, dynamic>{
-      'id': instance.id,
+      '_id': instance.id,
       'name': instance.name,
-      'name_ar': instance.nameAr,
+      'nameAr': instance.nameAr,
       'slug': instance.slug,
-      'parent_id': instance.parentId,
+      'description': instance.description,
+      'descriptionAr': instance.descriptionAr,
+      'image': instance.image,
       'icon': instance.icon,
-      'image_url': instance.imageUrl,
+      'parentId': instance.parentId,
+      'ancestors': instance.ancestors,
       'level': instance.level,
-      'products_count': instance.productsCount,
-      'is_active': instance.isActive,
+      'path': instance.path,
+      'isActive': instance.isActive,
+      'isFeatured': instance.isFeatured,
+      'displayOrder': instance.displayOrder,
+      'productsCount': instance.productsCount,
+      'childrenCount': instance.childrenCount,
+      'createdAt': instance.createdAt.toIso8601String(),
+      'updatedAt': instance.updatedAt.toIso8601String(),
       'children': instance.children,
     };
+
+BreadcrumbItemModel _$BreadcrumbItemModelFromJson(Map<String, dynamic> json) =>
+    BreadcrumbItemModel(
+      id: CategoryModel._readId(json, '_id') as String,
+      name: json['name'] as String,
+      nameAr: json['nameAr'] as String,
+      slug: json['slug'] as String,
+    );
+
+Map<String, dynamic> _$BreadcrumbItemModelToJson(
+  BreadcrumbItemModel instance,
+) => <String, dynamic>{
+  '_id': instance.id,
+  'name': instance.name,
+  'nameAr': instance.nameAr,
+  'slug': instance.slug,
+};

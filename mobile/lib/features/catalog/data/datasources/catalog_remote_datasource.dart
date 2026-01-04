@@ -7,28 +7,41 @@ import '../../../../core/constants/api_endpoints.dart';
 import '../../domain/entities/banner_entity.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/category_entity.dart';
+import '../../domain/entities/device_entity.dart';
 import '../../domain/entities/product_entity.dart';
+import '../../domain/entities/quality_type_entity.dart';
 import '../models/banner_model.dart';
 import '../models/brand_model.dart';
 import '../models/category_model.dart';
+import '../models/device_model.dart';
 import '../models/product_model.dart';
+import '../models/quality_type_model.dart';
 
 /// Abstract interface for catalog data source
 abstract class CatalogRemoteDataSource {
   // Categories
-  Future<List<CategoryEntity>> getCategories({int? parentId});
-  Future<CategoryEntity?> getCategoryById(int id);
+  Future<List<CategoryEntity>> getCategories();
+  Future<CategoryWithBreadcrumb?> getCategoryById(String id);
+  Future<List<CategoryEntity>> getCategoryChildren(String parentId);
   Future<List<CategoryEntity>> getCategoriesTree();
 
   // Brands
   Future<List<BrandEntity>> getBrands({bool? featured});
-  Future<BrandEntity?> getBrandById(int id);
+  Future<BrandEntity?> getBrandBySlug(String slug);
+
+  // Devices
+  Future<List<DeviceEntity>> getDevices({int? limit});
+  Future<List<DeviceEntity>> getDevicesByBrand(String brandId);
+  Future<DeviceEntity?> getDeviceBySlug(String slug);
+
+  // Quality Types
+  Future<List<QualityTypeEntity>> getQualityTypes();
 
   // Products
   Future<List<ProductEntity>> getProducts({
-    int? categoryId,
-    int? brandId,
-    int? deviceId,
+    String? categoryId,
+    String? brandId,
+    String? deviceId,
     bool? featured,
     String? search,
     String? sortBy,
@@ -36,7 +49,7 @@ abstract class CatalogRemoteDataSource {
     int page,
     int limit,
   });
-  Future<ProductEntity?> getProductById(int id);
+  Future<ProductEntity?> getProductById(String id);
   Future<ProductEntity?> getProductBySku(String sku);
   Future<List<ProductEntity>> getFeaturedProducts();
   Future<List<ProductEntity>> getNewArrivals();
@@ -54,10 +67,6 @@ abstract class CatalogRemoteDataSource {
 
   // Banners
   Future<List<BannerEntity>> getBanners({String? placement});
-
-  // Devices
-  Future<List<Map<String, dynamic>>> getDevices({int? brandId});
-  Future<Map<String, dynamic>?> getDeviceById(int id);
 }
 
 /// Implementation of CatalogRemoteDataSource using API client
@@ -72,13 +81,10 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   // ═══════════════════════════════════════════════════════════════════════════
 
   @override
-  Future<List<CategoryEntity>> getCategories({int? parentId}) async {
-    developer.log('Fetching categories', name: 'CatalogDataSource');
+  Future<List<CategoryEntity>> getCategories() async {
+    developer.log('Fetching root categories', name: 'CatalogDataSource');
 
-    final response = await _apiClient.get(
-      ApiEndpoints.categories,
-      queryParameters: {if (parentId != null) 'parent_id': parentId},
-    );
+    final response = await _apiClient.get(ApiEndpoints.categories);
 
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
@@ -87,17 +93,44 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   }
 
   @override
-  Future<CategoryEntity?> getCategoryById(int id) async {
+  Future<CategoryWithBreadcrumb?> getCategoryById(String id) async {
     developer.log('Fetching category: $id', name: 'CatalogDataSource');
 
     try {
       final response = await _apiClient.get('${ApiEndpoints.categories}/$id');
       final data = response.data['data'] ?? response.data;
-      return CategoryModel.fromJson(data).toEntity();
+
+      // Response includes category and breadcrumb
+      final categoryJson = data['category'] ?? data;
+      final category = CategoryModel.fromJson(categoryJson).toEntity();
+
+      final breadcrumbList = data['breadcrumb'] as List<dynamic>? ?? [];
+      final breadcrumb = breadcrumbList
+          .map((b) => BreadcrumbItemModel.fromJson(b).toEntity())
+          .toList();
+
+      return CategoryWithBreadcrumb(category: category, breadcrumb: breadcrumb);
     } catch (e) {
       developer.log('Category not found: $id', name: 'CatalogDataSource');
       return null;
     }
+  }
+
+  @override
+  Future<List<CategoryEntity>> getCategoryChildren(String parentId) async {
+    developer.log(
+      'Fetching category children: $parentId',
+      name: 'CatalogDataSource',
+    );
+
+    final response = await _apiClient.get(
+      '${ApiEndpoints.categories}/$parentId/children',
+    );
+
+    final data = response.data['data'] ?? response.data;
+    final List<dynamic> list = data is List ? data : [];
+
+    return list.map((json) => CategoryModel.fromJson(json).toEntity()).toList();
   }
 
   @override
@@ -131,17 +164,85 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   }
 
   @override
-  Future<BrandEntity?> getBrandById(int id) async {
-    developer.log('Fetching brand: $id', name: 'CatalogDataSource');
+  Future<BrandEntity?> getBrandBySlug(String slug) async {
+    developer.log('Fetching brand: $slug', name: 'CatalogDataSource');
 
     try {
-      final response = await _apiClient.get('${ApiEndpoints.brands}/$id');
+      final response = await _apiClient.get('${ApiEndpoints.brands}/$slug');
       final data = response.data['data'] ?? response.data;
       return BrandModel.fromJson(data).toEntity();
     } catch (e) {
-      developer.log('Brand not found: $id', name: 'CatalogDataSource');
+      developer.log('Brand not found: $slug', name: 'CatalogDataSource');
       return null;
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DEVICES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  Future<List<DeviceEntity>> getDevices({int? limit}) async {
+    developer.log('Fetching devices', name: 'CatalogDataSource');
+
+    final response = await _apiClient.get(
+      ApiEndpoints.devices,
+      queryParameters: {if (limit != null) 'limit': limit},
+    );
+
+    final data = response.data['data'] ?? response.data;
+    final List<dynamic> list = data is List ? data : [];
+
+    return list.map((json) => DeviceModel.fromJson(json).toEntity()).toList();
+  }
+
+  @override
+  Future<List<DeviceEntity>> getDevicesByBrand(String brandId) async {
+    developer.log(
+      'Fetching devices for brand: $brandId',
+      name: 'CatalogDataSource',
+    );
+
+    final response = await _apiClient.get(
+      '${ApiEndpoints.devices}/brand/$brandId',
+    );
+
+    final data = response.data['data'] ?? response.data;
+    final List<dynamic> list = data is List ? data : [];
+
+    return list.map((json) => DeviceModel.fromJson(json).toEntity()).toList();
+  }
+
+  @override
+  Future<DeviceEntity?> getDeviceBySlug(String slug) async {
+    developer.log('Fetching device: $slug', name: 'CatalogDataSource');
+
+    try {
+      final response = await _apiClient.get('${ApiEndpoints.devices}/$slug');
+      final data = response.data['data'] ?? response.data;
+      return DeviceModel.fromJson(data).toEntity();
+    } catch (e) {
+      developer.log('Device not found: $slug', name: 'CatalogDataSource');
+      return null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // QUALITY TYPES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  Future<List<QualityTypeEntity>> getQualityTypes() async {
+    developer.log('Fetching quality types', name: 'CatalogDataSource');
+
+    final response = await _apiClient.get(ApiEndpoints.qualityTypes);
+
+    final data = response.data['data'] ?? response.data;
+    final List<dynamic> list = data is List ? data : [];
+
+    return list
+        .map((json) => QualityTypeModel.fromJson(json).toEntity())
+        .toList();
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -150,9 +251,9 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
 
   @override
   Future<List<ProductEntity>> getProducts({
-    int? categoryId,
-    int? brandId,
-    int? deviceId,
+    String? categoryId,
+    String? brandId,
+    String? deviceId,
     bool? featured,
     String? search,
     String? sortBy,
@@ -167,13 +268,13 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       queryParameters: {
         'page': page,
         'limit': limit,
-        if (categoryId != null) 'category_id': categoryId,
-        if (brandId != null) 'brand_id': brandId,
-        if (deviceId != null) 'device_id': deviceId,
+        if (categoryId != null) 'categoryId': categoryId,
+        if (brandId != null) 'brandId': brandId,
+        if (deviceId != null) 'deviceId': deviceId,
         if (featured != null) 'featured': featured,
         if (search != null && search.isNotEmpty) 'search': search,
-        if (sortBy != null) 'sort_by': sortBy,
-        if (sortOrder != null) 'sort_order': sortOrder,
+        if (sortBy != null) 'sortBy': sortBy,
+        if (sortOrder != null) 'sortOrder': sortOrder,
       },
     );
 
@@ -184,7 +285,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   }
 
   @override
-  Future<ProductEntity?> getProductById(int id) async {
+  Future<ProductEntity?> getProductById(String id) async {
     developer.log('Fetching product: $id', name: 'CatalogDataSource');
 
     try {
@@ -259,7 +360,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
 
     final response = await _apiClient.get(
       ApiEndpoints.products,
-      queryParameters: {'has_discount': true},
+      queryParameters: {'hasDiscount': true},
     );
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
@@ -341,39 +442,5 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final List<dynamic> list = data is List ? data : [];
 
     return list.map((json) => BannerModel.fromJson(json).toEntity()).toList();
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // DEVICES
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  @override
-  Future<List<Map<String, dynamic>>> getDevices({int? brandId}) async {
-    developer.log('Fetching devices', name: 'CatalogDataSource');
-
-    final response = await _apiClient.get(
-      ApiEndpoints.devices,
-      queryParameters: {if (brandId != null) 'brand_id': brandId},
-    );
-
-    final data = response.data['data'] ?? response.data;
-    if (data is List) {
-      return data.cast<Map<String, dynamic>>();
-    }
-    return [];
-  }
-
-  @override
-  Future<Map<String, dynamic>?> getDeviceById(int id) async {
-    developer.log('Fetching device: $id', name: 'CatalogDataSource');
-
-    try {
-      final response = await _apiClient.get('${ApiEndpoints.devices}/$id');
-      final data = response.data['data'] ?? response.data;
-      return data as Map<String, dynamic>;
-    } catch (e) {
-      developer.log('Device not found: $id', name: 'CatalogDataSource');
-      return null;
-    }
   }
 }

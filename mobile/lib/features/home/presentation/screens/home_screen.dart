@@ -377,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           SizedBox(height: 8.h),
                           Text(
-                            category.nameAr ?? category.name,
+                            category.nameAr,
                             style: TextStyle(
                               fontSize: 11.sp,
                               fontWeight: FontWeight.w600,
@@ -494,7 +494,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   SizedBox(width: 10.w),
                                   Text(
-                                    brand.nameAr ?? brand.name,
+                                    brand.nameAr,
                                     style: TextStyle(
                                       fontSize: 13.sp,
                                       fontWeight: FontWeight.w600,

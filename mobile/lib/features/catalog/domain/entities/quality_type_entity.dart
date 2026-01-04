@@ -1,37 +1,36 @@
-/// Brand Entity - Domain layer representation of a brand
+/// Quality Type Entity - Domain layer representation of quality levels
 library;
 
+import 'dart:ui';
 import 'package:equatable/equatable.dart';
 
-class BrandEntity extends Equatable {
+class QualityTypeEntity extends Equatable {
   final String id;
   final String name;
   final String nameAr;
-  final String slug;
+  final String code; // "original", "oem", "aaa", "copy"
   final String? description;
   final String? descriptionAr;
-  final String? logo;
-  final String? website;
-  final bool isActive;
-  final bool isFeatured;
+  final String? color; // Badge color (hex)
+  final String? icon;
   final int displayOrder;
-  final int productsCount;
+  final bool isActive;
+  final int? defaultWarrantyDays;
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  const BrandEntity({
+  const QualityTypeEntity({
     required this.id,
     required this.name,
     required this.nameAr,
-    required this.slug,
+    required this.code,
     this.description,
     this.descriptionAr,
-    this.logo,
-    this.website,
-    required this.isActive,
-    required this.isFeatured,
+    this.color,
+    this.icon,
     required this.displayOrder,
-    required this.productsCount,
+    required this.isActive,
+    this.defaultWarrantyDays,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -43,6 +42,13 @@ class BrandEntity extends Equatable {
   String? getDescription(String locale) =>
       locale == 'ar' ? descriptionAr : description;
 
+  /// Convert hex color to Color
+  Color? getColor() {
+    if (color == null) return null;
+    final hex = color!.replaceFirst('#', '');
+    return Color(int.parse('FF$hex', radix: 16));
+  }
+
   @override
-  List<Object?> get props => [id, slug];
+  List<Object?> get props => [id, code];
 }

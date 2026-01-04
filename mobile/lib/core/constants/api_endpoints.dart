@@ -33,10 +33,11 @@ class ApiEndpoints {
   // ═══════════════════════════════════════════════════════════════════════════
   // CATALOG ENDPOINTS
   // ═══════════════════════════════════════════════════════════════════════════
-  static const String brands = '/brands';
-  static const String categories = '/categories';
-  static const String categoriesTree = '/categories/tree';
-  static const String devices = '/devices';
+  static const String brands = '/catalog/brands';
+  static const String categories = '/catalog/categories';
+  static const String categoriesTree = '/catalog/categories/tree';
+  static const String devices = '/catalog/devices';
+  static const String qualityTypes = '/catalog/quality-types';
   static const String products = '/products';
   static const String productsSearch = '/products/search';
   static const String productsFeatured = '/products/featured';

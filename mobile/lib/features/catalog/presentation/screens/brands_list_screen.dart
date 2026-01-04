@@ -176,7 +176,7 @@ class _BrandCard extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 6.w),
                   child: Text(
-                    brand.nameAr ?? brand.name,
+                    brand.nameAr,
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: isDark

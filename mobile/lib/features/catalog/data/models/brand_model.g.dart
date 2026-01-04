@@ -7,26 +7,36 @@ part of 'brand_model.dart';
 // **************************************************************************
 
 BrandModel _$BrandModelFromJson(Map<String, dynamic> json) => BrandModel(
-  id: (json['id'] as num).toInt(),
+  id: BrandModel._readId(json, '_id') as String,
   name: json['name'] as String,
-  nameAr: json['name_ar'] as String?,
+  nameAr: json['nameAr'] as String,
   slug: json['slug'] as String,
+  description: json['description'] as String?,
+  descriptionAr: json['descriptionAr'] as String?,
   logo: json['logo'] as String?,
-  banner: json['banner'] as String?,
-  productsCount: (json['products_count'] as num?)?.toInt() ?? 0,
-  isActive: json['is_active'] as bool? ?? true,
-  isFeatured: json['is_featured'] as bool? ?? false,
+  website: json['website'] as String?,
+  isActive: json['isActive'] as bool? ?? true,
+  isFeatured: json['isFeatured'] as bool? ?? false,
+  displayOrder: (json['displayOrder'] as num?)?.toInt() ?? 0,
+  productsCount: (json['productsCount'] as num?)?.toInt() ?? 0,
+  createdAt: DateTime.parse(json['createdAt'] as String),
+  updatedAt: DateTime.parse(json['updatedAt'] as String),
 );
 
 Map<String, dynamic> _$BrandModelToJson(BrandModel instance) =>
     <String, dynamic>{
-      'id': instance.id,
+      '_id': instance.id,
       'name': instance.name,
-      'name_ar': instance.nameAr,
+      'nameAr': instance.nameAr,
       'slug': instance.slug,
+      'description': instance.description,
+      'descriptionAr': instance.descriptionAr,
       'logo': instance.logo,
-      'banner': instance.banner,
-      'products_count': instance.productsCount,
-      'is_active': instance.isActive,
-      'is_featured': instance.isFeatured,
+      'website': instance.website,
+      'isActive': instance.isActive,
+      'isFeatured': instance.isFeatured,
+      'displayOrder': instance.displayOrder,
+      'productsCount': instance.productsCount,
+      'createdAt': instance.createdAt.toIso8601String(),
+      'updatedAt': instance.updatedAt.toIso8601String(),
     };

@@ -160,10 +160,10 @@ class _CategoryCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: category.imageUrl != null
+                  child: category.image != null
                       ? ClipOval(
                           child: Image.network(
-                            category.imageUrl!,
+                            category.image!,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Icon(
                               Iconsax.category,
@@ -184,7 +184,7 @@ class _CategoryCard extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 10.w),
                   child: Text(
-                    category.nameAr ?? category.name,
+                    category.nameAr,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: isDark
