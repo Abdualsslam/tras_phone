@@ -8,60 +8,79 @@ part of 'notification_model.dart';
 
 NotificationModel _$NotificationModelFromJson(Map<String, dynamic> json) =>
     NotificationModel(
-      id: (json['id'] as num).toInt(),
-      type: json['type'] as String,
+      id: NotificationModel._readId(json, 'id') as String,
+      customerId:
+          NotificationModel._readOptionalId(json, 'customerId') as String?,
+      category: json['category'] as String? ?? 'system',
       title: json['title'] as String,
-      titleAr: json['title_ar'] as String?,
+      titleAr: json['titleAr'] as String,
       body: json['body'] as String,
-      bodyAr: json['body_ar'] as String?,
-      icon: json['icon'] as String?,
-      imageUrl: json['image_url'] as String?,
-      actionType: json['action_type'] as String?,
-      actionValue: json['action_value'] as String?,
-      isRead: json['is_read'] as bool? ?? false,
-      createdAt: json['created_at'] as String,
+      bodyAr: json['bodyAr'] as String,
+      image: json['image'] as String?,
+      actionType: json['actionType'] as String?,
+      actionId: json['actionId'] as String?,
+      actionUrl: json['actionUrl'] as String?,
+      referenceType: json['referenceType'] as String?,
+      referenceId: json['referenceId'] as String?,
+      isRead: json['isRead'] as bool? ?? false,
+      readAt: json['readAt'] == null
+          ? null
+          : DateTime.parse(json['readAt'] as String),
+      isSent: json['isSent'] as bool? ?? false,
+      sentAt: json['sentAt'] == null
+          ? null
+          : DateTime.parse(json['sentAt'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
       data: json['data'] as Map<String, dynamic>?,
     );
 
 Map<String, dynamic> _$NotificationModelToJson(NotificationModel instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'type': instance.type,
+      'customerId': instance.customerId,
+      'category': instance.category,
       'title': instance.title,
-      'title_ar': instance.titleAr,
+      'titleAr': instance.titleAr,
       'body': instance.body,
-      'body_ar': instance.bodyAr,
-      'icon': instance.icon,
-      'image_url': instance.imageUrl,
-      'action_type': instance.actionType,
-      'action_value': instance.actionValue,
-      'is_read': instance.isRead,
-      'created_at': instance.createdAt,
+      'bodyAr': instance.bodyAr,
+      'image': instance.image,
+      'actionType': instance.actionType,
+      'actionId': instance.actionId,
+      'actionUrl': instance.actionUrl,
+      'referenceType': instance.referenceType,
+      'referenceId': instance.referenceId,
+      'isRead': instance.isRead,
+      'readAt': instance.readAt?.toIso8601String(),
+      'isSent': instance.isSent,
+      'sentAt': instance.sentAt?.toIso8601String(),
+      'createdAt': instance.createdAt.toIso8601String(),
+      'updatedAt': instance.updatedAt.toIso8601String(),
       'data': instance.data,
     };
 
 NotificationSettingsModel _$NotificationSettingsModelFromJson(
   Map<String, dynamic> json,
 ) => NotificationSettingsModel(
-  pushEnabled: json['push_enabled'] as bool? ?? true,
-  emailEnabled: json['email_enabled'] as bool? ?? true,
-  smsEnabled: json['sms_enabled'] as bool? ?? false,
-  orderUpdates: json['order_updates'] as bool? ?? true,
+  pushEnabled: json['pushEnabled'] as bool? ?? true,
+  emailEnabled: json['emailEnabled'] as bool? ?? true,
+  smsEnabled: json['smsEnabled'] as bool? ?? false,
+  orderUpdates: json['orderUpdates'] as bool? ?? true,
   promotions: json['promotions'] as bool? ?? true,
-  priceDrops: json['price_drops'] as bool? ?? true,
-  stockAlerts: json['stock_alerts'] as bool? ?? true,
-  newArrivals: json['new_arrivals'] as bool? ?? false,
+  priceDrops: json['priceDrops'] as bool? ?? true,
+  stockAlerts: json['stockAlerts'] as bool? ?? true,
+  newArrivals: json['newArrivals'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$NotificationSettingsModelToJson(
   NotificationSettingsModel instance,
 ) => <String, dynamic>{
-  'push_enabled': instance.pushEnabled,
-  'email_enabled': instance.emailEnabled,
-  'sms_enabled': instance.smsEnabled,
-  'order_updates': instance.orderUpdates,
+  'pushEnabled': instance.pushEnabled,
+  'emailEnabled': instance.emailEnabled,
+  'smsEnabled': instance.smsEnabled,
+  'orderUpdates': instance.orderUpdates,
   'promotions': instance.promotions,
-  'price_drops': instance.priceDrops,
-  'stock_alerts': instance.stockAlerts,
-  'new_arrivals': instance.newArrivals,
+  'priceDrops': instance.priceDrops,
+  'stockAlerts': instance.stockAlerts,
+  'newArrivals': instance.newArrivals,
 };

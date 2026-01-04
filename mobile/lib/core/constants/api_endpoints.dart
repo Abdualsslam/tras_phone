@@ -104,6 +104,9 @@ class ApiEndpoints {
   // NOTIFICATIONS
   // ═══════════════════════════════════════════════════════════════════════════
   static const String notifications = '/notifications';
+  static const String notificationsMy = '/notifications/my';
+  static const String notificationsReadAll = '/notifications/read-all';
+  static const String notificationsToken = '/notifications/token';
   static const String notificationsUnreadCount = '/notifications/unread-count';
 
   // ═══════════════════════════════════════════════════════════════════════════
