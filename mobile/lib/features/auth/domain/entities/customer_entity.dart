@@ -2,56 +2,98 @@
 library;
 
 import 'package:equatable/equatable.dart';
-import 'user_entity.dart';
+import '../../domain/entities/user_entity.dart';
+import '../../../profile/domain/enums/customer_enums.dart';
 
 class CustomerEntity extends Equatable {
-  final int id;
-  final UserEntity user;
+  final String id;
+  final String? userId;
+  final UserEntity? user;
   final String customerCode;
   final String responsiblePersonName;
   final String shopName;
   final String? shopNameAr;
-  final String businessType;
-  final int cityId;
-  final int? marketId;
+  final BusinessType businessType;
+
+  // Location
+  final String? cityId;
+  final String? marketId;
   final String? address;
-  final int priceLevelId;
+  final double? latitude;
+  final double? longitude;
+
+  // Pricing & Credit
+  final String? priceLevelId;
   final double creditLimit;
   final double creditUsed;
+
+  // Wallet
   final double walletBalance;
+
+  // Loyalty
   final int loyaltyPoints;
-  final String loyaltyTier;
+  final LoyaltyTier loyaltyTier;
+
+  // Statistics
   final int totalOrders;
   final double totalSpent;
+  final double averageOrderValue;
+  final DateTime? lastOrderAt;
+
+  // Preferences
+  final PaymentMethod? preferredPaymentMethod;
+  final String? preferredShippingTime;
+  final ContactMethod preferredContactMethod;
+
+  // Social
+  final String? instagramHandle;
+  final String? twitterHandle;
+
   final DateTime? approvedAt;
-  final DateTime? createdAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const CustomerEntity({
     required this.id,
-    required this.user,
+    this.userId,
+    this.user,
     required this.customerCode,
     required this.responsiblePersonName,
     required this.shopName,
     this.shopNameAr,
-    this.businessType = 'shop',
-    required this.cityId,
+    this.businessType = BusinessType.shop,
+    this.cityId,
     this.marketId,
     this.address,
-    required this.priceLevelId,
+    this.latitude,
+    this.longitude,
+    this.priceLevelId,
     this.creditLimit = 0.0,
     this.creditUsed = 0.0,
     this.walletBalance = 0.0,
     this.loyaltyPoints = 0,
-    this.loyaltyTier = 'bronze',
+    this.loyaltyTier = LoyaltyTier.bronze,
     this.totalOrders = 0,
     this.totalSpent = 0.0,
+    this.averageOrderValue = 0.0,
+    this.lastOrderAt,
+    this.preferredPaymentMethod,
+    this.preferredShippingTime,
+    this.preferredContactMethod = ContactMethod.whatsapp,
+    this.instagramHandle,
+    this.twitterHandle,
     this.approvedAt,
-    this.createdAt,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   bool get isApproved => approvedAt != null;
   double get availableCredit => creditLimit - creditUsed;
 
+  /// Get shop name based on locale
+  String getShopName(String locale) =>
+      locale == 'ar' && shopNameAr != null ? shopNameAr! : shopName;
+
   @override
-  List<Object?> get props => [id, customerCode, user];
+  List<Object?> get props => [id, customerCode, userId];
 }

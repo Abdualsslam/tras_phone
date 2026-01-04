@@ -2,6 +2,7 @@
 library;
 
 import 'package:json_annotation/json_annotation.dart';
+import '../../../profile/domain/enums/customer_enums.dart';
 import '../../domain/entities/customer_entity.dart';
 import 'user_model.dart';
 
@@ -9,56 +10,86 @@ part 'customer_model.g.dart';
 
 @JsonSerializable()
 class CustomerModel {
-  final int id;
-  final UserModel user;
-  @JsonKey(name: 'customer_code')
+  @JsonKey(name: 'id', readValue: _readId)
+  final String id;
+
+  @JsonKey(name: 'userId', readValue: _readUserId)
+  final String? userId;
+
+  final UserModel? user;
+
   final String customerCode;
-  @JsonKey(name: 'responsible_person_name')
   final String responsiblePersonName;
-  @JsonKey(name: 'shop_name')
   final String shopName;
-  @JsonKey(name: 'shop_name_ar')
   final String? shopNameAr;
-  @JsonKey(name: 'business_type')
+  @JsonKey(defaultValue: 'shop')
   final String businessType;
-  @JsonKey(name: 'city_id')
-  final int cityId;
-  @JsonKey(name: 'market_id')
-  final int? marketId;
+
+  // Location
+  @JsonKey(name: 'cityId', readValue: _readNestedId)
+  final String? cityId;
+  @JsonKey(name: 'marketId', readValue: _readOptionalNestedId)
+  final String? marketId;
   final String? address;
-  @JsonKey(name: 'price_level_id')
-  final int priceLevelId;
-  @JsonKey(name: 'credit_limit')
+  final double? latitude;
+  final double? longitude;
+
+  // Pricing & Credit
+  @JsonKey(name: 'priceLevelId', readValue: _readOptionalNestedId)
+  final String? priceLevelId;
+  @JsonKey(defaultValue: 0.0)
   final double creditLimit;
-  @JsonKey(name: 'credit_used')
+  @JsonKey(defaultValue: 0.0)
   final double creditUsed;
-  @JsonKey(name: 'wallet_balance')
+
+  // Wallet
+  @JsonKey(defaultValue: 0.0)
   final double walletBalance;
-  @JsonKey(name: 'loyalty_points')
+
+  // Loyalty
+  @JsonKey(defaultValue: 0)
   final int loyaltyPoints;
-  @JsonKey(name: 'loyalty_tier')
+  @JsonKey(defaultValue: 'bronze')
   final String loyaltyTier;
-  @JsonKey(name: 'total_orders')
+
+  // Statistics
+  @JsonKey(defaultValue: 0)
   final int totalOrders;
-  @JsonKey(name: 'total_spent')
+  @JsonKey(defaultValue: 0.0)
   final double totalSpent;
-  @JsonKey(name: 'approved_at')
-  final String? approvedAt;
-  @JsonKey(name: 'created_at')
-  final String? createdAt;
+  @JsonKey(defaultValue: 0.0)
+  final double averageOrderValue;
+  final DateTime? lastOrderAt;
+
+  // Preferences
+  final String? preferredPaymentMethod;
+  final String? preferredShippingTime;
+  @JsonKey(defaultValue: 'whatsapp')
+  final String preferredContactMethod;
+
+  // Social
+  final String? instagramHandle;
+  final String? twitterHandle;
+
+  final DateTime? approvedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const CustomerModel({
     required this.id,
-    required this.user,
+    this.userId,
+    this.user,
     required this.customerCode,
     required this.responsiblePersonName,
     required this.shopName,
     this.shopNameAr,
     this.businessType = 'shop',
-    required this.cityId,
+    this.cityId,
     this.marketId,
     this.address,
-    required this.priceLevelId,
+    this.latitude,
+    this.longitude,
+    this.priceLevelId,
     this.creditLimit = 0.0,
     this.creditUsed = 0.0,
     this.walletBalance = 0.0,
@@ -66,9 +97,59 @@ class CustomerModel {
     this.loyaltyTier = 'bronze',
     this.totalOrders = 0,
     this.totalSpent = 0.0,
+    this.averageOrderValue = 0.0,
+    this.lastOrderAt,
+    this.preferredPaymentMethod,
+    this.preferredShippingTime,
+    this.preferredContactMethod = 'whatsapp',
+    this.instagramHandle,
+    this.twitterHandle,
     this.approvedAt,
-    this.createdAt,
+    required this.createdAt,
+    required this.updatedAt,
   });
+
+  /// Handle MongoDB _id or id field
+  static Object? _readId(Map<dynamic, dynamic> json, String key) {
+    final value = json['_id'] ?? json['id'];
+    if (value is Map) {
+      return value['\$oid'] ?? value.toString();
+    }
+    return value?.toString();
+  }
+
+  /// Handle userId which can be String or populated User object
+  static Object? _readUserId(Map<dynamic, dynamic> json, String key) {
+    final value = json['userId'];
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value.toString();
+  }
+
+  /// Handle nested ID fields that may be populated objects
+  static Object? _readNestedId(Map<dynamic, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value.toString();
+  }
+
+  /// Handle optional nested ID fields
+  static Object? _readOptionalNestedId(Map<dynamic, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value.toString();
+  }
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) =>
       _$CustomerModelFromJson(json);
@@ -77,25 +158,38 @@ class CustomerModel {
   CustomerEntity toEntity() {
     return CustomerEntity(
       id: id,
-      user: user.toEntity(),
+      userId: userId,
+      user: user?.toEntity(),
       customerCode: customerCode,
       responsiblePersonName: responsiblePersonName,
       shopName: shopName,
       shopNameAr: shopNameAr,
-      businessType: businessType,
+      businessType: BusinessType.fromString(businessType),
       cityId: cityId,
       marketId: marketId,
       address: address,
+      latitude: latitude,
+      longitude: longitude,
       priceLevelId: priceLevelId,
       creditLimit: creditLimit,
       creditUsed: creditUsed,
       walletBalance: walletBalance,
       loyaltyPoints: loyaltyPoints,
-      loyaltyTier: loyaltyTier,
+      loyaltyTier: LoyaltyTier.fromString(loyaltyTier),
       totalOrders: totalOrders,
       totalSpent: totalSpent,
-      approvedAt: approvedAt != null ? DateTime.tryParse(approvedAt!) : null,
-      createdAt: createdAt != null ? DateTime.tryParse(createdAt!) : null,
+      averageOrderValue: averageOrderValue,
+      lastOrderAt: lastOrderAt,
+      preferredPaymentMethod: preferredPaymentMethod != null
+          ? PaymentMethod.fromString(preferredPaymentMethod!)
+          : null,
+      preferredShippingTime: preferredShippingTime,
+      preferredContactMethod: ContactMethod.fromString(preferredContactMethod),
+      instagramHandle: instagramHandle,
+      twitterHandle: twitterHandle,
+      approvedAt: approvedAt,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 }

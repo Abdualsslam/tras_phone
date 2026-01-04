@@ -216,7 +216,10 @@ class AuthMockDataSource {
     }
 
     // Update mock data
-    final phone = _currentUser!.user.phone;
+    final phone = _currentUser!.user?.phone;
+    if (phone == null) {
+      throw Exception('المستخدم غير مسجل الدخول');
+    }
     final userData = _mockUsers[phone]!;
 
     if (responsiblePersonName != null) {
@@ -252,7 +255,10 @@ class AuthMockDataSource {
       throw Exception('المستخدم غير مسجل الدخول');
     }
 
-    final phone = _currentUser!.user.phone;
+    final phone = _currentUser!.user?.phone;
+    if (phone == null) {
+      throw Exception('المستخدم غير مسجل الدخول');
+    }
     final userData = _mockUsers[phone]!;
 
     if (userData['password'] != currentPassword) {
