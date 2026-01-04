@@ -552,7 +552,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          '${AppLocalizations.of(context)!.addedToCart}: ${product.nameAr ?? product.name}',
+                          '${AppLocalizations.of(context)!.addedToCart}: ${product.nameAr}',
                         ),
                         behavior: SnackBarBehavior.floating,
                       ),

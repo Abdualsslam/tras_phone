@@ -284,85 +284,97 @@ class CatalogMockDataSource {
   // ═══════════════════════════════════════════════════════════════════════════
   // MOCK PRODUCTS
   // ═══════════════════════════════════════════════════════════════════════════
-  static const List<ProductEntity> _mockProducts = [
+  static final List<ProductEntity> _mockProducts = [
     ProductEntity(
-      id: 1,
+      id: 'prod_001',
       sku: 'SCR-IP15PM-001',
       name: 'iPhone 15 Pro Max Screen',
       nameAr: 'شاشة آيفون 15 برو ماكس',
       slug: 'iphone-15-pro-max-screen',
       description: 'Original quality OLED screen for iPhone 15 Pro Max',
       descriptionAr: 'شاشة OLED أصلية لآيفون 15 برو ماكس',
-      price: 950.00,
-      originalPrice: 1100.00,
-      categoryId: 1,
-      brandId: 1,
+      basePrice: 950.00,
+      compareAtPrice: 1100.00,
+      categoryId: '1',
+      brandId: '1',
+      qualityTypeId: '1',
       stockQuantity: 15,
       isFeatured: true,
-      rating: 4.8,
+      averageRating: 4.8,
       reviewsCount: 23,
-      imageUrl: 'assets/images/products/screen_1.jpg',
+      mainImage: 'assets/images/products/screen_1.jpg',
       images: [
         'assets/images/products/screen_1.jpg',
         'assets/images/products/screen_2.jpg',
       ],
+      createdAt: _now,
+      updatedAt: _now,
     ),
     ProductEntity(
-      id: 2,
+      id: 'prod_002',
       sku: 'SCR-IP14P-001',
       name: 'iPhone 14 Pro Screen',
       nameAr: 'شاشة آيفون 14 برو',
       slug: 'iphone-14-pro-screen',
-      price: 850.00,
-      categoryId: 1,
-      brandId: 1,
+      basePrice: 850.00,
+      categoryId: '1',
+      brandId: '1',
+      qualityTypeId: '1',
       stockQuantity: 25,
       isFeatured: true,
-      rating: 4.7,
+      averageRating: 4.7,
       reviewsCount: 45,
-      imageUrl: 'assets/images/products/screen_2.jpg',
+      mainImage: 'assets/images/products/screen_2.jpg',
       images: [
         'assets/images/products/screen_2.jpg',
         'assets/images/products/screen_1.jpg',
       ],
+      createdAt: _now,
+      updatedAt: _now,
     ),
     ProductEntity(
-      id: 3,
+      id: 'prod_003',
       sku: 'BAT-IP13-001',
       name: 'iPhone 13 Battery',
       nameAr: 'بطارية آيفون 13',
       slug: 'iphone-13-battery',
-      price: 120.00,
-      originalPrice: 150.00,
-      categoryId: 2,
-      brandId: 1,
+      basePrice: 120.00,
+      compareAtPrice: 150.00,
+      categoryId: '2',
+      brandId: '1',
+      qualityTypeId: '2',
       stockQuantity: 50,
-      rating: 4.5,
+      averageRating: 4.5,
       reviewsCount: 67,
-      imageUrl: 'assets/images/products/bettary_1.jpg',
+      mainImage: 'assets/images/products/bettary_1.jpg',
       images: [
         'assets/images/products/bettary_1.jpg',
         'assets/images/products/bettary_2.jpg',
       ],
+      createdAt: _now,
+      updatedAt: _now,
     ),
     ProductEntity(
-      id: 4,
+      id: 'prod_004',
       sku: 'SCR-S24U-001',
       name: 'Samsung S24 Ultra Screen',
       nameAr: 'شاشة سامسونج S24 الترا',
       slug: 'samsung-s24-ultra-screen',
-      price: 1200.00,
-      categoryId: 1,
-      brandId: 2,
+      basePrice: 1200.00,
+      categoryId: '1',
+      brandId: '2',
+      qualityTypeId: '1',
       stockQuantity: 8,
       isFeatured: true,
-      rating: 4.9,
+      averageRating: 4.9,
       reviewsCount: 12,
-      imageUrl: 'assets/images/products/screen_1.jpg',
+      mainImage: 'assets/images/products/screen_1.jpg',
       images: [
         'assets/images/products/screen_1.jpg',
         'assets/images/products/screen_2.jpg',
       ],
+      createdAt: _now,
+      updatedAt: _now,
     ),
   ];
 
@@ -468,13 +480,14 @@ class CatalogMockDataSource {
     await Future.delayed(_delay);
 
     var products = _mockProducts.where((p) {
-      if (categoryId != null && p.categoryId != categoryId) return false;
-      if (brandId != null && p.brandId != brandId) return false;
+      if (categoryId != null && p.categoryId != categoryId.toString())
+        return false;
+      if (brandId != null && p.brandId != brandId.toString()) return false;
       if (featured == true && !p.isFeatured) return false;
       if (search != null && search.isNotEmpty) {
         final query = search.toLowerCase();
         return p.name.toLowerCase().contains(query) ||
-            (p.nameAr?.toLowerCase().contains(query) ?? false);
+            p.nameAr.toLowerCase().contains(query);
       }
       return true;
     }).toList();
@@ -524,24 +537,20 @@ class CatalogMockDataSource {
         .where(
           (p) =>
               p.name.toLowerCase().contains(lowerQuery) ||
-              (p.nameAr?.toLowerCase().contains(lowerQuery) ?? false),
+              p.nameAr.toLowerCase().contains(lowerQuery),
         )
-        .map((p) => p.nameAr ?? p.name)
+        .map((p) => p.nameAr)
         .take(5)
         .toList();
   }
 
   Future<List<ProductEntity>> getProductsByCategory(String categoryId) async {
     await Future.delayed(_delay);
-    final catId = int.tryParse(categoryId);
-    if (catId == null) return _mockProducts;
-    return _mockProducts.where((p) => p.categoryId == catId).toList();
+    return _mockProducts.where((p) => p.categoryId == categoryId).toList();
   }
 
   Future<List<ProductEntity>> getProductsByBrand(String brandId) async {
     await Future.delayed(_delay);
-    final bId = int.tryParse(brandId);
-    if (bId == null) return _mockProducts;
-    return _mockProducts.where((p) => p.brandId == bId).toList();
+    return _mockProducts.where((p) => p.brandId == brandId).toList();
   }
 }

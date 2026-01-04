@@ -241,7 +241,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        product.nameAr ?? product.name,
+                        product.nameAr,
                         style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
