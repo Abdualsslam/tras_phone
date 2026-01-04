@@ -2,7 +2,6 @@
 library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../catalog/domain/entities/product_entity.dart';
 import '../../data/datasources/cart_mock_datasource.dart';
 import 'cart_state.dart';
 
@@ -26,7 +25,14 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Add product to cart
-  Future<void> addToCart(ProductEntity product, {int quantity = 1}) async {
+  Future<void> addToCart({
+    required String productId,
+    required String productName,
+    String? productNameAr,
+    String? productImage,
+    required double unitPrice,
+    int quantity = 1,
+  }) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
       emit(CartUpdating(currentCart));
@@ -34,7 +40,11 @@ class CartCubit extends Cubit<CartState> {
 
     try {
       final cart = await _dataSource.addToCart(
-        product: product,
+        productId: productId,
+        productName: productName,
+        productNameAr: productNameAr,
+        productImage: productImage,
+        unitPrice: unitPrice,
         quantity: quantity,
       );
       emit(CartLoaded(cart));
@@ -44,7 +54,7 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Update item quantity
-  Future<void> updateQuantity(int itemId, int quantity) async {
+  Future<void> updateQuantity(String productId, int quantity) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
       emit(CartUpdating(currentCart));
@@ -52,7 +62,7 @@ class CartCubit extends Cubit<CartState> {
 
     try {
       final cart = await _dataSource.updateQuantity(
-        itemId: itemId,
+        productId: productId,
         quantity: quantity,
       );
       emit(CartLoaded(cart));
@@ -62,14 +72,14 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Remove item from cart
-  Future<void> removeFromCart(int itemId) async {
+  Future<void> removeFromCart(String productId) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
       emit(CartUpdating(currentCart));
     }
 
     try {
-      final cart = await _dataSource.removeFromCart(itemId: itemId);
+      final cart = await _dataSource.removeFromCart(productId: productId);
       emit(CartLoaded(cart));
     } catch (e) {
       emit(CartError(e.toString(), previousCart: currentCart));

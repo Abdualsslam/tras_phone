@@ -2,61 +2,94 @@
 library;
 
 import 'package:json_annotation/json_annotation.dart';
-import '../../../catalog/data/models/product_model.dart';
-import '../../../catalog/domain/entities/product_entity.dart';
 import '../../domain/entities/cart_item_entity.dart';
 
 part 'cart_item_model.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(createFactory: false)
 class CartItemModel {
-  final int id;
-  @JsonKey(name: 'product_id')
-  final int productId;
-  final ProductModel? product;
+  @JsonKey(name: 'productId', readValue: _readProductId)
+  final String productId;
+
   final int quantity;
-  @JsonKey(name: 'unit_price')
+
+  @JsonKey(defaultValue: 0.0)
   final double unitPrice;
-  @JsonKey(name: 'total_price')
-  final double? totalPrice;
-  @JsonKey(name: 'added_at')
-  final String? addedAt;
+
+  @JsonKey(defaultValue: 0.0)
+  final double totalPrice;
+
+  final DateTime addedAt;
+
+  // Product details (populated when productId is an object)
+  final String? productName;
+  final String? productNameAr;
+  final String? productImage;
+  final String? productSku;
 
   const CartItemModel({
-    required this.id,
     required this.productId,
-    this.product,
     required this.quantity,
     required this.unitPrice,
-    this.totalPrice,
-    this.addedAt,
+    required this.totalPrice,
+    required this.addedAt,
+    this.productName,
+    this.productNameAr,
+    this.productImage,
+    this.productSku,
   });
 
-  factory CartItemModel.fromJson(Map<String, dynamic> json) =>
-      _$CartItemModelFromJson(json);
+  /// Handle productId which can be String or populated Product object
+  static Object? _readProductId(Map<dynamic, dynamic> json, String key) {
+    final value = json['productId'];
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value?.toString();
+  }
+
+  factory CartItemModel.fromJson(Map<String, dynamic> json) {
+    // Extract product details if productId is populated
+    String? name, nameAr, image, sku;
+    final productData = json['productId'];
+    if (productData is Map<String, dynamic>) {
+      name = productData['name'] as String?;
+      nameAr = productData['nameAr'] as String?;
+      image =
+          productData['images']?[0] as String? ??
+          productData['image'] as String?;
+      sku = productData['sku'] as String?;
+    }
+
+    return CartItemModel(
+      productId: _readProductId(json, 'productId')?.toString() ?? '',
+      quantity: json['quantity'] as int,
+      unitPrice: (json['unitPrice'] as num?)?.toDouble() ?? 0.0,
+      totalPrice: (json['totalPrice'] as num?)?.toDouble() ?? 0.0,
+      addedAt: json['addedAt'] != null
+          ? DateTime.parse(json['addedAt'] as String)
+          : DateTime.now(),
+      productName: name,
+      productNameAr: nameAr,
+      productImage: image,
+      productSku: sku,
+    );
+  }
+
   Map<String, dynamic> toJson() => _$CartItemModelToJson(this);
 
   CartItemEntity toEntity() {
     return CartItemEntity(
-      id: id,
-      product: product?.toEntity() ?? _createPlaceholderProduct(),
+      productId: productId,
       quantity: quantity,
       unitPrice: unitPrice,
-      addedAt: addedAt != null
-          ? DateTime.tryParse(addedAt!) ?? DateTime.now()
-          : DateTime.now(),
-    );
-  }
-
-  /// Create placeholder product when product details not included in response
-  ProductEntity _createPlaceholderProduct() {
-    return ProductEntity(
-      id: productId,
-      sku: 'PRODUCT-$productId',
-      name: 'Product $productId',
-      slug: 'product-$productId',
-      price: unitPrice,
-      categoryId: 0,
+      totalPrice: totalPrice,
+      addedAt: addedAt,
+      productName: productName,
+      productNameAr: productNameAr,
+      productImage: productImage,
+      productSku: productSku,
     );
   }
 }

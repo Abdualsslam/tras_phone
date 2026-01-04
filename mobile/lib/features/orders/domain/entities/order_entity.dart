@@ -2,93 +2,171 @@
 library;
 
 import 'package:equatable/equatable.dart';
+import '../enums/order_enums.dart';
 
-enum OrderStatus {
-  pending,
-  confirmed,
-  processing,
-  shipped,
-  delivered,
-  cancelled,
-  returned,
-}
+export '../enums/order_enums.dart';
 
+/// Order item entity
 class OrderItemEntity extends Equatable {
-  final int id;
-  final int productId;
-  final String productName;
-  final String? productImage;
+  final String productId;
+  final String? variantId;
+  final String? sku;
+  final String name;
+  final String? nameAr;
+  final String? image;
   final int quantity;
   final double unitPrice;
-  final double totalPrice;
-
-  const OrderItemEntity({
-    required this.id,
-    required this.productId,
-    required this.productName,
-    this.productImage,
-    required this.quantity,
-    required this.unitPrice,
-    required this.totalPrice,
-  });
-
-  @override
-  List<Object?> get props => [id, productId];
-}
-
-class OrderEntity extends Equatable {
-  final int id;
-  final String orderNumber;
-  final OrderStatus status;
-  final List<OrderItemEntity> items;
-  final double subtotal;
-  final double shippingCost;
   final double discount;
   final double total;
-  final String? couponCode;
-  final String? shippingAddress;
-  final String? paymentMethod;
+  final Map<String, dynamic>? attributes;
+
+  const OrderItemEntity({
+    required this.productId,
+    this.variantId,
+    this.sku,
+    required this.name,
+    this.nameAr,
+    this.image,
+    required this.quantity,
+    required this.unitPrice,
+    this.discount = 0,
+    required this.total,
+    this.attributes,
+  });
+
+  String getName(String locale) =>
+      locale == 'ar' && nameAr != null ? nameAr! : name;
+
+  @override
+  List<Object?> get props => [productId, variantId, quantity];
+}
+
+/// Shipping address entity
+class ShippingAddressEntity extends Equatable {
+  final String fullName;
+  final String phone;
+  final String address;
+  final String city;
+  final String? district;
+  final String? postalCode;
   final String? notes;
-  final DateTime createdAt;
+
+  const ShippingAddressEntity({
+    required this.fullName,
+    required this.phone,
+    required this.address,
+    required this.city,
+    this.district,
+    this.postalCode,
+    this.notes,
+  });
+
+  String get formattedAddress {
+    final parts = <String>[address];
+    if (district != null) parts.add(district!);
+    parts.add(city);
+    return parts.join('، ');
+  }
+
+  @override
+  List<Object?> get props => [fullName, phone, address, city];
+}
+
+/// Order entity
+class OrderEntity extends Equatable {
+  final String id;
+  final String orderNumber;
+  final String customerId;
+  final OrderStatus status;
+
+  // Amounts
+  final double subtotal;
+  final double taxAmount;
+  final double shippingCost;
+  final double discount;
+  final double couponDiscount;
+  final double walletAmountUsed;
+  final int loyaltyPointsUsed;
+  final double loyaltyPointsValue;
+  final double total;
+  final double paidAmount;
+
+  // Payment
+  final PaymentStatus paymentStatus;
+  final OrderPaymentMethod? paymentMethod;
+
+  // Shipping
+  final String? shippingAddressId;
+  final ShippingAddressEntity? shippingAddress;
+  final DateTime? estimatedDeliveryDate;
+
+  // Coupon
+  final String? couponId;
+  final String? couponCode;
+
+  // Source
+  final OrderSource source;
+
+  // Notes
+  final String? customerNotes;
+
+  // Timestamps
+  final DateTime? confirmedAt;
+  final DateTime? shippedAt;
   final DateTime? deliveredAt;
+  final DateTime? completedAt;
+  final DateTime? cancelledAt;
+  final String? cancellationReason;
+
+  // Items
+  final List<OrderItemEntity> items;
+
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const OrderEntity({
     required this.id,
     required this.orderNumber,
+    required this.customerId,
     required this.status,
-    this.items = const [],
     required this.subtotal,
+    this.taxAmount = 0,
     this.shippingCost = 0,
     this.discount = 0,
+    this.couponDiscount = 0,
+    this.walletAmountUsed = 0,
+    this.loyaltyPointsUsed = 0,
+    this.loyaltyPointsValue = 0,
     required this.total,
-    this.couponCode,
-    this.shippingAddress,
+    this.paidAmount = 0,
+    this.paymentStatus = PaymentStatus.unpaid,
     this.paymentMethod,
-    this.notes,
-    required this.createdAt,
+    this.shippingAddressId,
+    this.shippingAddress,
+    this.estimatedDeliveryDate,
+    this.couponId,
+    this.couponCode,
+    this.source = OrderSource.mobile,
+    this.customerNotes,
+    this.confirmedAt,
+    this.shippedAt,
     this.deliveredAt,
+    this.completedAt,
+    this.cancelledAt,
+    this.cancellationReason,
+    this.items = const [],
+    required this.createdAt,
+    required this.updatedAt,
   });
 
-  int get itemCount => items.fold(0, (sum, item) => sum + item.quantity);
+  int get itemsCount => items.length;
+  double get remainingAmount => total - paidAmount;
+  bool get isCancelled => status == OrderStatus.cancelled;
+  bool get canCancel =>
+      status == OrderStatus.pending || status == OrderStatus.confirmed;
 
-  String get statusText {
-    switch (status) {
-      case OrderStatus.pending:
-        return 'قيد الانتظار';
-      case OrderStatus.confirmed:
-        return 'تم التأكيد';
-      case OrderStatus.processing:
-        return 'قيد التجهيز';
-      case OrderStatus.shipped:
-        return 'تم الشحن';
-      case OrderStatus.delivered:
-        return 'تم التوصيل';
-      case OrderStatus.cancelled:
-        return 'ملغي';
-      case OrderStatus.returned:
-        return 'مرتجع';
-    }
-  }
+  /// Status text in Arabic for backward compatibility
+  String get statusText => status.displayNameAr;
 
   @override
   List<Object?> get props => [id, orderNumber, status];

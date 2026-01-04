@@ -8,112 +8,122 @@ part of 'order_model.dart';
 
 OrderItemModel _$OrderItemModelFromJson(Map<String, dynamic> json) =>
     OrderItemModel(
-      id: (json['id'] as num).toInt(),
-      productId: (json['product_id'] as num).toInt(),
-      productName: json['product_name'] as String,
-      productNameAr: json['product_name_ar'] as String?,
-      productImage: json['product_image'] as String?,
+      productId: OrderItemModel._readProductId(json, 'productId') as String,
+      variantId: json['variantId'] as String?,
+      sku: json['sku'] as String?,
+      name: json['name'] as String,
+      nameAr: json['nameAr'] as String?,
+      image: json['image'] as String?,
       quantity: (json['quantity'] as num).toInt(),
-      unitPrice: (json['unit_price'] as num).toDouble(),
-      totalPrice: (json['total_price'] as num).toDouble(),
+      unitPrice: (json['unitPrice'] as num?)?.toDouble() ?? 0.0,
+      discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
+      total: (json['total'] as num?)?.toDouble() ?? 0.0,
+      attributes: json['attributes'] as Map<String, dynamic>?,
     );
 
 Map<String, dynamic> _$OrderItemModelToJson(OrderItemModel instance) =>
     <String, dynamic>{
-      'id': instance.id,
-      'product_id': instance.productId,
-      'product_name': instance.productName,
-      'product_name_ar': instance.productNameAr,
-      'product_image': instance.productImage,
+      'productId': instance.productId,
+      'variantId': instance.variantId,
+      'sku': instance.sku,
+      'name': instance.name,
+      'nameAr': instance.nameAr,
+      'image': instance.image,
       'quantity': instance.quantity,
-      'unit_price': instance.unitPrice,
-      'total_price': instance.totalPrice,
+      'unitPrice': instance.unitPrice,
+      'discount': instance.discount,
+      'total': instance.total,
+      'attributes': instance.attributes,
     };
 
 OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => OrderModel(
-  id: (json['id'] as num).toInt(),
-  orderNumber: json['order_number'] as String,
-  status: json['status'] as String,
+  id: OrderModel._readId(json, 'id') as String,
+  orderNumber: json['orderNumber'] as String,
+  customerId: OrderModel._readCustomerId(json, 'customerId') as String,
+  status: json['status'] as String? ?? 'pending',
+  subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
+  taxAmount: (json['taxAmount'] as num?)?.toDouble() ?? 0.0,
+  shippingCost: (json['shippingCost'] as num?)?.toDouble() ?? 0.0,
+  discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
+  couponDiscount: (json['couponDiscount'] as num?)?.toDouble() ?? 0.0,
+  walletAmountUsed: (json['walletAmountUsed'] as num?)?.toDouble() ?? 0.0,
+  loyaltyPointsUsed: (json['loyaltyPointsUsed'] as num?)?.toInt() ?? 0,
+  loyaltyPointsValue: (json['loyaltyPointsValue'] as num?)?.toDouble() ?? 0.0,
+  total: (json['total'] as num?)?.toDouble() ?? 0.0,
+  paidAmount: (json['paidAmount'] as num?)?.toDouble() ?? 0.0,
+  paymentStatus: json['paymentStatus'] as String? ?? 'unpaid',
+  paymentMethod: json['paymentMethod'] as String?,
+  shippingAddressId: json['shippingAddressId'] as String?,
+  shippingAddress: json['shippingAddress'] == null
+      ? null
+      : ShippingAddressModel.fromJson(
+          json['shippingAddress'] as Map<String, dynamic>,
+        ),
+  estimatedDeliveryDate: json['estimatedDeliveryDate'] == null
+      ? null
+      : DateTime.parse(json['estimatedDeliveryDate'] as String),
+  couponId: json['couponId'] as String?,
+  couponCode: json['couponCode'] as String?,
+  source: json['source'] as String? ?? 'mobile',
+  customerNotes: json['customerNotes'] as String?,
+  confirmedAt: json['confirmedAt'] == null
+      ? null
+      : DateTime.parse(json['confirmedAt'] as String),
+  shippedAt: json['shippedAt'] == null
+      ? null
+      : DateTime.parse(json['shippedAt'] as String),
+  deliveredAt: json['deliveredAt'] == null
+      ? null
+      : DateTime.parse(json['deliveredAt'] as String),
+  completedAt: json['completedAt'] == null
+      ? null
+      : DateTime.parse(json['completedAt'] as String),
+  cancelledAt: json['cancelledAt'] == null
+      ? null
+      : DateTime.parse(json['cancelledAt'] as String),
+  cancellationReason: json['cancellationReason'] as String?,
   items:
       (json['items'] as List<dynamic>?)
           ?.map((e) => OrderItemModel.fromJson(e as Map<String, dynamic>))
           .toList() ??
-      const [],
-  subtotal: (json['subtotal'] as num).toDouble(),
-  shippingCost: (json['shipping_cost'] as num?)?.toDouble() ?? 0,
-  discount: (json['discount'] as num?)?.toDouble() ?? 0,
-  total: (json['total'] as num).toDouble(),
-  couponCode: json['coupon_code'] as String?,
-  shippingAddress: json['shipping_address'] as String?,
-  paymentMethod: json['payment_method'] as String?,
-  notes: json['notes'] as String?,
-  createdAt: json['created_at'] as String,
-  deliveredAt: json['delivered_at'] as String?,
+      [],
+  createdAt: DateTime.parse(json['createdAt'] as String),
+  updatedAt: DateTime.parse(json['updatedAt'] as String),
 );
 
-Map<String, dynamic> _$OrderModelToJson(OrderModel instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'order_number': instance.orderNumber,
-      'status': instance.status,
-      'items': instance.items,
-      'subtotal': instance.subtotal,
-      'shipping_cost': instance.shippingCost,
-      'discount': instance.discount,
-      'total': instance.total,
-      'coupon_code': instance.couponCode,
-      'shipping_address': instance.shippingAddress,
-      'payment_method': instance.paymentMethod,
-      'notes': instance.notes,
-      'created_at': instance.createdAt,
-      'delivered_at': instance.deliveredAt,
-    };
-
-CreateOrderRequest _$CreateOrderRequestFromJson(Map<String, dynamic> json) =>
-    CreateOrderRequest(
-      shippingAddressId: (json['shipping_address_id'] as num?)?.toInt(),
-      shippingAddress: json['shipping_address'] as String?,
-      paymentMethod: json['payment_method'] as String,
-      notes: json['notes'] as String?,
-      couponCode: json['coupon_code'] as String?,
-    );
-
-Map<String, dynamic> _$CreateOrderRequestToJson(CreateOrderRequest instance) =>
-    <String, dynamic>{
-      'shipping_address_id': instance.shippingAddressId,
-      'shipping_address': instance.shippingAddress,
-      'payment_method': instance.paymentMethod,
-      'notes': instance.notes,
-      'coupon_code': instance.couponCode,
-    };
-
-PaginatedOrdersResponse _$PaginatedOrdersResponseFromJson(
-  Map<String, dynamic> json,
-) => PaginatedOrdersResponse(
-  data: (json['data'] as List<dynamic>)
-      .map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
-      .toList(),
-  meta: OrdersPaginationMeta.fromJson(json['meta'] as Map<String, dynamic>),
-);
-
-Map<String, dynamic> _$PaginatedOrdersResponseToJson(
-  PaginatedOrdersResponse instance,
-) => <String, dynamic>{'data': instance.data, 'meta': instance.meta};
-
-OrdersPaginationMeta _$OrdersPaginationMetaFromJson(
-  Map<String, dynamic> json,
-) => OrdersPaginationMeta(
-  currentPage: (json['current_page'] as num).toInt(),
-  lastPage: (json['last_page'] as num).toInt(),
-  perPage: (json['per_page'] as num).toInt(),
-  total: (json['total'] as num).toInt(),
-);
-
-Map<String, dynamic> _$OrdersPaginationMetaToJson(
-  OrdersPaginationMeta instance,
+Map<String, dynamic> _$OrderModelToJson(
+  OrderModel instance,
 ) => <String, dynamic>{
-  'current_page': instance.currentPage,
-  'last_page': instance.lastPage,
-  'per_page': instance.perPage,
+  'id': instance.id,
+  'orderNumber': instance.orderNumber,
+  'customerId': instance.customerId,
+  'status': instance.status,
+  'subtotal': instance.subtotal,
+  'taxAmount': instance.taxAmount,
+  'shippingCost': instance.shippingCost,
+  'discount': instance.discount,
+  'couponDiscount': instance.couponDiscount,
+  'walletAmountUsed': instance.walletAmountUsed,
+  'loyaltyPointsUsed': instance.loyaltyPointsUsed,
+  'loyaltyPointsValue': instance.loyaltyPointsValue,
   'total': instance.total,
+  'paidAmount': instance.paidAmount,
+  'paymentStatus': instance.paymentStatus,
+  'paymentMethod': instance.paymentMethod,
+  'shippingAddressId': instance.shippingAddressId,
+  'shippingAddress': instance.shippingAddress,
+  'estimatedDeliveryDate': instance.estimatedDeliveryDate?.toIso8601String(),
+  'couponId': instance.couponId,
+  'couponCode': instance.couponCode,
+  'source': instance.source,
+  'customerNotes': instance.customerNotes,
+  'confirmedAt': instance.confirmedAt?.toIso8601String(),
+  'shippedAt': instance.shippedAt?.toIso8601String(),
+  'deliveredAt': instance.deliveredAt?.toIso8601String(),
+  'completedAt': instance.completedAt?.toIso8601String(),
+  'cancelledAt': instance.cancelledAt?.toIso8601String(),
+  'cancellationReason': instance.cancellationReason,
+  'items': instance.items,
+  'createdAt': instance.createdAt.toIso8601String(),
+  'updatedAt': instance.updatedAt.toIso8601String(),
 };

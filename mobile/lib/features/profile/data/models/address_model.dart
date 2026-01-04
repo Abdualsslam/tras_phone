@@ -31,7 +31,6 @@ class CityModel {
       locale == 'ar' && nameAr != null ? nameAr! : name;
 }
 
-@JsonSerializable()
 class AddressModel {
   @JsonKey(name: 'id', readValue: _readId)
   final String id;
@@ -145,7 +144,21 @@ class AddressModel {
     );
   }
 
-  Map<String, dynamic> toJson() => _$AddressModelToJson(this);
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'customerId': customerId,
+    'label': label,
+    'recipientName': recipientName,
+    'phone': phone,
+    'cityId': cityId,
+    'marketId': marketId,
+    'addressLine': addressLine,
+    'latitude': latitude,
+    'longitude': longitude,
+    'isDefault': isDefault,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 
   String get fullAddress {
     final parts = <String>[];

@@ -3,32 +3,90 @@ library;
 
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/cart_entity.dart';
+import '../../domain/enums/cart_enums.dart';
 import 'cart_item_model.dart';
 
 part 'cart_model.g.dart';
 
 @JsonSerializable()
 class CartModel {
+  @JsonKey(name: 'id', readValue: _readId)
+  final String id;
+
+  @JsonKey(name: 'customerId', readValue: _readCustomerId)
+  final String customerId;
+
+  @JsonKey(defaultValue: 'active')
+  final String status;
+
+  @JsonKey(defaultValue: [])
   final List<CartItemModel> items;
+
+  @JsonKey(defaultValue: 0)
+  final int itemsCount;
+
+  @JsonKey(defaultValue: 0.0)
   final double subtotal;
-  @JsonKey(name: 'shipping_cost')
-  final double shippingCost;
+
+  @JsonKey(defaultValue: 0.0)
   final double discount;
-  @JsonKey(name: 'coupon_code')
-  final String? couponCode;
+
+  @JsonKey(defaultValue: 0.0)
+  final double taxAmount;
+
+  @JsonKey(defaultValue: 0.0)
+  final double shippingCost;
+
+  @JsonKey(defaultValue: 0.0)
   final double total;
-  @JsonKey(name: 'updated_at')
-  final String? updatedAt;
+
+  final String? couponId;
+  final String? couponCode;
+
+  @JsonKey(defaultValue: 0.0)
+  final double couponDiscount;
+
+  final DateTime? lastActivityAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const CartModel({
+    required this.id,
+    required this.customerId,
+    this.status = 'active',
     this.items = const [],
+    this.itemsCount = 0,
     this.subtotal = 0,
-    this.shippingCost = 0,
     this.discount = 0,
-    this.couponCode,
+    this.taxAmount = 0,
+    this.shippingCost = 0,
     this.total = 0,
-    this.updatedAt,
+    this.couponId,
+    this.couponCode,
+    this.couponDiscount = 0,
+    this.lastActivityAt,
+    required this.createdAt,
+    required this.updatedAt,
   });
+
+  /// Handle MongoDB _id or id field
+  static Object? _readId(Map<dynamic, dynamic> json, String key) {
+    final value = json['_id'] ?? json['id'];
+    if (value is Map) {
+      return value['\$oid'] ?? value.toString();
+    }
+    return value?.toString();
+  }
+
+  /// Handle customerId which can be String or populated object
+  static Object? _readCustomerId(Map<dynamic, dynamic> json, String key) {
+    final value = json['customerId'];
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value?.toString();
+  }
 
   factory CartModel.fromJson(Map<String, dynamic> json) =>
       _$CartModelFromJson(json);
@@ -36,52 +94,69 @@ class CartModel {
 
   CartEntity toEntity() {
     return CartEntity(
+      id: id,
+      customerId: customerId,
+      status: CartStatus.fromString(status),
       items: items.map((i) => i.toEntity()).toList(),
+      itemsCount: itemsCount,
       subtotal: subtotal,
-      shippingCost: shippingCost,
       discount: discount,
+      taxAmount: taxAmount,
+      shippingCost: shippingCost,
+      total: total,
+      couponId: couponId,
       couponCode: couponCode,
-      updatedAt: updatedAt != null
-          ? DateTime.tryParse(updatedAt!) ?? DateTime.now()
-          : DateTime.now(),
+      couponDiscount: couponDiscount,
+      lastActivityAt: lastActivityAt,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 }
 
 /// Request model for adding item to cart
-@JsonSerializable()
 class AddToCartRequest {
-  @JsonKey(name: 'product_id')
-  final int productId;
+  final String productId;
   final int quantity;
+  final double unitPrice;
 
-  const AddToCartRequest({required this.productId, this.quantity = 1});
+  const AddToCartRequest({
+    required this.productId,
+    required this.quantity,
+    required this.unitPrice,
+  });
 
-  factory AddToCartRequest.fromJson(Map<String, dynamic> json) =>
-      _$AddToCartRequestFromJson(json);
-  Map<String, dynamic> toJson() => _$AddToCartRequestToJson(this);
+  Map<String, dynamic> toJson() => {
+    'productId': productId,
+    'quantity': quantity,
+    'unitPrice': unitPrice,
+  };
 }
 
 /// Request model for updating cart item
-@JsonSerializable()
 class UpdateCartItemRequest {
   final int quantity;
 
   const UpdateCartItemRequest({required this.quantity});
 
-  factory UpdateCartItemRequest.fromJson(Map<String, dynamic> json) =>
-      _$UpdateCartItemRequestFromJson(json);
-  Map<String, dynamic> toJson() => _$UpdateCartItemRequestToJson(this);
+  Map<String, dynamic> toJson() => {'quantity': quantity};
 }
 
 /// Request model for applying coupon
-@JsonSerializable()
 class ApplyCouponRequest {
-  final String code;
+  final String? couponId;
+  final String? couponCode;
+  final double discountAmount;
 
-  const ApplyCouponRequest({required this.code});
+  const ApplyCouponRequest({
+    this.couponId,
+    this.couponCode,
+    required this.discountAmount,
+  });
 
-  factory ApplyCouponRequest.fromJson(Map<String, dynamic> json) =>
-      _$ApplyCouponRequestFromJson(json);
-  Map<String, dynamic> toJson() => _$ApplyCouponRequestToJson(this);
+  Map<String, dynamic> toJson() => {
+    if (couponId != null) 'couponId': couponId,
+    if (couponCode != null) 'couponCode': couponCode,
+    'discountAmount': discountAmount,
+  };
 }

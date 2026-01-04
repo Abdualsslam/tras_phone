@@ -31,7 +31,7 @@ class OrdersCubit extends Cubit<OrdersState> {
   }
 
   /// Cancel order
-  Future<void> cancelOrder(int orderId) async {
+  Future<void> cancelOrder(String orderId) async {
     try {
       await _dataSource.cancelOrder(orderId);
       await loadOrders();
@@ -41,7 +41,7 @@ class OrdersCubit extends Cubit<OrdersState> {
   }
 
   /// Reorder
-  Future<void> reorder(int orderId) async {
+  Future<void> reorder(String orderId) async {
     try {
       await _dataSource.reorder(orderId);
       await loadOrders();

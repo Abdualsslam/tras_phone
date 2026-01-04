@@ -167,12 +167,14 @@ class _CartScreenState extends State<CartScreen> {
                       isDark: isDark,
                       onQuantityChanged: (quantity) {
                         context.read<CartCubit>().updateQuantity(
-                          item.id,
+                          item.productId,
                           quantity,
                         );
                       },
                       onRemove: () {
-                        context.read<CartCubit>().removeFromCart(item.id);
+                        context.read<CartCubit>().removeFromCart(
+                          item.productId,
+                        );
                       },
                     ),
                   );
@@ -492,7 +494,6 @@ class _CartItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final product = item.product;
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -510,9 +511,9 @@ class _CartItemCard extends StatelessWidget {
               width: 80.w,
               height: 80.w,
               color: isDark ? AppColors.backgroundDark : Colors.grey[100],
-              child: product.imageUrl != null
+              child: item.productImage != null
                   ? Image.network(
-                      product.imageUrl!,
+                      item.productImage!,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Icon(
                         Iconsax.image,
@@ -535,7 +536,7 @@ class _CartItemCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  product.nameAr ?? product.name,
+                  item.getName('ar'),
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
