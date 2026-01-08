@@ -46,7 +46,7 @@ import {
     AlertCircle,
     Users,
 } from 'lucide-react';
-import {  getInitials, formatDate } from '@/lib/utils';
+import { getInitials, formatDate } from '@/lib/utils';
 
 const createAdminSchema = z.object({
     name: z.string().min(2, 'الاسم يجب أن يكون على الأقل 2 أحرف'),
@@ -184,8 +184,8 @@ export function AdminsPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{t('admins.title')}</h1>
-                    <p className="text-gray-500 mt-1">إدارة المشرفين وصلاحياتهم</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('admins.title')}</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">إدارة المشرفين وصلاحياتهم</p>
                 </div>
                 <Button onClick={() => setIsCreateDialogOpen(true)}>
                     <Plus className="h-4 w-4" />
@@ -258,7 +258,7 @@ export function AdminsPage() {
                                                     <AvatarFallback>{getInitials(admin.name)}</AvatarFallback>
                                                 </Avatar>
                                                 <div>
-                                                    <p className="font-medium text-gray-900">{admin.name}</p>
+                                                    <p className="font-medium text-gray-900 dark:text-gray-100">{admin.name}</p>
                                                     {admin.roles?.length > 0 && (
                                                         <p className="text-xs text-gray-500">
                                                             {admin.roles.map((r) => r.name).join(', ')}

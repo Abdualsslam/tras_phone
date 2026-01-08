@@ -5,23 +5,29 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: string | Date, locale: string = 'ar-SA') {
-    return new Intl.DateTimeFormat(locale, {
+export function formatDate(date: string | Date, _locale: string = 'ar-SA') {
+    // Always use Gregorian calendar with English numerals
+    return new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
+        calendar: 'gregory',
     }).format(new Date(date))
 }
 
-export function formatCurrency(amount: number, currency: string = 'SAR', locale: string = 'ar-SA') {
-    return new Intl.NumberFormat(locale, {
+export function formatCurrency(amount: number, currency: string = 'SAR', _locale: string = 'ar-SA') {
+    // Always use English numerals for currency
+    return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
     }).format(amount)
 }
 
-export function formatNumber(num: number, locale: string = 'ar-SA') {
-    return new Intl.NumberFormat(locale).format(num)
+export function formatNumber(num: number, _locale: string = 'ar-SA') {
+    // Always use English numerals
+    return new Intl.NumberFormat('en-US').format(num)
 }
 
 export function getInitials(name: string): string {

@@ -12,7 +12,7 @@ export function MainLayout() {
     const isRTL = i18n.language === 'ar';
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
             {/* Desktop Sidebar */}
             <div className="hidden lg:block">
                 <Sidebar
@@ -32,7 +32,7 @@ export function MainLayout() {
             {/* Mobile Sidebar */}
             <div
                 className={cn(
-                    'fixed top-0 h-screen w-64 bg-white z-40 transform transition-transform duration-300 lg:hidden',
+                    'fixed top-0 h-screen w-64 bg-white dark:bg-slate-900 z-40 transform transition-transform duration-300 lg:hidden',
                     isRTL ? 'right-0' : 'left-0',
                     mobileSidebarOpen
                         ? 'translate-x-0'

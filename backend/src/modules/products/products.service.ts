@@ -5,6 +5,7 @@ import { Product, ProductDocument } from './schemas/product.schema';
 import { ProductPrice, ProductPriceDocument } from './schemas/product-price.schema';
 import { Wishlist, WishlistDocument } from './schemas/wishlist.schema';
 import { ProductReview, ProductReviewDocument } from './schemas/product-review.schema';
+import { PriceLevel, PriceLevelDocument } from './schemas/price-level.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -22,6 +23,8 @@ export class ProductsService {
         private wishlistModel: Model<WishlistDocument>,
         @InjectModel(ProductReview.name)
         private productReviewModel: Model<ProductReviewDocument>,
+        @InjectModel(PriceLevel.name)
+        private priceLevelModel: Model<PriceLevelDocument>,
     ) { }
 
     /**
@@ -245,5 +248,18 @@ export class ProductsService {
             averageRating: Math.round(stats.avg * 10) / 10,
             reviewsCount: stats.count,
         });
+    }
+
+    // ═════════════════════════════════════
+    // Price Levels
+    // ═════════════════════════════════════
+
+    /**
+     * Get all active price levels
+     */
+    async findAllPriceLevels(): Promise<PriceLevelDocument[]> {
+        return this.priceLevelModel
+            .find({ isActive: true })
+            .sort({ displayOrder: 1, name: 1 });
     }
 }

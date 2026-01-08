@@ -383,4 +383,12 @@ export class CustomersService {
 
         return `${prefix}${year}${month}${sequence}`;
     }
+
+    /**
+     * Get all userIds that are linked to customer profiles
+     */
+    async getLinkedUserIds(): Promise<string[]> {
+        const customers = await this.customerModel.find({}).select('userId');
+        return customers.map(c => c.userId.toString());
+    }
 }

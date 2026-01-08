@@ -15,9 +15,11 @@ import { Referral, ReferralSchema } from './schemas/referral.schema';
 import { CustomersService } from './customers.service';
 import { ReferralsService } from './referrals.service';
 import { CustomersController } from './customers.controller';
+import { UsersModule } from '@modules/users/users.module';
 
 @Module({
     imports: [
+        UsersModule,
         MongooseModule.forFeature([
             { name: Customer.name, schema: CustomerSchema },
             { name: CustomerAddress.name, schema: CustomerAddressSchema },

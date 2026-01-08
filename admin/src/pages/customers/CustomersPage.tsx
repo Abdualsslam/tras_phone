@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { customersApi } from '@/api/customers.api';
+import { customersApi, type City, type PriceLevel, type AvailableUser, type CreateCustomerDto } from '@/api/customers.api';
 import type { Customer } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -40,8 +41,16 @@ import {
     Loader2,
     AlertCircle,
     Building2,
+    UserPlus,
+    UserCog,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+
+// Simple toast helper (replace with actual toast library if available)
+const toast = {
+    success: (msg: string) => console.log('✅', msg),
+    error: (msg: string) => console.error('❌', msg),
+};
 
 const statusVariants: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
     approved: 'success',
@@ -57,6 +66,52 @@ const statusLabels: Record<string, string> = {
     suspended: 'موقوف',
 };
 
+type AddMode = 'fromScratch' | 'convertUser';
+
+interface FormData {
+    // User fields (for fromScratch mode)
+    phone: string;
+    email: string;
+    password: string;
+    // Customer fields
+    selectedUserId: string;
+    responsiblePersonName: string;
+    shopName: string;
+    shopNameAr: string;
+    businessType: string;
+    cityId: string;
+    priceLevelId: string;
+    address: string;
+    commercialLicenseNumber: string;
+    taxNumber: string;
+    nationalId: string;
+    creditLimit: string;
+    preferredPaymentMethod: string;
+    preferredContactMethod: string;
+    internalNotes: string;
+}
+
+const initialFormData: FormData = {
+    phone: '',
+    email: '',
+    password: '',
+    selectedUserId: '',
+    responsiblePersonName: '',
+    shopName: '',
+    shopNameAr: '',
+    businessType: 'shop',
+    cityId: '',
+    priceLevelId: '',
+    address: '',
+    commercialLicenseNumber: '',
+    taxNumber: '',
+    nationalId: '',
+    creditLimit: '',
+    preferredPaymentMethod: 'cod',
+    preferredContactMethod: 'whatsapp',
+    internalNotes: '',
+};
+
 export function CustomersPage() {
     const { t, i18n } = useTranslation();
     const queryClient = useQueryClient();
@@ -64,6 +119,10 @@ export function CustomersPage() {
     const [statusFilter, setStatusFilter] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [addMode, setAddMode] = useState<AddMode | null>(null);
+    const [formData, setFormData] = useState<FormData>(initialFormData);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const locale = i18n.language === 'ar' ? 'ar-SA' : 'en-US';
 
     // Fetch customers
@@ -72,11 +131,41 @@ export function CustomersPage() {
         queryFn: () => customersApi.getAll({ search: searchQuery, status: statusFilter, limit: 20 }),
     });
 
+    // Fetch lookup data for dialog
+    const { data: cities = [] } = useQuery<City[]>({
+        queryKey: ['cities'],
+        queryFn: () => customersApi.getCities(),
+        enabled: isAddDialogOpen,
+    });
+
+    const { data: priceLevels = [] } = useQuery<PriceLevel[]>({
+        queryKey: ['priceLevels'],
+        queryFn: () => customersApi.getPriceLevels(),
+        enabled: isAddDialogOpen,
+    });
+
+    const { data: availableUsers = [] } = useQuery<AvailableUser[]>({
+        queryKey: ['availableUsers'],
+        queryFn: () => customersApi.getAvailableUsers(),
+        enabled: isAddDialogOpen && addMode === 'convertUser',
+    });
+
+    // Set default price level when loaded
+    useEffect(() => {
+        if (priceLevels.length > 0 && !formData.priceLevelId) {
+            const defaultLevel = priceLevels.find(p => p.isDefault) || priceLevels[0];
+            if (defaultLevel) {
+                setFormData(prev => ({ ...prev, priceLevelId: defaultLevel._id }));
+            }
+        }
+    }, [priceLevels, formData.priceLevelId]);
+
     // Approve mutation
     const approveMutation = useMutation({
         mutationFn: (id: string) => customersApi.approve(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['customers'] });
+            toast.success('تمت الموافقة على العميل');
         },
     });
 
@@ -85,12 +174,96 @@ export function CustomersPage() {
         mutationFn: (id: string) => customersApi.reject(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['customers'] });
+            toast.success('تم رفض العميل');
         },
     });
 
     const handleViewDetails = (customer: Customer) => {
         setSelectedCustomer(customer);
         setIsDetailsDialogOpen(true);
+    };
+
+    const handleOpenAddDialog = () => {
+        setFormData(initialFormData);
+        setAddMode(null);
+        setIsAddDialogOpen(true);
+    };
+
+    const handleCloseAddDialog = () => {
+        setIsAddDialogOpen(false);
+        setAddMode(null);
+        setFormData(initialFormData);
+    };
+
+    const handleFormChange = (field: keyof FormData, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSubmit = async () => {
+        if (!addMode) return;
+
+        // Validation
+        if (!formData.responsiblePersonName || !formData.shopName || !formData.cityId || !formData.priceLevelId) {
+            toast.error('يرجى ملء جميع الحقول المطلوبة');
+            return;
+        }
+
+        if (addMode === 'fromScratch' && (!formData.phone || !formData.password)) {
+            toast.error('يرجى إدخال رقم الهاتف وكلمة المرور');
+            return;
+        }
+
+        if (addMode === 'convertUser' && !formData.selectedUserId) {
+            toast.error('يرجى اختيار مستخدم');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            let userId = formData.selectedUserId;
+
+            // Step 1: Create user if from scratch
+            if (addMode === 'fromScratch') {
+                const result = await customersApi.registerUser({
+                    phone: formData.phone,
+                    email: formData.email || undefined,
+                    password: formData.password,
+                    userType: 'customer',
+                });
+                userId = result.user._id;
+            }
+
+            // Step 2: Create customer
+            const customerData: CreateCustomerDto = {
+                userId,
+                responsiblePersonName: formData.responsiblePersonName,
+                shopName: formData.shopName,
+                shopNameAr: formData.shopNameAr || undefined,
+                businessType: formData.businessType as CreateCustomerDto['businessType'],
+                cityId: formData.cityId,
+                priceLevelId: formData.priceLevelId,
+                address: formData.address || undefined,
+                commercialLicenseNumber: formData.commercialLicenseNumber || undefined,
+                taxNumber: formData.taxNumber || undefined,
+                nationalId: formData.nationalId || undefined,
+                creditLimit: formData.creditLimit ? Number(formData.creditLimit) : undefined,
+                preferredPaymentMethod: formData.preferredPaymentMethod as CreateCustomerDto['preferredPaymentMethod'],
+                preferredContactMethod: formData.preferredContactMethod as CreateCustomerDto['preferredContactMethod'],
+                internalNotes: formData.internalNotes || undefined,
+            };
+
+            await customersApi.create(customerData);
+
+            toast.success('تم إضافة العميل بنجاح');
+            queryClient.invalidateQueries({ queryKey: ['customers'] });
+            queryClient.invalidateQueries({ queryKey: ['availableUsers'] });
+            handleCloseAddDialog();
+        } catch (error: any) {
+            console.error('Error creating customer:', error);
+            toast.error(error.response?.data?.messageAr || error.response?.data?.message || 'حدث خطأ أثناء إضافة العميل');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const customers = data?.items || [];
@@ -100,10 +273,10 @@ export function CustomersPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{t('customers.title')}</h1>
-                    <p className="text-gray-500 mt-1">إدارة العملاء وطلبات التسجيل</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('customers.title')}</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">إدارة العملاء وطلبات التسجيل</p>
                 </div>
-                <Button>
+                <Button onClick={handleOpenAddDialog}>
                     <Plus className="h-4 w-4" />
                     {t('customers.addCustomer')}
                 </Button>
@@ -178,7 +351,7 @@ export function CustomersPage() {
                             <TableBody>
                                 {customers.map((customer) => (
                                     <TableRow key={customer._id}>
-                                        <TableCell className="font-medium text-gray-900">
+                                        <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                                             {customer.companyName}
                                         </TableCell>
                                         <TableCell className="text-gray-600">{customer.contactName}</TableCell>
@@ -272,21 +445,6 @@ export function CustomersPage() {
                                     <p className="font-medium">{selectedCustomer.commercialRegister || '-'}</p>
                                 </div>
                             </div>
-                            {selectedCustomer.address && (
-                                <div>
-                                    <p className="text-sm text-gray-500 mb-1">العنوان</p>
-                                    <p className="font-medium">
-                                        {[
-                                            selectedCustomer.address.street,
-                                            selectedCustomer.address.city,
-                                            selectedCustomer.address.state,
-                                            selectedCustomer.address.country,
-                                        ]
-                                            .filter(Boolean)
-                                            .join('، ') || '-'}
-                                    </p>
-                                </div>
-                            )}
                         </div>
                     )}
                     <DialogFooter>
@@ -296,6 +454,300 @@ export function CustomersPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Add Customer Dialog */}
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>إضافة عميل جديد</DialogTitle>
+                        <DialogDescription>
+                            {!addMode ? 'اختر طريقة إضافة العميل' : addMode === 'fromScratch' ? 'إنشاء حساب ومحل جديد' : 'تحويل مستخدم موجود إلى عميل'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {/* Mode Selection */}
+                    {!addMode && (
+                        <div className="grid grid-cols-2 gap-4 py-4">
+                            <button
+                                onClick={() => setAddMode('fromScratch')}
+                                className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50 transition-all"
+                            >
+                                <UserPlus className="h-10 w-10 text-primary-600" />
+                                <div className="text-center">
+                                    <p className="font-semibold text-gray-900">إضافة من الصفر</p>
+                                    <p className="text-sm text-gray-500">إنشاء حساب مستخدم ومحل جديد</p>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setAddMode('convertUser')}
+                                className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50 transition-all"
+                            >
+                                <UserCog className="h-10 w-10 text-primary-600" />
+                                <div className="text-center">
+                                    <p className="font-semibold text-gray-900">تحويل مستخدم</p>
+                                    <p className="text-sm text-gray-500">ربط مستخدم موجود بمحل جديد</p>
+                                </div>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Form */}
+                    {addMode && (
+                        <div className="space-y-6 py-4">
+                            {/* User Section - Only for fromScratch */}
+                            {addMode === 'fromScratch' && (
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-gray-900 border-b pb-2">بيانات الحساب</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>رقم الهاتف <span className="text-red-500">*</span></Label>
+                                            <Input
+                                                dir="ltr"
+                                                placeholder="+966501234567"
+                                                value={formData.phone}
+                                                onChange={(e) => handleFormChange('phone', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>البريد الإلكتروني <span className="text-gray-400 text-xs">(اختياري)</span></Label>
+                                            <Input
+                                                type="email"
+                                                dir="ltr"
+                                                placeholder="email@example.com"
+                                                value={formData.email}
+                                                onChange={(e) => handleFormChange('email', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2 md:col-span-2">
+                                            <Label>كلمة المرور <span className="text-red-500">*</span></Label>
+                                            <Input
+                                                type="password"
+                                                dir="ltr"
+                                                placeholder="كلمة مرور قوية"
+                                                value={formData.password}
+                                                onChange={(e) => handleFormChange('password', e.target.value)}
+                                            />
+                                            <p className="text-xs text-gray-500">يجب أن تحتوي على حرف كبير، حرف صغير، رقم، ورمز خاص</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* User Selection - Only for convertUser */}
+                            {addMode === 'convertUser' && (
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-gray-900 border-b pb-2">اختيار المستخدم</h3>
+                                    <div className="space-y-2">
+                                        <Label>المستخدم <span className="text-red-500">*</span></Label>
+                                        <select
+                                            value={formData.selectedUserId}
+                                            onChange={(e) => handleFormChange('selectedUserId', e.target.value)}
+                                            className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
+                                        >
+                                            <option value="">اختر مستخدم...</option>
+                                            {availableUsers.map((user) => (
+                                                <option key={user._id} value={user._id}>
+                                                    {user.phone} {user.email ? `(${user.email})` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {availableUsers.length === 0 && (
+                                            <p className="text-sm text-amber-600">لا يوجد مستخدمين متاحين للتحويل</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Shop Info Section */}
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-gray-900 border-b pb-2">بيانات المحل</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>اسم المسؤول <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            placeholder="أحمد محمد"
+                                            value={formData.responsiblePersonName}
+                                            onChange={(e) => handleFormChange('responsiblePersonName', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>اسم المحل (إنجليزي) <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            dir="ltr"
+                                            placeholder="Mobile Shop"
+                                            value={formData.shopName}
+                                            onChange={(e) => handleFormChange('shopName', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>اسم المحل (عربي) <span className="text-gray-400 text-xs">(اختياري)</span></Label>
+                                        <Input
+                                            placeholder="محل الجوالات"
+                                            value={formData.shopNameAr}
+                                            onChange={(e) => handleFormChange('shopNameAr', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>نوع العمل <span className="text-gray-400 text-xs">(اختياري)</span></Label>
+                                        <select
+                                            value={formData.businessType}
+                                            onChange={(e) => handleFormChange('businessType', e.target.value)}
+                                            className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
+                                        >
+                                            <option value="shop">محل</option>
+                                            <option value="technician">فني</option>
+                                            <option value="distributor">موزع</option>
+                                            <option value="other">أخرى</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>المدينة <span className="text-red-500">*</span></Label>
+                                        <select
+                                            value={formData.cityId}
+                                            onChange={(e) => handleFormChange('cityId', e.target.value)}
+                                            className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
+                                        >
+                                            <option value="">اختر المدينة...</option>
+                                            {cities.map((city) => (
+                                                <option key={city._id} value={city._id}>
+                                                    {city.nameAr || city.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>مستوى السعر <span className="text-red-500">*</span></Label>
+                                        <select
+                                            value={formData.priceLevelId}
+                                            onChange={(e) => handleFormChange('priceLevelId', e.target.value)}
+                                            className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
+                                        >
+                                            <option value="">اختر مستوى السعر...</option>
+                                            {priceLevels.map((level) => (
+                                                <option key={level._id} value={level._id}>
+                                                    {level.nameAr || level.name} ({level.discountPercentage}%)
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2">
+                                        <Label>العنوان <span className="text-gray-400 text-xs">(اختياري)</span></Label>
+                                        <Input
+                                            placeholder="الرياض، حي الملز، شارع الستين"
+                                            value={formData.address}
+                                            onChange={(e) => handleFormChange('address', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Documents Section */}
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-gray-900 border-b pb-2">الوثائق <span className="text-gray-400 text-xs font-normal">(اختياري)</span></h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>رقم السجل التجاري</Label>
+                                        <Input
+                                            dir="ltr"
+                                            placeholder="1234567890"
+                                            value={formData.commercialLicenseNumber}
+                                            onChange={(e) => handleFormChange('commercialLicenseNumber', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>الرقم الضريبي</Label>
+                                        <Input
+                                            dir="ltr"
+                                            placeholder="300000000000003"
+                                            value={formData.taxNumber}
+                                            onChange={(e) => handleFormChange('taxNumber', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>رقم الهوية</Label>
+                                        <Input
+                                            dir="ltr"
+                                            placeholder="1234567890"
+                                            value={formData.nationalId}
+                                            onChange={(e) => handleFormChange('nationalId', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Preferences Section */}
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-gray-900 border-b pb-2">التفضيلات <span className="text-gray-400 text-xs font-normal">(اختياري)</span></h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>حد الائتمان</Label>
+                                        <Input
+                                            type="number"
+                                            dir="ltr"
+                                            placeholder="0"
+                                            value={formData.creditLimit}
+                                            onChange={(e) => handleFormChange('creditLimit', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>طريقة الدفع المفضلة</Label>
+                                        <select
+                                            value={formData.preferredPaymentMethod}
+                                            onChange={(e) => handleFormChange('preferredPaymentMethod', e.target.value)}
+                                            className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
+                                        >
+                                            <option value="cod">الدفع عند الاستلام</option>
+                                            <option value="bank_transfer">تحويل بنكي</option>
+                                            <option value="wallet">المحفظة</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>طريقة التواصل المفضلة</Label>
+                                        <select
+                                            value={formData.preferredContactMethod}
+                                            onChange={(e) => handleFormChange('preferredContactMethod', e.target.value)}
+                                            className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
+                                        >
+                                            <option value="whatsapp">واتساب</option>
+                                            <option value="phone">هاتف</option>
+                                            <option value="email">بريد إلكتروني</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Internal Notes */}
+                            <div className="space-y-2">
+                                <Label>ملاحظات داخلية <span className="text-gray-400 text-xs">(اختياري)</span></Label>
+                                <textarea
+                                    placeholder="ملاحظات للإدارة فقط..."
+                                    value={formData.internalNotes}
+                                    onChange={(e) => handleFormChange('internalNotes', e.target.value)}
+                                    className="w-full min-h-[80px] rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter className="gap-2">
+                        {addMode && (
+                            <Button variant="ghost" onClick={() => setAddMode(null)}>
+                                رجوع
+                            </Button>
+                        )}
+                        <Button variant="outline" onClick={handleCloseAddDialog}>
+                            إلغاء
+                        </Button>
+                        {addMode && (
+                            <Button onClick={handleSubmit} disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                                إضافة العميل
+                            </Button>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+

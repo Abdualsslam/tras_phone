@@ -70,6 +70,21 @@ export const catalogApi = {
         });
         return response.data.data;
     },
+
+    // Quality Types
+    getQualityTypes: async (): Promise<QualityType[]> => {
+        const response = await apiClient.get<ApiResponse<QualityType[]>>('/catalog/quality-types');
+        return response.data.data;
+    },
 };
+
+export interface QualityType {
+    _id: string;
+    name: string;
+    nameAr: string;
+    code: string;
+    displayOrder: number;
+    isActive: boolean;
+}
 
 export default catalogApi;

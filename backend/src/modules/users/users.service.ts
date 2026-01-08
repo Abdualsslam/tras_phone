@@ -75,4 +75,15 @@ export class UsersService {
         user.deletedAt = new Date();
         await user.save();
     }
+
+    /**
+     * Find customer-type users that don't have a linked customer profile
+     */
+    async findUnlinkedCustomerUsers(linkedUserIds: string[]): Promise<UserDocument[]> {
+        return this.userModel.find({
+            userType: 'customer',
+            status: 'active',
+            _id: { $nin: linkedUserIds },
+        }).select('_id phone email createdAt').sort({ createdAt: -1 });
+    }
 }

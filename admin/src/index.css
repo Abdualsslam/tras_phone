@@ -114,3 +114,40 @@ body {
 .animate-slide-in {
   animation: slideIn 0.3s ease-out;
 }
+
+/* Dark Mode Support */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode color scheme */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+.dark * {
+  border-color: #334155;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Dark mode glass utility */
+.dark .glass {
+  background: rgba(15, 23, 42, 0.8);
+}

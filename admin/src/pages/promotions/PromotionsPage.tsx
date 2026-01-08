@@ -78,8 +78,8 @@ export function PromotionsPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{t('sidebar.promotions')}</h1>
-                    <p className="text-gray-500 mt-1">إدارة القسائم والعروض الترويجية</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('sidebar.promotions')}</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">إدارة القسائم والعروض الترويجية</p>
                 </div>
                 <Button>
                     <Plus className="h-4 w-4" />

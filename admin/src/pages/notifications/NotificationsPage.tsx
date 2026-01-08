@@ -58,8 +58,8 @@ export function NotificationsPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{t('sidebar.notifications')}</h1>
-                    <p className="text-gray-500 mt-1">إدارة الإشعارات والحملات</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('sidebar.notifications')}</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">إدارة الإشعارات والحملات</p>
                 </div>
                 <Button>
                     <Send className="h-4 w-4" />
@@ -153,7 +153,7 @@ export function NotificationsPage() {
                                 <div className="flex-1">
                                     <div className="flex items-start justify-between">
                                         <div>
-                                            <h3 className="font-medium text-gray-900">{notif.title}</h3>
+                                            <h3 className="font-medium text-gray-900 dark:text-gray-100">{notif.title}</h3>
                                             <p className="text-sm text-gray-500 mt-1">{notif.body}</p>
                                         </div>
                                         <Badge variant={notif.read ? 'default' : 'secondary'}>
@@ -182,7 +182,7 @@ export function NotificationsPage() {
                                     <category.icon className="h-5 w-5 text-gray-600" />
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="font-medium text-gray-900">{category.name}</h3>
+                                    <h3 className="font-medium text-gray-900 dark:text-gray-100">{category.name}</h3>
                                     <p className="text-sm text-gray-500">{category.count} قالب</p>
                                 </div>
                             </CardContent>

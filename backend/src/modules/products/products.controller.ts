@@ -43,6 +43,27 @@ export class ProductsController {
     // ═════════════════════════════════════
 
     @Public()
+    @Get('price-levels')
+    @ApiOperation({
+        summary: 'Get all price levels',
+        description: 'Retrieve all active price levels for customer pricing. Public endpoint.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Price levels retrieved successfully',
+        type: ApiResponseDto,
+    })
+    @ApiPublicErrorResponses()
+    async getPriceLevels() {
+        const priceLevels = await this.productsService.findAllPriceLevels();
+        return ResponseBuilder.success(
+            priceLevels,
+            'Price levels retrieved',
+            'تم استرجاع مستويات الأسعار',
+        );
+    }
+
+    @Public()
     @Get()
     @ApiOperation({
         summary: 'Get all products with filters',

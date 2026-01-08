@@ -24,6 +24,7 @@ import { RolesGuard } from '@guards/roles.guard';
 import { Roles } from '@decorators/roles.decorator';
 import { UserRole } from '@common/enums/user-role.enum';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
+import { UsersService } from '@modules/users/users.service';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -35,7 +36,36 @@ import { ResponseBuilder } from '@common/interfaces/response.interface';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth('JWT-auth')
 export class CustomersController {
-    constructor(private readonly customersService: CustomersService) { }
+    constructor(
+        private readonly customersService: CustomersService,
+        private readonly usersService: UsersService,
+    ) { }
+
+    /**
+     * Get available users for customer conversion
+     */
+    @Get('available-users')
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @ApiOperation({
+        summary: 'Get users available for customer conversion',
+        description: 'Get users with userType=customer that are not yet linked to a customer profile',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Available users retrieved successfully',
+        type: ApiResponseDto,
+    })
+    @ApiCommonErrorResponses()
+    async getAvailableUsers() {
+        const linkedUserIds = await this.customersService.getLinkedUserIds();
+        const users = await this.usersService.findUnlinkedCustomerUsers(linkedUserIds);
+
+        return ResponseBuilder.success(
+            users,
+            'Available users retrieved successfully',
+            'تم استرجاع المستخدمين المتاحين بنجاح',
+        );
+    }
 
     /**
      * Create customer

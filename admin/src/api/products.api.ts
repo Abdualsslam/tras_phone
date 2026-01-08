@@ -2,19 +2,41 @@ import apiClient from './client';
 import type { ApiResponse, Product, PaginatedResponse } from '@/types';
 
 export interface CreateProductDto {
-    name: string;
-    nameAr?: string;
+    // Required fields
     sku: string;
+    name: string;
+    nameAr: string;
+    slug: string;
+    brandId: string;
+    categoryId: string;
+    qualityTypeId: string;
+    basePrice: number;
+
+    // Optional fields
     description?: string;
     descriptionAr?: string;
-    categoryId?: string;
-    brandId?: string;
-    price: number;
+    shortDescription?: string;
+    shortDescriptionAr?: string;
+    additionalCategories?: string[];
+    compatibleDevices?: string[];
     compareAtPrice?: number;
-    stock: number;
-    status?: 'draft' | 'published' | 'archived';
-    featured?: boolean;
+    costPrice?: number;
+    stockQuantity?: number;
+    lowStockThreshold?: number;
+    trackInventory?: boolean;
+    allowBackorder?: boolean;
+    minOrderQuantity?: number;
+    maxOrderQuantity?: number;
+    status?: 'draft' | 'active' | 'inactive' | 'out_of_stock' | 'discontinued';
+    isActive?: boolean;
+    isFeatured?: boolean;
+    mainImage?: string;
     images?: string[];
+    specifications?: Record<string, any>;
+    weight?: number;
+    dimensions?: string;
+    color?: string;
+    tags?: string[];
 }
 
 export interface UpdateProductDto extends Partial<CreateProductDto> { }

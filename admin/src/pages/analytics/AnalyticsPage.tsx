@@ -85,8 +85,8 @@ export function AnalyticsPage() {
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">{t('sidebar.analytics')}</h1>
-                <p className="text-gray-500 mt-1">تحليلات وإحصائيات المتجر</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('sidebar.analytics')}</h1>
+                <p className="text-gray-500 dark:text-gray-400 mt-1">تحليلات وإحصائيات المتجر</p>
             </div>
 
             {/* Overview Stats */}
@@ -141,7 +141,7 @@ export function AnalyticsPage() {
                                             {index + 1}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-900">{customer.companyName}</p>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">{customer.companyName}</p>
                                             <p className="text-xs text-gray-500">{customer.ordersCount || 0} طلب</p>
                                         </div>
                                     </div>
@@ -172,7 +172,7 @@ export function AnalyticsPage() {
                                             {index + 1}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-900">{product.name}</p>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">{product.name}</p>
                                             <p className="text-xs text-gray-500">{product.sales} وحدة</p>
                                         </div>
                                     </div>

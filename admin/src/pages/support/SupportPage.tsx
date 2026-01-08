@@ -88,8 +88,8 @@ export function SupportPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{t('sidebar.support')}</h1>
-                    <p className="text-gray-500 mt-1">إدارة تذاكر الدعم الفني</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('sidebar.support')}</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">إدارة تذاكر الدعم الفني</p>
                 </div>
             </div>
 
@@ -169,7 +169,7 @@ export function SupportPage() {
                                                 </Avatar>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="font-medium text-gray-900">{ticket.ticketNumber}</span>
+                                                        <span className="font-medium text-gray-900 dark:text-gray-100">{ticket.ticketNumber}</span>
                                                         <Badge variant={statusVariants[ticket.status]}>
                                                             {statusLabels[ticket.status]}
                                                         </Badge>

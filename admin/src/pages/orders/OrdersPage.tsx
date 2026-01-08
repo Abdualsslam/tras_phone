@@ -105,8 +105,8 @@ export function OrdersPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{t('orders.title')}</h1>
-                    <p className="text-gray-500 mt-1">متابعة وإدارة الطلبات</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('orders.title')}</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">متابعة وإدارة الطلبات</p>
                 </div>
             </div>
 
@@ -126,7 +126,7 @@ export function OrdersPage() {
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="h-10 rounded-lg border border-gray-300 px-3 text-sm min-w-[150px]"
+                            className="h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 px-3 text-sm min-w-[150px]"
                         >
                             <option value="">جميع الحالات</option>
                             <option value="pending">قيد الانتظار</option>
@@ -187,7 +187,7 @@ export function OrdersPage() {
                                         </TableCell>
                                         <TableCell>
                                             <div>
-                                                <p className="font-medium text-gray-900">{order.customer.companyName}</p>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">{order.customer.companyName}</p>
                                                 <p className="text-xs text-gray-500">{order.customer.contactName}</p>
                                             </div>
                                         </TableCell>
@@ -249,43 +249,43 @@ export function OrdersPage() {
                             {/* Order Info */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div>
-                                    <p className="text-sm text-gray-500">العميل</p>
-                                    <p className="font-medium">{selectedOrder.customer.companyName}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">العميل</p>
+                                    <p className="font-medium text-gray-900 dark:text-gray-100">{selectedOrder.customer.companyName}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-500">حالة الطلب</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">حالة الطلب</p>
                                     <Badge variant={orderStatusVariants[selectedOrder.status]}>
                                         {orderStatusLabels[selectedOrder.status]}
                                     </Badge>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-500">حالة الدفع</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">حالة الدفع</p>
                                     <Badge variant={paymentStatusVariants[selectedOrder.paymentStatus]}>
                                         {paymentStatusLabels[selectedOrder.paymentStatus]}
                                     </Badge>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-500">التاريخ</p>
-                                    <p className="font-medium">{formatDate(selectedOrder.createdAt, locale)}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">التاريخ</p>
+                                    <p className="font-medium text-gray-900 dark:text-gray-100">{formatDate(selectedOrder.createdAt, locale)}</p>
                                 </div>
                             </div>
 
                             {/* Order Items */}
                             <div>
-                                <h4 className="font-medium mb-3">المنتجات</h4>
-                                <div className="border rounded-lg divide-y">
+                                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">المنتجات</h4>
+                                <div className="border dark:border-slate-700 rounded-lg divide-y dark:divide-slate-700">
                                     {selectedOrder.items.map((item, index) => (
                                         <div key={index} className="p-3 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gray-100 rounded-lg" />
+                                                <div className="w-10 h-10 bg-gray-100 dark:bg-slate-800 rounded-lg" />
                                                 <div>
-                                                    <p className="font-medium">{item.product.name}</p>
-                                                    <p className="text-xs text-gray-500">{item.product.sku}</p>
+                                                    <p className="font-medium text-gray-900 dark:text-gray-100">{item.productSnapshot?.name || (typeof item.product === 'object' ? item.product?.name : '-')}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.productSnapshot?.sku || (typeof item.product === 'object' ? item.product?.sku : '-')}</p>
                                                 </div>
                                             </div>
                                             <div className="text-end">
-                                                <p className="font-medium">{formatCurrency(item.total, 'SAR', locale)}</p>
-                                                <p className="text-xs text-gray-500">{item.quantity} × {formatCurrency(item.price, 'SAR', locale)}</p>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(item.totalPrice ?? item.total ?? 0, 'SAR', locale)}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">{item.quantity} × {formatCurrency(item.unitPrice ?? item.productSnapshot?.price ?? item.price ?? 0, 'SAR', locale)}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -293,24 +293,24 @@ export function OrdersPage() {
                             </div>
 
                             {/* Order Summary */}
-                            <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4">
                                 <div className="flex justify-between mb-2">
-                                    <span className="text-gray-500">المجموع الفرعي</span>
-                                    <span>{formatCurrency(selectedOrder.subtotal, 'SAR', locale)}</span>
+                                    <span className="text-gray-500 dark:text-gray-400">المجموع الفرعي</span>
+                                    <span className="text-gray-900 dark:text-gray-100">{formatCurrency(selectedOrder.subtotal, 'SAR', locale)}</span>
                                 </div>
                                 {selectedOrder.discount > 0 && (
-                                    <div className="flex justify-between mb-2 text-green-600">
+                                    <div className="flex justify-between mb-2 text-green-600 dark:text-green-400">
                                         <span>الخصم</span>
                                         <span>- {formatCurrency(selectedOrder.discount, 'SAR', locale)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between mb-2">
-                                    <span className="text-gray-500">الضريبة</span>
-                                    <span>{formatCurrency(selectedOrder.tax, 'SAR', locale)}</span>
+                                    <span className="text-gray-500 dark:text-gray-400">الضريبة</span>
+                                    <span className="text-gray-900 dark:text-gray-100">{formatCurrency(selectedOrder.tax, 'SAR', locale)}</span>
                                 </div>
-                                <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
-                                    <span>الإجمالي</span>
-                                    <span>{formatCurrency(selectedOrder.total, 'SAR', locale)}</span>
+                                <div className="flex justify-between font-bold text-lg border-t dark:border-slate-700 pt-2 mt-2">
+                                    <span className="text-gray-900 dark:text-gray-100">الإجمالي</span>
+                                    <span className="text-gray-900 dark:text-gray-100">{formatCurrency(selectedOrder.total, 'SAR', locale)}</span>
                                 </div>
                             </div>
                         </div>

@@ -46,13 +46,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     return (
         <aside
             className={cn(
-                'fixed top-0 h-screen bg-white border-e border-gray-200 transition-all duration-300 z-40 flex flex-col',
+                'fixed top-0 h-screen bg-white dark:bg-slate-900 border-e border-gray-200 dark:border-slate-700 transition-all duration-300 z-40 flex flex-col',
                 collapsed ? 'w-[72px]' : 'w-64',
                 isRTL ? 'right-0' : 'left-0'
             )}
         >
             {/* Logo */}
-            <div className="h-16 flex items-center justify-center border-b border-gray-200 px-4">
+            <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-slate-700 px-4">
                 {collapsed ? (
                     <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
                         <span className="text-white font-bold text-lg">T</span>
@@ -62,7 +62,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                         <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
                             <span className="text-white font-bold text-lg">T</span>
                         </div>
-                        <span className="font-bold text-lg text-gray-900">TRAS Phone</span>
+                        <span className="font-bold text-lg text-gray-900 dark:text-gray-100">TRAS Phone</span>
                     </div>
                 )}
             </div>
@@ -77,10 +77,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                                 className={({ isActive }) =>
                                     cn(
                                         'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
-                                        'hover:bg-gray-100',
+                                        'hover:bg-gray-100 dark:hover:bg-slate-800',
                                         isActive
-                                            ? 'bg-primary-50 text-primary-700 font-medium'
-                                            : 'text-gray-600',
+                                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium'
+                                            : 'text-gray-600 dark:text-gray-400',
                                         collapsed && 'justify-center'
                                     )
                                 }
@@ -94,7 +94,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </nav>
 
             {/* Toggle Button */}
-            <div className="p-3 border-t border-gray-200">
+            <div className="p-3 border-t border-gray-200 dark:border-slate-700">
                 <Button
                     variant="ghost"
                     size="icon"

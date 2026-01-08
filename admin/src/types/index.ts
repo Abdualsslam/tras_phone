@@ -150,15 +150,25 @@ export interface Order {
 }
 
 export interface OrderItem {
-    product: {
+    _id: string;
+    product: string | {
         _id: string;
         name: string;
         sku: string;
         image?: string;
     };
+    productSnapshot?: {
+        name: string;
+        sku: string;
+        price: number;
+    };
     quantity: number;
-    price: number;
-    total: number;
+    unitPrice: number;
+    totalPrice: number;
+    discount?: number;
+    // Legacy fields for compatibility
+    price?: number;
+    total?: number;
 }
 
 export type OrderStatus =

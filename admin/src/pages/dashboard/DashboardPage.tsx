@@ -91,10 +91,10 @@ export function DashboardPage() {
         <div className="space-y-6 animate-fade-in">
             {/* Welcome Message */}
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                     {t('dashboard.welcome')}، {user?.name}! 👋
                 </h1>
-                <p className="text-gray-500 mt-1">إليك نظرة عامة على نشاط متجرك اليوم</p>
+                <p className="text-gray-500 dark:text-gray-400 mt-1">إليك نظرة عامة على نشاط متجرك اليوم</p>
             </div>
 
             {/* Stats Grid */}
@@ -104,8 +104,8 @@ export function DashboardPage() {
                         <CardContent className="p-6">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <p className="text-sm text-gray-500 mb-1">{t(stat.titleKey)}</p>
-                                    <p className="text-2xl font-bold text-gray-900">
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t(stat.titleKey)}</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                         {stat.format === 'currency'
                                             ? formatCurrency(stat.value, 'SAR', locale)
                                             : formatNumber(stat.value, locale)}
@@ -130,7 +130,7 @@ export function DashboardPage() {
                                 >
                                     {stat.change >= 0 ? '+' : ''}{stat.change}%
                                 </span>
-                                <span className="text-sm text-gray-400">مقارنة بالشهر الماضي</span>
+                                <span className="text-sm text-gray-400 dark:text-gray-500">مقارنة بالشهر الماضي</span>
                             </div>
                         </CardContent>
                     </Card>
@@ -150,19 +150,19 @@ export function DashboardPage() {
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-gray-200">
-                                    <th className="text-start py-3 px-4 text-sm font-medium text-gray-500">رقم الطلب</th>
-                                    <th className="text-start py-3 px-4 text-sm font-medium text-gray-500">العميل</th>
-                                    <th className="text-start py-3 px-4 text-sm font-medium text-gray-500">الإجمالي</th>
-                                    <th className="text-start py-3 px-4 text-sm font-medium text-gray-500">الحالة</th>
+                                <tr className="border-b border-gray-200 dark:border-slate-700">
+                                    <th className="text-start py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">رقم الطلب</th>
+                                    <th className="text-start py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">العميل</th>
+                                    <th className="text-start py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">الإجمالي</th>
+                                    <th className="text-start py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">الحالة</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {(stats?.recentOrders || []).slice(0, 5).map((order: any) => (
-                                    <tr key={order._id} className="border-b border-gray-100 hover:bg-gray-50">
-                                        <td className="py-3 px-4 text-sm font-medium text-gray-900">{order.orderNumber}</td>
-                                        <td className="py-3 px-4 text-sm text-gray-600">{order.customer?.companyName || '-'}</td>
-                                        <td className="py-3 px-4 text-sm text-gray-900 font-medium">
+                                    <tr key={order._id} className="border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800">
+                                        <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-gray-100">{order.orderNumber}</td>
+                                        <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{order.customer?.companyName || '-'}</td>
+                                        <td className="py-3 px-4 text-sm text-gray-900 dark:text-gray-100 font-medium">
                                             {formatCurrency(order.total, 'SAR', locale)}
                                         </td>
                                         <td className="py-3 px-4">
@@ -179,7 +179,7 @@ export function DashboardPage() {
                                 ))}
                                 {(!stats?.recentOrders || stats.recentOrders.length === 0) && (
                                     <tr>
-                                        <td colSpan={4} className="py-8 text-center text-gray-500">
+                                        <td colSpan={4} className="py-8 text-center text-gray-500 dark:text-gray-400">
                                             لا توجد طلبات حديثة
                                         </td>
                                     </tr>

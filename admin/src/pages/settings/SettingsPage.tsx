@@ -78,8 +78,8 @@ export function SettingsPage() {
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">{t('sidebar.settings')}</h1>
-                <p className="text-gray-500 mt-1">إعدادات النظام والتفضيلات</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('sidebar.settings')}</h1>
+                <p className="text-gray-500 dark:text-gray-400 mt-1">إعدادات النظام والتفضيلات</p>
             </div>
 
             <div className="grid lg:grid-cols-4 gap-6">
@@ -92,8 +92,8 @@ export function SettingsPage() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${activeTab === tab.id
-                                            ? 'bg-primary-50 text-primary-700 font-medium'
-                                            : 'text-gray-600 hover:bg-gray-100'
+                                        ? 'bg-primary-50 text-primary-700 font-medium'
+                                        : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
                                     <tab.icon className="h-4 w-4" />
@@ -230,7 +230,7 @@ export function SettingsPage() {
                                 ].map((item) => (
                                     <div key={item.key} className="flex items-center justify-between py-2 border-b border-gray-100">
                                         <div>
-                                            <p className="font-medium text-gray-900">{item.label}</p>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">{item.label}</p>
                                             <p className="text-sm text-gray-500">{item.desc}</p>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">

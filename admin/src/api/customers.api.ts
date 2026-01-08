@@ -1,20 +1,32 @@
 import apiClient from './client';
 import type { ApiResponse, Customer, PaginatedResponse } from '@/types';
 
+// Backend-aligned CreateCustomerDto
 export interface CreateCustomerDto {
-    companyName: string;
-    contactName: string;
-    email: string;
-    phone: string;
-    address?: {
-        street?: string;
-        city?: string;
-        state?: string;
-        country?: string;
-        postalCode?: string;
-    };
+    userId: string;
+    responsiblePersonName: string;
+    shopName: string;
+    shopNameAr?: string;
+    businessType?: 'shop' | 'technician' | 'distributor' | 'other';
+    cityId: string;
+    marketId?: string;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+    commercialLicenseFile?: string;
+    commercialLicenseNumber?: string;
+    commercialLicenseExpiry?: string;
     taxNumber?: string;
-    commercialRegister?: string;
+    nationalId?: string;
+    priceLevelId: string;
+    creditLimit?: number;
+    preferredPaymentMethod?: 'cod' | 'bank_transfer' | 'wallet';
+    preferredShippingTime?: string;
+    preferredContactMethod?: 'phone' | 'whatsapp' | 'email';
+    instagramHandle?: string;
+    twitterHandle?: string;
+    birthDate?: string;
+    internalNotes?: string;
 }
 
 export interface UpdateCustomerDto extends Partial<CreateCustomerDto> {
@@ -26,6 +38,36 @@ export interface CustomersQueryParams {
     limit?: number;
     search?: string;
     status?: string;
+}
+
+// Lookup types
+export interface City {
+    _id: string;
+    name: string;
+    nameAr: string;
+}
+
+export interface PriceLevel {
+    _id: string;
+    name: string;
+    nameAr: string;
+    code: string;
+    discountPercentage: number;
+    isDefault?: boolean;
+}
+
+export interface AvailableUser {
+    _id: string;
+    phone: string;
+    email?: string;
+    createdAt: string;
+}
+
+export interface RegisterUserDto {
+    phone: string;
+    email?: string;
+    password: string;
+    userType: 'customer';
 }
 
 // Transform backend customer to frontend Customer type
@@ -40,7 +82,7 @@ const transformCustomer = (customer: any): Customer => {
         status: customer.status || 'pending',
         address: customer.address,
         taxNumber: customer.taxNumber,
-        commercialRegister: customer.commercialRegister,
+        commercialRegister: customer.commercialLicenseNumber,
         tier: customer.loyaltyTier,
         createdAt: customer.createdAt,
         updatedAt: customer.updatedAt,
@@ -75,7 +117,7 @@ export const customersApi = {
 
     create: async (data: CreateCustomerDto): Promise<Customer> => {
         const response = await apiClient.post<ApiResponse<Customer>>('/customers', data);
-        return response.data.data;
+        return transformCustomer(response.data.data);
     },
 
     update: async (id: string, data: UpdateCustomerDto): Promise<Customer> => {
@@ -84,18 +126,43 @@ export const customersApi = {
     },
 
     approve: async (id: string): Promise<Customer> => {
-        const response = await apiClient.post<ApiResponse<Customer>>(`/customers/${id}/approve`);
+        const response = await apiClient.patch<ApiResponse<Customer>>(`/customers/${id}/approve`);
         return response.data.data;
     },
 
     reject: async (id: string): Promise<Customer> => {
-        const response = await apiClient.post<ApiResponse<Customer>>(`/customers/${id}/reject`);
+        const response = await apiClient.patch<ApiResponse<Customer>>(`/customers/${id}/reject`);
         return response.data.data;
     },
 
     delete: async (id: string): Promise<void> => {
         await apiClient.delete(`/customers/${id}`);
     },
+
+    // ═════════════════════════════════════
+    // Lookup methods for Add Customer dialog
+    // ═════════════════════════════════════
+
+    getCities: async (): Promise<City[]> => {
+        const response = await apiClient.get<ApiResponse<City[]>>('/locations/cities');
+        return response.data.data || [];
+    },
+
+    getPriceLevels: async (): Promise<PriceLevel[]> => {
+        const response = await apiClient.get<ApiResponse<PriceLevel[]>>('/products/price-levels');
+        return response.data.data || [];
+    },
+
+    getAvailableUsers: async (): Promise<AvailableUser[]> => {
+        const response = await apiClient.get<ApiResponse<AvailableUser[]>>('/customers/available-users');
+        return response.data.data || [];
+    },
+
+    registerUser: async (data: RegisterUserDto): Promise<{ user: { _id: string } }> => {
+        const response = await apiClient.post<ApiResponse<{ user: { _id: string } }>>('/auth/register', data);
+        return response.data.data;
+    },
 };
 
 export default customersApi;
+
