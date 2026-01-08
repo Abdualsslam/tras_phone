@@ -1,0 +1,92 @@
+# ═══════════════════════════════════════════════════════════════
+# 🐳 TRAS Phone - Docker Compose Configuration
+# يجمع Backend API & Admin Panel معاً
+# ═══════════════════════════════════════════════════════════════
+
+services:
+  # ═══════════════════════════════════════
+  # 🚀 NestJS Backend API
+  # ═══════════════════════════════════════
+  tras-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tras-backend
+    restart: unless-stopped
+    expose:
+      - '3000'
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - tras-redis
+    networks:
+      - web-network
+      - internal-network
+    volumes:
+      - ./backend/logs:/app/logs
+      - ./backend/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "try { require('http').get('http://localhost:3000/api', (r) => process.exit(r.statusCode === 200 ? 0 : 1)) } catch (e) { process.exit(1) }"]
+      interval: 30s
+      timeout: 3s
+      start_period: 40s
+      retries: 3
+
+  # ═══════════════════════════════════════
+  # 📊 Admin Panel (React + Vite)
+  # ═══════════════════════════════════════
+  tras-admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    container_name: tras-admin
+    restart: unless-stopped
+    expose:
+      - '80'
+    depends_on:
+      - tras-backend
+    networks:
+      - web-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+
+  # ═══════════════════════════════════════
+  # 🔴 Redis Cache
+  # ═══════════════════════════════════════
+  tras-redis:
+    image: redis:7-alpine
+    container_name: tras-redis
+    restart: unless-stopped
+    expose:
+      - '6379'
+    volumes:
+      - redis-data:/data
+    networks:
+      - internal-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+# ═══════════════════════════════════════
+# 🌐 Networks
+# ═══════════════════════════════════════
+networks:
+  # الشبكة الخارجية للتواصل مع Nginx Proxy Manager
+  web-network:
+    external: true
+  # شبكة داخلية للتواصل بين الخدمات
+  internal-network:
+    driver: bridge
+
+# ═══════════════════════════════════════
+# 💾 Volumes
+# ═══════════════════════════════════════
+volumes:
+  redis-data:

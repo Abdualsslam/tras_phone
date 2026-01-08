@@ -134,6 +134,71 @@ export class AuthService {
     }
 
     /**
+     * Login admin by email
+     */
+    async adminLogin(email: string, password: string) {
+        // Find admin user by email
+        const user = await this.userModel
+            .findOne({ email, userType: 'admin' })
+            .select('+password')
+            .exec();
+
+        if (!user) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        // Check if account is suspended or deleted
+        if (user.status === 'suspended') {
+            throw new UnauthorizedException('Your account has been suspended');
+        }
+
+        if (user.status === 'deleted') {
+            throw new UnauthorizedException('Your account has been deleted');
+        }
+
+        // Check if account is locked
+        if (user.lockedUntil && user.lockedUntil > new Date()) {
+            const minutesLeft = Math.ceil(
+                (user.lockedUntil.getTime() - Date.now()) / 60000,
+            );
+            throw new UnauthorizedException(
+                `Account is locked. Try again in ${minutesLeft} minutes`,
+            );
+        }
+
+        // Verify password
+        const isPasswordValid = await this.comparePassword(
+            password,
+            user.password,
+        );
+
+        if (!isPasswordValid) {
+            // Increment failed login attempts
+            await this.handleFailedLogin(user);
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        // Reset failed login attempts
+        if (user.failedLoginAttempts > 0) {
+            user.failedLoginAttempts = 0;
+            user.lockedUntil = undefined;
+            await user.save();
+        }
+
+        // Update last login
+        user.lastLoginAt = new Date();
+        await user.save();
+
+        // Generate tokens
+        const tokens = await this.generateTokens(user);
+
+        return {
+            user: user.toJSON(),
+            ...tokens,
+        };
+    }
+
+    /**
      * Refresh access token
      */
     async refreshToken(refreshToken: string) {

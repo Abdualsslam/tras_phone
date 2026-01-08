@@ -7,6 +7,9 @@ import { ProductPrice, ProductPriceSchema } from './schemas/product-price.schema
 import { ProductReview, ProductReviewSchema } from './schemas/product-review.schema';
 import { Wishlist, WishlistSchema } from './schemas/wishlist.schema';
 import { PriceLevel, PriceLevelSchema } from './schemas/price-level.schema';
+import { Brand, BrandSchema } from '@modules/catalog/schemas/brand.schema';
+import { Category, CategorySchema } from '@modules/catalog/schemas/category.schema';
+import { QualityType, QualityTypeSchema } from '@modules/catalog/schemas/quality-type.schema';
 import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 
@@ -18,6 +21,9 @@ import { ProductsController } from './products.controller';
             { name: ProductReview.name, schema: ProductReviewSchema },
             { name: Wishlist.name, schema: WishlistSchema },
             { name: PriceLevel.name, schema: PriceLevelSchema },
+            { name: Brand.name, schema: BrandSchema },
+            { name: Category.name, schema: CategorySchema },
+            { name: QualityType.name, schema: QualityTypeSchema },
         ]),
         JwtModule.registerAsync({
             imports: [ConfigModule],
@@ -35,3 +41,4 @@ import { ProductsController } from './products.controller';
     exports: [ProductsService],
 })
 export class ProductsModule { }
+

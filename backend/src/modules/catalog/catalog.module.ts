@@ -6,6 +6,7 @@ import { Brand, BrandSchema } from './schemas/brand.schema';
 import { Category, CategorySchema } from './schemas/category.schema';
 import { Device, DeviceSchema } from './schemas/device.schema';
 import { QualityType, QualityTypeSchema } from './schemas/quality-type.schema';
+import { Product, ProductSchema } from '@modules/products/schemas/product.schema';
 import { CatalogService } from './catalog.service';
 import { CategoriesService } from './categories.service';
 import { CatalogController } from './catalog.controller';
@@ -17,6 +18,7 @@ import { CatalogController } from './catalog.controller';
             { name: Category.name, schema: CategorySchema },
             { name: Device.name, schema: DeviceSchema },
             { name: QualityType.name, schema: QualityTypeSchema },
+            { name: Product.name, schema: ProductSchema },
         ]),
         JwtModule.registerAsync({
             imports: [ConfigModule],
