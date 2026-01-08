@@ -13,6 +13,8 @@ export class CategoriesService {
     constructor(
         @InjectModel(Category.name)
         private categoryModel: Model<CategoryDocument>,
+        @InjectModel('Product')
+        private productModel: Model<any>,
     ) { }
 
     /**
@@ -83,7 +85,27 @@ export class CategoriesService {
             .sort({ level: 1, displayOrder: 1 })
             .lean();
 
-        return this.buildTree(categories);
+        // Get product counts per category
+        const productCounts = await this.productModel.aggregate([
+            { $match: { status: { $in: ['active', 'draft'] } } },
+            { $group: { _id: '$categoryId', count: { $sum: 1 } } },
+        ]);
+
+        // Create a map of category ID to product count
+        const countMap = new Map<string, number>();
+        productCounts.forEach((item: any) => {
+            if (item._id) {
+                countMap.set(item._id.toString(), item.count);
+            }
+        });
+
+        // Add product count to each category
+        const categoriesWithCount = categories.map((cat: any) => ({
+            ...cat,
+            productsCount: countMap.get(cat._id.toString()) || 0,
+        }));
+
+        return this.buildTree(categoriesWithCount);
     }
 
     /**

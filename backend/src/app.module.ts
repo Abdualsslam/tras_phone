@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { ProductsModule } from './modules/products/products.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
 
 // Business Modules
 import { InventoryModule } from './modules/inventory/inventory.module';
@@ -77,6 +78,7 @@ import { AdminsModule } from './modules/admins/admins.module';
         // Products & Catalog
         ProductsModule,
         CategoriesModule,
+        CatalogModule,
 
         // Inventory & Supply Chain
         InventoryModule,

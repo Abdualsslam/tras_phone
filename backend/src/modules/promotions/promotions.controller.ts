@@ -54,90 +54,6 @@ export class PromotionsController {
     }
 
     // ═════════════════════════════════════
-    // Promotions - Admin
-    // ═════════════════════════════════════
-
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    @Get()
-    @ApiBearerAuth('JWT-auth')
-    @ApiOperation({
-        summary: 'Get all promotions (admin)',
-        description: 'Retrieve all promotions including inactive ones. Admin only.',
-    })
-    @ApiResponse({ status: 200, description: 'Promotions retrieved successfully', type: ApiResponseDto })
-    @ApiCommonErrorResponses()
-    async getAllPromotions() {
-        const promotions = await this.promotionsService.findActive();
-        return ResponseBuilder.success(promotions, 'Promotions retrieved', 'تم استرجاع العروض');
-    }
-
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    @Get(':id')
-    @ApiBearerAuth('JWT-auth')
-    @ApiOperation({
-        summary: 'Get promotion by ID',
-        description: 'Retrieve detailed information about a specific promotion. Admin only.',
-    })
-    @ApiParam({ name: 'id', description: 'Promotion ID', example: '507f1f77bcf86cd799439011' })
-    @ApiResponse({ status: 200, description: 'Promotion retrieved successfully', type: ApiResponseDto })
-    @ApiCommonErrorResponses()
-    async getPromotionById(@Param('id') id: string) {
-        const promotion = await this.promotionsService.findById(id);
-        return ResponseBuilder.success(promotion, 'Promotion retrieved', 'تم استرجاع العرض');
-    }
-
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    @Post()
-    @ApiBearerAuth('JWT-auth')
-    @HttpCode(HttpStatus.CREATED)
-    @ApiOperation({
-        summary: 'Create promotion',
-        description: 'Create a new promotion or discount. Admin only.',
-    })
-    @ApiResponse({ status: 201, description: 'Promotion created successfully', type: ApiResponseDto })
-    @ApiCommonErrorResponses()
-    async createPromotion(@Body() data: any) {
-        const promotion = await this.promotionsService.create(data);
-        return ResponseBuilder.created(promotion, 'Promotion created', 'تم إنشاء العرض');
-    }
-
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    @Put(':id')
-    @ApiBearerAuth('JWT-auth')
-    @ApiOperation({
-        summary: 'Update promotion',
-        description: 'Update promotion details. Admin only.',
-    })
-    @ApiParam({ name: 'id', description: 'Promotion ID', example: '507f1f77bcf86cd799439011' })
-    @ApiResponse({ status: 200, description: 'Promotion updated successfully', type: ApiResponseDto })
-    @ApiCommonErrorResponses()
-    async updatePromotion(@Param('id') id: string, @Body() data: any) {
-        const promotion = await this.promotionsService.update(id, data);
-        return ResponseBuilder.success(promotion, 'Promotion updated', 'تم تحديث العرض');
-    }
-
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.SUPER_ADMIN)
-    @Delete(':id')
-    @ApiBearerAuth('JWT-auth')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({
-        summary: 'Delete promotion',
-        description: 'Delete a promotion. Super admin only.',
-    })
-    @ApiParam({ name: 'id', description: 'Promotion ID', example: '507f1f77bcf86cd799439011' })
-    @ApiResponse({ status: 204, description: 'Promotion deleted successfully' })
-    @ApiCommonErrorResponses()
-    async deletePromotion(@Param('id') id: string) {
-        await this.promotionsService.delete(id);
-        return ResponseBuilder.success(null, 'Promotion deleted', 'تم حذف العرض');
-    }
-
-    // ═════════════════════════════════════
     // Coupons - Public
     // ═════════════════════════════════════
 
@@ -262,5 +178,74 @@ export class PromotionsController {
     async getCouponStats(@Param('id') id: string) {
         const stats = await this.couponsService.getStatistics(id);
         return ResponseBuilder.success(stats, 'Statistics retrieved', 'تم استرجاع الإحصائيات');
+    }
+
+    // ═════════════════════════════════════
+    // Promotions - By ID (MUST be after all specific routes)
+    // ═════════════════════════════════════
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Get(':id')
+    @ApiBearerAuth('JWT-auth')
+    @ApiOperation({
+        summary: 'Get promotion by ID',
+        description: 'Retrieve detailed information about a specific promotion. Admin only.',
+    })
+    @ApiParam({ name: 'id', description: 'Promotion ID', example: '507f1f77bcf86cd799439011' })
+    @ApiResponse({ status: 200, description: 'Promotion retrieved successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async getPromotionById(@Param('id') id: string) {
+        const promotion = await this.promotionsService.findById(id);
+        return ResponseBuilder.success(promotion, 'Promotion retrieved', 'تم استرجاع العرض');
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Post()
+    @ApiBearerAuth('JWT-auth')
+    @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({
+        summary: 'Create promotion',
+        description: 'Create a new promotion or discount. Admin only.',
+    })
+    @ApiResponse({ status: 201, description: 'Promotion created successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async createPromotion(@Body() data: any) {
+        const promotion = await this.promotionsService.create(data);
+        return ResponseBuilder.created(promotion, 'Promotion created', 'تم إنشاء العرض');
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Put(':id')
+    @ApiBearerAuth('JWT-auth')
+    @ApiOperation({
+        summary: 'Update promotion',
+        description: 'Update promotion details. Admin only.',
+    })
+    @ApiParam({ name: 'id', description: 'Promotion ID', example: '507f1f77bcf86cd799439011' })
+    @ApiResponse({ status: 200, description: 'Promotion updated successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async updatePromotion(@Param('id') id: string, @Body() data: any) {
+        const promotion = await this.promotionsService.update(id, data);
+        return ResponseBuilder.success(promotion, 'Promotion updated', 'تم تحديث العرض');
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.SUPER_ADMIN)
+    @Delete(':id')
+    @ApiBearerAuth('JWT-auth')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({
+        summary: 'Delete promotion',
+        description: 'Delete a promotion. Super admin only.',
+    })
+    @ApiParam({ name: 'id', description: 'Promotion ID', example: '507f1f77bcf86cd799439011' })
+    @ApiResponse({ status: 204, description: 'Promotion deleted successfully' })
+    @ApiCommonErrorResponses()
+    async deletePromotion(@Param('id') id: string) {
+        await this.promotionsService.delete(id);
+        return ResponseBuilder.success(null, 'Promotion deleted', 'تم حذف العرض');
     }
 }

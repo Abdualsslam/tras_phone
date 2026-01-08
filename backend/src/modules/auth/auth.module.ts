@@ -22,6 +22,10 @@ import {
     UserSession,
     UserSessionSchema,
 } from './schemas/user-session.schema';
+import {
+    AdminUser,
+    AdminUserSchema,
+} from '@modules/admins/schemas/admin-user.schema';
 import { UsersModule } from '@modules/users/users.module';
 
 @Module({
@@ -42,6 +46,7 @@ import { UsersModule } from '@modules/users/users.module';
             { name: OtpVerification.name, schema: OtpVerificationSchema },
             { name: PasswordReset.name, schema: PasswordResetSchema },
             { name: UserSession.name, schema: UserSessionSchema },
+            { name: AdminUser.name, schema: AdminUserSchema },
         ]),
         UsersModule,
     ],
@@ -50,3 +55,4 @@ import { UsersModule } from '@modules/users/users.module';
     exports: [AuthService, OtpService, PasswordResetService, JwtStrategy, PassportModule],
 })
 export class AuthModule { }
+

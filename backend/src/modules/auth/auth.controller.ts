@@ -22,6 +22,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { Public } from '@decorators/public.decorator';
 import { CurrentUser } from '@decorators/current-user.decorator';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
@@ -85,6 +86,32 @@ export class AuthController {
     @ApiPublicErrorResponses()
     async login(@Body() loginDto: LoginDto) {
         const result = await this.authService.login(loginDto);
+
+        return ResponseBuilder.success(
+            result,
+            'Login successful',
+            'تم تسجيل الدخول بنجاح',
+        );
+    }
+
+    @Public()
+    @Post('admin/login')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: 'Login admin user',
+        description: 'Authenticate admin user with email and password. Returns access token and refresh token.',
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Admin login successful',
+        type: ApiResponseDto,
+    })
+    @ApiPublicErrorResponses()
+    async adminLogin(@Body() adminLoginDto: AdminLoginDto) {
+        const result = await this.authService.adminLogin(
+            adminLoginDto.email,
+            adminLoginDto.password,
+        );
 
         return ResponseBuilder.success(
             result,
