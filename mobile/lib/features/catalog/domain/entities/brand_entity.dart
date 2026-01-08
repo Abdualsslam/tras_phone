@@ -4,27 +4,44 @@ library;
 import 'package:equatable/equatable.dart';
 
 class BrandEntity extends Equatable {
-  final int id;
+  final String id;
   final String name;
-  final String? nameAr;
+  final String nameAr;
   final String slug;
+  final String? description;
+  final String? descriptionAr;
   final String? logo;
-  final String? banner;
-  final int productsCount;
+  final String? website;
   final bool isActive;
   final bool isFeatured;
+  final int displayOrder;
+  final int productsCount;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const BrandEntity({
     required this.id,
     required this.name,
-    this.nameAr,
+    required this.nameAr,
     required this.slug,
+    this.description,
+    this.descriptionAr,
     this.logo,
-    this.banner,
-    this.productsCount = 0,
-    this.isActive = true,
-    this.isFeatured = false,
+    this.website,
+    required this.isActive,
+    required this.isFeatured,
+    required this.displayOrder,
+    required this.productsCount,
+    required this.createdAt,
+    required this.updatedAt,
   });
+
+  /// Get name by locale
+  String getName(String locale) => locale == 'ar' ? nameAr : name;
+
+  /// Get description by locale
+  String? getDescription(String locale) =>
+      locale == 'ar' ? descriptionAr : description;
 
   @override
   List<Object?> get props => [id, slug];

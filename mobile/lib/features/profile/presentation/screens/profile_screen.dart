@@ -39,7 +39,7 @@ class ProfileScreen extends StatelessWidget {
               context,
               theme,
               isDark,
-              state.customer,
+              state.user,
             );
           }
           return _buildUnauthenticatedContent(context, theme);

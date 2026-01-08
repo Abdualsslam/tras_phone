@@ -8,35 +8,42 @@ part 'user_model.g.dart';
 
 @JsonSerializable()
 class UserModel {
-  final int id;
-  final String uuid;
+  @JsonKey(name: '_id', readValue: _readId)
+  final String id;
   final String phone;
   final String? email;
-  @JsonKey(name: 'user_type')
+  @JsonKey(name: 'userType')
   final String userType;
   final String status;
-  final String? avatar;
-  @JsonKey(name: 'phone_verified_at')
-  final String? phoneVerifiedAt;
-  @JsonKey(name: 'email_verified_at')
-  final String? emailVerifiedAt;
-  final String language;
-  @JsonKey(name: 'created_at')
-  final String? createdAt;
+  @JsonKey(name: 'referralCode')
+  final String? referralCode;
+  @JsonKey(name: 'lastLoginAt')
+  final DateTime? lastLoginAt;
+  @JsonKey(name: 'createdAt')
+  final DateTime createdAt;
+  @JsonKey(name: 'updatedAt')
+  final DateTime updatedAt;
 
   const UserModel({
     required this.id,
-    required this.uuid,
     required this.phone,
     this.email,
     required this.userType,
     required this.status,
-    this.avatar,
-    this.phoneVerifiedAt,
-    this.emailVerifiedAt,
-    this.language = 'ar',
-    this.createdAt,
+    this.referralCode,
+    this.lastLoginAt,
+    required this.createdAt,
+    required this.updatedAt,
   });
+
+  /// Handle both String id and ObjectId map from MongoDB
+  static Object? _readId(Map<dynamic, dynamic> json, String key) {
+    final value = json['_id'] ?? json['id'];
+    if (value is Map) {
+      return value['\$oid'] ?? value.toString();
+    }
+    return value;
+  }
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>
       _$UserModelFromJson(json);
@@ -45,16 +52,14 @@ class UserModel {
   UserEntity toEntity() {
     return UserEntity(
       id: id,
-      uuid: uuid,
       phone: phone,
       email: email,
       userType: userType,
       status: status,
-      avatar: avatar,
-      phoneVerified: phoneVerifiedAt != null,
-      emailVerified: emailVerifiedAt != null,
-      language: language,
-      createdAt: createdAt != null ? DateTime.tryParse(createdAt!) : null,
+      referralCode: referralCode,
+      lastLoginAt: lastLoginAt,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 }

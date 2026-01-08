@@ -14,6 +14,7 @@ class ApiEndpoints {
   static const String sendOtp = '/auth/send-otp';
   static const String verifyOtp = '/auth/verify-otp';
   static const String forgotPassword = '/auth/forgot-password';
+  static const String verifyResetOtp = '/auth/verify-reset-otp';
   static const String resetPassword = '/auth/reset-password';
   static const String changePassword = '/auth/change-password';
   static const String me = '/auth/me';
@@ -32,10 +33,11 @@ class ApiEndpoints {
   // ═══════════════════════════════════════════════════════════════════════════
   // CATALOG ENDPOINTS
   // ═══════════════════════════════════════════════════════════════════════════
-  static const String brands = '/brands';
-  static const String categories = '/categories';
-  static const String categoriesTree = '/categories/tree';
-  static const String devices = '/devices';
+  static const String brands = '/catalog/brands';
+  static const String categories = '/catalog/categories';
+  static const String categoriesTree = '/catalog/categories/tree';
+  static const String devices = '/catalog/devices';
+  static const String qualityTypes = '/catalog/quality-types';
   static const String products = '/products';
   static const String productsSearch = '/products/search';
   static const String productsFeatured = '/products/featured';
@@ -102,6 +104,9 @@ class ApiEndpoints {
   // NOTIFICATIONS
   // ═══════════════════════════════════════════════════════════════════════════
   static const String notifications = '/notifications';
+  static const String notificationsMy = '/notifications/my';
+  static const String notificationsReadAll = '/notifications/read-all';
+  static const String notificationsToken = '/notifications/token';
   static const String notificationsUnreadCount = '/notifications/unread-count';
 
   // ═══════════════════════════════════════════════════════════════════════════

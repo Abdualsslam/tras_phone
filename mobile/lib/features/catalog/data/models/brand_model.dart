@@ -8,31 +8,51 @@ part 'brand_model.g.dart';
 
 @JsonSerializable()
 class BrandModel {
-  final int id;
+  @JsonKey(name: '_id', readValue: _readId)
+  final String id;
   final String name;
-  @JsonKey(name: 'name_ar')
-  final String? nameAr;
+  final String nameAr;
   final String slug;
+  final String? description;
+  final String? descriptionAr;
   final String? logo;
-  final String? banner;
-  @JsonKey(name: 'products_count')
-  final int productsCount;
-  @JsonKey(name: 'is_active')
+  final String? website;
+  @JsonKey(defaultValue: true)
   final bool isActive;
-  @JsonKey(name: 'is_featured')
+  @JsonKey(defaultValue: false)
   final bool isFeatured;
+  @JsonKey(defaultValue: 0)
+  final int displayOrder;
+  @JsonKey(defaultValue: 0)
+  final int productsCount;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const BrandModel({
     required this.id,
     required this.name,
-    this.nameAr,
+    required this.nameAr,
     required this.slug,
+    this.description,
+    this.descriptionAr,
     this.logo,
-    this.banner,
-    this.productsCount = 0,
-    this.isActive = true,
-    this.isFeatured = false,
+    this.website,
+    required this.isActive,
+    required this.isFeatured,
+    required this.displayOrder,
+    required this.productsCount,
+    required this.createdAt,
+    required this.updatedAt,
   });
+
+  /// Handle both String id and ObjectId map from MongoDB
+  static Object? _readId(Map<dynamic, dynamic> json, String key) {
+    final value = json['_id'] ?? json['id'];
+    if (value is Map) {
+      return value['\$oid'] ?? value.toString();
+    }
+    return value;
+  }
 
   factory BrandModel.fromJson(Map<String, dynamic> json) =>
       _$BrandModelFromJson(json);
@@ -44,25 +64,16 @@ class BrandModel {
       name: name,
       nameAr: nameAr,
       slug: slug,
+      description: description,
+      descriptionAr: descriptionAr,
       logo: logo,
-      banner: banner,
-      productsCount: productsCount,
+      website: website,
       isActive: isActive,
       isFeatured: isFeatured,
-    );
-  }
-
-  static BrandModel fromEntity(BrandEntity entity) {
-    return BrandModel(
-      id: entity.id,
-      name: entity.name,
-      nameAr: entity.nameAr,
-      slug: entity.slug,
-      logo: entity.logo,
-      banner: entity.banner,
-      productsCount: entity.productsCount,
-      isActive: entity.isActive,
-      isFeatured: entity.isFeatured,
+      displayOrder: displayOrder,
+      productsCount: productsCount,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 }

@@ -2,6 +2,7 @@
 library;
 
 import '../../domain/entities/order_entity.dart';
+import '../../domain/enums/order_enums.dart';
 
 class OrdersMockDataSource {
   // Simulated delay for network calls
@@ -10,25 +11,24 @@ class OrdersMockDataSource {
   // Mock orders database
   final List<OrderEntity> _mockOrders = [
     OrderEntity(
-      id: 1,
+      id: 'order_001',
       orderNumber: 'ORD-2024-001',
+      customerId: 'customer_001',
       status: OrderStatus.delivered,
       items: const [
         OrderItemEntity(
-          id: 1,
-          productId: 1,
-          productName: 'شاشة آيفون 14 برو ماكس',
+          productId: 'prod_001',
+          name: 'شاشة آيفون 14 برو ماكس',
           quantity: 2,
           unitPrice: 450,
-          totalPrice: 900,
+          total: 900,
         ),
         OrderItemEntity(
-          id: 2,
-          productId: 2,
-          productName: 'بطارية آيفون 13',
+          productId: 'prod_002',
+          name: 'بطارية آيفون 13',
           quantity: 5,
           unitPrice: 85,
-          totalPrice: 425,
+          total: 425,
         ),
       ],
       subtotal: 1325,
@@ -36,76 +36,103 @@ class OrdersMockDataSource {
       discount: 132.5,
       total: 1242.5,
       couponCode: 'TRAS10',
-      shippingAddress: 'الرياض - حي الملز - شارع الأمير سلطان',
-      paymentMethod: 'الدفع عند الاستلام',
+      shippingAddress: const ShippingAddressEntity(
+        fullName: 'أحمد محمد',
+        phone: '+966501234567',
+        address: 'شارع الأمير سلطان',
+        city: 'الرياض',
+        district: 'حي الملز',
+      ),
       createdAt: DateTime.now().subtract(const Duration(days: 7)),
+      updatedAt: DateTime.now().subtract(const Duration(days: 4)),
       deliveredAt: DateTime.now().subtract(const Duration(days: 4)),
     ),
     OrderEntity(
-      id: 2,
+      id: 'order_002',
       orderNumber: 'ORD-2024-002',
+      customerId: 'customer_001',
       status: OrderStatus.shipped,
       items: const [
         OrderItemEntity(
-          id: 3,
-          productId: 3,
-          productName: 'كابل شحن Type-C',
+          productId: 'prod_003',
+          name: 'كابل شحن Type-C',
           quantity: 10,
           unitPrice: 25,
-          totalPrice: 250,
+          total: 250,
         ),
       ],
       subtotal: 250,
       shippingCost: 50,
       discount: 0,
       total: 300,
-      shippingAddress: 'جدة - حي الصفا',
-      paymentMethod: 'المحفظة',
+      shippingAddress: const ShippingAddressEntity(
+        fullName: 'أحمد محمد',
+        phone: '+966501234567',
+        address: 'شارع الملك عبدالعزيز',
+        city: 'جدة',
+        district: 'حي الصفا',
+      ),
+      paymentMethod: OrderPaymentMethod.wallet,
       createdAt: DateTime.now().subtract(const Duration(days: 2)),
+      updatedAt: DateTime.now().subtract(const Duration(days: 2)),
     ),
     OrderEntity(
-      id: 3,
+      id: 'order_003',
       orderNumber: 'ORD-2024-003',
+      customerId: 'customer_001',
       status: OrderStatus.processing,
       items: const [
         OrderItemEntity(
-          id: 4,
-          productId: 4,
-          productName: 'شاشة سامسونج S23 Ultra',
+          productId: 'prod_004',
+          name: 'شاشة سامسونج S23 Ultra',
           quantity: 1,
           unitPrice: 520,
-          totalPrice: 520,
+          total: 520,
         ),
       ],
       subtotal: 520,
       shippingCost: 0,
       discount: 0,
       total: 520,
-      shippingAddress: 'الدمام - حي الفيصلية',
-      paymentMethod: 'تحويل بنكي',
+      shippingAddress: const ShippingAddressEntity(
+        fullName: 'أحمد محمد',
+        phone: '+966501234567',
+        address: 'شارع الأمير محمد',
+        city: 'الدمام',
+        district: 'حي الفيصلية',
+      ),
+      paymentMethod: OrderPaymentMethod.bankTransfer,
       createdAt: DateTime.now().subtract(const Duration(hours: 12)),
+      updatedAt: DateTime.now().subtract(const Duration(hours: 12)),
     ),
     OrderEntity(
-      id: 4,
+      id: 'order_004',
       orderNumber: 'ORD-2024-004',
+      customerId: 'customer_001',
       status: OrderStatus.pending,
       items: const [
         OrderItemEntity(
-          id: 5,
-          productId: 5,
-          productName: 'بطارية سامسونج A54',
+          productId: 'prod_005',
+          name: 'بطارية سامسونج A54',
           quantity: 3,
           unitPrice: 75,
-          totalPrice: 225,
+          total: 225,
         ),
       ],
       subtotal: 225,
       shippingCost: 50,
       discount: 0,
       total: 275,
-      shippingAddress: 'مكة المكرمة - العزيزية',
-      paymentMethod: 'الدفع عند الاستلام',
+      shippingAddress: const ShippingAddressEntity(
+        fullName: 'أحمد محمد',
+        phone: '+966501234567',
+        address: 'شارع العزيزية',
+        city: 'مكة المكرمة',
+        district: 'العزيزية',
+      ),
+      paymentMethod: OrderPaymentMethod.cash,
       createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      updatedAt: DateTime.now().subtract(const Duration(hours: 2)),
     ),
   ];
 
@@ -120,7 +147,7 @@ class OrdersMockDataSource {
   }
 
   /// Get order by ID
-  Future<OrderEntity> getOrderById(int id) async {
+  Future<OrderEntity> getOrderById(String id) async {
     await Future.delayed(_delay);
 
     final order = _mockOrders.firstWhere(
@@ -131,7 +158,7 @@ class OrdersMockDataSource {
   }
 
   /// Cancel order
-  Future<OrderEntity> cancelOrder(int id) async {
+  Future<OrderEntity> cancelOrder(String id) async {
     await Future.delayed(_delay);
 
     final index = _mockOrders.indexWhere((o) => o.id == id);
@@ -140,14 +167,14 @@ class OrdersMockDataSource {
     }
 
     final order = _mockOrders[index];
-    if (order.status != OrderStatus.pending &&
-        order.status != OrderStatus.confirmed) {
+    if (!order.canCancel) {
       throw Exception('لا يمكن إلغاء هذا الطلب');
     }
 
     final cancelledOrder = OrderEntity(
       id: order.id,
       orderNumber: order.orderNumber,
+      customerId: order.customerId,
       status: OrderStatus.cancelled,
       items: order.items,
       subtotal: order.subtotal,
@@ -157,8 +184,11 @@ class OrdersMockDataSource {
       couponCode: order.couponCode,
       shippingAddress: order.shippingAddress,
       paymentMethod: order.paymentMethod,
-      notes: order.notes,
+      customerNotes: order.customerNotes,
       createdAt: order.createdAt,
+      updatedAt: DateTime.now(),
+      cancelledAt: DateTime.now(),
+      cancellationReason: 'إلغاء من قبل العميل',
     );
 
     _mockOrders[index] = cancelledOrder;
@@ -166,7 +196,7 @@ class OrdersMockDataSource {
   }
 
   /// Reorder (create new order from existing)
-  Future<OrderEntity> reorder(int orderId) async {
+  Future<OrderEntity> reorder(String orderId) async {
     await Future.delayed(_delay);
 
     final originalOrder = _mockOrders.firstWhere(
@@ -174,10 +204,11 @@ class OrdersMockDataSource {
       orElse: () => throw Exception('الطلب غير موجود'),
     );
 
+    final newOrderNumber = _mockOrders.length + 1;
     final newOrder = OrderEntity(
-      id: _mockOrders.length + 1,
-      orderNumber:
-          'ORD-2024-${(_mockOrders.length + 1).toString().padLeft(3, '0')}',
+      id: 'order_${newOrderNumber.toString().padLeft(3, '0')}',
+      orderNumber: 'ORD-2024-${newOrderNumber.toString().padLeft(3, '0')}',
+      customerId: originalOrder.customerId,
       status: OrderStatus.pending,
       items: originalOrder.items,
       subtotal: originalOrder.subtotal,
@@ -187,6 +218,7 @@ class OrdersMockDataSource {
       shippingAddress: originalOrder.shippingAddress,
       paymentMethod: originalOrder.paymentMethod,
       createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
 
     _mockOrders.insert(0, newOrder);

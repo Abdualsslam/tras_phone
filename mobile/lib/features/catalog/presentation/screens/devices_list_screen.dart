@@ -201,7 +201,7 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
               ),
               child: Center(
                 child: Text(
-                  brand.nameAr ?? brand.name,
+                  brand.nameAr,
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w500,

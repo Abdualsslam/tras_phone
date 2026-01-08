@@ -2,7 +2,7 @@
 library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/entities/customer_entity.dart';
+import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
 
@@ -29,10 +29,10 @@ class AuthCubit extends Cubit<AuthState> {
       return;
     }
 
-    final result = await _repository.getCurrentUser();
+    final result = await _repository.getProfile();
     result.fold(
       (failure) => emit(const AuthUnauthenticated(isFirstLaunch: false)),
-      (customer) => emit(AuthAuthenticated(customer)),
+      (user) => emit(AuthAuthenticated(user)),
     );
   }
 
@@ -50,7 +50,7 @@ class AuthCubit extends Cubit<AuthState> {
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (customer) => emit(AuthAuthenticated(customer)),
+      (user) => emit(AuthAuthenticated(user)),
     );
   }
 
@@ -58,23 +58,19 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> register({
     required String phone,
     required String password,
-    required String responsiblePersonName,
-    required String shopName,
-    required int cityId,
+    String? email,
   }) async {
     emit(const AuthLoading(message: 'جاري إنشاء الحساب...'));
 
     final result = await _repository.register(
       phone: phone,
       password: password,
-      responsiblePersonName: responsiblePersonName,
-      shopName: shopName,
-      cityId: cityId,
+      email: email,
     );
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (customer) => emit(AuthAuthenticated(customer)),
+      (user) => emit(AuthAuthenticated(user)),
     );
   }
 
@@ -110,7 +106,7 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
-  /// Forgot password
+  /// Forgot password - send OTP
   Future<void> forgotPassword({required String phone}) async {
     emit(const AuthLoading(message: 'جاري إرسال رمز التحقق...'));
 
@@ -122,17 +118,31 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
-  /// Reset password
-  Future<void> resetPassword({
+  /// Verify reset OTP and get resetToken
+  Future<void> verifyResetOtp({
     required String phone,
     required String otp,
+  }) async {
+    emit(const AuthLoading(message: 'جاري التحقق...'));
+
+    final result = await _repository.verifyResetOtp(phone: phone, otp: otp);
+
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (resetToken) =>
+          emit(AuthOtpVerified(phone: phone, resetToken: resetToken)),
+    );
+  }
+
+  /// Reset password with resetToken
+  Future<void> resetPassword({
+    required String resetToken,
     required String newPassword,
   }) async {
     emit(const AuthLoading(message: 'جاري تغيير كلمة المرور...'));
 
     final result = await _repository.resetPassword(
-      phone: phone,
-      otp: otp,
+      resetToken: resetToken,
       newPassword: newPassword,
     );
 
@@ -142,35 +152,15 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
-  /// Update profile
-  Future<void> updateProfile({
-    String? responsiblePersonName,
-    String? shopName,
-    String? email,
-  }) async {
-    emit(const AuthLoading(message: 'جاري تحديث البيانات...'));
-
-    final result = await _repository.updateProfile(
-      responsiblePersonName: responsiblePersonName,
-      shopName: shopName,
-      email: email,
-    );
-
-    result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (customer) => emit(AuthProfileUpdated(customer)),
-    );
-  }
-
-  /// Change password
+  /// Change password (for logged in users)
   Future<void> changePassword({
-    required String currentPassword,
+    required String oldPassword,
     required String newPassword,
   }) async {
     emit(const AuthLoading(message: 'جاري تغيير كلمة المرور...'));
 
     final result = await _repository.changePassword(
-      currentPassword: currentPassword,
+      oldPassword: oldPassword,
       newPassword: newPassword,
     );
 
@@ -193,9 +183,9 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   /// Get current user
-  CustomerEntity? get currentUser {
+  UserEntity? get currentUser {
     if (state is AuthAuthenticated) {
-      return (state as AuthAuthenticated).customer;
+      return (state as AuthAuthenticated).user;
     }
     return _repository.getCachedUser();
   }

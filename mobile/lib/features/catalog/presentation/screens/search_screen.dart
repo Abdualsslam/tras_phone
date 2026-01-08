@@ -65,7 +65,7 @@ class _SearchScreenState extends State<SearchScreen> {
     // Simulate search delay
     Future.delayed(const Duration(milliseconds: 300), () {
       final results = _allProducts.where((product) {
-        final name = (product.nameAr ?? product.name).toLowerCase();
+        final name = product.nameAr.toLowerCase();
         final sku = product.sku.toLowerCase();
         final q = query.toLowerCase();
         return name.contains(q) || sku.contains(q);

@@ -6,17 +6,20 @@ import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../core/storage/secure_storage.dart';
-import '../../domain/entities/customer_entity.dart';
+import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
-import '../datasources/auth_mock_datasource.dart';
+import '../datasources/auth_remote_datasource.dart';
+import '../models/user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  final AuthMockDataSource _dataSource;
+  final AuthRemoteDataSource _dataSource;
   final LocalStorage _localStorage;
   final SecureStorage _secureStorage;
 
+  UserModel? _cachedUser;
+
   AuthRepositoryImpl({
-    required AuthMockDataSource dataSource,
+    required AuthRemoteDataSource dataSource,
     required LocalStorage localStorage,
     required SecureStorage secureStorage,
   }) : _dataSource = dataSource,
@@ -48,67 +51,73 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, CustomerEntity>> login({
+  Future<Either<Failure, UserEntity>> login({
     required String phone,
     required String password,
   }) async {
     try {
-      final customer = await _dataSource.login(
+      final authResponse = await _dataSource.login(
         phone: phone,
         password: password,
       );
 
-      // Save mock token
+      // Save tokens
       await _secureStorage.write(
         StorageKeys.accessToken,
-        'mock_token_${customer.id}',
+        authResponse.accessToken,
+      );
+      await _secureStorage.write(
+        StorageKeys.refreshToken,
+        authResponse.refreshToken,
       );
       await _localStorage.setBool(StorageKeys.isLoggedIn, true);
 
-      return Right(customer.toEntity());
+      _cachedUser = authResponse.user;
+      return Right(authResponse.user.toEntity());
     } catch (e) {
       return Left(AuthFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, CustomerEntity>> register({
+  Future<Either<Failure, UserEntity>> register({
     required String phone,
     required String password,
-    required String responsiblePersonName,
-    required String shopName,
-    required int cityId,
+    String? email,
   }) async {
     try {
-      final customer = await _dataSource.register(
+      final authResponse = await _dataSource.register(
         phone: phone,
         password: password,
-        responsiblePersonName: responsiblePersonName,
-        shopName: shopName,
-        cityId: cityId,
+        email: email,
       );
 
-      // Save mock token
+      // Save tokens
       await _secureStorage.write(
         StorageKeys.accessToken,
-        'mock_token_${customer.id}',
+        authResponse.accessToken,
+      );
+      await _secureStorage.write(
+        StorageKeys.refreshToken,
+        authResponse.refreshToken,
       );
       await _localStorage.setBool(StorageKeys.isLoggedIn, true);
 
-      return Right(customer.toEntity());
+      _cachedUser = authResponse.user;
+      return Right(authResponse.user.toEntity());
     } catch (e) {
       return Left(AuthFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, bool>> sendOtp({
+  Future<Either<Failure, void>> sendOtp({
     required String phone,
     required String purpose,
   }) async {
     try {
-      final result = await _dataSource.sendOtp(phone: phone, purpose: purpose);
-      return Right(result);
+      await _dataSource.sendOtp(phone: phone, purpose: purpose);
+      return const Right(null);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
     }
@@ -133,25 +142,39 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> forgotPassword({required String phone}) async {
+  Future<Either<Failure, void>> forgotPassword({required String phone}) async {
     try {
-      final result = await _dataSource.forgotPassword(phone: phone);
-      return Right(result);
+      await _dataSource.forgotPassword(phone: phone);
+      return const Right(null);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, bool>> resetPassword({
+  Future<Either<Failure, String>> verifyResetOtp({
     required String phone,
     required String otp,
+  }) async {
+    try {
+      final resetToken = await _dataSource.verifyResetOtp(
+        phone: phone,
+        otp: otp,
+      );
+      return Right(resetToken);
+    } catch (e) {
+      return Left(ValidationFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> resetPassword({
+    required String resetToken,
     required String newPassword,
   }) async {
     try {
       final result = await _dataSource.resetPassword(
-        phone: phone,
-        otp: otp,
+        resetToken: resetToken,
         newPassword: newPassword,
       );
       return Right(result);
@@ -161,41 +184,24 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, CustomerEntity>> getCurrentUser() async {
+  Future<Either<Failure, UserEntity>> getProfile() async {
     try {
-      final customer = await _dataSource.getCurrentUser();
-      return Right(customer.toEntity());
+      final user = await _dataSource.getProfile();
+      _cachedUser = user;
+      return Right(user.toEntity());
     } catch (e) {
       return Left(AuthFailure(message: e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, CustomerEntity>> updateProfile({
-    String? responsiblePersonName,
-    String? shopName,
-    String? email,
-  }) async {
-    try {
-      final customer = await _dataSource.updateProfile(
-        responsiblePersonName: responsiblePersonName,
-        shopName: shopName,
-        email: email,
-      );
-      return Right(customer.toEntity());
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
-
-  @override
   Future<Either<Failure, bool>> changePassword({
-    required String currentPassword,
+    required String oldPassword,
     required String newPassword,
   }) async {
     try {
       final result = await _dataSource.changePassword(
-        currentPassword: currentPassword,
+        oldPassword: oldPassword,
         newPassword: newPassword,
       );
       return Right(result);
@@ -205,19 +211,26 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> logout() async {
+  Future<Either<Failure, void>> logout() async {
     try {
       await _dataSource.logout();
       await _secureStorage.delete(StorageKeys.accessToken);
+      await _secureStorage.delete(StorageKeys.refreshToken);
       await _localStorage.setBool(StorageKeys.isLoggedIn, false);
-      return const Right(true);
+      _cachedUser = null;
+      return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      // Still clear local data even if server logout fails
+      await _secureStorage.delete(StorageKeys.accessToken);
+      await _secureStorage.delete(StorageKeys.refreshToken);
+      await _localStorage.setBool(StorageKeys.isLoggedIn, false);
+      _cachedUser = null;
+      return const Right(null);
     }
   }
 
   @override
-  CustomerEntity? getCachedUser() {
-    return _dataSource.getCachedUser()?.toEntity();
+  UserEntity? getCachedUser() {
+    return _cachedUser?.toEntity();
   }
 }

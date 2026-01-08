@@ -2,76 +2,157 @@
 library;
 
 import 'package:json_annotation/json_annotation.dart';
+import '../../domain/enums/notification_enums.dart';
 
 part 'notification_model.g.dart';
 
 @JsonSerializable()
 class NotificationModel {
-  final int id;
-  final String type;
+  @JsonKey(name: 'id', readValue: _readId)
+  final String id;
+
+  @JsonKey(name: 'customerId', readValue: _readOptionalId)
+  final String? customerId;
+
+  @JsonKey(defaultValue: 'system')
+  final String category;
+
+  // Content
   final String title;
-  @JsonKey(name: 'title_ar')
-  final String? titleAr;
+  final String titleAr;
   final String body;
-  @JsonKey(name: 'body_ar')
-  final String? bodyAr;
-  final String? icon;
-  @JsonKey(name: 'image_url')
-  final String? imageUrl;
-  @JsonKey(name: 'action_type')
-  final String? actionType; // 'order', 'product', 'category', 'url', 'screen'
-  @JsonKey(name: 'action_value')
-  final String? actionValue;
-  @JsonKey(name: 'is_read')
+  final String bodyAr;
+  final String? image;
+
+  // Action
+  final String? actionType;
+  final String? actionId;
+  final String? actionUrl;
+
+  // Reference
+  final String? referenceType;
+  final String? referenceId;
+
+  // Status
+  @JsonKey(defaultValue: false)
   final bool isRead;
-  @JsonKey(name: 'created_at')
-  final String createdAt;
+  final DateTime? readAt;
+  @JsonKey(defaultValue: false)
+  final bool isSent;
+  final DateTime? sentAt;
+
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  // Extra data
   final Map<String, dynamic>? data;
 
   const NotificationModel({
     required this.id,
-    required this.type,
+    this.customerId,
+    this.category = 'system',
     required this.title,
-    this.titleAr,
+    required this.titleAr,
     required this.body,
-    this.bodyAr,
-    this.icon,
-    this.imageUrl,
+    required this.bodyAr,
+    this.image,
     this.actionType,
-    this.actionValue,
+    this.actionId,
+    this.actionUrl,
+    this.referenceType,
+    this.referenceId,
     this.isRead = false,
+    this.readAt,
+    this.isSent = false,
+    this.sentAt,
     required this.createdAt,
+    required this.updatedAt,
     this.data,
   });
+
+  /// Handle MongoDB _id or id field
+  static Object? _readId(Map<dynamic, dynamic> json, String key) {
+    final value = json['_id'] ?? json['id'];
+    if (value is Map) {
+      return value['\$oid'] ?? value.toString();
+    }
+    return value?.toString();
+  }
+
+  /// Handle optional ID fields
+  static Object? _readOptionalId(Map<dynamic, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value.toString();
+  }
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) =>
       _$NotificationModelFromJson(json);
   Map<String, dynamic> toJson() => _$NotificationModelToJson(this);
 
-  String get displayTitle => titleAr ?? title;
-  String get displayBody => bodyAr ?? body;
+  // Enum helpers
+  NotificationCategory get categoryEnum =>
+      NotificationCategory.fromString(category);
+  NotificationActionType? get actionTypeEnum => actionType != null
+      ? NotificationActionType.fromString(actionType!)
+      : null;
 
-  bool get hasAction => actionType != null && actionValue != null;
+  /// Get title based on locale
+  String getTitle(String locale) => locale == 'ar' ? titleAr : title;
+
+  /// Get body based on locale
+  String getBody(String locale) => locale == 'ar' ? bodyAr : body;
+
+  /// Check if notification has action
+  bool get hasAction =>
+      actionType != null && (actionId != null || actionUrl != null);
+}
+
+/// Notifications list response with meta
+class NotificationsResponse {
+  final List<NotificationModel> notifications;
+  final int total;
+  final int unreadCount;
+
+  NotificationsResponse({
+    required this.notifications,
+    required this.total,
+    required this.unreadCount,
+  });
+
+  factory NotificationsResponse.fromJson(Map<String, dynamic> json) {
+    return NotificationsResponse(
+      notifications: (json['data'] as List? ?? [])
+          .map((n) => NotificationModel.fromJson(n))
+          .toList(),
+      total: json['meta']?['total'] ?? 0,
+      unreadCount: json['meta']?['unreadCount'] ?? 0,
+    );
+  }
 }
 
 /// Notification Settings Model
 @JsonSerializable()
 class NotificationSettingsModel {
-  @JsonKey(name: 'push_enabled')
+  @JsonKey(defaultValue: true)
   final bool pushEnabled;
-  @JsonKey(name: 'email_enabled')
+  @JsonKey(defaultValue: true)
   final bool emailEnabled;
-  @JsonKey(name: 'sms_enabled')
+  @JsonKey(defaultValue: false)
   final bool smsEnabled;
-  @JsonKey(name: 'order_updates')
+  @JsonKey(defaultValue: true)
   final bool orderUpdates;
-  @JsonKey(name: 'promotions')
+  @JsonKey(defaultValue: true)
   final bool promotions;
-  @JsonKey(name: 'price_drops')
+  @JsonKey(defaultValue: true)
   final bool priceDrops;
-  @JsonKey(name: 'stock_alerts')
+  @JsonKey(defaultValue: true)
   final bool stockAlerts;
-  @JsonKey(name: 'new_arrivals')
+  @JsonKey(defaultValue: false)
   final bool newArrivals;
 
   const NotificationSettingsModel({

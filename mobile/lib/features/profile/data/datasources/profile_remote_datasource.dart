@@ -8,6 +8,7 @@ import '../../../auth/data/models/customer_model.dart';
 import '../../../auth/domain/entities/customer_entity.dart';
 import '../models/address_model.dart';
 import '../models/wallet_model.dart';
+import '../models/referral_model.dart';
 
 /// Abstract interface for profile data source
 abstract class ProfileRemoteDataSource {
@@ -23,11 +24,11 @@ abstract class ProfileRemoteDataSource {
 
   // Addresses
   Future<List<AddressModel>> getAddresses();
-  Future<AddressModel> getAddressById(int id);
+  Future<AddressModel> getAddressById(String id);
   Future<AddressModel> createAddress(AddressRequest request);
-  Future<AddressModel> updateAddress(int id, AddressRequest request);
-  Future<bool> deleteAddress(int id);
-  Future<bool> setDefaultAddress(int id);
+  Future<AddressModel> updateAddress(String id, Map<String, dynamic> updates);
+  Future<bool> deleteAddress(String id);
+  Future<bool> setDefaultAddress(String id);
 
   // Wallet
   Future<WalletModel> getWallet();
@@ -43,13 +44,13 @@ abstract class ProfileRemoteDataSource {
   Future<bool> redeemPoints(int points);
 
   // Referral
-  Future<ReferralModel> getReferralInfo();
+  Future<ReferralInfoModel> getReferralInfo();
   Future<bool> applyReferralCode(String code);
 
   // Locations
   Future<List<Map<String, dynamic>>> getCountries();
-  Future<List<Map<String, dynamic>>> getCities(int countryId);
-  Future<List<Map<String, dynamic>>> getAreas(int cityId);
+  Future<List<Map<String, dynamic>>> getCities(String countryId);
+  Future<List<Map<String, dynamic>>> getAreas(String cityId);
 }
 
 /// Implementation of ProfileRemoteDataSource using API client
@@ -124,7 +125,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   }
 
   @override
-  Future<AddressModel> getAddressById(int id) async {
+  Future<AddressModel> getAddressById(String id) async {
     developer.log('Fetching address: $id', name: 'ProfileDataSource');
 
     final response = await _apiClient.get('${ApiEndpoints.addresses}/$id');
@@ -147,12 +148,15 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   }
 
   @override
-  Future<AddressModel> updateAddress(int id, AddressRequest request) async {
+  Future<AddressModel> updateAddress(
+    String id,
+    Map<String, dynamic> updates,
+  ) async {
     developer.log('Updating address: $id', name: 'ProfileDataSource');
 
     final response = await _apiClient.put(
       '${ApiEndpoints.addresses}/$id',
-      data: request.toJson(),
+      data: updates,
     );
 
     final data = response.data['data'] ?? response.data;
@@ -160,19 +164,20 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   }
 
   @override
-  Future<bool> deleteAddress(int id) async {
+  Future<bool> deleteAddress(String id) async {
     developer.log('Deleting address: $id', name: 'ProfileDataSource');
 
     final response = await _apiClient.delete('${ApiEndpoints.addresses}/$id');
-    return response.statusCode == 200;
+    return response.statusCode == 200 || response.statusCode == 204;
   }
 
   @override
-  Future<bool> setDefaultAddress(int id) async {
+  Future<bool> setDefaultAddress(String id) async {
     developer.log('Setting default address: $id', name: 'ProfileDataSource');
 
-    final response = await _apiClient.post(
-      '${ApiEndpoints.addresses}/$id/default',
+    final response = await _apiClient.put(
+      '${ApiEndpoints.addresses}/$id',
+      data: {'isDefault': true},
     );
 
     return response.statusCode == 200;
@@ -221,7 +226,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
     final response = await _apiClient.post(
       '${ApiEndpoints.wallet}/withdraw',
-      data: {'amount': amount, 'bank_details': bankDetails},
+      data: {'amount': amount, 'bankDetails': bankDetails},
     );
 
     return response.statusCode == 200;
@@ -258,13 +263,13 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   // ═══════════════════════════════════════════════════════════════════════════
 
   @override
-  Future<ReferralModel> getReferralInfo() async {
+  Future<ReferralInfoModel> getReferralInfo() async {
     developer.log('Fetching referral info', name: 'ProfileDataSource');
 
     final response = await _apiClient.get(ApiEndpoints.referral);
     final data = response.data['data'] ?? response.data;
 
-    return ReferralModel.fromJson(data);
+    return ReferralInfoModel.fromJson(data);
   }
 
   @override
@@ -297,7 +302,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getCities(int countryId) async {
+  Future<List<Map<String, dynamic>>> getCities(String countryId) async {
     developer.log(
       'Fetching cities for country: $countryId',
       name: 'ProfileDataSource',
@@ -305,7 +310,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
     final response = await _apiClient.get(
       ApiEndpoints.cities,
-      queryParameters: {'country_id': countryId},
+      queryParameters: {'countryId': countryId},
     );
     final data = response.data['data'] ?? response.data;
 
@@ -316,7 +321,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getAreas(int cityId) async {
+  Future<List<Map<String, dynamic>>> getAreas(String cityId) async {
     developer.log(
       'Fetching areas for city: $cityId',
       name: 'ProfileDataSource',

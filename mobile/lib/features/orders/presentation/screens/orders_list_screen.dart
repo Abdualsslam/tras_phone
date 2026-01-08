@@ -221,7 +221,7 @@ class _OrderCard extends StatelessWidget {
 
             // Items Preview
             Text(
-              '${order.itemCount} منتج',
+              '${order.itemsCount} منتج',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: AppColors.textSecondaryLight,
               ),
@@ -231,7 +231,7 @@ class _OrderCard extends StatelessWidget {
             // First item preview
             if (order.items.isNotEmpty)
               Text(
-                order.items.first.productName,
+                order.items.first.name,
                 style: theme.textTheme.bodyMedium,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -308,10 +308,25 @@ class _OrderCard extends StatelessWidget {
         textColor = AppColors.error;
         icon = Iconsax.close_circle;
         break;
-      case OrderStatus.returned:
+      case OrderStatus.refunded:
         bgColor = Colors.grey.withValues(alpha: 0.1);
         textColor = Colors.grey;
         icon = Iconsax.rotate_left;
+        break;
+      case OrderStatus.readyForPickup:
+        bgColor = Colors.indigo.withValues(alpha: 0.1);
+        textColor = Colors.indigo;
+        icon = Iconsax.box_tick;
+        break;
+      case OrderStatus.outForDelivery:
+        bgColor = Colors.cyan.withValues(alpha: 0.1);
+        textColor = Colors.cyan;
+        icon = Iconsax.truck_fast;
+        break;
+      case OrderStatus.completed:
+        bgColor = Colors.green.shade700.withValues(alpha: 0.1);
+        textColor = Colors.green.shade700;
+        icon = Iconsax.verify;
         break;
     }
 

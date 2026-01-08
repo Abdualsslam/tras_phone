@@ -63,7 +63,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
                   // Product Name
                   Text(
-                    product.nameAr ?? product.name,
+                    product.nameAr,
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -276,22 +276,21 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   Widget _buildBrandAndSku(ThemeData theme, ProductEntity product) {
     return Row(
       children: [
-        if (product.brandId != null)
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6.r),
-            ),
-            child: Text(
-              'براند ${product.brandId}', // Would come from brand lookup
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w600,
-              ),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(6.r),
+          ),
+          child: Text(
+            'براند ${product.brandId}', // Would come from brand lookup
+            style: TextStyle(
+              color: AppColors.primary,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
             ),
           ),
+        ),
         const Spacer(),
         Text(
           'SKU: ${product.sku}',
@@ -304,14 +303,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   Widget _buildRating(ThemeData theme, ProductEntity product) {
-    if (product.rating == null && product.reviewsCount == 0) {
+    if (product.reviewsCount == 0) {
       return const SizedBox.shrink();
     }
 
     return Row(
       children: [
         ...List.generate(5, (index) {
-          final rating = product.rating ?? 0;
+          final rating = product.rating;
           return Icon(
             index < rating.floor() ? Iconsax.star1 : Iconsax.star,
             color: Colors.amber,
@@ -320,7 +319,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         }),
         SizedBox(width: 8.w),
         Text(
-          '${product.rating ?? 0}',
+          '${product.rating}',
           style: theme.textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),

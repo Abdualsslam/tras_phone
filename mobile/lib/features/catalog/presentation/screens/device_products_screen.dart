@@ -86,9 +86,7 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen>
                     ? AppColors.textSecondaryDark
                     : AppColors.textSecondaryLight,
                 indicatorColor: AppColors.primary,
-                tabs: _categories
-                    .map((c) => Tab(text: c.nameAr ?? c.name))
-                    .toList(),
+                tabs: _categories.map((c) => Tab(text: c.nameAr)).toList(),
               ),
       ),
       body: _isLoading

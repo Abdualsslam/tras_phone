@@ -4,10 +4,13 @@ library;
 import '../../domain/entities/banner_entity.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/category_entity.dart';
+import '../../domain/entities/device_entity.dart';
 import '../../domain/entities/product_entity.dart';
+import '../../domain/entities/quality_type_entity.dart';
 
 class CatalogMockDataSource {
   static const _delay = Duration(milliseconds: 500);
+  static final _now = DateTime.now();
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MOCK BANNERS
@@ -33,69 +36,86 @@ class CatalogMockDataSource {
           'https://via.placeholder.com/800x400/5856D6/FFFFFF?text=iPhone+Screens',
       placement: 'home_slider',
     ),
-    const BannerEntity(
-      id: 3,
-      title: 'بطاريات Samsung',
-      titleAr: 'بطاريات Samsung',
-      subtitle: 'ضمان سنة كاملة',
-      subtitleAr: 'ضمان سنة كاملة',
-      imageUrl:
-          'https://via.placeholder.com/800x400/FF9500/FFFFFF?text=Samsung+Batteries',
-      placement: 'home_slider',
-    ),
   ];
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MOCK CATEGORIES
   // ═══════════════════════════════════════════════════════════════════════════
   static final List<CategoryEntity> _mockCategories = [
-    const CategoryEntity(
-      id: 1,
+    CategoryEntity(
+      id: '1',
       name: 'Screens',
       nameAr: 'شاشات',
       slug: 'screens',
       icon: 'mobile',
       productsCount: 156,
+      level: 0,
+      isActive: true,
+      isFeatured: true,
+      displayOrder: 0,
+      childrenCount: 3,
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const CategoryEntity(
-      id: 2,
+    CategoryEntity(
+      id: '2',
       name: 'Batteries',
       nameAr: 'بطاريات',
       slug: 'batteries',
       icon: 'battery-full',
       productsCount: 89,
+      level: 0,
+      isActive: true,
+      isFeatured: true,
+      displayOrder: 1,
+      childrenCount: 0,
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const CategoryEntity(
-      id: 3,
+    CategoryEntity(
+      id: '3',
       name: 'Charging Ports',
       nameAr: 'منافذ الشحن',
       slug: 'charging-ports',
       icon: 'charging-station',
       productsCount: 124,
+      level: 0,
+      isActive: true,
+      isFeatured: false,
+      displayOrder: 2,
+      childrenCount: 0,
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const CategoryEntity(
-      id: 4,
+    CategoryEntity(
+      id: '4',
       name: 'Back Covers',
       nameAr: 'أغطية خلفية',
       slug: 'back-covers',
       icon: 'mobile-alt',
       productsCount: 78,
+      level: 0,
+      isActive: true,
+      isFeatured: false,
+      displayOrder: 3,
+      childrenCount: 0,
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const CategoryEntity(
-      id: 5,
+    CategoryEntity(
+      id: '5',
       name: 'Cameras',
       nameAr: 'كاميرات',
       slug: 'cameras',
       icon: 'camera',
       productsCount: 67,
-    ),
-    const CategoryEntity(
-      id: 6,
-      name: 'Speakers',
-      nameAr: 'سماعات',
-      slug: 'speakers',
-      icon: 'volume-up',
-      productsCount: 45,
+      level: 0,
+      isActive: true,
+      isFeatured: false,
+      displayOrder: 4,
+      childrenCount: 0,
+      createdAt: _now,
+      updatedAt: _now,
     ),
   ];
 
@@ -103,51 +123,161 @@ class CatalogMockDataSource {
   // MOCK BRANDS
   // ═══════════════════════════════════════════════════════════════════════════
   static final List<BrandEntity> _mockBrands = [
-    const BrandEntity(
-      id: 1,
+    BrandEntity(
+      id: '1',
       name: 'Apple',
       nameAr: 'آبل',
       slug: 'apple',
       productsCount: 234,
       isFeatured: true,
+      isActive: true,
+      displayOrder: 0,
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const BrandEntity(
-      id: 2,
+    BrandEntity(
+      id: '2',
       name: 'Samsung',
       nameAr: 'سامسونج',
       slug: 'samsung',
       productsCount: 189,
       isFeatured: true,
+      isActive: true,
+      displayOrder: 1,
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const BrandEntity(
-      id: 3,
+    BrandEntity(
+      id: '3',
       name: 'Huawei',
       nameAr: 'هواوي',
       slug: 'huawei',
       productsCount: 145,
       isFeatured: true,
+      isActive: true,
+      displayOrder: 2,
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const BrandEntity(
-      id: 4,
+    BrandEntity(
+      id: '4',
       name: 'Xiaomi',
       nameAr: 'شاومي',
       slug: 'xiaomi',
       productsCount: 120,
       isFeatured: true,
+      isActive: true,
+      displayOrder: 3,
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const BrandEntity(
-      id: 5,
-      name: 'Oppo',
-      nameAr: 'أوبو',
-      slug: 'oppo',
-      productsCount: 78,
+  ];
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MOCK DEVICES
+  // ═══════════════════════════════════════════════════════════════════════════
+  static final List<DeviceEntity> _mockDevices = [
+    DeviceEntity(
+      id: '1',
+      brandId: '1',
+      name: 'iPhone 15 Pro Max',
+      nameAr: 'آيفون 15 برو ماكس',
+      slug: 'iphone-15-pro-max',
+      modelNumber: 'A2849',
+      screenSize: '6.7 inch',
+      releaseYear: 2023,
+      isActive: true,
+      isPopular: true,
+      displayOrder: 0,
+      productsCount: 45,
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const BrandEntity(
-      id: 6,
-      name: 'Vivo',
-      nameAr: 'فيفو',
-      slug: 'vivo',
-      productsCount: 65,
+    DeviceEntity(
+      id: '2',
+      brandId: '1',
+      name: 'iPhone 14 Pro',
+      nameAr: 'آيفون 14 برو',
+      slug: 'iphone-14-pro',
+      modelNumber: 'A2650',
+      screenSize: '6.1 inch',
+      releaseYear: 2022,
+      isActive: true,
+      isPopular: true,
+      displayOrder: 1,
+      productsCount: 38,
+      createdAt: _now,
+      updatedAt: _now,
+    ),
+    DeviceEntity(
+      id: '3',
+      brandId: '2',
+      name: 'Samsung Galaxy S24 Ultra',
+      nameAr: 'سامسونج جالاكسي S24 الترا',
+      slug: 'samsung-s24-ultra',
+      modelNumber: 'SM-S928',
+      screenSize: '6.8 inch',
+      releaseYear: 2024,
+      isActive: true,
+      isPopular: true,
+      displayOrder: 0,
+      productsCount: 32,
+      createdAt: _now,
+      updatedAt: _now,
+    ),
+  ];
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MOCK QUALITY TYPES
+  // ═══════════════════════════════════════════════════════════════════════════
+  static final List<QualityTypeEntity> _mockQualityTypes = [
+    QualityTypeEntity(
+      id: '1',
+      name: 'Original',
+      nameAr: 'أصلي',
+      code: 'original',
+      color: '#00AA00',
+      displayOrder: 0,
+      isActive: true,
+      defaultWarrantyDays: 365,
+      createdAt: _now,
+      updatedAt: _now,
+    ),
+    QualityTypeEntity(
+      id: '2',
+      name: 'OEM',
+      nameAr: 'OEM',
+      code: 'oem',
+      color: '#0066CC',
+      displayOrder: 1,
+      isActive: true,
+      defaultWarrantyDays: 180,
+      createdAt: _now,
+      updatedAt: _now,
+    ),
+    QualityTypeEntity(
+      id: '3',
+      name: 'AAA Copy',
+      nameAr: 'نسخة AAA',
+      code: 'aaa',
+      color: '#FF9900',
+      displayOrder: 2,
+      isActive: true,
+      defaultWarrantyDays: 90,
+      createdAt: _now,
+      updatedAt: _now,
+    ),
+    QualityTypeEntity(
+      id: '4',
+      name: 'Copy',
+      nameAr: 'نسخة',
+      code: 'copy',
+      color: '#999999',
+      displayOrder: 3,
+      isActive: true,
+      defaultWarrantyDays: 30,
+      createdAt: _now,
+      updatedAt: _now,
     ),
   ];
 
@@ -155,195 +285,96 @@ class CatalogMockDataSource {
   // MOCK PRODUCTS
   // ═══════════════════════════════════════════════════════════════════════════
   static final List<ProductEntity> _mockProducts = [
-    const ProductEntity(
-      id: 1,
+    ProductEntity(
+      id: 'prod_001',
       sku: 'SCR-IP15PM-001',
       name: 'iPhone 15 Pro Max Screen',
       nameAr: 'شاشة آيفون 15 برو ماكس',
       slug: 'iphone-15-pro-max-screen',
       description: 'Original quality OLED screen for iPhone 15 Pro Max',
       descriptionAr: 'شاشة OLED أصلية لآيفون 15 برو ماكس',
-      price: 950.00,
-      originalPrice: 1100.00,
-      categoryId: 1,
-      brandId: 1,
+      basePrice: 950.00,
+      compareAtPrice: 1100.00,
+      categoryId: '1',
+      brandId: '1',
+      qualityTypeId: '1',
       stockQuantity: 15,
       isFeatured: true,
-      rating: 4.8,
+      averageRating: 4.8,
       reviewsCount: 23,
-      imageUrl: 'assets/images/products/screen_1.jpg',
+      mainImage: 'assets/images/products/screen_1.jpg',
       images: [
         'assets/images/products/screen_1.jpg',
         'assets/images/products/screen_2.jpg',
       ],
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const ProductEntity(
-      id: 2,
+    ProductEntity(
+      id: 'prod_002',
       sku: 'SCR-IP14P-001',
       name: 'iPhone 14 Pro Screen',
       nameAr: 'شاشة آيفون 14 برو',
       slug: 'iphone-14-pro-screen',
-      price: 850.00,
-      categoryId: 1,
-      brandId: 1,
+      basePrice: 850.00,
+      categoryId: '1',
+      brandId: '1',
+      qualityTypeId: '1',
       stockQuantity: 25,
       isFeatured: true,
-      rating: 4.7,
+      averageRating: 4.7,
       reviewsCount: 45,
-      imageUrl: 'assets/images/products/screen_2.jpg',
+      mainImage: 'assets/images/products/screen_2.jpg',
       images: [
         'assets/images/products/screen_2.jpg',
         'assets/images/products/screen_1.jpg',
       ],
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const ProductEntity(
-      id: 3,
+    ProductEntity(
+      id: 'prod_003',
       sku: 'BAT-IP13-001',
       name: 'iPhone 13 Battery',
       nameAr: 'بطارية آيفون 13',
       slug: 'iphone-13-battery',
-      price: 120.00,
-      originalPrice: 150.00,
-      categoryId: 2,
-      brandId: 1,
+      basePrice: 120.00,
+      compareAtPrice: 150.00,
+      categoryId: '2',
+      brandId: '1',
+      qualityTypeId: '2',
       stockQuantity: 50,
-      rating: 4.5,
+      averageRating: 4.5,
       reviewsCount: 67,
-      imageUrl: 'assets/images/products/bettary_1.jpg',
+      mainImage: 'assets/images/products/bettary_1.jpg',
       images: [
         'assets/images/products/bettary_1.jpg',
         'assets/images/products/bettary_2.jpg',
       ],
+      createdAt: _now,
+      updatedAt: _now,
     ),
-    const ProductEntity(
-      id: 4,
+    ProductEntity(
+      id: 'prod_004',
       sku: 'SCR-S24U-001',
       name: 'Samsung S24 Ultra Screen',
       nameAr: 'شاشة سامسونج S24 الترا',
       slug: 'samsung-s24-ultra-screen',
-      price: 1200.00,
-      categoryId: 1,
-      brandId: 2,
+      basePrice: 1200.00,
+      categoryId: '1',
+      brandId: '2',
+      qualityTypeId: '1',
       stockQuantity: 8,
       isFeatured: true,
-      rating: 4.9,
+      averageRating: 4.9,
       reviewsCount: 12,
-      imageUrl: 'assets/images/products/screen_1.jpg',
+      mainImage: 'assets/images/products/screen_1.jpg',
       images: [
         'assets/images/products/screen_1.jpg',
         'assets/images/products/screen_2.jpg',
       ],
-    ),
-    const ProductEntity(
-      id: 5,
-      sku: 'SCR-S23-001',
-      name: 'Samsung S23 Screen',
-      nameAr: 'شاشة سامسونج S23',
-      slug: 'samsung-s23-screen',
-      price: 780.00,
-      originalPrice: 900.00,
-      categoryId: 1,
-      brandId: 2,
-      stockQuantity: 18,
-      rating: 4.6,
-      reviewsCount: 34,
-      imageUrl: 'assets/images/products/screen_2.jpg',
-      images: [
-        'assets/images/products/screen_2.jpg',
-        'assets/images/products/screen_1.jpg',
-      ],
-    ),
-    const ProductEntity(
-      id: 6,
-      sku: 'BAT-S23-001',
-      name: 'Samsung S23 Battery',
-      nameAr: 'بطارية سامسونج S23',
-      slug: 'samsung-s23-battery',
-      price: 95.00,
-      categoryId: 2,
-      brandId: 2,
-      stockQuantity: 65,
-      rating: 4.4,
-      reviewsCount: 28,
-      imageUrl: 'assets/images/products/bettary_2.jpg',
-      images: [
-        'assets/images/products/bettary_2.jpg',
-        'assets/images/products/bettary_1.jpg',
-      ],
-    ),
-    const ProductEntity(
-      id: 7,
-      sku: 'CHG-IP-001',
-      name: 'iPhone Charging Port',
-      nameAr: 'منفذ شحن آيفون',
-      slug: 'iphone-charging-port',
-      price: 45.00,
-      categoryId: 3,
-      brandId: 1,
-      stockQuantity: 100,
-      rating: 4.3,
-      reviewsCount: 89,
-      imageUrl: 'assets/images/products/charger_port_1.jpg',
-      images: [
-        'assets/images/products/charger_port_1.jpg',
-        'assets/images/products/charger_port_2.jpg',
-      ],
-    ),
-    const ProductEntity(
-      id: 8,
-      sku: 'CAM-IP15P-001',
-      name: 'iPhone 15 Pro Camera Module',
-      nameAr: 'كاميرا آيفون 15 برو',
-      slug: 'iphone-15-pro-camera',
-      price: 450.00,
-      categoryId: 5,
-      brandId: 1,
-      stockQuantity: 12,
-      isFeatured: true,
-      rating: 4.7,
-      reviewsCount: 8,
-      imageUrl: 'assets/images/products/camera_1.png',
-      images: [
-        'assets/images/products/camera_1.png',
-        'assets/images/products/camera_2.png',
-      ],
-    ),
-    const ProductEntity(
-      id: 9,
-      sku: 'SCR-HW-P60-001',
-      name: 'Huawei P60 Pro Screen',
-      nameAr: 'شاشة هواوي P60 برو',
-      slug: 'huawei-p60-pro-screen',
-      price: 650.00,
-      categoryId: 1,
-      brandId: 3,
-      stockQuantity: 20,
-      rating: 4.5,
-      reviewsCount: 15,
-      imageUrl: 'assets/images/products/screen_1.jpg',
-      images: [
-        'assets/images/products/screen_1.jpg',
-        'assets/images/products/screen_2.jpg',
-      ],
-    ),
-    const ProductEntity(
-      id: 10,
-      sku: 'SCR-XM-14-001',
-      name: 'Xiaomi 14 Pro Screen',
-      nameAr: 'شاشة شاومي 14 برو',
-      slug: 'xiaomi-14-pro-screen',
-      price: 520.00,
-      originalPrice: 600.00,
-      categoryId: 1,
-      brandId: 4,
-      stockQuantity: 30,
-      rating: 4.4,
-      reviewsCount: 22,
-      imageUrl: 'assets/images/products/screen_2.jpg',
-      images: [
-        'assets/images/products/screen_2.jpg',
-        'assets/images/products/screen_1.jpg',
-      ],
+      createdAt: _now,
+      updatedAt: _now,
     ),
   ];
 
@@ -359,21 +390,39 @@ class CatalogMockDataSource {
     return _mockBanners;
   }
 
-  Future<List<CategoryEntity>> getCategories({int? parentId}) async {
+  Future<List<CategoryEntity>> getCategories() async {
     await Future.delayed(_delay);
-    if (parentId != null) {
-      return _mockCategories.where((c) => c.parentId == parentId).toList();
-    }
     return _mockCategories;
   }
 
-  Future<CategoryEntity?> getCategoryById(int id) async {
+  Future<CategoryWithBreadcrumb?> getCategoryById(String id) async {
     await Future.delayed(_delay);
     try {
-      return _mockCategories.firstWhere((c) => c.id == id);
+      final category = _mockCategories.firstWhere((c) => c.id == id);
+      return CategoryWithBreadcrumb(
+        category: category,
+        breadcrumb: [
+          BreadcrumbItem(
+            id: category.id,
+            name: category.name,
+            nameAr: category.nameAr,
+            slug: category.slug,
+          ),
+        ],
+      );
     } catch (_) {
       return null;
     }
+  }
+
+  Future<List<CategoryEntity>> getCategoryChildren(String parentId) async {
+    await Future.delayed(_delay);
+    return _mockCategories.where((c) => c.parentId == parentId).toList();
+  }
+
+  Future<List<CategoryEntity>> getCategoriesTree() async {
+    await Future.delayed(_delay);
+    return _mockCategories;
   }
 
   Future<List<BrandEntity>> getBrands({bool? featured}) async {
@@ -384,13 +433,40 @@ class CatalogMockDataSource {
     return _mockBrands;
   }
 
-  Future<BrandEntity?> getBrandById(int id) async {
+  Future<BrandEntity?> getBrandBySlug(String slug) async {
     await Future.delayed(_delay);
     try {
-      return _mockBrands.firstWhere((b) => b.id == id);
+      return _mockBrands.firstWhere((b) => b.slug == slug);
     } catch (_) {
       return null;
     }
+  }
+
+  Future<List<DeviceEntity>> getDevices({int? limit}) async {
+    await Future.delayed(_delay);
+    if (limit != null) {
+      return _mockDevices.take(limit).toList();
+    }
+    return _mockDevices;
+  }
+
+  Future<List<DeviceEntity>> getDevicesByBrand(String brandId) async {
+    await Future.delayed(_delay);
+    return _mockDevices.where((d) => d.brandId == brandId).toList();
+  }
+
+  Future<DeviceEntity?> getDeviceBySlug(String slug) async {
+    await Future.delayed(_delay);
+    try {
+      return _mockDevices.firstWhere((d) => d.slug == slug);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<QualityTypeEntity>> getQualityTypes() async {
+    await Future.delayed(_delay);
+    return _mockQualityTypes;
   }
 
   Future<List<ProductEntity>> getProducts({
@@ -404,13 +480,14 @@ class CatalogMockDataSource {
     await Future.delayed(_delay);
 
     var products = _mockProducts.where((p) {
-      if (categoryId != null && p.categoryId != categoryId) return false;
-      if (brandId != null && p.brandId != brandId) return false;
+      if (categoryId != null && p.categoryId != categoryId.toString())
+        return false;
+      if (brandId != null && p.brandId != brandId.toString()) return false;
       if (featured == true && !p.isFeatured) return false;
       if (search != null && search.isNotEmpty) {
         final query = search.toLowerCase();
         return p.name.toLowerCase().contains(query) ||
-            (p.nameAr?.toLowerCase().contains(query) ?? false);
+            p.nameAr.toLowerCase().contains(query);
       }
       return true;
     }).toList();
@@ -441,13 +518,11 @@ class CatalogMockDataSource {
 
   Future<List<ProductEntity>> getNewArrivals() async {
     await Future.delayed(_delay);
-    // Return last 6 products as "new arrivals"
     return _mockProducts.reversed.take(6).toList();
   }
 
   Future<List<ProductEntity>> getBestSellers() async {
     await Future.delayed(_delay);
-    // Return products sorted by reviews count
     final sorted = [..._mockProducts]
       ..sort((a, b) => b.reviewsCount.compareTo(a.reviewsCount));
     return sorted.take(6).toList();
@@ -462,24 +537,20 @@ class CatalogMockDataSource {
         .where(
           (p) =>
               p.name.toLowerCase().contains(lowerQuery) ||
-              (p.nameAr?.toLowerCase().contains(lowerQuery) ?? false),
+              p.nameAr.toLowerCase().contains(lowerQuery),
         )
-        .map((p) => p.nameAr ?? p.name)
+        .map((p) => p.nameAr)
         .take(5)
         .toList();
   }
 
   Future<List<ProductEntity>> getProductsByCategory(String categoryId) async {
     await Future.delayed(_delay);
-    final catId = int.tryParse(categoryId);
-    if (catId == null) return _mockProducts;
-    return _mockProducts.where((p) => p.categoryId == catId).toList();
+    return _mockProducts.where((p) => p.categoryId == categoryId).toList();
   }
 
   Future<List<ProductEntity>> getProductsByBrand(String brandId) async {
     await Future.delayed(_delay);
-    final bId = int.tryParse(brandId);
-    if (bId == null) return _mockProducts;
-    return _mockProducts.where((p) => p.brandId == bId).toList();
+    return _mockProducts.where((p) => p.brandId == brandId).toList();
   }
 }

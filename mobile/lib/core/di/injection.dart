@@ -72,7 +72,7 @@ Future<void> setupDependencies() async {
   // Repository
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(
-      dataSource: getIt<AuthMockDataSource>(), // Use mock for now
+      dataSource: getIt<AuthRemoteDataSource>(), // Using real API
       localStorage: getIt<LocalStorage>(),
       secureStorage: getIt<SecureStorage>(),
     ),

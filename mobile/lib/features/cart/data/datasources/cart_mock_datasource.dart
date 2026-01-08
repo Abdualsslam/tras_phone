@@ -1,9 +1,9 @@
 /// Cart Mock DataSource - Provides mock data for cart operations
 library;
 
-import '../../../catalog/domain/entities/product_entity.dart';
 import '../../domain/entities/cart_item_entity.dart';
 import '../../domain/entities/cart_entity.dart';
+import '../../domain/enums/cart_enums.dart';
 
 class CartMockDataSource {
   // Simulated delay for network calls
@@ -11,7 +11,6 @@ class CartMockDataSource {
 
   // Mock cart storage
   final List<CartItemEntity> _cartItems = [];
-  int _nextItemId = 1;
   String? _appliedCoupon;
   double _discount = 0;
 
@@ -23,14 +22,18 @@ class CartMockDataSource {
 
   /// Add item to cart
   Future<CartEntity> addToCart({
-    required ProductEntity product,
+    required String productId,
+    required String productName,
+    String? productNameAr,
+    String? productImage,
+    required double unitPrice,
     int quantity = 1,
   }) async {
     await Future.delayed(_delay);
 
     // Check if product already in cart
     final existingIndex = _cartItems.indexWhere(
-      (item) => item.product.id == product.id,
+      (item) => item.productId == productId,
     );
 
     if (existingIndex >= 0) {
@@ -38,16 +41,20 @@ class CartMockDataSource {
       final existing = _cartItems[existingIndex];
       _cartItems[existingIndex] = existing.copyWith(
         quantity: existing.quantity + quantity,
+        totalPrice: (existing.quantity + quantity) * existing.unitPrice,
       );
     } else {
       // Add new item
       _cartItems.add(
         CartItemEntity(
-          id: _nextItemId++,
-          product: product,
+          productId: productId,
           quantity: quantity,
-          unitPrice: product.price,
+          unitPrice: unitPrice,
+          totalPrice: unitPrice * quantity,
           addedAt: DateTime.now(),
+          productName: productName,
+          productNameAr: productNameAr,
+          productImage: productImage,
         ),
       );
     }
@@ -57,27 +64,31 @@ class CartMockDataSource {
 
   /// Update item quantity
   Future<CartEntity> updateQuantity({
-    required int itemId,
+    required String productId,
     required int quantity,
   }) async {
     await Future.delayed(_delay);
 
     if (quantity <= 0) {
-      return removeFromCart(itemId: itemId);
+      return removeFromCart(productId: productId);
     }
 
-    final index = _cartItems.indexWhere((item) => item.id == itemId);
+    final index = _cartItems.indexWhere((item) => item.productId == productId);
     if (index >= 0) {
-      _cartItems[index] = _cartItems[index].copyWith(quantity: quantity);
+      final item = _cartItems[index];
+      _cartItems[index] = item.copyWith(
+        quantity: quantity,
+        totalPrice: quantity * item.unitPrice,
+      );
     }
 
     return _buildCart();
   }
 
   /// Remove item from cart
-  Future<CartEntity> removeFromCart({required int itemId}) async {
+  Future<CartEntity> removeFromCart({required String productId}) async {
     await Future.delayed(_delay);
-    _cartItems.removeWhere((item) => item.id == itemId);
+    _cartItems.removeWhere((item) => item.productId == productId);
     return _buildCart();
   }
 
@@ -122,14 +133,22 @@ class CartMockDataSource {
 
   // Helper methods
   CartEntity _buildCart() {
+    final subtotal = _calculateSubtotal();
+    final shippingCost = _cartItems.isEmpty ? 0.0 : 50.0;
     return CartEntity(
+      id: 'mock_cart_001',
+      customerId: 'mock_customer_001',
+      status: CartStatus.active,
       items: List.from(_cartItems),
-      subtotal: _calculateSubtotal(),
-      shippingCost: _cartItems.isEmpty
-          ? 0
-          : 50, // Free shipping over certain amount
+      itemsCount: _cartItems.length,
+      subtotal: subtotal,
       discount: _discount,
+      taxAmount: subtotal * 0.15, // 15% VAT
+      shippingCost: shippingCost,
+      total: subtotal + shippingCost - _discount,
       couponCode: _appliedCoupon,
+      couponDiscount: _discount,
+      createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
   }

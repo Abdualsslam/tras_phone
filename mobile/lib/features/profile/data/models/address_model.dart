@@ -5,70 +5,167 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'address_model.g.dart';
 
+/// City model for populated cityId
 @JsonSerializable()
+class CityModel {
+  @JsonKey(name: 'id', readValue: _readId)
+  final String id;
+  final String name;
+  final String? nameAr;
+
+  const CityModel({required this.id, required this.name, this.nameAr});
+
+  static Object? _readId(Map<dynamic, dynamic> json, String key) {
+    final value = json['_id'] ?? json['id'];
+    if (value is Map) {
+      return value['\$oid'] ?? value.toString();
+    }
+    return value?.toString();
+  }
+
+  factory CityModel.fromJson(Map<String, dynamic> json) =>
+      _$CityModelFromJson(json);
+  Map<String, dynamic> toJson() => _$CityModelToJson(this);
+
+  String getName(String locale) =>
+      locale == 'ar' && nameAr != null ? nameAr! : name;
+}
+
 class AddressModel {
-  final int id;
-  final String title;
-  @JsonKey(name: 'recipient_name')
-  final String recipientName;
-  final String phone;
-  @JsonKey(name: 'country_id')
-  final int? countryId;
-  @JsonKey(name: 'city_id')
-  final int? cityId;
-  @JsonKey(name: 'area_id')
-  final int? areaId;
-  final String? country;
-  final String? city;
-  final String? area;
-  final String? street;
-  @JsonKey(name: 'building_number')
-  final String? buildingNumber;
-  @JsonKey(name: 'floor_number')
-  final String? floorNumber;
-  @JsonKey(name: 'apartment_number')
-  final String? apartmentNumber;
-  @JsonKey(name: 'postal_code')
-  final String? postalCode;
+  @JsonKey(name: 'id', readValue: _readId)
+  final String id;
+
+  @JsonKey(name: 'customerId', readValue: _readCustomerId)
+  final String customerId;
+
+  final String label;
+  final String? recipientName;
+  final String? phone;
+
+  @JsonKey(name: 'cityId', readValue: _readCityId)
+  final String cityId;
+
+  @JsonKey(name: 'marketId', readValue: _readOptionalId)
+  final String? marketId;
+
+  final String addressLine;
   final double? latitude;
   final double? longitude;
-  @JsonKey(name: 'is_default')
+
+  @JsonKey(defaultValue: false)
   final bool isDefault;
-  @JsonKey(name: 'address_type')
-  final String addressType; // 'home', 'work', 'other'
+
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  // Populated city object
+  @JsonKey(includeFromJson: true, includeToJson: false)
+  final CityModel? city;
 
   const AddressModel({
     required this.id,
-    required this.title,
-    required this.recipientName,
-    required this.phone,
-    this.countryId,
-    this.cityId,
-    this.areaId,
-    this.country,
-    this.city,
-    this.area,
-    this.street,
-    this.buildingNumber,
-    this.floorNumber,
-    this.apartmentNumber,
-    this.postalCode,
+    required this.customerId,
+    required this.label,
+    this.recipientName,
+    this.phone,
+    required this.cityId,
+    this.marketId,
+    required this.addressLine,
     this.latitude,
     this.longitude,
     this.isDefault = false,
-    this.addressType = 'home',
+    required this.createdAt,
+    required this.updatedAt,
+    this.city,
   });
 
-  factory AddressModel.fromJson(Map<String, dynamic> json) =>
-      _$AddressModelFromJson(json);
-  Map<String, dynamic> toJson() => _$AddressModelToJson(this);
+  /// Handle MongoDB _id or id field
+  static Object? _readId(Map<dynamic, dynamic> json, String key) {
+    final value = json['_id'] ?? json['id'];
+    if (value is Map) {
+      return value['\$oid'] ?? value.toString();
+    }
+    return value?.toString();
+  }
+
+  /// Handle customerId which can be String or populated object
+  static Object? _readCustomerId(Map<dynamic, dynamic> json, String key) {
+    final value = json['customerId'];
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value?.toString();
+  }
+
+  /// Handle cityId which can be String or populated City object
+  static Object? _readCityId(Map<dynamic, dynamic> json, String key) {
+    final value = json['cityId'];
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value?.toString();
+  }
+
+  /// Handle optional ID fields
+  static Object? _readOptionalId(Map<dynamic, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value.toString();
+  }
+
+  factory AddressModel.fromJson(Map<String, dynamic> json) {
+    // Extract city if populated
+    CityModel? cityObj;
+    if (json['cityId'] is Map) {
+      cityObj = CityModel.fromJson(json['cityId'] as Map<String, dynamic>);
+    }
+
+    return AddressModel(
+      id: _readId(json, 'id')?.toString() ?? '',
+      customerId: _readCustomerId(json, 'customerId')?.toString() ?? '',
+      label: json['label'] ?? '',
+      recipientName: json['recipientName'] as String?,
+      phone: json['phone'] as String?,
+      cityId: _readCityId(json, 'cityId')?.toString() ?? '',
+      marketId: _readOptionalId(json, 'marketId')?.toString(),
+      addressLine: json['addressLine'] ?? '',
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      isDefault: json['isDefault'] as bool? ?? false,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      city: cityObj,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'customerId': customerId,
+    'label': label,
+    'recipientName': recipientName,
+    'phone': phone,
+    'cityId': cityId,
+    'marketId': marketId,
+    'addressLine': addressLine,
+    'latitude': latitude,
+    'longitude': longitude,
+    'isDefault': isDefault,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 
   String get fullAddress {
     final parts = <String>[];
-    if (street != null) parts.add(street!);
-    if (buildingNumber != null) parts.add('مبنى $buildingNumber');
-    if (area != null) parts.add(area!);
-    if (city != null) parts.add(city!);
+    parts.add(addressLine);
+    if (city != null) {
+      parts.add(city!.nameAr ?? city!.name);
+    }
     return parts.join('، ');
   }
 }
@@ -76,36 +173,26 @@ class AddressModel {
 /// Request model for creating/updating address
 @JsonSerializable()
 class AddressRequest {
-  final String title;
-  @JsonKey(name: 'recipient_name')
-  final String recipientName;
-  final String phone;
-  @JsonKey(name: 'city_id')
-  final int cityId;
-  @JsonKey(name: 'area_id')
-  final int? areaId;
-  final String? street;
-  @JsonKey(name: 'building_number')
-  final String? buildingNumber;
-  @JsonKey(name: 'is_default')
-  final bool isDefault;
-  @JsonKey(name: 'address_type')
-  final String addressType;
+  final String label;
+  final String? recipientName;
+  final String? phone;
+  final String cityId;
+  final String? marketId;
+  final String addressLine;
   final double? latitude;
   final double? longitude;
+  final bool isDefault;
 
   const AddressRequest({
-    required this.title,
-    required this.recipientName,
-    required this.phone,
+    required this.label,
+    this.recipientName,
+    this.phone,
     required this.cityId,
-    this.areaId,
-    this.street,
-    this.buildingNumber,
-    this.isDefault = false,
-    this.addressType = 'home',
+    this.marketId,
+    required this.addressLine,
     this.latitude,
     this.longitude,
+    this.isDefault = false,
   });
 
   factory AddressRequest.fromJson(Map<String, dynamic> json) =>

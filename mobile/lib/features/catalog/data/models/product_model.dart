@@ -3,69 +3,279 @@ library;
 
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/product_entity.dart';
+import '../../domain/enums/product_enums.dart';
 
 part 'product_model.g.dart';
 
 @JsonSerializable()
 class ProductModel {
-  final int id;
+  @JsonKey(name: 'id', readValue: _readId)
+  final String id;
+
   final String sku;
   final String name;
-  @JsonKey(name: 'name_ar')
-  final String? nameAr;
+  final String nameAr;
   final String slug;
   final String? description;
-  @JsonKey(name: 'description_ar')
   final String? descriptionAr;
-  final double price;
-  @JsonKey(name: 'original_price')
-  final double? originalPrice;
-  @JsonKey(name: 'category_id')
-  final int categoryId;
-  @JsonKey(name: 'brand_id')
-  final int? brandId;
-  @JsonKey(name: 'device_id')
-  final int? deviceId;
-  @JsonKey(name: 'image_url')
-  final String? imageUrl;
+  final String? shortDescription;
+  final String? shortDescriptionAr;
+
+  // Relations - can be String or populated object
+  @JsonKey(name: 'brandId', readValue: _readRelationId)
+  final String brandId;
+
+  @JsonKey(name: 'categoryId', readValue: _readRelationId)
+  final String categoryId;
+
+  @JsonKey(defaultValue: [])
+  final List<String> additionalCategories;
+
+  @JsonKey(name: 'qualityTypeId', readValue: _readRelationId)
+  final String qualityTypeId;
+
+  @JsonKey(defaultValue: [])
+  final List<String> compatibleDevices;
+
+  // Images
+  final String? mainImage;
+  @JsonKey(defaultValue: [])
   final List<String> images;
-  @JsonKey(name: 'stock_quantity')
+  final String? video;
+
+  // Pricing
+  @JsonKey(defaultValue: 0.0)
+  final double basePrice;
+  final double? compareAtPrice;
+
+  // Inventory
+  @JsonKey(defaultValue: 0)
   final int stockQuantity;
-  @JsonKey(name: 'is_active')
+  @JsonKey(defaultValue: 5)
+  final int lowStockThreshold;
+  @JsonKey(defaultValue: true)
+  final bool trackInventory;
+  @JsonKey(defaultValue: false)
+  final bool allowBackorder;
+
+  // Order
+  @JsonKey(defaultValue: 1)
+  final int minOrderQuantity;
+  final int? maxOrderQuantity;
+  @JsonKey(defaultValue: 1)
+  final int quantityStep;
+
+  // Status
+  @JsonKey(defaultValue: 'active')
+  final String status;
+  @JsonKey(defaultValue: true)
   final bool isActive;
-  @JsonKey(name: 'is_featured')
+  @JsonKey(defaultValue: false)
   final bool isFeatured;
-  final double? rating;
-  @JsonKey(name: 'reviews_count')
+  @JsonKey(defaultValue: false)
+  final bool isNewArrival;
+  @JsonKey(defaultValue: false)
+  final bool isBestSeller;
+
+  // Specifications
+  final Map<String, dynamic>? specifications;
+  final double? weight;
+  final String? dimensions;
+  final String? color;
+
+  // Warranty
+  final int? warrantyDays;
+  final String? warrantyDescription;
+
+  // Stats
+  @JsonKey(defaultValue: 0)
+  final int viewsCount;
+  @JsonKey(defaultValue: 0)
+  final int ordersCount;
+  @JsonKey(defaultValue: 0)
   final int reviewsCount;
-  @JsonKey(name: 'created_at')
-  final String? createdAt;
+  @JsonKey(defaultValue: 0.0)
+  final double averageRating;
+  @JsonKey(defaultValue: 0)
+  final int wishlistCount;
+
+  // Tags
+  @JsonKey(defaultValue: [])
+  final List<String> tags;
+
+  final DateTime? publishedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  // Populated relation names (extracted from objects)
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? brandName;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? brandNameAr;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? categoryName;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? categoryNameAr;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? qualityTypeName;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? qualityTypeNameAr;
 
   const ProductModel({
     required this.id,
     required this.sku,
     required this.name,
-    this.nameAr,
+    required this.nameAr,
     required this.slug,
     this.description,
     this.descriptionAr,
-    required this.price,
-    this.originalPrice,
+    this.shortDescription,
+    this.shortDescriptionAr,
+    required this.brandId,
     required this.categoryId,
-    this.brandId,
-    this.deviceId,
-    this.imageUrl,
+    this.additionalCategories = const [],
+    required this.qualityTypeId,
+    this.compatibleDevices = const [],
+    this.mainImage,
     this.images = const [],
+    this.video,
+    this.basePrice = 0,
+    this.compareAtPrice,
     this.stockQuantity = 0,
+    this.lowStockThreshold = 5,
+    this.trackInventory = true,
+    this.allowBackorder = false,
+    this.minOrderQuantity = 1,
+    this.maxOrderQuantity,
+    this.quantityStep = 1,
+    this.status = 'active',
     this.isActive = true,
     this.isFeatured = false,
-    this.rating,
+    this.isNewArrival = false,
+    this.isBestSeller = false,
+    this.specifications,
+    this.weight,
+    this.dimensions,
+    this.color,
+    this.warrantyDays,
+    this.warrantyDescription,
+    this.viewsCount = 0,
+    this.ordersCount = 0,
     this.reviewsCount = 0,
-    this.createdAt,
+    this.averageRating = 0,
+    this.wishlistCount = 0,
+    this.tags = const [],
+    this.publishedAt,
+    required this.createdAt,
+    required this.updatedAt,
+    this.brandName,
+    this.brandNameAr,
+    this.categoryName,
+    this.categoryNameAr,
+    this.qualityTypeName,
+    this.qualityTypeNameAr,
   });
 
-  factory ProductModel.fromJson(Map<String, dynamic> json) =>
-      _$ProductModelFromJson(json);
+  /// Handle MongoDB _id or id field
+  static Object? _readId(Map<dynamic, dynamic> json, String key) {
+    final value = json['_id'] ?? json['id'];
+    if (value is Map) {
+      return value['\$oid'] ?? value.toString();
+    }
+    return value?.toString();
+  }
+
+  /// Handle relation IDs which can be String or populated object
+  static Object? _readRelationId(Map<dynamic, dynamic> json, String key) {
+    final value = json[key];
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value?.toString() ?? '';
+  }
+
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
+    // Extract populated relation data
+    String? brandName, brandNameAr;
+    String? categoryName, categoryNameAr;
+    String? qualityTypeName, qualityTypeNameAr;
+
+    final brandData = json['brandId'];
+    if (brandData is Map<String, dynamic>) {
+      brandName = brandData['name'] as String?;
+      brandNameAr = brandData['nameAr'] as String?;
+    }
+
+    final categoryData = json['categoryId'];
+    if (categoryData is Map<String, dynamic>) {
+      categoryName = categoryData['name'] as String?;
+      categoryNameAr = categoryData['nameAr'] as String?;
+    }
+
+    final qualityData = json['qualityTypeId'];
+    if (qualityData is Map<String, dynamic>) {
+      qualityTypeName = qualityData['name'] as String?;
+      qualityTypeNameAr = qualityData['nameAr'] as String?;
+    }
+
+    final model = _$ProductModelFromJson(json);
+    return ProductModel(
+      id: model.id,
+      sku: model.sku,
+      name: model.name,
+      nameAr: model.nameAr,
+      slug: model.slug,
+      description: model.description,
+      descriptionAr: model.descriptionAr,
+      shortDescription: model.shortDescription,
+      shortDescriptionAr: model.shortDescriptionAr,
+      brandId: model.brandId,
+      categoryId: model.categoryId,
+      additionalCategories: model.additionalCategories,
+      qualityTypeId: model.qualityTypeId,
+      compatibleDevices: model.compatibleDevices,
+      mainImage: model.mainImage,
+      images: model.images,
+      video: model.video,
+      basePrice: model.basePrice,
+      compareAtPrice: model.compareAtPrice,
+      stockQuantity: model.stockQuantity,
+      lowStockThreshold: model.lowStockThreshold,
+      trackInventory: model.trackInventory,
+      allowBackorder: model.allowBackorder,
+      minOrderQuantity: model.minOrderQuantity,
+      maxOrderQuantity: model.maxOrderQuantity,
+      quantityStep: model.quantityStep,
+      status: model.status,
+      isActive: model.isActive,
+      isFeatured: model.isFeatured,
+      isNewArrival: model.isNewArrival,
+      isBestSeller: model.isBestSeller,
+      specifications: model.specifications,
+      weight: model.weight,
+      dimensions: model.dimensions,
+      color: model.color,
+      warrantyDays: model.warrantyDays,
+      warrantyDescription: model.warrantyDescription,
+      viewsCount: model.viewsCount,
+      ordersCount: model.ordersCount,
+      reviewsCount: model.reviewsCount,
+      averageRating: model.averageRating,
+      wishlistCount: model.wishlistCount,
+      tags: model.tags,
+      publishedAt: model.publishedAt,
+      createdAt: model.createdAt,
+      updatedAt: model.updatedAt,
+      brandName: brandName,
+      brandNameAr: brandNameAr,
+      categoryName: categoryName,
+      categoryNameAr: categoryNameAr,
+      qualityTypeName: qualityTypeName,
+      qualityTypeNameAr: qualityTypeNameAr,
+    );
+  }
+
   Map<String, dynamic> toJson() => _$ProductModelToJson(this);
 
   ProductEntity toEntity() {
@@ -77,83 +287,82 @@ class ProductModel {
       slug: slug,
       description: description,
       descriptionAr: descriptionAr,
-      price: price,
-      originalPrice: originalPrice,
-      categoryId: categoryId,
+      shortDescription: shortDescription,
+      shortDescriptionAr: shortDescriptionAr,
       brandId: brandId,
-      deviceId: deviceId,
-      imageUrl: imageUrl,
+      categoryId: categoryId,
+      additionalCategories: additionalCategories,
+      qualityTypeId: qualityTypeId,
+      compatibleDevices: compatibleDevices,
+      mainImage: mainImage,
       images: images,
+      video: video,
+      basePrice: basePrice,
+      compareAtPrice: compareAtPrice,
       stockQuantity: stockQuantity,
+      lowStockThreshold: lowStockThreshold,
+      trackInventory: trackInventory,
+      allowBackorder: allowBackorder,
+      minOrderQuantity: minOrderQuantity,
+      maxOrderQuantity: maxOrderQuantity,
+      quantityStep: quantityStep,
+      status: ProductStatus.fromString(status),
       isActive: isActive,
       isFeatured: isFeatured,
-      rating: rating,
+      isNewArrival: isNewArrival,
+      isBestSeller: isBestSeller,
+      specifications: specifications,
+      weight: weight,
+      dimensions: dimensions,
+      color: color,
+      warrantyDays: warrantyDays,
+      warrantyDescription: warrantyDescription,
+      viewsCount: viewsCount,
+      ordersCount: ordersCount,
       reviewsCount: reviewsCount,
-      createdAt: createdAt != null ? DateTime.tryParse(createdAt!) : null,
-    );
-  }
-
-  static ProductModel fromEntity(ProductEntity entity) {
-    return ProductModel(
-      id: entity.id,
-      sku: entity.sku,
-      name: entity.name,
-      nameAr: entity.nameAr,
-      slug: entity.slug,
-      description: entity.description,
-      descriptionAr: entity.descriptionAr,
-      price: entity.price,
-      originalPrice: entity.originalPrice,
-      categoryId: entity.categoryId,
-      brandId: entity.brandId,
-      deviceId: entity.deviceId,
-      imageUrl: entity.imageUrl,
-      images: entity.images,
-      stockQuantity: entity.stockQuantity,
-      isActive: entity.isActive,
-      isFeatured: entity.isFeatured,
-      rating: entity.rating,
-      reviewsCount: entity.reviewsCount,
-      createdAt: entity.createdAt?.toIso8601String(),
+      averageRating: averageRating,
+      wishlistCount: wishlistCount,
+      tags: tags,
+      publishedAt: publishedAt,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      brandName: brandName,
+      brandNameAr: brandNameAr,
+      categoryName: categoryName,
+      categoryNameAr: categoryNameAr,
+      qualityTypeName: qualityTypeName,
+      qualityTypeNameAr: qualityTypeNameAr,
     );
   }
 }
 
-/// Paginated response for products
-@JsonSerializable()
-class PaginatedProductsResponse {
-  final List<ProductModel> data;
-  final PaginationMeta meta;
-
-  const PaginatedProductsResponse({required this.data, required this.meta});
-
-  factory PaginatedProductsResponse.fromJson(Map<String, dynamic> json) =>
-      _$PaginatedProductsResponseFromJson(json);
-  Map<String, dynamic> toJson() => _$PaginatedProductsResponseToJson(this);
-
-  List<ProductEntity> toEntities() => data.map((p) => p.toEntity()).toList();
-}
-
-@JsonSerializable()
-class PaginationMeta {
-  @JsonKey(name: 'current_page')
-  final int currentPage;
-  @JsonKey(name: 'last_page')
-  final int lastPage;
-  @JsonKey(name: 'per_page')
-  final int perPage;
+/// Response for paginated products
+class ProductsResponse {
+  final List<ProductModel> products;
   final int total;
+  final int page;
+  final int pages;
 
-  const PaginationMeta({
-    required this.currentPage,
-    required this.lastPage,
-    required this.perPage,
+  ProductsResponse({
+    required this.products,
     required this.total,
+    required this.page,
+    required this.pages,
   });
 
-  factory PaginationMeta.fromJson(Map<String, dynamic> json) =>
-      _$PaginationMetaFromJson(json);
-  Map<String, dynamic> toJson() => _$PaginationMetaToJson(this);
+  factory ProductsResponse.fromJson(Map<String, dynamic> json) {
+    return ProductsResponse(
+      products: (json['data'] as List? ?? [])
+          .map((p) => ProductModel.fromJson(p))
+          .toList(),
+      total: json['meta']?['total'] ?? 0,
+      page: json['meta']?['page'] ?? 1,
+      pages: json['meta']?['pages'] ?? 1,
+    );
+  }
 
-  bool get hasNextPage => currentPage < lastPage;
+  List<ProductEntity> toEntities() =>
+      products.map((p) => p.toEntity()).toList();
+
+  bool get hasNextPage => page < pages;
 }

@@ -4,29 +4,31 @@ library;
 import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
+import '../../domain/enums/notification_enums.dart';
 import '../models/notification_model.dart';
+import '../models/push_token_model.dart';
 
 /// Abstract interface for notifications data source
 abstract class NotificationsRemoteDataSource {
-  /// Get all notifications with pagination
-  Future<List<NotificationModel>> getNotifications({
+  /// Get my notifications with pagination
+  Future<NotificationsResponse> getMyNotifications({
     int page = 1,
     int limit = 20,
-    String? type,
-    bool? unreadOnly,
+    NotificationCategory? category,
+    bool? isRead,
   });
 
   /// Get notification by ID
-  Future<NotificationModel> getNotificationById(int id);
+  Future<NotificationModel> getNotificationById(String id);
 
   /// Mark notification as read
-  Future<bool> markAsRead(int id);
+  Future<bool> markAsRead(String id);
 
   /// Mark all notifications as read
   Future<bool> markAllAsRead();
 
   /// Delete notification
-  Future<bool> deleteNotification(int id);
+  Future<bool> deleteNotification(String id);
 
   /// Delete all notifications
   Future<bool> deleteAllNotifications();
@@ -42,11 +44,11 @@ abstract class NotificationsRemoteDataSource {
     NotificationSettingsModel settings,
   );
 
-  /// Register FCM token
-  Future<bool> registerFcmToken(String token);
+  /// Register push token
+  Future<PushTokenModel> registerPushToken(PushTokenRequest request);
 
-  /// Unregister FCM token
-  Future<bool> unregisterFcmToken(String token);
+  /// Unregister push token
+  Future<bool> unregisterPushToken(String token);
 }
 
 /// Implementation of NotificationsRemoteDataSource using API client
@@ -58,11 +60,11 @@ class NotificationsRemoteDataSourceImpl
     : _apiClient = apiClient;
 
   @override
-  Future<List<NotificationModel>> getNotifications({
+  Future<NotificationsResponse> getMyNotifications({
     int page = 1,
     int limit = 20,
-    String? type,
-    bool? unreadOnly,
+    NotificationCategory? category,
+    bool? isRead,
   }) async {
     developer.log(
       'Fetching notifications (page: $page)',
@@ -70,23 +72,20 @@ class NotificationsRemoteDataSourceImpl
     );
 
     final response = await _apiClient.get(
-      ApiEndpoints.notifications,
+      ApiEndpoints.notificationsMy,
       queryParameters: {
         'page': page,
         'limit': limit,
-        if (type != null) 'type': type,
-        if (unreadOnly != null) 'unread_only': unreadOnly,
+        if (category != null) 'category': category.name,
+        if (isRead != null) 'isRead': isRead,
       },
     );
 
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => NotificationModel.fromJson(json)).toList();
+    return NotificationsResponse.fromJson(response.data);
   }
 
   @override
-  Future<NotificationModel> getNotificationById(int id) async {
+  Future<NotificationModel> getNotificationById(String id) async {
     developer.log(
       'Fetching notification: $id',
       name: 'NotificationsDataSource',
@@ -99,10 +98,10 @@ class NotificationsRemoteDataSourceImpl
   }
 
   @override
-  Future<bool> markAsRead(int id) async {
+  Future<bool> markAsRead(String id) async {
     developer.log('Marking as read: $id', name: 'NotificationsDataSource');
 
-    final response = await _apiClient.post(
+    final response = await _apiClient.put(
       '${ApiEndpoints.notifications}/$id/read',
     );
 
@@ -113,15 +112,13 @@ class NotificationsRemoteDataSourceImpl
   Future<bool> markAllAsRead() async {
     developer.log('Marking all as read', name: 'NotificationsDataSource');
 
-    final response = await _apiClient.post(
-      '${ApiEndpoints.notifications}/read-all',
-    );
+    final response = await _apiClient.put(ApiEndpoints.notificationsReadAll);
 
     return response.statusCode == 200;
   }
 
   @override
-  Future<bool> deleteNotification(int id) async {
+  Future<bool> deleteNotification(String id) async {
     developer.log(
       'Deleting notification: $id',
       name: 'NotificationsDataSource',
@@ -131,7 +128,7 @@ class NotificationsRemoteDataSourceImpl
       '${ApiEndpoints.notifications}/$id',
     );
 
-    return response.statusCode == 200;
+    return response.statusCode == 200 || response.statusCode == 204;
   }
 
   @override
@@ -142,7 +139,7 @@ class NotificationsRemoteDataSourceImpl
     );
 
     final response = await _apiClient.delete(ApiEndpoints.notifications);
-    return response.statusCode == 200;
+    return response.statusCode == 200 || response.statusCode == 204;
   }
 
   @override
@@ -154,7 +151,7 @@ class NotificationsRemoteDataSourceImpl
     );
     final data = response.data['data'] ?? response.data;
 
-    return data['count'] ?? 0;
+    return data['count'] ?? data['unreadCount'] ?? 0;
   }
 
   @override
@@ -191,26 +188,27 @@ class NotificationsRemoteDataSourceImpl
   }
 
   @override
-  Future<bool> registerFcmToken(String token) async {
-    developer.log('Registering FCM token', name: 'NotificationsDataSource');
+  Future<PushTokenModel> registerPushToken(PushTokenRequest request) async {
+    developer.log('Registering push token', name: 'NotificationsDataSource');
 
     final response = await _apiClient.post(
-      ApiEndpoints.fcmToken,
-      data: {'token': token},
+      ApiEndpoints.notificationsToken,
+      data: request.toJson(),
     );
 
-    return response.statusCode == 200;
+    final data = response.data['data'] ?? response.data;
+    return PushTokenModel.fromJson(data);
   }
 
   @override
-  Future<bool> unregisterFcmToken(String token) async {
-    developer.log('Unregistering FCM token', name: 'NotificationsDataSource');
+  Future<bool> unregisterPushToken(String token) async {
+    developer.log('Unregistering push token', name: 'NotificationsDataSource');
 
     final response = await _apiClient.delete(
-      ApiEndpoints.fcmToken,
+      ApiEndpoints.notificationsToken,
       data: {'token': token},
     );
 
-    return response.statusCode == 200;
+    return response.statusCode == 200 || response.statusCode == 204;
   }
 }
