@@ -7,9 +7,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
-import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../data/datasources/catalog_remote_datasource.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -22,9 +23,8 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
-  final _dataSource = CatalogMockDataSource();
+  final _dataSource = getIt<CatalogRemoteDataSource>();
 
-  List<ProductEntity> _allProducts = [];
   List<ProductEntity> _searchResults = [];
   List<String> _recentSearches = ['شاشة آيفون', 'بطارية سامسونج', 'كابل شحن'];
   bool _isLoading = false;
@@ -33,7 +33,6 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProducts();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
@@ -46,12 +45,7 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  Future<void> _loadProducts() async {
-    final products = await _dataSource.getFeaturedProducts();
-    setState(() => _allProducts = products);
-  }
-
-  void _performSearch(String query) {
+  Future<void> _performSearchAsync(String query) async {
     if (query.isEmpty) {
       setState(() {
         _searchResults = [];
@@ -62,15 +56,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
     setState(() => _isLoading = true);
 
-    // Simulate search delay
-    Future.delayed(const Duration(milliseconds: 300), () {
-      final results = _allProducts.where((product) {
-        final name = product.nameAr.toLowerCase();
-        final sku = product.sku.toLowerCase();
-        final q = query.toLowerCase();
-        return name.contains(q) || sku.contains(q);
-      }).toList();
-
+    try {
+      final results = await _dataSource.searchProducts(query);
       setState(() {
         _searchResults = results;
         _hasSearched = true;
@@ -84,7 +71,17 @@ class _SearchScreenState extends State<SearchScreen> {
           _recentSearches.removeLast();
         }
       }
-    });
+    } catch (e) {
+      setState(() {
+        _searchResults = [];
+        _hasSearched = true;
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _performSearch(String query) {
+    _performSearchAsync(query);
   }
 
   @override

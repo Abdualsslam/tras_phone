@@ -6,9 +6,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
-import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../data/datasources/catalog_remote_datasource.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class CategoryProductsScreen extends StatefulWidget {
@@ -26,7 +27,7 @@ class CategoryProductsScreen extends StatefulWidget {
 }
 
 class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
-  final _dataSource = CatalogMockDataSource();
+  final _dataSource = getIt<CatalogRemoteDataSource>();
   List<ProductEntity> _products = [];
   bool _isLoading = true;
   String _sortBy = 'newest';
@@ -41,8 +42,8 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
   Future<void> _loadProducts() async {
     setState(() => _isLoading = true);
     try {
-      final products = await _dataSource.getProductsByCategory(
-        widget.categoryId,
+      final products = await _dataSource.getProducts(
+        categoryId: widget.categoryId,
       );
       setState(() {
         _products = products;

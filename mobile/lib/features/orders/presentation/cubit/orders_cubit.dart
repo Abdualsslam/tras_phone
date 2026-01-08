@@ -3,14 +3,14 @@ library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/order_entity.dart';
-import '../../data/datasources/orders_mock_datasource.dart';
+import '../../data/datasources/orders_remote_datasource.dart';
 import 'orders_state.dart';
 
 class OrdersCubit extends Cubit<OrdersState> {
-  final OrdersMockDataSource _dataSource;
+  final OrdersRemoteDataSource _dataSource;
 
-  OrdersCubit({OrdersMockDataSource? dataSource})
-    : _dataSource = dataSource ?? OrdersMockDataSource(),
+  OrdersCubit({required OrdersRemoteDataSource dataSource})
+    : _dataSource = dataSource,
       super(const OrdersInitial());
 
   /// Load orders
@@ -31,9 +31,9 @@ class OrdersCubit extends Cubit<OrdersState> {
   }
 
   /// Cancel order
-  Future<void> cancelOrder(String orderId) async {
+  Future<void> cancelOrder(int orderId, {String? reason}) async {
     try {
-      await _dataSource.cancelOrder(orderId);
+      await _dataSource.cancelOrder(orderId, reason: reason);
       await loadOrders();
     } catch (e) {
       emit(OrdersError(e.toString()));
@@ -41,12 +41,47 @@ class OrdersCubit extends Cubit<OrdersState> {
   }
 
   /// Reorder
-  Future<void> reorder(String orderId) async {
+  Future<void> reorder(int orderId) async {
     try {
       await _dataSource.reorder(orderId);
       await loadOrders();
     } catch (e) {
       emit(OrdersError(e.toString()));
+    }
+  }
+
+  /// Get order by ID
+  Future<OrderEntity?> getOrderById(int orderId) async {
+    try {
+      return await _dataSource.getOrderById(orderId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Track order
+  Future<Map<String, dynamic>?> trackOrder(int orderId) async {
+    try {
+      return await _dataSource.trackOrder(orderId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Rate order
+  Future<bool> rateOrder({
+    required int orderId,
+    required int rating,
+    String? comment,
+  }) async {
+    try {
+      return await _dataSource.rateOrder(
+        orderId: orderId,
+        rating: rating,
+        comment: comment,
+      );
+    } catch (e) {
+      return false;
     }
   }
 }

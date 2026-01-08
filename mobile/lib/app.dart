@@ -10,8 +10,11 @@ import 'core/di/injection.dart';
 import 'core/storage/local_storage.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/cart/presentation/cubit/cart_cubit.dart';
+import 'features/cart/data/datasources/cart_remote_datasource.dart';
 import 'features/home/presentation/cubit/home_cubit.dart';
+import 'features/catalog/data/datasources/catalog_remote_datasource.dart';
 import 'features/orders/presentation/cubit/orders_cubit.dart';
+import 'features/orders/data/datasources/orders_remote_datasource.dart';
 import 'l10n/app_localizations.dart';
 import 'routes/app_router.dart';
 
@@ -33,9 +36,18 @@ class TrasPhoneApp extends StatelessWidget {
                     ..loadSavedLocale(),
             ),
             BlocProvider(create: (_) => getIt<AuthCubit>()),
-            BlocProvider(create: (_) => HomeCubit()),
-            BlocProvider(create: (_) => CartCubit()),
-            BlocProvider(create: (_) => OrdersCubit()),
+            BlocProvider(
+              create: (_) =>
+                  HomeCubit(dataSource: getIt<CatalogRemoteDataSource>()),
+            ),
+            BlocProvider(
+              create: (_) =>
+                  CartCubit(dataSource: getIt<CartRemoteDataSource>()),
+            ),
+            BlocProvider(
+              create: (_) =>
+                  OrdersCubit(dataSource: getIt<OrdersRemoteDataSource>()),
+            ),
           ],
           child: BlocBuilder<LocaleCubit, LocaleState>(
             builder: (context, localeState) {

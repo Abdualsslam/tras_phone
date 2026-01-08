@@ -7,8 +7,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
 import '../../domain/entities/brand_entity.dart';
-import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../data/datasources/catalog_remote_datasource.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class BrandsListScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class BrandsListScreen extends StatefulWidget {
 }
 
 class _BrandsListScreenState extends State<BrandsListScreen> {
-  final _dataSource = CatalogMockDataSource();
+  final _dataSource = getIt<CatalogRemoteDataSource>();
   List<BrandEntity> _brands = [];
   bool _isLoading = true;
 
@@ -30,11 +31,20 @@ class _BrandsListScreenState extends State<BrandsListScreen> {
   }
 
   Future<void> _loadBrands() async {
-    final brands = await _dataSource.getBrands();
     setState(() {
-      _brands = brands;
-      _isLoading = false;
+      _isLoading = true;
     });
+    try {
+      final brands = await _dataSource.getBrands();
+      setState(() {
+        _brands = brands;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override

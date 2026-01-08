@@ -6,10 +6,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/category_entity.dart';
-import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../data/datasources/catalog_remote_datasource.dart';
 
 class DeviceProductsScreen extends StatefulWidget {
   final String deviceId;
@@ -27,7 +28,7 @@ class DeviceProductsScreen extends StatefulWidget {
 
 class _DeviceProductsScreenState extends State<DeviceProductsScreen>
     with SingleTickerProviderStateMixin {
-  final _dataSource = CatalogMockDataSource();
+  final _dataSource = getIt<CatalogRemoteDataSource>();
   List<CategoryEntity> _categories = [];
   List<ProductEntity> _products = [];
   bool _isLoading = true;
@@ -49,7 +50,7 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen>
     setState(() => _isLoading = true);
     try {
       final categories = await _dataSource.getCategories();
-      final products = await _dataSource.getFeaturedProducts();
+      final products = await _dataSource.getProducts(deviceId: widget.deviceId);
 
       setState(() {
         _categories = categories;

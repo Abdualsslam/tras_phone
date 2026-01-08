@@ -6,7 +6,7 @@ import '../../domain/enums/product_enums.dart';
 
 part 'product_review_model.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(createFactory: false)
 class ProductReviewModel {
   @JsonKey(name: 'id', readValue: _readId)
   final String id;

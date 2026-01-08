@@ -7,10 +7,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/product_entity.dart';
-import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../data/datasources/catalog_remote_datasource.dart';
 
 class BrandDetailsScreen extends StatefulWidget {
   final String brandId;
@@ -23,7 +24,7 @@ class BrandDetailsScreen extends StatefulWidget {
 }
 
 class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
-  final _dataSource = CatalogMockDataSource();
+  final _dataSource = getIt<CatalogRemoteDataSource>();
   BrandEntity? _brand;
   List<ProductEntity> _products = [];
   bool _isLoading = true;
@@ -45,7 +46,7 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
           orElse: () => brands.first,
         );
       }
-      final products = await _dataSource.getProductsByBrand(widget.brandId);
+      final products = await _dataSource.getProducts(brandId: widget.brandId);
       setState(() {
         _products = products;
         _isLoading = false;

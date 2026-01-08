@@ -7,16 +7,12 @@ import '../network/network_info.dart';
 import '../network/token_manager.dart';
 import '../storage/local_storage.dart';
 import '../storage/secure_storage.dart';
-import '../../features/auth/data/datasources/auth_mock_datasource.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
-import '../../features/catalog/data/datasources/catalog_mock_datasource.dart';
 import '../../features/catalog/data/datasources/catalog_remote_datasource.dart';
-import '../../features/cart/data/datasources/cart_mock_datasource.dart';
 import '../../features/cart/data/datasources/cart_remote_datasource.dart';
-import '../../features/orders/data/datasources/orders_mock_datasource.dart';
 import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
 import '../../features/wishlist/data/datasources/wishlist_remote_datasource.dart';
@@ -26,9 +22,6 @@ import '../../features/support/data/datasources/support_remote_datasource.dart';
 import '../../features/reviews/data/datasources/reviews_remote_datasource.dart';
 
 final getIt = GetIt.instance;
-
-/// Whether to use mock data instead of real API
-const bool useMockData = true; // Set to false when API is ready
 
 Future<void> setupDependencies() async {
   // ═══════════════════════════════════════════════════════════════════════════
@@ -64,7 +57,6 @@ Future<void> setupDependencies() async {
   // ═══════════════════════════════════════════════════════════════════════════
 
   // DataSources
-  getIt.registerLazySingleton<AuthMockDataSource>(() => AuthMockDataSource());
   getIt.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
@@ -72,7 +64,7 @@ Future<void> setupDependencies() async {
   // Repository
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(
-      dataSource: getIt<AuthRemoteDataSource>(), // Using real API
+      dataSource: getIt<AuthRemoteDataSource>(),
       localStorage: getIt<LocalStorage>(),
       secureStorage: getIt<SecureStorage>(),
     ),
@@ -88,58 +80,27 @@ Future<void> setupDependencies() async {
   // ═══════════════════════════════════════════════════════════════════════════
 
   // DataSources
-  getIt.registerLazySingleton<CatalogMockDataSource>(
-    () => CatalogMockDataSource(),
-  );
   getIt.registerLazySingleton<CatalogRemoteDataSource>(
     () => CatalogRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
-
-  // Repository and Cubit will be added when implementing presentation layer
-  // getIt.registerLazySingleton<CatalogRepository>(
-  //   () => CatalogRepositoryImpl(dataSource: getIt<CatalogRemoteDataSource>()),
-  // );
-  // getIt.registerFactory<CatalogCubit>(
-  //   () => CatalogCubit(catalogRepository: getIt<CatalogRepository>()),
-  // );
 
   // ═══════════════════════════════════════════════════════════════════════════
   // CART FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
 
   // DataSources
-  getIt.registerLazySingleton<CartMockDataSource>(() => CartMockDataSource());
   getIt.registerLazySingleton<CartRemoteDataSource>(
     () => CartRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
-
-  // Repository and Cubit will be added when implementing presentation layer
-  // getIt.registerLazySingleton<CartRepository>(
-  //   () => CartRepositoryImpl(dataSource: getIt<CartRemoteDataSource>()),
-  // );
-  // getIt.registerFactory<CartCubit>(
-  //   () => CartCubit(cartRepository: getIt<CartRepository>()),
-  // );
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ORDERS FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
 
   // DataSources
-  getIt.registerLazySingleton<OrdersMockDataSource>(
-    () => OrdersMockDataSource(),
-  );
   getIt.registerLazySingleton<OrdersRemoteDataSource>(
     () => OrdersRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
-
-  // Repository and Cubit will be added when implementing presentation layer
-  // getIt.registerLazySingleton<OrdersRepository>(
-  //   () => OrdersRepositoryImpl(dataSource: getIt<OrdersRemoteDataSource>()),
-  // );
-  // getIt.registerFactory<OrdersCubit>(
-  //   () => OrdersCubit(ordersRepository: getIt<OrdersRepository>()),
-  // );
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PROFILE FEATURE

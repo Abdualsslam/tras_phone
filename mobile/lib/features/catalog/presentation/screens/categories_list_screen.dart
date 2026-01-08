@@ -7,8 +7,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
 import '../../domain/entities/category_entity.dart';
-import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../data/datasources/catalog_remote_datasource.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class CategoriesListScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class CategoriesListScreen extends StatefulWidget {
 }
 
 class _CategoriesListScreenState extends State<CategoriesListScreen> {
-  final _dataSource = CatalogMockDataSource();
+  final _dataSource = getIt<CatalogRemoteDataSource>();
   List<CategoryEntity> _categories = [];
   bool _isLoading = true;
 
@@ -30,11 +31,20 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
   }
 
   Future<void> _loadCategories() async {
-    final categories = await _dataSource.getCategories();
     setState(() {
-      _categories = categories;
-      _isLoading = false;
+      _isLoading = true;
     });
+    try {
+      final categories = await _dataSource.getCategories();
+      setState(() {
+        _categories = categories;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
