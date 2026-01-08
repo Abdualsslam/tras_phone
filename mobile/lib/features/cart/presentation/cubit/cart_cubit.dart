@@ -2,14 +2,14 @@
 library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/datasources/cart_mock_datasource.dart';
+import '../../data/datasources/cart_remote_datasource.dart';
 import 'cart_state.dart';
 
 class CartCubit extends Cubit<CartState> {
-  final CartMockDataSource _dataSource;
+  final CartRemoteDataSource _dataSource;
 
-  CartCubit({CartMockDataSource? dataSource})
-    : _dataSource = dataSource ?? CartMockDataSource(),
+  CartCubit({required CartRemoteDataSource dataSource})
+    : _dataSource = dataSource,
       super(const CartInitial());
 
   /// Load cart
@@ -25,14 +25,7 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Add product to cart
-  Future<void> addToCart({
-    required String productId,
-    required String productName,
-    String? productNameAr,
-    String? productImage,
-    required double unitPrice,
-    int quantity = 1,
-  }) async {
+  Future<void> addToCart({required String productId, int quantity = 1}) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
       emit(CartUpdating(currentCart));
@@ -40,11 +33,7 @@ class CartCubit extends Cubit<CartState> {
 
     try {
       final cart = await _dataSource.addToCart(
-        productId: productId,
-        productName: productName,
-        productNameAr: productNameAr,
-        productImage: productImage,
-        unitPrice: unitPrice,
+        productId: int.tryParse(productId) ?? 0,
         quantity: quantity,
       );
       emit(CartLoaded(cart));
@@ -54,7 +43,7 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Update item quantity
-  Future<void> updateQuantity(String productId, int quantity) async {
+  Future<void> updateQuantity(String itemId, int quantity) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
       emit(CartUpdating(currentCart));
@@ -62,7 +51,7 @@ class CartCubit extends Cubit<CartState> {
 
     try {
       final cart = await _dataSource.updateQuantity(
-        productId: productId,
+        itemId: int.tryParse(itemId) ?? 0,
         quantity: quantity,
       );
       emit(CartLoaded(cart));
@@ -72,14 +61,16 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Remove item from cart
-  Future<void> removeFromCart(String productId) async {
+  Future<void> removeFromCart(String itemId) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
       emit(CartUpdating(currentCart));
     }
 
     try {
-      final cart = await _dataSource.removeFromCart(productId: productId);
+      final cart = await _dataSource.removeFromCart(
+        itemId: int.tryParse(itemId) ?? 0,
+      );
       emit(CartLoaded(cart));
     } catch (e) {
       emit(CartError(e.toString(), previousCart: currentCart));
@@ -125,6 +116,15 @@ class CartCubit extends Cubit<CartState> {
       emit(CartLoaded(cart));
     } catch (e) {
       emit(CartError(e.toString(), previousCart: currentCart));
+    }
+  }
+
+  /// Get cart count
+  Future<int> getCartCount() async {
+    try {
+      return await _dataSource.getCartCount();
+    } catch (e) {
+      return 0;
     }
   }
 }

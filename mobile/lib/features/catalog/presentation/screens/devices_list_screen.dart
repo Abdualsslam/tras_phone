@@ -7,8 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
+import '../../../../core/di/injection.dart';
 import '../../domain/entities/brand_entity.dart';
-import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../domain/entities/device_entity.dart';
+import '../../data/datasources/catalog_remote_datasource.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class DevicesListScreen extends StatefulWidget {
@@ -19,10 +21,10 @@ class DevicesListScreen extends StatefulWidget {
 }
 
 class _DevicesListScreenState extends State<DevicesListScreen> {
-  final _dataSource = CatalogMockDataSource();
+  final _dataSource = getIt<CatalogRemoteDataSource>();
   List<BrandEntity> _brands = [];
   String? _selectedBrandId;
-  List<_DeviceModel> _devices = [];
+  List<DeviceEntity> _devices = [];
   bool _isLoading = true;
   final _searchController = TextEditingController();
 
@@ -55,63 +57,18 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
     }
   }
 
-  void _loadDevices() {
-    // Mock devices data
-    final mockDevices = <_DeviceModel>[
-      _DeviceModel(
-        id: '1',
-        name: 'iPhone 15 Pro Max',
-        brandId: '1',
-        year: 2023,
-      ),
-      _DeviceModel(id: '2', name: 'iPhone 15 Pro', brandId: '1', year: 2023),
-      _DeviceModel(id: '3', name: 'iPhone 15', brandId: '1', year: 2023),
-      _DeviceModel(
-        id: '4',
-        name: 'iPhone 14 Pro Max',
-        brandId: '1',
-        year: 2022,
-      ),
-      _DeviceModel(id: '5', name: 'iPhone 14 Pro', brandId: '1', year: 2022),
-      _DeviceModel(id: '6', name: 'iPhone 14', brandId: '1', year: 2022),
-      _DeviceModel(
-        id: '7',
-        name: 'iPhone 13 Pro Max',
-        brandId: '1',
-        year: 2021,
-      ),
-      _DeviceModel(id: '8', name: 'Galaxy S24 Ultra', brandId: '2', year: 2024),
-      _DeviceModel(id: '9', name: 'Galaxy S24+', brandId: '2', year: 2024),
-      _DeviceModel(id: '10', name: 'Galaxy S24', brandId: '2', year: 2024),
-      _DeviceModel(
-        id: '11',
-        name: 'Galaxy S23 Ultra',
-        brandId: '2',
-        year: 2023,
-      ),
-      _DeviceModel(id: '12', name: 'Galaxy A54', brandId: '2', year: 2023),
-      _DeviceModel(id: '13', name: 'Huawei P60 Pro', brandId: '3', year: 2023),
-      _DeviceModel(
-        id: '14',
-        name: 'Huawei Mate 60 Pro',
-        brandId: '3',
-        year: 2023,
-      ),
-      _DeviceModel(id: '15', name: 'Xiaomi 14 Pro', brandId: '4', year: 2024),
-      _DeviceModel(id: '16', name: 'Xiaomi 13 Ultra', brandId: '4', year: 2023),
-      _DeviceModel(
-        id: '17',
-        name: 'Redmi Note 13 Pro',
-        brandId: '4',
-        year: 2024,
-      ),
-    ];
-
-    setState(() {
-      _devices = mockDevices
-          .where((d) => d.brandId == _selectedBrandId)
-          .toList();
-    });
+  Future<void> _loadDevices() async {
+    if (_selectedBrandId == null) return;
+    try {
+      final devices = await _dataSource.getDevicesByBrand(_selectedBrandId!);
+      setState(() {
+        _devices = devices;
+      });
+    } catch (e) {
+      setState(() {
+        _devices = [];
+      });
+    }
   }
 
   @override
@@ -223,51 +180,28 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
   Widget _buildDevicesList(bool isDark) {
     final searchQuery = _searchController.text.toLowerCase();
     final filteredDevices = _devices
-        .where((d) => d.name.toLowerCase().contains(searchQuery))
+        .where(
+          (d) =>
+              d.name.toLowerCase().contains(searchQuery) ||
+              d.nameAr.toLowerCase().contains(searchQuery),
+        )
         .toList();
 
-    // Group by year
-    final devicesByYear = <int, List<_DeviceModel>>{};
-    for (final device in filteredDevices) {
-      devicesByYear.putIfAbsent(device.year, () => []).add(device);
+    if (filteredDevices.isEmpty) {
+      return _buildEmptyState(isDark);
     }
-
-    final years = devicesByYear.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return ListView.builder(
       padding: EdgeInsets.all(16.w),
-      itemCount: years.length,
+      itemCount: filteredDevices.length,
       itemBuilder: (context, index) {
-        final year = years[index];
-        final devices = devicesByYear[year]!;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Year Header
-            Padding(
-              padding: EdgeInsets.only(bottom: 12.h, top: index > 0 ? 16.h : 0),
-              child: Text(
-                year.toString(),
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w700,
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimaryLight,
-                ),
-              ),
-            ),
-
-            // Devices
-            ...devices.map((device) => _buildDeviceCard(device, isDark)),
-          ],
-        );
+        final device = filteredDevices[index];
+        return _buildDeviceCard(device, isDark);
       },
     );
   }
 
-  Widget _buildDeviceCard(_DeviceModel device, bool isDark) {
+  Widget _buildDeviceCard(DeviceEntity device, bool isDark) {
     return GestureDetector(
       onTap: () => context.push('/device/${device.id}/products'),
       child: Container(
@@ -304,17 +238,51 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
 
             // Device Name
             Expanded(
-              child: Text(
-                device.name,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimaryLight,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    device.nameAr,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  if (device.modelNumber != null)
+                    Text(
+                      device.modelNumber!,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                ],
               ),
             ),
+
+            // Products count badge
+            if (device.productsCount > 0)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Text(
+                  '${device.productsCount}',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            SizedBox(width: 8.w),
 
             // Arrow
             Icon(
@@ -357,18 +325,4 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
       ),
     );
   }
-}
-
-class _DeviceModel {
-  final String id;
-  final String name;
-  final String brandId;
-  final int year;
-
-  _DeviceModel({
-    required this.id,
-    required this.name,
-    required this.brandId,
-    required this.year,
-  });
 }

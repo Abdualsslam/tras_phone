@@ -34,6 +34,9 @@ class AppColors {
   static const Color backgroundLight = Color(0xFFF8F9FA);
   static const Color surfaceLight = Color(0xFFFFFFFF);
   static const Color cardLight = Color(0xFFFFFFFF);
+  static const Color inputBackgroundLight = Color(
+    0xFFEEF0F2,
+  ); // Slightly darker for input fields
   static const Color dividerLight = Color(0xFFE9ECEF);
   static const Color textPrimaryLight = Color(0xFF212529);
   static const Color textSecondaryLight = Color(0xFF6C757D);

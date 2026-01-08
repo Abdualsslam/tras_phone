@@ -129,7 +129,7 @@ class _AppTextFieldState extends State<AppTextField> {
               filled: true,
               fillColor: isDark
                   ? AppColors.surfaceDark
-                  : AppColors.backgroundLight,
+                  : AppColors.inputBackgroundLight,
               contentPadding:
                   widget.contentPadding ??
                   EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),

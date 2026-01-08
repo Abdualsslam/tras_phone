@@ -2,14 +2,14 @@
 library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../catalog/data/datasources/catalog_mock_datasource.dart';
+import '../../../catalog/data/datasources/catalog_remote_datasource.dart';
 import 'home_state.dart';
 
 class HomeCubit extends Cubit<HomeState> {
-  final CatalogMockDataSource _dataSource;
+  final CatalogRemoteDataSource _dataSource;
 
-  HomeCubit({CatalogMockDataSource? dataSource})
-    : _dataSource = dataSource ?? CatalogMockDataSource(),
+  HomeCubit({required CatalogRemoteDataSource dataSource})
+    : _dataSource = dataSource,
       super(const HomeInitial());
 
   Future<void> loadHomeData() async {

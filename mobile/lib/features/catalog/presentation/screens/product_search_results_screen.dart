@@ -6,9 +6,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
-import '../../data/datasources/catalog_mock_datasource.dart';
+import '../../data/datasources/catalog_remote_datasource.dart';
 
 class ProductSearchResultsScreen extends StatefulWidget {
   final Map<String, dynamic>? filters;
@@ -22,7 +23,7 @@ class ProductSearchResultsScreen extends StatefulWidget {
 
 class _ProductSearchResultsScreenState
     extends State<ProductSearchResultsScreen> {
-  final _dataSource = CatalogMockDataSource();
+  final _dataSource = getIt<CatalogRemoteDataSource>();
   List<ProductEntity> _products = [];
   bool _isLoading = true;
   String _sortBy = 'relevance';
@@ -41,16 +42,20 @@ class _ProductSearchResultsScreenState
       );
       // Apply filters
       var filtered = products.where((p) {
-        if (widget.filters?['inStock'] == true && p.stockQuantity <= 0)
+        if (widget.filters?['inStock'] == true && p.stockQuantity <= 0) {
           return false;
-        if (widget.filters?['onSale'] == true && p.originalPrice == null)
+        }
+        if (widget.filters?['onSale'] == true && p.originalPrice == null) {
           return false;
+        }
         if (widget.filters?['minPrice'] != null &&
-            p.price < widget.filters!['minPrice'])
+            p.price < widget.filters!['minPrice']) {
           return false;
+        }
         if (widget.filters?['maxPrice'] != null &&
-            p.price > widget.filters!['maxPrice'])
+            p.price > widget.filters!['maxPrice']) {
           return false;
+        }
         return true;
       }).toList();
 
