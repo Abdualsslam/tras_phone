@@ -1,7 +1,8 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import type { ApiResponse } from '@/types';
 
-const API_BASE_URL = 'http://localhost:3000/api/v1';
+// const API_BASE_URL = 'http://localhost:3000/api/v1';
+const API_BASE_URL = 'http://api-trasphone.smartagency-ye.com/api/v1';
 
 // Create axios instance
 export const apiClient = axios.create({
