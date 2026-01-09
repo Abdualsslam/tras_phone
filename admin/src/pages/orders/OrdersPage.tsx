@@ -36,8 +36,11 @@ import {
     ShoppingCart,
     Loader2,
     AlertCircle,
+    Clock,
+    CheckCircle,
+    Package,
 } from 'lucide-react';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, formatNumber } from '@/lib/utils';
 
 const orderStatusVariants: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
     pending: 'warning',
@@ -83,6 +86,12 @@ export function OrdersPage() {
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
     const locale = i18n.language === 'ar' ? 'ar-SA' : 'en-US';
 
+    // Fetch stats
+    const { data: stats } = useQuery({
+        queryKey: ['orders-stats'],
+        queryFn: () => ordersApi.getStats(),
+    });
+
     // Fetch orders
     const { data, isLoading, error } = useQuery({
         queryKey: ['orders', searchQuery, statusFilter],
@@ -108,6 +117,62 @@ export function OrdersPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('orders.title')}</h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">متابعة وإدارة الطلبات</p>
                 </div>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">إجمالي الطلبات</p>
+                                <p className="text-2xl font-bold">{formatNumber(stats?.totalOrders || 0)}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                                <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">قيد الانتظار</p>
+                                <p className="text-2xl font-bold">{stats?.pendingOrders || 0}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                <Package className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">تم الشحن</p>
+                                <p className="text-2xl font-bold">{stats?.shippedOrders || 0}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">تم التوصيل</p>
+                                <p className="text-2xl font-bold">{stats?.deliveredOrders || 0}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Search and Filters */}

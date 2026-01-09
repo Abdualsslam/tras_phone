@@ -1,8 +1,23 @@
-import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
-import { inventoryApi } from '@/api/inventory.api';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { inventoryApi, type Warehouse } from '@/api/inventory.api';
+import { toast } from 'sonner';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
 import {
     Table,
     TableBody,
@@ -12,195 +27,631 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
-    Warehouse,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Warehouse as WarehouseIcon,
     Package,
-    TrendingUp,
-    TrendingDown,
     AlertTriangle,
+    ArrowLeftRight,
+    Plus,
+    Pencil,
     Loader2,
+    TrendingDown,
+    TrendingUp,
+    CheckCircle,
+    Clock,
 } from 'lucide-react';
-import { cn, formatNumber } from '@/lib/utils';
-
+import { formatDate, formatNumber } from '@/lib/utils';
 
 export function InventoryPage() {
-    const { t, i18n } = useTranslation();
-    const locale = i18n.language === 'ar' ? 'ar-SA' : 'en-US';
+    const queryClient = useQueryClient();
 
-    // Fetch warehouses from backend
-    const { data: warehouses, isLoading: warehousesLoading } = useQuery({
-        queryKey: ['warehouses'],
-        queryFn: inventoryApi.getWarehouses,
+    const [activeTab, setActiveTab] = useState('overview');
+    const [isWarehouseDialogOpen, setIsWarehouseDialogOpen] = useState(false);
+    const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<Warehouse | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [stockFilter, setStockFilter] = useState<string>('all');
+
+    // Queries
+    const { data: stats } = useQuery({
+        queryKey: ['inventory-stats'],
+        queryFn: () => inventoryApi.getStats(),
     });
 
-    // Fetch stock alerts from backend
-    const { data: alerts, isLoading: alertsLoading } = useQuery({
-        queryKey: ['stock-alerts'],
-        queryFn: () => inventoryApi.getAlerts(),
+    const { data: warehouses = [], isLoading: warehousesLoading } = useQuery({
+        queryKey: ['inventory-warehouses'],
+        queryFn: () => inventoryApi.getWarehouses(),
     });
 
-    const isLoading = warehousesLoading || alertsLoading;
+    const { data: stock = [], isLoading: stockLoading } = useQuery({
+        queryKey: ['inventory-stock', stockFilter],
+        queryFn: () => inventoryApi.getStock(stockFilter !== 'all' ? { status: stockFilter } : undefined),
+    });
 
-    const stats = {
-        totalProducts: warehouses?.reduce((sum, w) => sum + (w.totalProducts || 0), 0) || 0,
-        inStock: alerts?.filter((a) => a.status === 'resolved').length || 0,
-        lowStock: alerts?.filter((a) => a.status === 'pending').length || 0,
-        outOfStock: alerts?.filter((a) => a.currentStock === 0).length || 0,
+    const { data: alerts = [], isLoading: alertsLoading } = useQuery({
+        queryKey: ['inventory-alerts'],
+        queryFn: () => inventoryApi.getAlerts('pending'),
+    });
+
+    const { data: movements = [], isLoading: movementsLoading } = useQuery({
+        queryKey: ['inventory-movements'],
+        queryFn: () => inventoryApi.getMovements(),
+    });
+
+    // Mutations
+    const createWarehouseMutation = useMutation({
+        mutationFn: (data: any) => inventoryApi.createWarehouse(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory-warehouses'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory-stats'] });
+            setIsWarehouseDialogOpen(false);
+            toast.success('تم إضافة المستودع');
+        },
+        onError: () => toast.error('حدث خطأ'),
+    });
+
+    const updateWarehouseMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<Warehouse> }) => inventoryApi.updateWarehouse(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory-warehouses'] });
+            setIsWarehouseDialogOpen(false);
+            toast.success('تم تحديث المستودع');
+        },
+        onError: () => toast.error('حدث خطأ'),
+    });
+
+    const transferStockMutation = useMutation({
+        mutationFn: inventoryApi.transferStock,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory-stock'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
+            setIsTransferDialogOpen(false);
+            toast.success('تم نقل المخزون');
+        },
+        onError: () => toast.error('حدث خطأ'),
+    });
+
+    const acknowledgeAlertMutation = useMutation({
+        mutationFn: (id: string) => inventoryApi.acknowledgeAlert(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory-alerts'] });
+            toast.success('تم تأكيد التنبيه');
+        },
+    });
+
+    const resolveAlertMutation = useMutation({
+        mutationFn: (id: string) => inventoryApi.resolveAlert(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory-alerts'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory-stats'] });
+            toast.success('تم حل التنبيه');
+        },
+    });
+
+    // Forms
+    const warehouseForm = useForm({
+        defaultValues: {
+            name: '',
+            nameAr: '',
+            code: '',
+            address: { street: '', city: '', country: '' },
+            isActive: true,
+            isDefault: false,
+        },
+    });
+
+    const transferForm = useForm({
+        defaultValues: {
+            productId: '',
+            fromWarehouseId: '',
+            toWarehouseId: '',
+            quantity: 0,
+            reason: '',
+        },
+    });
+
+    // Handlers
+    const handleAddWarehouse = () => {
+        setIsEditing(false);
+        setSelectedItem(null);
+        warehouseForm.reset({ name: '', nameAr: '', code: '', address: { street: '', city: '', country: '' }, isActive: true, isDefault: false });
+        setIsWarehouseDialogOpen(true);
     };
 
+    const handleEditWarehouse = (warehouse: Warehouse) => {
+        setIsEditing(true);
+        setSelectedItem(warehouse);
+        warehouseForm.reset({
+            name: warehouse.name,
+            nameAr: warehouse.nameAr || '',
+            code: warehouse.code,
+            address: warehouse.address || { street: '', city: '', country: '' },
+            isActive: warehouse.isActive,
+            isDefault: warehouse.isDefault,
+        });
+        setIsWarehouseDialogOpen(true);
+    };
+
+    const onWarehouseSubmit = (data: any) => {
+        if (isEditing && selectedItem) {
+            updateWarehouseMutation.mutate({ id: selectedItem._id, data });
+        } else {
+            createWarehouseMutation.mutate(data);
+        }
+    };
+
+    const onTransferSubmit = (data: any) => {
+        transferStockMutation.mutate(data);
+    };
+
+    // Helpers
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'in_stock': return <Badge variant="success">متوفر</Badge>;
+            case 'low_stock': return <Badge variant="warning">منخفض</Badge>;
+            case 'out_of_stock': return <Badge variant="danger">نفذ</Badge>;
+            default: return <Badge variant="secondary">{status}</Badge>;
+        }
+    };
+
+    const getMovementIcon = (type: string) => {
+        switch (type) {
+            case 'in': return <TrendingUp className="h-4 w-4 text-green-600" />;
+            case 'out': return <TrendingDown className="h-4 w-4 text-red-600" />;
+            case 'transfer': return <ArrowLeftRight className="h-4 w-4 text-blue-600" />;
+            default: return <Package className="h-4 w-4" />;
+        }
+    };
+
+    const renderLoadingState = () => (
+        <div className="flex justify-center items-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+
     return (
-        <div className="space-y-6 animate-fade-in">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('sidebar.inventory')}</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">إدارة المخزون والمستودعات</p>
-                </div>
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-2xl font-bold">إدارة المخزون</h1>
+                <p className="text-muted-foreground text-sm">مراقبة المستودعات والمخزون والتنبيهات</p>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card>
-                    <CardContent className="p-4 flex items-center gap-4">
-                        <div className="p-3 bg-blue-100 rounded-xl">
-                            <Package className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">{formatNumber(stats.totalProducts, locale)}</p>
-                            <p className="text-sm text-gray-500">إجمالي المنتجات</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-4 flex items-center gap-4">
-                        <div className="p-3 bg-green-100 rounded-xl">
-                            <TrendingUp className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">{formatNumber(stats.inStock, locale)}</p>
-                            <p className="text-sm text-gray-500">متوفر</p>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                                <WarehouseIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">المستودعات</p>
+                                <p className="text-2xl font-bold">{stats?.totalWarehouses || warehouses.length}</p>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardContent className="p-4 flex items-center gap-4">
-                        <div className="p-3 bg-yellow-100 rounded-xl">
-                            <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">{formatNumber(stats.lowStock, locale)}</p>
-                            <p className="text-sm text-gray-500">مخزون منخفض</p>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">إجمالي المخزون</p>
+                                <p className="text-2xl font-bold">{formatNumber(stats?.totalStock || 0)}</p>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardContent className="p-4 flex items-center gap-4">
-                        <div className="p-3 bg-red-100 rounded-xl">
-                            <TrendingDown className="h-5 w-5 text-red-600" />
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                                <TrendingDown className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">منخفض المخزون</p>
+                                <p className="text-2xl font-bold">{stats?.lowStockItems || 0}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-2xl font-bold">{formatNumber(stats.outOfStock, locale)}</p>
-                            <p className="text-sm text-gray-500">نفذ</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">تنبيهات معلقة</p>
+                                <p className="text-2xl font-bold">{stats?.pendingAlerts || alerts.length}</p>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Warehouses */}
-            {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
-                </div>
-            ) : (
-                <>
-                    <div className="grid md:grid-cols-3 gap-4">
-                        {warehouses?.map((warehouse) => (
-                            <Card key={warehouse._id}>
-                                <CardContent className="p-4">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="p-2 bg-primary-100 rounded-lg">
-                                            <Warehouse className="h-5 w-5 text-primary-600" />
-                                        </div>
-                                        <div>
-                                            <p className="font-medium">{warehouse.name}</p>
-                                            <p className="text-xs text-gray-500">{warehouse.address?.city || '-'}</p>
-                                        </div>
-                                        {warehouse.isDefault && (
-                                            <Badge variant="default" className="ms-auto">الرئيسي</Badge>
-                                        )}
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 text-center">
-                                        <div className="bg-gray-50 rounded-lg p-2">
-                                            <p className="text-lg font-bold">{formatNumber(warehouse.totalProducts || 0, locale)}</p>
-                                            <p className="text-xs text-gray-500">منتج</p>
-                                        </div>
-                                        <div className="bg-gray-50 rounded-lg p-2">
-                                            <p className="text-lg font-bold">{formatNumber(warehouse.totalStock || 0, locale)}</p>
-                                            <p className="text-xs text-gray-500">وحدة</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="mb-4">
+                    <TabsTrigger value="overview" className="flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        المخزون
+                    </TabsTrigger>
+                    <TabsTrigger value="warehouses" className="flex items-center gap-2">
+                        <WarehouseIcon className="h-4 w-4" />
+                        المستودعات
+                    </TabsTrigger>
+                    <TabsTrigger value="alerts" className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        التنبيهات
+                        {alerts.length > 0 && <Badge variant="danger" className="mr-1">{alerts.length}</Badge>}
+                    </TabsTrigger>
+                    <TabsTrigger value="movements" className="flex items-center gap-2">
+                        <ArrowLeftRight className="h-4 w-4" />
+                        الحركات
+                    </TabsTrigger>
+                </TabsList>
 
-                    {/* Stock Alerts Table */}
+                {/* Stock */}
+                <TabsContent value="overview">
                     <Card>
-                        <CardHeader className="pb-4">
-                            <CardTitle className="text-lg">تنبيهات المخزون</CardTitle>
+                        <CardHeader>
+                            <div className="flex justify-between items-center">
+                                <CardTitle className="flex items-center gap-2">
+                                    <Package className="h-5 w-5" />
+                                    المخزون الحالي
+                                </CardTitle>
+                                <div className="flex gap-2">
+                                    <Select value={stockFilter} onValueChange={setStockFilter}>
+                                        <SelectTrigger className="w-[150px]">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">الكل</SelectItem>
+                                            <SelectItem value="in_stock">متوفر</SelectItem>
+                                            <SelectItem value="low_stock">منخفض</SelectItem>
+                                            <SelectItem value="out_of_stock">نفذ</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Button onClick={() => setIsTransferDialogOpen(true)}>
+                                        <ArrowLeftRight className="h-4 w-4 ml-2" />
+                                        نقل مخزون
+                                    </Button>
+                                </div>
+                            </div>
                         </CardHeader>
-                        <CardContent className="p-0">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>المنتج</TableHead>
-                                        <TableHead>رمز المنتج</TableHead>
-                                        <TableHead>المستودع</TableHead>
-                                        <TableHead>الكمية</TableHead>
-                                        <TableHead>الحد الأدنى</TableHead>
-                                        <TableHead>الحالة</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {alerts?.map((alert) => (
-                                        <TableRow key={alert._id}>
-                                            <TableCell className="font-medium">{alert.product?.name}</TableCell>
-                                            <TableCell className="font-mono text-sm text-gray-500">{alert.product?.sku}</TableCell>
-                                            <TableCell className="text-gray-600">{alert.warehouse?.name}</TableCell>
-                                            <TableCell>
-                                                <span
-                                                    className={cn(
-                                                        'font-medium',
-                                                        alert.currentStock === 0
-                                                            ? 'text-red-600'
-                                                            : alert.currentStock < alert.minStockLevel
-                                                                ? 'text-yellow-600'
-                                                                : 'text-green-600'
-                                                    )}
-                                                >
-                                                    {formatNumber(alert.currentStock, locale)}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-gray-500">{formatNumber(alert.minStockLevel, locale)}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={alert.currentStock === 0 ? 'danger' : 'warning'}>
-                                                    {alert.currentStock === 0 ? 'نفذ' : 'منخفض'}
-                                                </Badge>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {(!alerts || alerts.length === 0) && (
+                        <CardContent>
+                            {stockLoading ? renderLoadingState() : (
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                                                لا توجد تنبيهات مخزون
-                                            </TableCell>
+                                            <TableHead>المنتج</TableHead>
+                                            <TableHead>SKU</TableHead>
+                                            <TableHead>المستودع</TableHead>
+                                            <TableHead>الكمية</TableHead>
+                                            <TableHead>المحجوز</TableHead>
+                                            <TableHead>المتاح</TableHead>
+                                            <TableHead>الحالة</TableHead>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {stock.map((item) => (
+                                            <TableRow key={item._id}>
+                                                <TableCell className="font-medium">{item.product.name}</TableCell>
+                                                <TableCell className="font-mono text-sm">{item.product.sku}</TableCell>
+                                                <TableCell>{item.warehouse.name}</TableCell>
+                                                <TableCell>{formatNumber(item.quantity)}</TableCell>
+                                                <TableCell className="text-muted-foreground">{formatNumber(item.reservedQuantity)}</TableCell>
+                                                <TableCell className="font-medium">{formatNumber(item.availableQuantity)}</TableCell>
+                                                <TableCell>{getStatusBadge(item.status)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
                         </CardContent>
                     </Card>
-                </>
-            )}
+                </TabsContent>
+
+                {/* Warehouses */}
+                <TabsContent value="warehouses">
+                    <Card>
+                        <CardHeader>
+                            <div className="flex justify-between items-center">
+                                <CardTitle className="flex items-center gap-2">
+                                    <WarehouseIcon className="h-5 w-5" />
+                                    المستودعات
+                                </CardTitle>
+                                <Button onClick={handleAddWarehouse}>
+                                    <Plus className="h-4 w-4 ml-2" />
+                                    إضافة مستودع
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {warehousesLoading ? renderLoadingState() : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {warehouses.map((warehouse) => (
+                                        <Card key={warehouse._id} className="border-2">
+                                            <CardContent className="p-4">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div>
+                                                        <h3 className="font-bold text-lg">{warehouse.name}</h3>
+                                                        <p className="text-sm text-muted-foreground font-mono">{warehouse.code}</p>
+                                                    </div>
+                                                    <div className="flex gap-1">
+                                                        {warehouse.isDefault && <Badge variant="outline">افتراضي</Badge>}
+                                                        <Badge variant={warehouse.isActive ? 'success' : 'secondary'}>
+                                                            {warehouse.isActive ? 'نشط' : 'غير نشط'}
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+                                                {warehouse.address && (
+                                                    <p className="text-sm text-muted-foreground mb-3">
+                                                        {[warehouse.address.city, warehouse.address.country].filter(Boolean).join(', ')}
+                                                    </p>
+                                                )}
+                                                <div className="flex justify-between items-center pt-3 border-t">
+                                                    <div className="text-sm">
+                                                        <span className="text-muted-foreground">المخزون: </span>
+                                                        <span className="font-bold">{formatNumber(warehouse.totalStock || 0)}</span>
+                                                    </div>
+                                                    <Button variant="ghost" size="sm" onClick={() => handleEditWarehouse(warehouse)}>
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Alerts */}
+                <TabsContent value="alerts">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5" />
+                                تنبيهات المخزون
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {alertsLoading ? renderLoadingState() : alerts.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <p>لا توجد تنبيهات معلقة</p>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>المنتج</TableHead>
+                                            <TableHead>المستودع</TableHead>
+                                            <TableHead>المخزون الحالي</TableHead>
+                                            <TableHead>الحد الأدنى</TableHead>
+                                            <TableHead>الحالة</TableHead>
+                                            <TableHead>التاريخ</TableHead>
+                                            <TableHead></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {alerts.map((alert) => (
+                                            <TableRow key={alert._id}>
+                                                <TableCell>
+                                                    <div>
+                                                        <p className="font-medium">{alert.product.name}</p>
+                                                        <p className="text-xs text-muted-foreground font-mono">{alert.product.sku}</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{alert.warehouse.name}</TableCell>
+                                                <TableCell className="font-bold text-red-600">{alert.currentStock}</TableCell>
+                                                <TableCell>{alert.minStockLevel}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={alert.status === 'pending' ? 'warning' : 'secondary'}>
+                                                        <Clock className="h-3 w-3 ml-1" />
+                                                        {alert.status === 'pending' ? 'معلق' : alert.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{formatDate(alert.createdAt)}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex gap-1">
+                                                        <Button variant="ghost" size="sm" onClick={() => acknowledgeAlertMutation.mutate(alert._id)}>تأكيد</Button>
+                                                        <Button variant="ghost" size="sm" onClick={() => resolveAlertMutation.mutate(alert._id)}>حل</Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Movements */}
+                <TabsContent value="movements">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <ArrowLeftRight className="h-5 w-5" />
+                                سجل الحركات
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {movementsLoading ? renderLoadingState() : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>النوع</TableHead>
+                                            <TableHead>المنتج</TableHead>
+                                            <TableHead>الكمية</TableHead>
+                                            <TableHead>من/إلى</TableHead>
+                                            <TableHead>السبب</TableHead>
+                                            <TableHead>التاريخ</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {movements.map((movement) => (
+                                            <TableRow key={movement._id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        {getMovementIcon(movement.type)}
+                                                        <span>{movement.type === 'in' ? 'وارد' : movement.type === 'out' ? 'صادر' : movement.type === 'transfer' ? 'نقل' : 'تعديل'}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div>
+                                                        <p className="font-medium">{movement.product.name}</p>
+                                                        <p className="text-xs text-muted-foreground font-mono">{movement.product.sku}</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className={movement.type === 'in' ? 'text-green-600 font-medium' : movement.type === 'out' ? 'text-red-600 font-medium' : 'font-medium'}>
+                                                    {movement.type === 'in' ? '+' : movement.type === 'out' ? '-' : ''}{formatNumber(movement.quantity)}
+                                                </TableCell>
+                                                <TableCell className="text-sm">
+                                                    {movement.type === 'transfer' ? `${movement.fromWarehouseName || ''} → ${movement.toWarehouseName || ''}` : (movement.toWarehouseName || movement.fromWarehouseName || '-')}
+                                                </TableCell>
+                                                <TableCell className="text-sm text-muted-foreground">{movement.reason || '-'}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{formatDate(movement.createdAt)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+
+            {/* Warehouse Dialog */}
+            <Dialog open={isWarehouseDialogOpen} onOpenChange={setIsWarehouseDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{isEditing ? 'تعديل المستودع' : 'إضافة مستودع جديد'}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={warehouseForm.handleSubmit(onWarehouseSubmit)} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>الاسم (EN) *</Label>
+                                <Input {...warehouseForm.register('name')} placeholder="Main Warehouse" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>الاسم (AR)</Label>
+                                <Input {...warehouseForm.register('nameAr')} placeholder="المستودع الرئيسي" />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>الكود *</Label>
+                            <Input {...warehouseForm.register('code')} placeholder="WH-001" className="font-mono" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>المدينة</Label>
+                                <Input {...warehouseForm.register('address.city')} placeholder="الرياض" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>الدولة</Label>
+                                <Input {...warehouseForm.register('address.country')} placeholder="السعودية" />
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    id="warehouseActive"
+                                    checked={warehouseForm.watch('isActive')}
+                                    onCheckedChange={(checked: boolean) => warehouseForm.setValue('isActive', checked)}
+                                />
+                                <Label htmlFor="warehouseActive">نشط</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    id="warehouseDefault"
+                                    checked={warehouseForm.watch('isDefault')}
+                                    onCheckedChange={(checked: boolean) => warehouseForm.setValue('isDefault', checked)}
+                                />
+                                <Label htmlFor="warehouseDefault">افتراضي</Label>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsWarehouseDialogOpen(false)}>إلغاء</Button>
+                            <Button type="submit" disabled={createWarehouseMutation.isPending || updateWarehouseMutation.isPending}>
+                                {(createWarehouseMutation.isPending || updateWarehouseMutation.isPending) && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                                {isEditing ? 'حفظ' : 'إضافة'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Transfer Dialog */}
+            <Dialog open={isTransferDialogOpen} onOpenChange={setIsTransferDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>نقل مخزون</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={transferForm.handleSubmit(onTransferSubmit)} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>معرف المنتج *</Label>
+                            <Input {...transferForm.register('productId')} placeholder="معرف المنتج" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>من المستودع *</Label>
+                                <Select value={transferForm.watch('fromWarehouseId')} onValueChange={(value) => transferForm.setValue('fromWarehouseId', value)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="اختر المستودع" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {warehouses.map((w) => (
+                                            <SelectItem key={w._id} value={w._id}>{w.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>إلى المستودع *</Label>
+                                <Select value={transferForm.watch('toWarehouseId')} onValueChange={(value) => transferForm.setValue('toWarehouseId', value)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="اختر المستودع" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {warehouses.map((w) => (
+                                            <SelectItem key={w._id} value={w._id}>{w.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>الكمية *</Label>
+                            <Input type="number" {...transferForm.register('quantity', { valueAsNumber: true })} placeholder="0" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>السبب</Label>
+                            <Input {...transferForm.register('reason')} placeholder="سبب النقل (اختياري)" />
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsTransferDialogOpen(false)}>إلغاء</Button>
+                            <Button type="submit" disabled={transferStockMutation.isPending}>
+                                {transferStockMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                                نقل
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+
+export default InventoryPage;

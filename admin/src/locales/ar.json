@@ -47,7 +47,14 @@
     "notifications": "الإشعارات",
     "support": "الدعم الفني",
     "analytics": "التحليلات",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "suppliers": "الموردين",
+    "purchaseOrders": "أوامر الشراء",
+    "returns": "المرتجعات",
+    "roles": "الأدوار",
+    "wallet": "المحفظة",
+    "content": "المحتوى",
+    "audit": "سجل المراجعة"
   },
   "dashboard": {
     "title": "لوحة التحكم",

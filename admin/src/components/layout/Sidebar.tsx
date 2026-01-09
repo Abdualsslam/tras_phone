@@ -16,6 +16,13 @@ import {
     Settings,
     ChevronRight,
     ChevronLeft,
+    Building2,
+    FileText,
+    RotateCcw,
+    Shield,
+    History,
+    Layers,
+    Wallet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -27,15 +34,22 @@ interface SidebarProps {
 const menuItems = [
     { icon: LayoutDashboard, path: '/', labelKey: 'sidebar.dashboard' },
     { icon: Users, path: '/admins', labelKey: 'sidebar.admins' },
+    { icon: Shield, path: '/roles', labelKey: 'sidebar.roles' },
     { icon: UserCheck, path: '/customers', labelKey: 'sidebar.customers' },
     { icon: Package, path: '/products', labelKey: 'sidebar.products' },
     { icon: FolderTree, path: '/categories', labelKey: 'sidebar.categories' },
     { icon: ShoppingCart, path: '/orders', labelKey: 'sidebar.orders' },
+    { icon: RotateCcw, path: '/returns', labelKey: 'sidebar.returns' },
     { icon: Warehouse, path: '/inventory', labelKey: 'sidebar.inventory' },
+    { icon: Building2, path: '/suppliers', labelKey: 'sidebar.suppliers' },
+    { icon: FileText, path: '/purchase-orders', labelKey: 'sidebar.purchaseOrders' },
+    { icon: Wallet, path: '/wallet', labelKey: 'sidebar.wallet' },
     { icon: Tags, path: '/promotions', labelKey: 'sidebar.promotions' },
+    { icon: Layers, path: '/content', labelKey: 'sidebar.content' },
     { icon: Bell, path: '/notifications', labelKey: 'sidebar.notifications' },
     { icon: HeadphonesIcon, path: '/support', labelKey: 'sidebar.support' },
     { icon: BarChart3, path: '/analytics', labelKey: 'sidebar.analytics' },
+    { icon: History, path: '/audit', labelKey: 'sidebar.audit' },
     { icon: Settings, path: '/settings', labelKey: 'sidebar.settings' },
 ];
 

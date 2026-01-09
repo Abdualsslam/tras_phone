@@ -17,6 +17,13 @@ import { NotificationsPage } from '@/pages/notifications/NotificationsPage';
 import { SupportPage } from '@/pages/support/SupportPage';
 import { AnalyticsPage } from '@/pages/analytics/AnalyticsPage';
 import { SettingsPage } from '@/pages/settings/SettingsPage';
+import { SuppliersPage } from '@/pages/suppliers/SuppliersPage';
+import { PurchaseOrdersPage } from '@/pages/suppliers/PurchaseOrdersPage';
+import { ReturnsPage } from '@/pages/returns/ReturnsPage';
+import { RolesPage } from '@/pages/roles/RolesPage';
+import { AuditLogsPage } from '@/pages/audit/AuditLogsPage';
+import { ContentPage } from '@/pages/content/ContentPage';
+import { WalletPage } from '@/pages/wallet/WalletPage';
 
 // Import i18n configuration
 import '@/locales/i18n';
@@ -57,10 +64,17 @@ function App() {
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="orders" element={<OrdersPage />} />
                 <Route path="inventory" element={<InventoryPage />} />
+                <Route path="suppliers" element={<SuppliersPage />} />
+                <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
+                <Route path="returns" element={<ReturnsPage />} />
+                <Route path="roles" element={<RolesPage />} />
                 <Route path="promotions" element={<PromotionsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="support" element={<SupportPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />
+                <Route path="audit" element={<AuditLogsPage />} />
+                <Route path="content" element={<ContentPage />} />
+                <Route path="wallet" element={<WalletPage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
 
