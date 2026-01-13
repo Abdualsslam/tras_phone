@@ -36,9 +36,9 @@ coverage/
 .temp/
 .tmp/
 
-# Uploads
-uploads/
-public/uploads/
+# Uploads (only root level, not src/modules/uploads/)
+/uploads/
+/public/uploads/
 
 # OS
 Thumbs.db
