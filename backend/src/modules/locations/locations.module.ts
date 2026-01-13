@@ -9,6 +9,7 @@ import { ShippingZone, ShippingZoneSchema } from './schemas/shipping-zone.schema
 import { LocationsService } from './locations.service';
 import { ShippingService } from './shipping.service';
 import { LocationsController } from './locations.controller';
+import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
     imports: [
@@ -28,6 +29,7 @@ import { LocationsController } from './locations.controller';
             }),
             inject: [ConfigService],
         }),
+        AuthModule,
     ],
     controllers: [LocationsController],
     providers: [LocationsService, ShippingService],

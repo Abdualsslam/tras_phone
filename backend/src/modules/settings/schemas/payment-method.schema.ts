@@ -130,5 +130,5 @@ export class PaymentMethod {
 
 export const PaymentMethodSchema = SchemaFactory.createForClass(PaymentMethod);
 
-PaymentMethodSchema.index({ type: 1 }, { unique: true });
+// Note: 'type' index is automatically created by unique: true
 PaymentMethodSchema.index({ isActive: 1, sortOrder: 1 });

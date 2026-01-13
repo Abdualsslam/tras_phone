@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { inventoryApi, type Warehouse } from '@/api/inventory.api';
+import { inventoryApi, type Warehouse, type InventoryCount, type StockTransfer, type StockReservation } from '@/api/inventory.api';
 import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +45,9 @@ import {
     TrendingUp,
     CheckCircle,
     Clock,
+    ClipboardList,
+    Lock,
+    Truck,
 } from 'lucide-react';
 import { formatDate, formatNumber } from '@/lib/utils';
 
@@ -82,6 +85,21 @@ export function InventoryPage() {
     const { data: movements = [], isLoading: movementsLoading } = useQuery({
         queryKey: ['inventory-movements'],
         queryFn: () => inventoryApi.getMovements(),
+    });
+
+    const { data: counts = [], isLoading: countsLoading } = useQuery<InventoryCount[]>({
+        queryKey: ['inventory-counts'],
+        queryFn: () => inventoryApi.getInventoryCounts(),
+    });
+
+    const { data: transfers = [], isLoading: transfersLoading } = useQuery<StockTransfer[]>({
+        queryKey: ['inventory-transfers'],
+        queryFn: () => inventoryApi.getStockTransfers(),
+    });
+
+    const { data: reservations = [], isLoading: reservationsLoading } = useQuery<StockReservation[]>({
+        queryKey: ['inventory-reservations'],
+        queryFn: () => inventoryApi.getReservations(),
     });
 
     // Mutations
@@ -131,6 +149,38 @@ export function InventoryPage() {
             queryClient.invalidateQueries({ queryKey: ['inventory-alerts'] });
             queryClient.invalidateQueries({ queryKey: ['inventory-stats'] });
             toast.success('تم حل التنبيه');
+        },
+    });
+
+    const approveTransferMutation = useMutation({
+        mutationFn: (id: string) => inventoryApi.approveStockTransfer(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory-transfers'] });
+            toast.success('تم اعتماد التحويل');
+        },
+    });
+
+    const shipTransferMutation = useMutation({
+        mutationFn: (id: string) => inventoryApi.shipStockTransfer(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory-transfers'] });
+            toast.success('تم شحن التحويل');
+        },
+    });
+
+    const releaseReservationMutation = useMutation({
+        mutationFn: (id: string) => inventoryApi.releaseReservation(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory-reservations'] });
+            toast.success('تم تحرير الحجز');
+        },
+    });
+
+    const approveCountMutation = useMutation({
+        mutationFn: (id: string) => inventoryApi.approveInventoryCount(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory-counts'] });
+            toast.success('تم اعتماد الجرد');
         },
     });
 
@@ -296,6 +346,18 @@ export function InventoryPage() {
                     <TabsTrigger value="movements" className="flex items-center gap-2">
                         <ArrowLeftRight className="h-4 w-4" />
                         الحركات
+                    </TabsTrigger>
+                    <TabsTrigger value="counts" className="flex items-center gap-2">
+                        <ClipboardList className="h-4 w-4" />
+                        الجرد
+                    </TabsTrigger>
+                    <TabsTrigger value="transfers" className="flex items-center gap-2">
+                        <Truck className="h-4 w-4" />
+                        التحويلات
+                    </TabsTrigger>
+                    <TabsTrigger value="reservations" className="flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        الحجوزات
                     </TabsTrigger>
                 </TabsList>
 
@@ -523,6 +585,193 @@ export function InventoryPage() {
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">{movement.reason || '-'}</TableCell>
                                                 <TableCell className="text-muted-foreground text-sm">{formatDate(movement.createdAt)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Inventory Counts */}
+                <TabsContent value="counts">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <ClipboardList className="h-5 w-5" />
+                                عمليات الجرد
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {countsLoading ? renderLoadingState() : counts.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <p>لا توجد عمليات جرد</p>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>المستودع</TableHead>
+                                            <TableHead>النوع</TableHead>
+                                            <TableHead>الحالة</TableHead>
+                                            <TableHead>عدد الأصناف</TableHead>
+                                            <TableHead>التاريخ</TableHead>
+                                            <TableHead></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {counts.map((count) => (
+                                            <TableRow key={count._id}>
+                                                <TableCell className="font-medium">{count.warehouse?.name || '-'}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">
+                                                        {count.type === 'full' ? 'كامل' : count.type === 'partial' ? 'جزئي' : 'دوري'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={count.status === 'approved' ? 'success' : count.status === 'completed' ? 'default' : 'warning'}>
+                                                        {count.status === 'draft' ? 'مسودة' : count.status === 'in_progress' ? 'قيد التنفيذ' : count.status === 'completed' ? 'مكتمل' : 'معتمد'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>{count.items?.length || 0}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{formatDate(count.createdAt)}</TableCell>
+                                                <TableCell>
+                                                    {count.status === 'completed' && (
+                                                        <Button variant="ghost" size="sm" onClick={() => approveCountMutation.mutate(count._id)}>
+                                                            اعتماد
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Stock Transfers */}
+                <TabsContent value="transfers">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Truck className="h-5 w-5" />
+                                تحويلات المخزون
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {transfersLoading ? renderLoadingState() : transfers.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <p>لا توجد تحويلات</p>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>رقم التحويل</TableHead>
+                                            <TableHead>من</TableHead>
+                                            <TableHead>إلى</TableHead>
+                                            <TableHead>عدد الأصناف</TableHead>
+                                            <TableHead>الحالة</TableHead>
+                                            <TableHead>التاريخ</TableHead>
+                                            <TableHead></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {transfers.map((transfer) => (
+                                            <TableRow key={transfer._id}>
+                                                <TableCell className="font-mono text-sm">{transfer.transferNumber}</TableCell>
+                                                <TableCell>{transfer.fromWarehouse?.name || '-'}</TableCell>
+                                                <TableCell>{transfer.toWarehouse?.name || '-'}</TableCell>
+                                                <TableCell>{transfer.items?.length || 0}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={transfer.status === 'received' ? 'success' : transfer.status === 'shipped' ? 'default' : 'warning'}>
+                                                        {transfer.status === 'pending' ? 'معلق' : transfer.status === 'approved' ? 'معتمد' : transfer.status === 'shipped' ? 'مشحون' : transfer.status === 'received' ? 'مستلم' : 'ملغي'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">{formatDate(transfer.createdAt)}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex gap-1">
+                                                        {transfer.status === 'pending' && (
+                                                            <Button variant="ghost" size="sm" onClick={() => approveTransferMutation.mutate(transfer._id)}>
+                                                                اعتماد
+                                                            </Button>
+                                                        )}
+                                                        {transfer.status === 'approved' && (
+                                                            <Button variant="ghost" size="sm" onClick={() => shipTransferMutation.mutate(transfer._id)}>
+                                                                شحن
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Reservations */}
+                <TabsContent value="reservations">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Lock className="h-5 w-5" />
+                                حجوزات المخزون
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {reservationsLoading ? renderLoadingState() : reservations.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <Lock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <p>لا توجد حجوزات نشطة</p>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>المنتج</TableHead>
+                                            <TableHead>المستودع</TableHead>
+                                            <TableHead>الكمية</TableHead>
+                                            <TableHead>رقم الطلب</TableHead>
+                                            <TableHead>الحالة</TableHead>
+                                            <TableHead>تاريخ الانتهاء</TableHead>
+                                            <TableHead></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {reservations.map((reservation) => (
+                                            <TableRow key={reservation._id}>
+                                                <TableCell>
+                                                    <div>
+                                                        <p className="font-medium">{reservation.product?.name || '-'}</p>
+                                                        <p className="text-xs text-muted-foreground font-mono">{reservation.product?.sku}</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{reservation.warehouse?.name || '-'}</TableCell>
+                                                <TableCell className="font-medium">{formatNumber(reservation.quantity)}</TableCell>
+                                                <TableCell className="font-mono text-sm">{reservation.orderNumber || '-'}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={reservation.status === 'active' ? 'warning' : reservation.status === 'released' ? 'success' : 'danger'}>
+                                                        {reservation.status === 'active' ? 'نشط' : reservation.status === 'released' ? 'محرر' : 'منتهي'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm">
+                                                    {reservation.expiresAt ? formatDate(reservation.expiresAt) : '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {reservation.status === 'active' && (
+                                                        <Button variant="ghost" size="sm" onClick={() => releaseReservationMutation.mutate(reservation._id)}>
+                                                            تحرير
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>

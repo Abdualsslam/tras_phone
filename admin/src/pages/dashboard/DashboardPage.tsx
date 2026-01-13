@@ -47,35 +47,41 @@ export function DashboardPage() {
     const statCards = [
         {
             titleKey: 'dashboard.totalRevenue',
-            value: stats?.totalRevenue || 0,
-            change: stats?.revenueChange || 0,
+            value: stats?.overview?.revenue?.thisMonth || 0,
+            change: stats?.overview?.revenue?.change || 0,
             icon: DollarSign,
             format: 'currency',
             color: 'bg-green-500',
+            showChangeAsPercentage: true,
         },
         {
             titleKey: 'dashboard.totalOrders',
-            value: stats?.totalOrders || 0,
-            change: stats?.ordersChange || 0,
+            value: stats?.overview?.orders?.thisMonth || 0,
+            change: stats?.overview?.orders?.change || 0,
             icon: ShoppingCart,
             format: 'number',
             color: 'bg-blue-500',
+            showChangeAsPercentage: true,
         },
         {
             titleKey: 'dashboard.totalCustomers',
-            value: stats?.totalCustomers || 0,
-            change: stats?.customersChange || 0,
+            value: stats?.overview?.customers?.total || 0,
+            change: stats?.overview?.customers?.newThisMonth || 0,
             icon: Users,
             format: 'number',
             color: 'bg-purple-500',
+            showChangeAsPercentage: false,
+            subtitle: 'جديد هذا الشهر',
         },
         {
             titleKey: 'dashboard.totalProducts',
-            value: stats?.totalProducts || 0,
-            change: stats?.productsChange || 0,
+            value: stats?.overview?.products?.total || 0,
+            change: stats?.overview?.products?.active || 0,
             icon: Package,
             format: 'number',
             color: 'bg-orange-500',
+            showChangeAsPercentage: false,
+            subtitle: 'نشط',
         },
     ];
 
@@ -92,7 +98,7 @@ export function DashboardPage() {
             {/* Welcome Message */}
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {t('dashboard.welcome')}، {user?.name}! 👋
+                    {t('dashboard.welcome')}، {user?.fullName}! 👋
                 </h1>
                 <p className="text-gray-500 dark:text-gray-400 mt-1">إليك نظرة عامة على نشاط متجرك اليوم</p>
             </div>
@@ -117,20 +123,31 @@ export function DashboardPage() {
                             </div>
 
                             <div className="flex items-center gap-1 mt-4">
-                                {stat.change >= 0 ? (
-                                    <TrendingUp className="h-4 w-4 text-green-500" />
+                                {stat.showChangeAsPercentage ? (
+                                    <>
+                                        {stat.change >= 0 ? (
+                                            <TrendingUp className="h-4 w-4 text-green-500" />
+                                        ) : (
+                                            <TrendingDown className="h-4 w-4 text-red-500" />
+                                        )}
+                                        <span
+                                            className={cn(
+                                                'text-sm font-medium',
+                                                stat.change >= 0 ? 'text-green-500' : 'text-red-500'
+                                            )}
+                                        >
+                                            {stat.change >= 0 ? '+' : ''}{stat.change.toFixed(1)}%
+                                        </span>
+                                        <span className="text-sm text-gray-400 dark:text-gray-500">مقارنة بالشهر الماضي</span>
+                                    </>
                                 ) : (
-                                    <TrendingDown className="h-4 w-4 text-red-500" />
+                                    <>
+                                        <span className="text-sm text-gray-400 dark:text-gray-500">{stat.subtitle}:</span>
+                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {formatNumber(stat.change, locale)}
+                                        </span>
+                                    </>
                                 )}
-                                <span
-                                    className={cn(
-                                        'text-sm font-medium',
-                                        stat.change >= 0 ? 'text-green-500' : 'text-red-500'
-                                    )}
-                                >
-                                    {stat.change >= 0 ? '+' : ''}{stat.change}%
-                                </span>
-                                <span className="text-sm text-gray-400 dark:text-gray-500">مقارنة بالشهر الماضي</span>
                             </div>
                         </CardContent>
                     </Card>

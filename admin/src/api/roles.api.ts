@@ -18,7 +18,8 @@ export interface Role {
     name: string;
     nameAr?: string;
     description?: string;
-    permissions: string[] | Permission[];
+    descriptionAr?: string;
+    permissions?: string[] | Permission[];
     isSystem: boolean;
     isActive: boolean;
     createdAt: string;

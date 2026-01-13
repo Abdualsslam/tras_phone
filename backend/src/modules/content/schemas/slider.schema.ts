@@ -101,5 +101,5 @@ export class Slider {
 
 export const SliderSchema = SchemaFactory.createForClass(Slider);
 
-SliderSchema.index({ slug: 1 }, { unique: true });
+// Note: 'slug' index is automatically created by unique: true
 SliderSchema.index({ location: 1, isActive: 1 });

@@ -9,6 +9,7 @@ import { SupplierPayment, SupplierPaymentSchema } from './schemas/supplier-payme
 import { SupplierProduct, SupplierProductSchema } from './schemas/supplier-product.schema';
 import { SuppliersService } from './suppliers.service';
 import { SuppliersController, PurchaseOrdersController } from './suppliers.controller';
+import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
     imports: [
@@ -29,6 +30,7 @@ import { SuppliersController, PurchaseOrdersController } from './suppliers.contr
             }),
             inject: [ConfigService],
         }),
+        AuthModule,
     ],
     controllers: [SuppliersController, PurchaseOrdersController],
     providers: [SuppliersService],

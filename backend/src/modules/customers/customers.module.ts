@@ -16,6 +16,7 @@ import { CustomersService } from './customers.service';
 import { ReferralsService } from './referrals.service';
 import { CustomersController } from './customers.controller';
 import { UsersModule } from '@modules/users/users.module';
+import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
     imports: [
@@ -39,6 +40,7 @@ import { UsersModule } from '@modules/users/users.module';
             }),
             inject: [ConfigService],
         }),
+        AuthModule,
     ],
     controllers: [CustomersController],
     providers: [CustomersService, ReferralsService],

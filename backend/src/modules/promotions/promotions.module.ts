@@ -12,6 +12,7 @@ import { CouponUsage, CouponUsageSchema } from './schemas/coupon-usage.schema';
 import { PromotionsService } from './promotions.service';
 import { CouponsService } from './coupons.service';
 import { PromotionsController } from './promotions.controller';
+import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
     imports: [
@@ -34,6 +35,7 @@ import { PromotionsController } from './promotions.controller';
             }),
             inject: [ConfigService],
         }),
+        AuthModule,
     ],
     controllers: [PromotionsController],
     providers: [PromotionsService, CouponsService],

@@ -10,6 +10,7 @@ import { Product, ProductSchema } from '@modules/products/schemas/product.schema
 import { CatalogService } from './catalog.service';
 import { CategoriesService } from './categories.service';
 import { CatalogController } from './catalog.controller';
+import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
     imports: [
@@ -30,6 +31,7 @@ import { CatalogController } from './catalog.controller';
             }),
             inject: [ConfigService],
         }),
+        AuthModule,
     ],
     controllers: [CatalogController],
     providers: [CatalogService, CategoriesService],

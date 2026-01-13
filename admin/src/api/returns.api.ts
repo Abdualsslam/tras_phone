@@ -151,6 +151,67 @@ export const returnsApi = {
         const response = await apiClient.post<ApiResponse<Return>>(`/returns/refunds/${refundId}/complete`);
         return response.data.data;
     },
+
+    // ─────────────────────────────────────────
+    // Return Reasons Management
+    // ─────────────────────────────────────────
+
+    updateReason: async (id: string, data: Partial<ReturnReason>): Promise<ReturnReason> => {
+        const response = await apiClient.put<ApiResponse<ReturnReason>>(`/returns/reasons/${id}`, data);
+        return response.data.data;
+    },
+
+    deleteReason: async (id: string): Promise<void> => {
+        await apiClient.delete(`/returns/reasons/${id}`);
+    },
+
+    // ─────────────────────────────────────────
+    // Supplier Return Batches
+    // ─────────────────────────────────────────
+
+    getSupplierReturnBatches: async (params?: any): Promise<SupplierReturnBatch[]> => {
+        const response = await apiClient.get<ApiResponse<SupplierReturnBatch[]>>('/returns/supplier-returns', { params });
+        return response.data.data;
+    },
+
+    createSupplierReturnBatch: async (data: any): Promise<SupplierReturnBatch> => {
+        const response = await apiClient.post<ApiResponse<SupplierReturnBatch>>('/returns/supplier-returns', data);
+        return response.data.data;
+    },
+
+    updateSupplierBatchStatus: async (id: string, data: {
+        status: string;
+        acknowledgedDate?: string;
+        supplierReference?: string;
+        creditNoteNumber?: string;
+        actualCreditAmount?: number;
+        supplierNotes?: string;
+    }): Promise<SupplierReturnBatch> => {
+        const response = await apiClient.put<ApiResponse<SupplierReturnBatch>>(`/returns/supplier-returns/${id}/status`, data);
+        return response.data.data;
+    },
+
+    linkReturnToSupplier: async (itemId: string, batchId: string): Promise<any> => {
+        const response = await apiClient.post<ApiResponse<any>>(`/returns/items/${itemId}/link-supplier`, { batchId });
+        return response.data.data;
+    },
 };
+
+export interface SupplierReturnBatch {
+    _id: string;
+    supplierId: string;
+    supplierName?: string;
+    items: ReturnItem[];
+    status: 'pending' | 'shipped' | 'acknowledged' | 'credited' | 'completed';
+    totalAmount: number;
+    creditAmount?: number;
+    shippedAt?: string;
+    acknowledgedAt?: string;
+    creditNoteNumber?: string;
+    supplierReference?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+}
 
 export default returnsApi;

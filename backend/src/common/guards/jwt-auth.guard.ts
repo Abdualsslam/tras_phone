@@ -7,7 +7,10 @@ import {
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { IS_PUBLIC_KEY } from '@decorators/public.decorator';
+import { AuthService } from '@modules/auth/auth.service';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -21,6 +24,8 @@ export class JwtAuthGuard implements CanActivate {
         private jwtService: JwtService,
         private configService: ConfigService,
         private reflector: Reflector,
+        private authService: AuthService,
+        @InjectModel('AdminUser') private adminUserModel: Model<any>,
     ) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -46,8 +51,35 @@ export class JwtAuthGuard implements CanActivate {
                 secret: this.configService.get<string>('JWT_SECRET'),
             });
 
-            // Attach user to request object
-            request.user = payload;
+            // Validate user exists and is active
+            const user = await this.authService.validateUser(payload.sub);
+
+            if (!user) {
+                throw new UnauthorizedException('User not found');
+            }
+
+            // Build base user object
+            const userObj: any = {
+                id: user._id.toString(),
+                phone: user.phone,
+                email: user.email,
+                userType: user.userType,
+                status: user.status,
+                isSuperAdmin: false,
+                permissions: [],
+            };
+
+            // If admin user, fetch admin profile for isSuperAdmin flag
+            if (user.userType === 'admin') {
+                const adminUser = await this.adminUserModel.findOne({ userId: user._id });
+                if (adminUser) {
+                    userObj.isSuperAdmin = adminUser.isSuperAdmin || false;
+                    userObj.adminUserId = adminUser._id.toString();
+                    userObj.fullName = adminUser.fullName;
+                }
+            }
+
+            request.user = userObj;
 
             return true;
         } catch (error) {

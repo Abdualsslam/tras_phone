@@ -6,16 +6,41 @@ import type { ApiResponse } from '@/types';
 // ══════════════════════════════════════════════════════════════
 
 export interface DashboardStats {
-    totalRevenue: number;
-    totalOrders: number;
-    totalCustomers: number;
-    totalProducts: number;
-    revenueChange: number;
-    ordersChange: number;
-    customersChange: number;
-    productsChange: number;
+    overview: {
+        orders: {
+            today: number;
+            thisMonth: number;
+            lastMonth: number;
+            change: number;
+        };
+        revenue: {
+            today: number;
+            thisMonth: number;
+            lastMonth: number;
+            change: number;
+        };
+        customers: {
+            total: number;
+            newThisMonth: number;
+        };
+        products: {
+            total: number;
+            active: number;
+        };
+    };
+    salesChart: any[];
+    topProducts: any[];
+    topCustomers: any[];
+    lowStock: any[];
     recentOrders: any[];
-    lowStockProducts: any[];
+    pendingActions: {
+        pendingOrders: number;
+        pendingPayments: number;
+        pendingReturns: number;
+        pendingApprovals: number;
+        lowStockCount: number;
+        total: number;
+    };
 }
 
 export interface ChartDataPoint {
@@ -84,8 +109,8 @@ export const analyticsApi = {
     // ─────────────────────────────────────────
 
     getDashboard: async (): Promise<DashboardStats> => {
-        const response = await apiClient.get<ApiResponse<DashboardStats>>('/analytics/dashboard');
-        return response.data.data;
+        const response = await apiClient.get<ApiResponse<ApiResponse<DashboardStats>>>('/analytics/dashboard');
+        return response.data.data.data;
     },
 
     // ─────────────────────────────────────────

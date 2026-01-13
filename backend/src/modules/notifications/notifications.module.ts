@@ -8,6 +8,7 @@ import { NotificationCampaign, NotificationCampaignSchema } from './schemas/noti
 import { PushToken, PushTokenSchema } from './schemas/push-token.schema';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
+import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
     imports: [
@@ -27,6 +28,7 @@ import { NotificationsController } from './notifications.controller';
             }),
             inject: [ConfigService],
         }),
+        AuthModule,
     ],
     controllers: [NotificationsController],
     providers: [NotificationsService],

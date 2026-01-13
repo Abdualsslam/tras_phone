@@ -54,5 +54,5 @@ export class Currency {
 
 export const CurrencySchema = SchemaFactory.createForClass(Currency);
 
-CurrencySchema.index({ code: 1 }, { unique: true });
+// Note: 'code' index is automatically created by unique: true
 CurrencySchema.index({ isActive: 1, sortOrder: 1 });

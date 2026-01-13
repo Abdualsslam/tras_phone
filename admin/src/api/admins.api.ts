@@ -2,19 +2,44 @@ import apiClient from './client';
 import type { ApiResponse, Admin, PaginatedResponse, Role } from '@/types';
 
 export interface CreateAdminDto {
-    name: string;
-    email: string;
-    password: string;
-    phone?: string;
+    userId: string;
+    fullName: string;
+    fullNameAr?: string;
     department?: string;
+    position?: string;
+    directPhone?: string;
+    extension?: string;
+    isSuperAdmin?: boolean;
+    canAccessMobile?: boolean;
+    canAccessWeb?: boolean;
+}
+
+export interface CreateAdminWithUserDto {
+    phone: string;
+    email?: string;
+    password: string;
+    fullName: string;
+    fullNameAr?: string;
+    department?: string;
+    position?: string;
+    directPhone?: string;
+    extension?: string;
+    isSuperAdmin?: boolean;
+    canAccessMobile?: boolean;
+    canAccessWeb?: boolean;
 }
 
 export interface UpdateAdminDto {
-    name?: string;
-    email?: string;
-    phone?: string;
+    fullName?: string;
+    fullNameAr?: string;
     department?: string;
-    employmentStatus?: 'active' | 'inactive' | 'suspended';
+    position?: string;
+    directPhone?: string;
+    extension?: string;
+    isSuperAdmin?: boolean;
+    canAccessMobile?: boolean;
+    canAccessWeb?: boolean;
+    employmentStatus?: 'active' | 'on_leave' | 'suspended' | 'terminated';
 }
 
 export interface AdminsQueryParams {
@@ -27,8 +52,20 @@ export interface AdminsQueryParams {
 
 export const adminsApi = {
     getAll: async (params?: AdminsQueryParams): Promise<PaginatedResponse<Admin>> => {
-        const response = await apiClient.get<ApiResponse<PaginatedResponse<Admin>>>('/admins', { params });
-        return response.data.data;
+        const response = await apiClient.get('/admins', { params });
+
+        // Transform the response to match expected structure
+        return {
+            items: response.data.data, // array of admins
+            pagination: {
+                total: response.data.meta.pagination.total,
+                page: response.data.meta.pagination.page,
+                limit: response.data.meta.pagination.limit,
+                totalPages: response.data.meta.pagination.totalPages,
+                hasNextPage: response.data.meta.pagination.hasNextPage,
+                hasPreviousPage: response.data.meta.pagination.hasPreviousPage,
+            }
+        };
     },
 
     getById: async (id: string): Promise<Admin> => {
@@ -38,6 +75,11 @@ export const adminsApi = {
 
     create: async (data: CreateAdminDto): Promise<Admin> => {
         const response = await apiClient.post<ApiResponse<Admin>>('/admins', data);
+        return response.data.data;
+    },
+
+    createWithUser: async (data: CreateAdminWithUserDto): Promise<Admin> => {
+        const response = await apiClient.post<ApiResponse<Admin>>('/admins/create-with-user', data);
         return response.data.data;
     },
 

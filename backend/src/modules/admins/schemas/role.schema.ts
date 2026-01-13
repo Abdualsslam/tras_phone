@@ -40,5 +40,5 @@ export const RoleSchema = SchemaFactory.createForClass(Role);
 // ═════════════════════════════════════
 // Indexes
 // ═════════════════════════════════════
-RoleSchema.index({ name: 1 });
+// Note: 'name' index is automatically created by unique: true
 RoleSchema.index({ isActive: 1 });

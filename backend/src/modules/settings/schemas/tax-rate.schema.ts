@@ -56,5 +56,5 @@ export class TaxRate {
 
 export const TaxRateSchema = SchemaFactory.createForClass(TaxRate);
 
-TaxRateSchema.index({ code: 1 }, { unique: true });
+// Note: 'code' index is automatically created by unique: true
 TaxRateSchema.index({ isActive: 1, priority: -1 });

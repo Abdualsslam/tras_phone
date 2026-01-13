@@ -41,6 +41,7 @@
     "customers": "العملاء",
     "products": "المنتجات",
     "categories": "التصنيفات",
+    "catalog": "الكتالوج",
     "orders": "الطلبات",
     "inventory": "المخزون",
     "promotions": "العروض",
@@ -54,7 +55,8 @@
     "roles": "الأدوار",
     "wallet": "المحفظة",
     "content": "المحتوى",
-    "audit": "سجل المراجعة"
+    "audit": "سجل المراجعة",
+    "liveChat": "المحادثات المباشرة"
   },
   "dashboard": {
     "title": "لوحة التحكم",

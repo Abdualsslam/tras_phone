@@ -97,7 +97,7 @@ export const CategorySchema = SchemaFactory.createForClass(Category);
 // ═════════════════════════════════════
 // Indexes
 // ═════════════════════════════════════
-CategorySchema.index({ slug: 1 });
+// Note: 'slug' index is automatically created by unique: true
 CategorySchema.index({ parentId: 1 });
 CategorySchema.index({ ancestors: 1 });
 CategorySchema.index({ level: 1 });

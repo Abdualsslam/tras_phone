@@ -173,6 +173,16 @@ export const ordersApi = {
         return response.data.data;
     },
 
+    verifyPayment: async (orderId: string, data: { verified: boolean; note?: string }): Promise<Order> => {
+        const response = await apiClient.post<ApiResponse<Order>>(`/admin/orders/${orderId}/verify-payment`, data);
+        return response.data.data;
+    },
+
+    getPendingPaymentOrders: async (): Promise<Order[]> => {
+        const response = await apiClient.get<ApiResponse<Order[]>>('/orders/pending-payment');
+        return response.data.data;
+    },
+
     // ─────────────────────────────────────────
     // Export
     // ─────────────────────────────────────────

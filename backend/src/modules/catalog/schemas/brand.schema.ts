@@ -79,7 +79,7 @@ export const BrandSchema = SchemaFactory.createForClass(Brand);
 // ═════════════════════════════════════
 // Indexes
 // ═════════════════════════════════════
-BrandSchema.index({ slug: 1 });
+// Note: 'slug' index is automatically created by unique: true
 BrandSchema.index({ isActive: 1 });
 BrandSchema.index({ isFeatured: 1 });
 BrandSchema.index({ name: 'text', nameAr: 'text' });

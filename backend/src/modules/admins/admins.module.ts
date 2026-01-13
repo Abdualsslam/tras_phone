@@ -19,6 +19,7 @@ import { PermissionsService } from './permissions.service';
 import { AdminsController } from './admins.controller';
 import { RolesController } from './roles.controller';
 import { PermissionsGuard } from '@guards/permissions.guard';
+import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
     imports: [
@@ -39,6 +40,7 @@ import { PermissionsGuard } from '@guards/permissions.guard';
             }),
             inject: [ConfigService],
         }),
+        AuthModule,
     ],
     controllers: [AdminsController, RolesController],
     providers: [AdminsService, RolesService, PermissionsService, PermissionsGuard],

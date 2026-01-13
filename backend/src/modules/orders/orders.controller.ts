@@ -23,6 +23,7 @@ import { ApiResponseDto } from '@common/dto/api-response.dto';
 import {
   ApiCommonErrorResponses,
   ApiAuthErrorResponses,
+  ApiPublicErrorResponses,
 } from '@common/decorators/api-error-responses.decorator';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
@@ -32,6 +33,9 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { CreateShipmentDto } from './dto/create-shipment.dto';
 import { AddOrderNoteDto } from './dto/add-order-note.dto';
 import { OrderFilterQueryDto } from './dto/order-filter-query.dto';
+import { UploadReceiptDto } from './dto/upload-receipt.dto';
+import { VerifyPaymentDto } from './dto/verify-payment.dto';
+import { RateOrderDto } from './dto/rate-order.dto';
 import { CartService } from './cart.service';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
@@ -40,6 +44,8 @@ import { Roles } from '@decorators/roles.decorator';
 import { UserRole } from '@common/enums/user-role.enum';
 import { CurrentUser } from '@decorators/current-user.decorator';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
+import { BadRequestException } from '@nestjs/common';
+import { Public } from '@decorators/public.decorator';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -532,5 +538,185 @@ export class OrdersController {
       user._id,
     );
     return ResponseBuilder.created(note, 'Note added', 'تم إضافة الملاحظة');
+  }
+
+  // ═════════════════════════════════════
+  // Payment & Rating Endpoints
+  // ═════════════════════════════════════
+
+  @Post(':id/upload-receipt')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Upload payment receipt',
+    description: 'Upload a receipt image for bank transfer payment',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Order ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Receipt uploaded successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async uploadReceipt(
+    @Param('id') id: string,
+    @Body() uploadReceiptDto: UploadReceiptDto,
+    @CurrentUser() user: any,
+  ) {
+    // Verify order belongs to user
+    const order = await this.ordersService.findById(id);
+    if (order.order.customerId.toString() !== user.customerId) {
+      throw new BadRequestException('Order not found');
+    }
+
+    const result = await this.ordersService.uploadReceipt(id, uploadReceiptDto);
+    return ResponseBuilder.success(
+      result,
+      'Receipt uploaded successfully',
+      'تم رفع الإيصال بنجاح',
+    );
+  }
+
+  @Post(':id/rate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Rate order',
+    description: 'Rate a delivered or completed order',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Order ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Order rated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async rateOrder(
+    @Param('id') id: string,
+    @Body() rateOrderDto: RateOrderDto,
+    @CurrentUser() user: any,
+  ) {
+    const result = await this.ordersService.rateOrder(
+      id,
+      user.customerId,
+      rateOrderDto.rating,
+      rateOrderDto.comment,
+    );
+    return ResponseBuilder.success(
+      result,
+      'Order rated successfully',
+      'تم تقييم الطلب بنجاح',
+    );
+  }
+
+  @Get('pending-payment')
+  @ApiOperation({
+    summary: 'Get pending payment orders',
+    description: 'Get all orders with pending bank transfer payments',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Orders retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async getPendingPaymentOrders(@CurrentUser() user: any) {
+    const orders = await this.ordersService.getPendingPaymentOrders(
+      user.customerId,
+    );
+    return ResponseBuilder.success(
+      orders,
+      'Pending payment orders retrieved',
+      'تم استرجاع الطلبات بانتظار الدفع',
+    );
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * 🏦 Bank Accounts Controller
+ * ═══════════════════════════════════════════════════════════════
+ */
+@ApiTags('Bank Accounts')
+@Controller('bank-accounts')
+export class BankAccountsController {
+  constructor(private readonly ordersService: OrdersService) {}
+
+  @Public()
+  @Get()
+  @ApiOperation({
+    summary: 'Get bank accounts',
+    description:
+      'Retrieve all active bank accounts for payments. Public endpoint.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bank accounts retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getBankAccounts() {
+    const accounts = await this.ordersService.getBankAccounts();
+    return ResponseBuilder.success(
+      accounts,
+      'Bank accounts retrieved',
+      'تم استرجاع الحسابات البنكية',
+    );
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * 🔐 Admin Orders Controller (Additional endpoints)
+ * ═══════════════════════════════════════════════════════════════
+ */
+@ApiTags('Admin Orders')
+@Controller('admin/orders')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+@ApiBearerAuth('JWT-auth')
+export class AdminOrdersController {
+  constructor(private readonly ordersService: OrdersService) {}
+
+  @Post(':id/verify-payment')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verify payment',
+    description: 'Verify or reject a bank transfer payment. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Order ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment verification updated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async verifyPayment(
+    @Param('id') id: string,
+    @Body() verifyPaymentDto: VerifyPaymentDto,
+    @CurrentUser() user: any,
+  ) {
+    const result = await this.ordersService.verifyPayment(
+      id,
+      verifyPaymentDto.verified,
+      user.id,
+      verifyPaymentDto.rejectionReason,
+      verifyPaymentDto.notes,
+    );
+    return ResponseBuilder.success(
+      result,
+      'Payment verification updated',
+      'تم تحديث التحقق من الدفع',
+    );
   }
 }

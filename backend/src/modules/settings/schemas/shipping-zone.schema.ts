@@ -90,7 +90,7 @@ export class ShippingZone {
 
 export const ShippingZoneSchema = SchemaFactory.createForClass(ShippingZone);
 
-ShippingZoneSchema.index({ code: 1 }, { unique: true });
+// Note: 'code' index is automatically created by unique: true
 ShippingZoneSchema.index({ isActive: 1, sortOrder: 1 });
 ShippingZoneSchema.index({ countries: 1 });
 ShippingZoneSchema.index({ cities: 1 });

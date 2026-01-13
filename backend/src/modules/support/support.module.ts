@@ -12,6 +12,7 @@ import { TicketsService } from './tickets.service';
 import { ChatService } from './chat.service';
 import { TicketsController } from './tickets.controller';
 import { ChatController } from './chat.controller';
+import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
     imports: [
@@ -33,6 +34,7 @@ import { ChatController } from './chat.controller';
             }),
             inject: [ConfigService],
         }),
+        AuthModule,
     ],
     controllers: [TicketsController, ChatController],
     providers: [TicketsService, ChatService],

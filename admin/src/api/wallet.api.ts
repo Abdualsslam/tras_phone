@@ -94,6 +94,55 @@ export const walletApi = {
         const response = await apiClient.get<ApiResponse<LoyaltyTier[]>>('/wallet/tiers');
         return response.data.data;
     },
+
+    // ─────────────────────────────────────────
+    // Admin: All Transactions
+    // ─────────────────────────────────────────
+
+    getAllTransactions: async (params?: {
+        customerId?: string;
+        type?: 'credit' | 'debit';
+        startDate?: string;
+        endDate?: string;
+        page?: number;
+        limit?: number;
+    }): Promise<WalletTransaction[]> => {
+        const response = await apiClient.get<ApiResponse<WalletTransaction[]>>('/wallet/admin/transactions', { params });
+        return response.data.data;
+    },
+
+    getWalletStats: async (): Promise<WalletStats> => {
+        const response = await apiClient.get<ApiResponse<WalletStats>>('/wallet/admin/stats');
+        return response.data.data;
+    },
+
+    // ─────────────────────────────────────────
+    // Loyalty Tiers Management
+    // ─────────────────────────────────────────
+
+    createTier: async (data: Omit<LoyaltyTier, '_id'>): Promise<LoyaltyTier> => {
+        const response = await apiClient.post<ApiResponse<LoyaltyTier>>('/wallet/admin/tiers', data);
+        return response.data.data;
+    },
+
+    updateTier: async (id: string, data: Partial<LoyaltyTier>): Promise<LoyaltyTier> => {
+        const response = await apiClient.put<ApiResponse<LoyaltyTier>>(`/wallet/admin/tiers/${id}`, data);
+        return response.data.data;
+    },
+
+    deleteTier: async (id: string): Promise<void> => {
+        await apiClient.delete(`/wallet/admin/tiers/${id}`);
+    },
 };
+
+export interface WalletStats {
+    totalBalance: number;
+    totalCredits: number;
+    totalDebits: number;
+    transactionCount: number;
+    activeWallets: number;
+    totalPoints: number;
+    averageBalance: number;
+}
 
 export default walletApi;

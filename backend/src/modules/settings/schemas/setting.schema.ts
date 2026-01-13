@@ -110,5 +110,5 @@ export class Setting {
 
 export const SettingSchema = SchemaFactory.createForClass(Setting);
 
-SettingSchema.index({ key: 1 }, { unique: true });
+// Note: 'key' index is automatically created by unique: true
 SettingSchema.index({ group: 1, sortOrder: 1 });

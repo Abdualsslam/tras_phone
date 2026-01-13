@@ -74,7 +74,7 @@ export const DeviceSchema = SchemaFactory.createForClass(Device);
 // Indexes
 // ═════════════════════════════════════
 DeviceSchema.index({ brandId: 1 });
-DeviceSchema.index({ slug: 1 });
+// Note: 'slug' index is automatically created by unique: true
 DeviceSchema.index({ isActive: 1 });
 DeviceSchema.index({ isPopular: 1 });
 DeviceSchema.index({ releaseYear: -1 });

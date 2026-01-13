@@ -183,15 +183,18 @@ export class CustomersService {
      * Approve customer
      */
     async approve(id: string, adminId: string): Promise<CustomerDocument> {
-        const customer = await this.customerModel.findById(id).populate('userId');
+        const customer = await this.customerModel.findByIdAndUpdate(
+            id,
+            {
+                approvedBy: adminId,
+                approvedAt: new Date(),
+            },
+            { new: true, runValidators: false }
+        ).populate('userId');
 
         if (!customer) {
             throw new NotFoundException('Customer not found');
         }
-
-        customer.approvedBy = adminId as any;
-        customer.approvedAt = new Date();
-        await customer.save();
 
         // TODO: Update user status to 'active'
         // await this.usersService.update(customer.userId, { status: 'active' });
@@ -206,14 +209,17 @@ export class CustomersService {
         id: string,
         reason: string,
     ): Promise<CustomerDocument> {
-        const customer = await this.customerModel.findById(id);
+        const customer = await this.customerModel.findByIdAndUpdate(
+            id,
+            {
+                rejectionReason: reason,
+            },
+            { new: true, runValidators: false }
+        );
 
         if (!customer) {
             throw new NotFoundException('Customer not found');
         }
-
-        customer.rejectionReason = reason;
-        await customer.save();
 
         return customer;
     }

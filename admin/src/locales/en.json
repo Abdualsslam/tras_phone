@@ -41,13 +41,22 @@
     "customers": "Customers",
     "products": "Products",
     "categories": "Categories",
+    "catalog": "Catalog",
     "orders": "Orders",
     "inventory": "Inventory",
     "promotions": "Promotions",
     "notifications": "Notifications",
     "support": "Support",
     "analytics": "Analytics",
-    "settings": "Settings"
+    "settings": "Settings",
+    "suppliers": "Suppliers",
+    "purchaseOrders": "Purchase Orders",
+    "returns": "Returns",
+    "roles": "Roles",
+    "wallet": "Wallet",
+    "content": "Content",
+    "audit": "Audit Logs",
+    "liveChat": "Live Chat"
   },
   "dashboard": {
     "title": "Dashboard",

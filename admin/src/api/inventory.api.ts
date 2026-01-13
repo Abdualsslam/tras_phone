@@ -230,7 +230,143 @@ export const inventoryApi = {
         const response = await apiClient.get<ApiResponse<StockMovement[]>>('/inventory/movements', { params });
         return response.data.data;
     },
+
+    // ─────────────────────────────────────────
+    // Inventory Counts (Stocktaking)
+    // ─────────────────────────────────────────
+
+    getInventoryCounts: async (): Promise<InventoryCount[]> => {
+        const response = await apiClient.get<ApiResponse<InventoryCount[]>>('/inventory/counts');
+        return response.data.data;
+    },
+
+    createInventoryCount: async (data: { warehouseId: string; type: 'full' | 'partial' | 'cycle'; items?: { productId: string; expectedQuantity: number }[] }): Promise<InventoryCount> => {
+        const response = await apiClient.post<ApiResponse<InventoryCount>>('/inventory/counts', data);
+        return response.data.data;
+    },
+
+    updateInventoryCountItem: async (countId: string, itemId: string, data: { actualQuantity: number; note?: string }): Promise<InventoryCount> => {
+        const response = await apiClient.put<ApiResponse<InventoryCount>>(`/inventory/counts/${countId}/items/${itemId}`, data);
+        return response.data.data;
+    },
+
+    completeInventoryCount: async (countId: string): Promise<InventoryCount> => {
+        const response = await apiClient.put<ApiResponse<InventoryCount>>(`/inventory/counts/${countId}/complete`);
+        return response.data.data;
+    },
+
+    approveInventoryCount: async (countId: string): Promise<InventoryCount> => {
+        const response = await apiClient.post<ApiResponse<InventoryCount>>(`/inventory/counts/${countId}/approve`);
+        return response.data.data;
+    },
+
+    // ─────────────────────────────────────────
+    // Stock Transfers (Inter-warehouse)
+    // ─────────────────────────────────────────
+
+    getStockTransfers: async (): Promise<StockTransfer[]> => {
+        const response = await apiClient.get<ApiResponse<StockTransfer[]>>('/inventory/transfers');
+        return response.data.data;
+    },
+
+    createStockTransfer: async (data: { fromWarehouseId: string; toWarehouseId: string; items: { productId: string; quantity: number }[]; note?: string }): Promise<StockTransfer> => {
+        const response = await apiClient.post<ApiResponse<StockTransfer>>('/inventory/transfers', data);
+        return response.data.data;
+    },
+
+    approveStockTransfer: async (transferId: string): Promise<StockTransfer> => {
+        const response = await apiClient.post<ApiResponse<StockTransfer>>(`/inventory/transfers/${transferId}/approve`);
+        return response.data.data;
+    },
+
+    shipStockTransfer: async (transferId: string): Promise<StockTransfer> => {
+        const response = await apiClient.post<ApiResponse<StockTransfer>>(`/inventory/transfers/${transferId}/ship`);
+        return response.data.data;
+    },
+
+    receiveStockTransfer: async (transferId: string, data: { items: { productId: string; receivedQuantity: number }[] }): Promise<StockTransfer> => {
+        const response = await apiClient.post<ApiResponse<StockTransfer>>(`/inventory/transfers/${transferId}/receive`, data);
+        return response.data.data;
+    },
+
+    // ─────────────────────────────────────────
+    // Reservations
+    // ─────────────────────────────────────────
+
+    getReservations: async (): Promise<StockReservation[]> => {
+        const response = await apiClient.get<ApiResponse<StockReservation[]>>('/inventory/reservations');
+        return response.data.data;
+    },
+
+    createReservation: async (data: { productId: string; warehouseId: string; quantity: number; orderId?: string; expiresAt?: string }): Promise<StockReservation> => {
+        const response = await apiClient.post<ApiResponse<StockReservation>>('/inventory/reserve', data);
+        return response.data.data;
+    },
+
+    releaseReservation: async (reservationId: string): Promise<void> => {
+        await apiClient.post(`/inventory/reservations/${reservationId}/release`);
+    },
 };
+
+// Additional Types
+export interface InventoryCount {
+    _id: string;
+    warehouseId: string;
+    warehouse?: { name: string };
+    type: 'full' | 'partial' | 'cycle';
+    status: 'draft' | 'in_progress' | 'completed' | 'approved';
+    items: {
+        _id: string;
+        productId: string;
+        product?: { name: string; sku: string };
+        expectedQuantity: number;
+        actualQuantity?: number;
+        variance?: number;
+        note?: string;
+    }[];
+    createdBy: string;
+    createdByName?: string;
+    completedAt?: string;
+    approvedAt?: string;
+    approvedBy?: string;
+    createdAt: string;
+}
+
+export interface StockTransfer {
+    _id: string;
+    transferNumber: string;
+    fromWarehouseId: string;
+    fromWarehouse?: { name: string };
+    toWarehouseId: string;
+    toWarehouse?: { name: string };
+    status: 'pending' | 'approved' | 'shipped' | 'received' | 'cancelled';
+    items: {
+        productId: string;
+        product?: { name: string; sku: string };
+        quantity: number;
+        receivedQuantity?: number;
+    }[];
+    note?: string;
+    createdBy: string;
+    createdByName?: string;
+    createdAt: string;
+    shippedAt?: string;
+    receivedAt?: string;
+}
+
+export interface StockReservation {
+    _id: string;
+    productId: string;
+    product?: { name: string; sku: string };
+    warehouseId: string;
+    warehouse?: { name: string };
+    quantity: number;
+    orderId?: string;
+    orderNumber?: string;
+    status: 'active' | 'released' | 'expired';
+    expiresAt?: string;
+    createdAt: string;
+}
 
 export default inventoryApi;
 

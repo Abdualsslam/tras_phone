@@ -8,6 +8,7 @@ import { LoyaltyTransaction, LoyaltyTransactionSchema } from './schemas/loyalty-
 import { PointsExpiry, PointsExpirySchema } from './schemas/points-expiry.schema';
 import { WalletService } from './wallet.service';
 import { WalletController } from './wallet.controller';
+import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
     imports: [
@@ -27,6 +28,7 @@ import { WalletController } from './wallet.controller';
             }),
             inject: [ConfigService],
         }),
+        AuthModule,
     ],
     controllers: [WalletController],
     providers: [WalletService],

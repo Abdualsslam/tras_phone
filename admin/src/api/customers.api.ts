@@ -79,11 +79,28 @@ const transformCustomer = (customer: any): Customer => {
         email: customer.contactEmail || customer.userId?.email || '',
         phone: customer.contactPhone || customer.userId?.phone || '',
         phoneNormalized: customer.phoneNormalized || '',
-        status: customer.status || 'pending',
+        status: customer.status || (customer.approvedAt ? 'approved' : customer.rejectionReason ? 'rejected' : 'pending'),
         address: customer.address,
         taxNumber: customer.taxNumber,
         commercialRegister: customer.commercialLicenseNumber,
         tier: customer.loyaltyTier,
+        customerCode: customer.customerCode,
+        businessType: customer.businessType,
+        cityId: customer.cityId,
+        priceLevelId: customer.priceLevelId,
+        creditLimit: customer.creditLimit,
+        creditUsed: customer.creditUsed,
+        availableCredit: customer.availableCredit,
+        walletBalance: customer.walletBalance,
+        loyaltyPoints: customer.loyaltyPoints,
+        loyaltyTier: customer.loyaltyTier,
+        totalOrders: customer.totalOrders,
+        totalSpent: customer.totalSpent,
+        averageOrderValue: customer.averageOrderValue,
+        lastOrderAt: customer.lastOrderAt,
+        nationalId: customer.nationalId,
+        approvedAt: customer.approvedAt,
+        internalNotes: customer.internalNotes,
         createdAt: customer.createdAt,
         updatedAt: customer.updatedAt,
     };
@@ -111,8 +128,8 @@ export const customersApi = {
     },
 
     getById: async (id: string): Promise<Customer> => {
-        const response = await apiClient.get<ApiResponse<Customer>>(`/customers/${id}`);
-        return response.data.data;
+        const response = await apiClient.get<ApiResponse<any>>(`/customers/${id}`);
+        return transformCustomer(response.data.data);
     },
 
     create: async (data: CreateCustomerDto): Promise<Customer> => {
@@ -162,7 +179,84 @@ export const customersApi = {
         const response = await apiClient.post<ApiResponse<{ user: { _id: string } }>>('/auth/register', data);
         return response.data.data;
     },
+
+    // ═════════════════════════════════════
+    // Customer Addresses
+    // ═════════════════════════════════════
+
+    getAddresses: async (customerId: string): Promise<CustomerAddress[]> => {
+        const response = await apiClient.get<ApiResponse<CustomerAddress[]>>(`/customers/${customerId}/addresses`);
+        return response.data.data;
+    },
+
+    createAddress: async (customerId: string, data: CreateAddressDto): Promise<CustomerAddress> => {
+        const response = await apiClient.post<ApiResponse<CustomerAddress>>(`/customers/${customerId}/addresses`, data);
+        return response.data.data;
+    },
+
+    updateAddress: async (customerId: string, addressId: string, data: Partial<CreateAddressDto>): Promise<CustomerAddress> => {
+        const response = await apiClient.put<ApiResponse<CustomerAddress>>(`/customers/${customerId}/addresses/${addressId}`, data);
+        return response.data.data;
+    },
+
+    deleteAddress: async (customerId: string, addressId: string): Promise<void> => {
+        await apiClient.delete(`/customers/${customerId}/addresses/${addressId}`);
+    },
+
+    // ═════════════════════════════════════
+    // Customer Statistics
+    // ═════════════════════════════════════
+
+    getStats: async (): Promise<CustomerStats> => {
+        const response = await apiClient.get<ApiResponse<CustomerStats>>('/customers/stats');
+        return response.data.data;
+    },
 };
+
+// Additional Types
+export interface CustomerAddress {
+    _id: string;
+    label: string;
+    type: 'shipping' | 'billing' | 'both';
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    cityId?: string;
+    country: string;
+    countryId?: string;
+    postalCode?: string;
+    phone?: string;
+    latitude?: number;
+    longitude?: number;
+    isDefault: boolean;
+    createdAt: string;
+}
+
+export interface CreateAddressDto {
+    label: string;
+    type: 'shipping' | 'billing' | 'both';
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    cityId?: string;
+    country: string;
+    countryId?: string;
+    postalCode?: string;
+    phone?: string;
+    latitude?: number;
+    longitude?: number;
+    isDefault?: boolean;
+}
+
+export interface CustomerStats {
+    total: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+    suspended: number;
+    newThisMonth: number;
+    activeThisMonth: number;
+}
 
 export default customersApi;
 

@@ -43,6 +43,17 @@ import {
     Building2,
     UserPlus,
     UserCog,
+    Phone,
+    Mail,
+    MapPin,
+    CreditCard,
+    Wallet,
+    Award,
+    ShoppingBag,
+    TrendingUp,
+    FileText,
+    Calendar,
+    User,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -178,9 +189,18 @@ export function CustomersPage() {
         },
     });
 
-    const handleViewDetails = (customer: Customer) => {
-        setSelectedCustomer(customer);
-        setIsDetailsDialogOpen(true);
+    const handleViewDetails = async (customer: Customer) => {
+        try {
+            // Fetch full customer details from API
+            const fullCustomer = await customersApi.getById(customer._id);
+            setSelectedCustomer(fullCustomer);
+            setIsDetailsDialogOpen(true);
+        } catch (error) {
+            console.error('Error fetching customer details:', error);
+            // Fallback to basic customer data
+            setSelectedCustomer(customer);
+            setIsDetailsDialogOpen(true);
+        }
     };
 
     const handleOpenAddDialog = () => {
@@ -410,44 +430,301 @@ export function CustomersPage() {
 
             {/* Customer Details Dialog */}
             <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>{t('customers.customerDetails')}</DialogTitle>
-                        <DialogDescription>معلومات العميل الكاملة</DialogDescription>
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            <Building2 className="h-5 w-5" />
+                            {t('customers.customerDetails')}
+                        </DialogTitle>
+                        <DialogDescription>معلومات العميل الكاملة والتفصيلية</DialogDescription>
                     </DialogHeader>
                     {selectedCustomer && (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-sm text-gray-500">{t('customers.companyName')}</p>
-                                    <p className="font-medium">{selectedCustomer.companyName}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">{t('customers.contactName')}</p>
-                                    <p className="font-medium">{selectedCustomer.contactName}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">{t('customers.email')}</p>
-                                    <p className="font-medium">{selectedCustomer.email}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">{t('customers.phone')}</p>
-                                    <p className="font-medium" dir="ltr">{selectedCustomer.phone}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">{t('customers.status')}</p>
-                                    <Badge variant={statusVariants[selectedCustomer.status]}>
-                                        {statusLabels[selectedCustomer.status]}
+                        <div className="space-y-6">
+                            {/* Status & Quick Info */}
+                            <div className="flex flex-wrap items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                                <Badge variant={statusVariants[selectedCustomer.status]} className="text-sm px-3 py-1">
+                                    {statusLabels[selectedCustomer.status]}
+                                </Badge>
+                                {selectedCustomer.tier && (
+                                    <Badge variant="secondary" className="text-sm px-3 py-1">
+                                        <Award className="h-3 w-3 ml-1" />
+                                        {selectedCustomer.tier}
                                     </Badge>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">السجل التجاري</p>
-                                    <p className="font-medium">{selectedCustomer.commercialRegister || '-'}</p>
-                                </div>
+                                )}
+                                {(selectedCustomer as any).customerCode && (
+                                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                                        الكود: {(selectedCustomer as any).customerCode}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Main Info Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Basic Information */}
+                                <Card>
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <User className="h-4 w-4" />
+                                            المعلومات الأساسية
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">اسم الشركة / المحل</p>
+                                            <p className="font-medium text-sm">{selectedCustomer.companyName}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">اسم المسؤول</p>
+                                            <p className="font-medium text-sm">{selectedCustomer.contactName}</p>
+                                        </div>
+                                        {(selectedCustomer as any).businessType && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">نوع العمل</p>
+                                                <Badge variant="outline" className="text-xs">
+                                                    {(selectedCustomer as any).businessType === 'shop' ? 'محل' :
+                                                        (selectedCustomer as any).businessType === 'technician' ? 'فني' :
+                                                            (selectedCustomer as any).businessType === 'distributor' ? 'موزع' : 'أخرى'}
+                                                </Badge>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Contact Information */}
+                                <Card>
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <Phone className="h-4 w-4" />
+                                            معلومات التواصل
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                <Phone className="h-3 w-3" />
+                                                رقم الهاتف
+                                            </p>
+                                            <p className="font-medium text-sm" dir="ltr">{selectedCustomer.phone}</p>
+                                        </div>
+                                        {selectedCustomer.email && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                    <Mail className="h-3 w-3" />
+                                                    البريد الإلكتروني
+                                                </p>
+                                                <p className="font-medium text-sm" dir="ltr">{selectedCustomer.email}</p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).address && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                    <MapPin className="h-3 w-3" />
+                                                    العنوان
+                                                </p>
+                                                <p className="font-medium text-sm">{(selectedCustomer as any).address}</p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).cityId && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">المدينة</p>
+                                                <p className="font-medium text-sm">
+                                                    {typeof (selectedCustomer as any).cityId === 'object'
+                                                        ? ((selectedCustomer as any).cityId.nameAr || (selectedCustomer as any).cityId.name)
+                                                        : '-'}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Financial Information */}
+                                <Card>
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <CreditCard className="h-4 w-4" />
+                                            المعلومات المالية
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {(selectedCustomer as any).creditLimit !== undefined && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">حد الائتمان</p>
+                                                <p className="font-medium text-sm">
+                                                    {((selectedCustomer as any).creditLimit || 0).toLocaleString()} ريال
+                                                </p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).creditUsed !== undefined && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">الائتمان المستخدم</p>
+                                                <p className="font-medium text-sm">
+                                                    {((selectedCustomer as any).creditUsed || 0).toLocaleString()} ريال
+                                                </p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).availableCredit !== undefined && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">الائتمان المتاح</p>
+                                                <p className="font-semibold text-sm text-green-600 dark:text-green-400">
+                                                    {((selectedCustomer as any).availableCredit || 0).toLocaleString()} ريال
+                                                </p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).walletBalance !== undefined && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                    <Wallet className="h-3 w-3" />
+                                                    رصيد المحفظة
+                                                </p>
+                                                <p className="font-medium text-sm">
+                                                    {((selectedCustomer as any).walletBalance || 0).toLocaleString()} ريال
+                                                </p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).priceLevelId && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">مستوى السعر</p>
+                                                <p className="font-medium text-sm">
+                                                    {typeof (selectedCustomer as any).priceLevelId === 'object'
+                                                        ? `${(selectedCustomer as any).priceLevelId.nameAr || (selectedCustomer as any).priceLevelId.name} (${(selectedCustomer as any).priceLevelId.discount || 0}%)`
+                                                        : '-'}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Statistics & Loyalty */}
+                                <Card>
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <TrendingUp className="h-4 w-4" />
+                                            الإحصائيات والنقاط
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {(selectedCustomer as any).totalOrders !== undefined && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                    <ShoppingBag className="h-3 w-3" />
+                                                    إجمالي الطلبات
+                                                </p>
+                                                <p className="font-medium text-sm">{(selectedCustomer as any).totalOrders || 0}</p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).totalSpent !== undefined && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">إجمالي المشتريات</p>
+                                                <p className="font-medium text-sm">
+                                                    {((selectedCustomer as any).totalSpent || 0).toLocaleString()} ريال
+                                                </p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).averageOrderValue !== undefined && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">متوسط قيمة الطلب</p>
+                                                <p className="font-medium text-sm">
+                                                    {((selectedCustomer as any).averageOrderValue || 0).toLocaleString()} ريال
+                                                </p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).loyaltyPoints !== undefined && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                    <Award className="h-3 w-3" />
+                                                    نقاط الولاء
+                                                </p>
+                                                <p className="font-medium text-sm">{(selectedCustomer as any).loyaltyPoints || 0}</p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).loyaltyTier && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">مستوى الولاء</p>
+                                                <Badge variant="outline" className="text-xs">
+                                                    {(selectedCustomer as any).loyaltyTier}
+                                                </Badge>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Documents */}
+                                {(selectedCustomer.commercialRegister || (selectedCustomer as any).taxNumber || (selectedCustomer as any).nationalId) && (
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle className="text-base flex items-center gap-2">
+                                                <FileText className="h-4 w-4" />
+                                                الوثائق
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            {selectedCustomer.commercialRegister && (
+                                                <div className="space-y-1">
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">السجل التجاري</p>
+                                                    <p className="font-medium text-sm" dir="ltr">{selectedCustomer.commercialRegister}</p>
+                                                </div>
+                                            )}
+                                            {(selectedCustomer as any).taxNumber && (
+                                                <div className="space-y-1">
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">الرقم الضريبي</p>
+                                                    <p className="font-medium text-sm" dir="ltr">{(selectedCustomer as any).taxNumber}</p>
+                                                </div>
+                                            )}
+                                            {(selectedCustomer as any).nationalId && (
+                                                <div className="space-y-1">
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">رقم الهوية</p>
+                                                    <p className="font-medium text-sm" dir="ltr">{(selectedCustomer as any).nationalId}</p>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Dates & Notes */}
+                                <Card>
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <Calendar className="h-4 w-4" />
+                                            التواريخ والملاحظات
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">تاريخ التسجيل</p>
+                                            <p className="font-medium text-sm">{formatDate(selectedCustomer.createdAt, locale)}</p>
+                                        </div>
+                                        {selectedCustomer.updatedAt && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">آخر تحديث</p>
+                                                <p className="font-medium text-sm">{formatDate(selectedCustomer.updatedAt, locale)}</p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).approvedAt && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">تاريخ الموافقة</p>
+                                                <p className="font-medium text-sm">{formatDate((selectedCustomer as any).approvedAt, locale)}</p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).lastOrderAt && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">آخر طلب</p>
+                                                <p className="font-medium text-sm">{formatDate((selectedCustomer as any).lastOrderAt, locale)}</p>
+                                            </div>
+                                        )}
+                                        {(selectedCustomer as any).internalNotes && (
+                                            <div className="space-y-1">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">ملاحظات داخلية</p>
+                                                <p className="font-medium text-sm text-gray-700 dark:text-gray-300">
+                                                    {(selectedCustomer as any).internalNotes}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </div>
                         </div>
                     )}
-                    <DialogFooter>
+                    <DialogFooter className="gap-2">
                         <Button variant="outline" onClick={() => setIsDetailsDialogOpen(false)}>
                             إغلاق
                         </Button>

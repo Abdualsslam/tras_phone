@@ -41,15 +41,26 @@ export interface LoginResponse {
 
 export interface Admin {
     _id: string;
-    name: string;
-    email: string;
-    phone?: string;
-    department?: string;
-    employmentStatus: 'active' | 'inactive' | 'suspended';
-    roles: Role[];
-    avatar?: string;
+    userId: {
+        _id: string;
+        phone: string;
+        email: string;
+        avatar?: string;
+    };
+    employeeCode: string;
+    fullName: string;
+    fullNameAr: string;
+    department: string;
+    position: string;
+    isSuperAdmin: boolean;
+    canAccessWeb: boolean;
+    canAccessMobile: boolean;
+    employmentStatus: 'active' | 'on_leave' | 'suspended' | 'terminated';
+    hireDate: string;
     createdAt: string;
     updatedAt: string;
+    totalOrdersProcessed?: number;
+    totalCustomersManaged?: number;
 }
 
 export interface Role {
@@ -66,12 +77,29 @@ export interface Customer {
     contactName: string;
     email: string;
     phone: string;
-    phoneNormalized: string;
+    phoneNormalized?: string;
     status: 'pending' | 'approved' | 'rejected' | 'suspended';
-    address?: Address;
+    address?: Address | string;
     taxNumber?: string;
     commercialRegister?: string;
     tier?: string;
+    customerCode?: string;
+    businessType?: string;
+    cityId?: string | { _id: string; name: string; nameAr: string };
+    priceLevelId?: string | { _id: string; name: string; nameAr?: string; discount?: number };
+    creditLimit?: number;
+    creditUsed?: number;
+    availableCredit?: number;
+    walletBalance?: number;
+    loyaltyPoints?: number;
+    loyaltyTier?: string;
+    totalOrders?: number;
+    totalSpent?: number;
+    averageOrderValue?: number;
+    lastOrderAt?: string;
+    nationalId?: string;
+    approvedAt?: string;
+    internalNotes?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -90,16 +118,35 @@ export interface Product {
     name: string;
     nameAr?: string;
     sku: string;
+    slug?: string;
     description?: string;
     descriptionAr?: string;
+    shortDescription?: string;
+    shortDescriptionAr?: string;
     category?: Category;
     brand?: Brand;
+    qualityTypeId?: string;
+    mainImage?: string;
     images: string[];
+    video?: string;
     price: number;
     compareAtPrice?: number;
+    costPrice?: number;
     stock: number;
-    status: 'draft' | 'published' | 'archived';
+    lowStockThreshold?: number;
+    minOrderQuantity?: number;
+    maxOrderQuantity?: number;
+    status: 'draft' | 'active' | 'inactive' | 'out_of_stock' | 'discontinued' | 'published' | 'archived';
+    isActive?: boolean;
     featured: boolean;
+    trackInventory?: boolean;
+    allowBackorder?: boolean;
+    additionalCategories?: string[];
+    tags?: string[];
+    specifications?: Record<string, any>;
+    weight?: number;
+    dimensions?: string;
+    color?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -122,6 +169,7 @@ export interface Brand {
     nameAr?: string;
     slug: string;
     logo?: string;
+    isFeatured?: boolean;
     isActive: boolean;
 }
 
@@ -218,14 +266,44 @@ export interface Ticket {
 }
 
 // Analytics types
+// Note: DashboardStats is now defined in api/analytics.api.ts
+// This interface is kept for backward compatibility but may be removed in the future
 export interface DashboardStats {
-    totalRevenue: number;
-    totalOrders: number;
-    totalCustomers: number;
-    totalProducts: number;
-    revenueChange: number;
-    ordersChange: number;
-    customersChange: number;
+    overview: {
+        orders: {
+            today: number;
+            thisMonth: number;
+            lastMonth: number;
+            change: number;
+        };
+        revenue: {
+            today: number;
+            thisMonth: number;
+            lastMonth: number;
+            change: number;
+        };
+        customers: {
+            total: number;
+            newThisMonth: number;
+        };
+        products: {
+            total: number;
+            active: number;
+        };
+    };
+    salesChart: any[];
+    topProducts: any[];
+    topCustomers: any[];
+    lowStock: any[];
+    recentOrders: any[];
+    pendingActions: {
+        pendingOrders: number;
+        pendingPayments: number;
+        pendingReturns: number;
+        pendingApprovals: number;
+        lowStockCount: number;
+        total: number;
+    };
 }
 
 export interface ChartData {

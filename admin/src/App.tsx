@@ -24,6 +24,8 @@ import { RolesPage } from '@/pages/roles/RolesPage';
 import { AuditLogsPage } from '@/pages/audit/AuditLogsPage';
 import { ContentPage } from '@/pages/content/ContentPage';
 import { WalletPage } from '@/pages/wallet/WalletPage';
+import { CatalogPage } from '@/pages/catalog/CatalogPage';
+import { LiveChatPage } from '@/pages/support/LiveChatPage';
 
 // Import i18n configuration
 import '@/locales/i18n';
@@ -62,6 +64,7 @@ function App() {
                 <Route path="customers" element={<CustomersPage />} />
                 <Route path="products" element={<ProductsPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
+                <Route path="catalog" element={<CatalogPage />} />
                 <Route path="orders" element={<OrdersPage />} />
                 <Route path="inventory" element={<InventoryPage />} />
                 <Route path="suppliers" element={<SuppliersPage />} />
@@ -71,6 +74,7 @@ function App() {
                 <Route path="promotions" element={<PromotionsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="support" element={<SupportPage />} />
+                <Route path="live-chat" element={<LiveChatPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="audit" element={<AuditLogsPage />} />
                 <Route path="content" element={<ContentPage />} />

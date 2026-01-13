@@ -35,6 +35,7 @@ import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { CacheModule } from './modules/cache/cache.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { AdminsModule } from './modules/admins/admins.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 
 @Module({
     imports: [
@@ -103,6 +104,9 @@ import { AdminsModule } from './modules/admins/admins.module';
 
         // Background Jobs
         JobsModule,
+
+        // File Uploads
+        UploadsModule,
     ],
     controllers: [],
     providers: [],

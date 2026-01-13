@@ -295,7 +295,87 @@ export const settingsApi = {
         const response = await apiClient.put<ApiResponse<PaymentMethod>>(`/settings/admin/payment-methods/${id}`, data);
         return response.data.data;
     },
+
+    // ─────────────────────────────────────────
+    // App Versions
+    // ─────────────────────────────────────────
+
+    getAppVersions: async (platform?: 'ios' | 'android'): Promise<AppVersion[]> => {
+        const response = await apiClient.get<ApiResponse<AppVersion[]>>('/settings/app-versions', {
+            params: platform ? { platform } : undefined,
+        });
+        return response.data.data;
+    },
+
+    createAppVersion: async (data: Omit<AppVersion, '_id' | 'createdAt'>): Promise<AppVersion> => {
+        const response = await apiClient.post<ApiResponse<AppVersion>>('/settings/admin/app-versions', data);
+        return response.data.data;
+    },
+
+    updateAppVersion: async (id: string, data: Partial<AppVersion>): Promise<AppVersion> => {
+        const response = await apiClient.put<ApiResponse<AppVersion>>(`/settings/admin/app-versions/${id}`, data);
+        return response.data.data;
+    },
+
+    setCurrentAppVersion: async (id: string): Promise<AppVersion> => {
+        const response = await apiClient.put<ApiResponse<AppVersion>>(`/settings/admin/app-versions/${id}/current`);
+        return response.data.data;
+    },
+
+    deleteAppVersion: async (id: string): Promise<void> => {
+        await apiClient.delete(`/settings/admin/app-versions/${id}`);
+    },
+
+    // ─────────────────────────────────────────
+    // Admin Cities
+    // ─────────────────────────────────────────
+
+    getAdminCities: async (countryId?: string): Promise<City[]> => {
+        const response = await apiClient.get<ApiResponse<City[]>>('/settings/admin/cities', {
+            params: countryId ? { countryId } : undefined,
+        });
+        return response.data.data;
+    },
+
+    deleteCity: async (id: string): Promise<void> => {
+        await apiClient.delete(`/settings/admin/cities/${id}`);
+    },
+
+    deleteCountry: async (id: string): Promise<void> => {
+        await apiClient.delete(`/settings/admin/countries/${id}`);
+    },
+
+    deleteCurrency: async (id: string): Promise<void> => {
+        await apiClient.delete(`/settings/admin/currencies/${id}`);
+    },
+
+    deleteTaxRate: async (id: string): Promise<void> => {
+        await apiClient.delete(`/settings/admin/tax-rates/${id}`);
+    },
+
+    deleteShippingZone: async (id: string): Promise<void> => {
+        await apiClient.delete(`/settings/admin/shipping-zones/${id}`);
+    },
+
+    deletePaymentMethod: async (id: string): Promise<void> => {
+        await apiClient.delete(`/settings/admin/payment-methods/${id}`);
+    },
 };
+
+export interface AppVersion {
+    _id: string;
+    platform: 'ios' | 'android';
+    version: string;
+    buildNumber: number;
+    minRequiredVersion?: string;
+    releaseNotes?: string;
+    releaseNotesAr?: string;
+    downloadUrl?: string;
+    isCurrent: boolean;
+    isForceUpdate: boolean;
+    isActive: boolean;
+    createdAt: string;
+}
 
 export default settingsApi;
 

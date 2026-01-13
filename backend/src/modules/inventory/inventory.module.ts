@@ -13,6 +13,7 @@ import { ProductStock, ProductStockSchema } from './schemas/product-stock.schema
 import { InventoryService } from './inventory.service';
 import { WarehousesService } from './warehouses.service';
 import { InventoryController } from './inventory.controller';
+import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
     imports: [
@@ -36,6 +37,7 @@ import { InventoryController } from './inventory.controller';
             }),
             inject: [ConfigService],
         }),
+        AuthModule,
     ],
     controllers: [InventoryController],
     providers: [InventoryService, WarehousesService],

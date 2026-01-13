@@ -136,7 +136,7 @@ export class Page {
 
 export const PageSchema = SchemaFactory.createForClass(Page);
 
-PageSchema.index({ slug: 1 }, { unique: true });
+// Note: 'slug' index is automatically created by unique: true
 PageSchema.index({ status: 1, type: 1 });
 PageSchema.index({ showInFooter: 1, sortOrder: 1 });
 PageSchema.index({ showInHeader: 1, sortOrder: 1 });

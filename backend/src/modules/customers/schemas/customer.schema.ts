@@ -220,6 +220,19 @@ CustomerSchema.virtual('availableCredit').get(function () {
 });
 
 // ═════════════════════════════════════
+// Virtual for status (derived from approval fields)
+// ═════════════════════════════════════
+CustomerSchema.virtual('status').get(function () {
+    if (this.rejectionReason) {
+        return 'rejected';
+    }
+    if (this.approvedAt) {
+        return 'approved';
+    }
+    return 'pending';
+});
+
+// ═════════════════════════════════════
 // Virtual for ID
 // ═════════════════════════════════════
 CustomerSchema.virtual('id').get(function () {

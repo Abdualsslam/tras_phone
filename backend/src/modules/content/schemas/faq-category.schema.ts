@@ -35,5 +35,5 @@ export class FaqCategory {
 
 export const FaqCategorySchema = SchemaFactory.createForClass(FaqCategory);
 
-FaqCategorySchema.index({ slug: 1 }, { unique: true });
+// Note: 'slug' index is automatically created by unique: true
 FaqCategorySchema.index({ isActive: 1, sortOrder: 1 });

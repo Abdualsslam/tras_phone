@@ -47,6 +47,6 @@ export const PermissionSchema = SchemaFactory.createForClass(Permission);
 // ═════════════════════════════════════
 // Indexes
 // ═════════════════════════════════════
-PermissionSchema.index({ name: 1 });
+// Note: 'name' index is automatically created by unique: true
 PermissionSchema.index({ module: 1 });
 PermissionSchema.index({ isActive: 1 });

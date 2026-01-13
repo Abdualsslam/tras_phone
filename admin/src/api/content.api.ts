@@ -209,6 +209,28 @@ export const contentApi = {
         return response.data.data;
     },
 
+    updateSlide: async (sliderId: string, slideIndex: number, slide: Partial<SliderSlide>): Promise<Slider> => {
+        const response = await apiClient.put<ApiResponse<Slider>>(`/content/admin/sliders/${sliderId}/slides/${slideIndex}`, slide);
+        return response.data.data;
+    },
+
+    removeSlide: async (sliderId: string, slideIndex: number): Promise<Slider> => {
+        const response = await apiClient.delete<ApiResponse<Slider>>(`/content/admin/sliders/${sliderId}/slides/${slideIndex}`);
+        return response.data.data;
+    },
+
+    deleteSlider: async (id: string): Promise<void> => {
+        await apiClient.delete(`/content/admin/sliders/${id}`);
+    },
+
+    // ─────────────────────────────────────────
+    // FAQ Categories
+    // ─────────────────────────────────────────
+
+    deleteFaqCategory: async (id: string): Promise<void> => {
+        await apiClient.delete(`/content/admin/faqs/categories/${id}`);
+    },
+
     // ─────────────────────────────────────────
     // Testimonials
     // ─────────────────────────────────────────

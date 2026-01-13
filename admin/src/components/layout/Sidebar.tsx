@@ -23,6 +23,8 @@ import {
     History,
     Layers,
     Wallet,
+    Smartphone,
+    MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -38,6 +40,7 @@ const menuItems = [
     { icon: UserCheck, path: '/customers', labelKey: 'sidebar.customers' },
     { icon: Package, path: '/products', labelKey: 'sidebar.products' },
     { icon: FolderTree, path: '/categories', labelKey: 'sidebar.categories' },
+    { icon: Smartphone, path: '/catalog', labelKey: 'sidebar.catalog' },
     { icon: ShoppingCart, path: '/orders', labelKey: 'sidebar.orders' },
     { icon: RotateCcw, path: '/returns', labelKey: 'sidebar.returns' },
     { icon: Warehouse, path: '/inventory', labelKey: 'sidebar.inventory' },
@@ -48,6 +51,7 @@ const menuItems = [
     { icon: Layers, path: '/content', labelKey: 'sidebar.content' },
     { icon: Bell, path: '/notifications', labelKey: 'sidebar.notifications' },
     { icon: HeadphonesIcon, path: '/support', labelKey: 'sidebar.support' },
+    { icon: MessageSquare, path: '/live-chat', labelKey: 'sidebar.liveChat' },
     { icon: BarChart3, path: '/analytics', labelKey: 'sidebar.analytics' },
     { icon: History, path: '/audit', labelKey: 'sidebar.audit' },
     { icon: Settings, path: '/settings', labelKey: 'sidebar.settings' },

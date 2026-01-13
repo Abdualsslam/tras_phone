@@ -191,8 +191,8 @@ export function RolesPage() {
 
     const handlePermissions = (role: Role) => {
         setSelectedRole(role);
-        // Extract permission IDs
-        const permIds = role.permissions.map(p =>
+        // Extract permission IDs (handle undefined permissions)
+        const permIds = (role.permissions || []).map(p =>
             typeof p === 'string' ? p : p._id
         );
         setSelectedPermissions(permIds);
@@ -400,7 +400,7 @@ export function RolesPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline">
-                                                    {role.permissions.length} صلاحية
+                                                    {(role.permissions || []).length} صلاحية
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>

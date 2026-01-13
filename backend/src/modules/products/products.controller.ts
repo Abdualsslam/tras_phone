@@ -1,17 +1,23 @@
 import {
-    Controller,
-    Get,
-    Post,
-    Put,
-    Delete,
-    Body,
-    Param,
-    Query,
-    UseGuards,
-    HttpCode,
-    HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { Public } from '@decorators/public.decorator';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
@@ -25,8 +31,14 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { SetPricesDto } from './dto/set-prices.dto';
 import { AddReviewDto } from './dto/add-review.dto';
 import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
+import { AddDeviceCompatibilityDto } from './dto/add-device-compatibility.dto';
+import { CreateStockAlertDto } from './dto/create-stock-alert.dto';
 import { ApiResponseDto } from '@common/dto/api-response.dto';
-import { ApiCommonErrorResponses, ApiPublicErrorResponses } from '@common/decorators/api-error-responses.decorator';
+import {
+  ApiAuthErrorResponses,
+  ApiCommonErrorResponses,
+  ApiPublicErrorResponses,
+} from '@common/decorators/api-error-responses.decorator';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -36,230 +48,481 @@ import { ApiCommonErrorResponses, ApiPublicErrorResponses } from '@common/decora
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
-    constructor(private readonly productsService: ProductsService) { }
+  constructor(private readonly productsService: ProductsService) {}
 
-    // ═════════════════════════════════════
-    // Public Endpoints
-    // ═════════════════════════════════════
+  // ═════════════════════════════════════
+  // Public Endpoints
+  // ═════════════════════════════════════
 
-    @Public()
-    @Get('price-levels')
-    @ApiOperation({
-        summary: 'Get all price levels',
-        description: 'Retrieve all active price levels for customer pricing. Public endpoint.',
-    })
-    @ApiResponse({
-        status: 200,
-        description: 'Price levels retrieved successfully',
-        type: ApiResponseDto,
-    })
-    @ApiPublicErrorResponses()
-    async getPriceLevels() {
-        const priceLevels = await this.productsService.findAllPriceLevels();
-        return ResponseBuilder.success(
-            priceLevels,
-            'Price levels retrieved',
-            'تم استرجاع مستويات الأسعار',
-        );
-    }
+  @Public()
+  @Get('price-levels')
+  @ApiOperation({
+    summary: 'Get all price levels',
+    description:
+      'Retrieve all active price levels for customer pricing. Public endpoint.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Price levels retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getPriceLevels() {
+    const priceLevels = await this.productsService.findAllPriceLevels();
+    return ResponseBuilder.success(
+      priceLevels,
+      'Price levels retrieved',
+      'تم استرجاع مستويات الأسعار',
+    );
+  }
 
-    @Public()
-    @Get()
-    @ApiOperation({
-        summary: 'Get all products with filters',
-        description: 'Retrieve a paginated list of products with optional filtering by category, brand, price range, and more',
-    })
-    @ApiResponse({
-        status: 200,
-        description: 'Products retrieved successfully',
-        type: ApiResponseDto,
-    })
-    @ApiPublicErrorResponses()
-    async findAll(@Query() query: ProductFilterQueryDto) {
-        const result = await this.productsService.findAll(query);
-        return ResponseBuilder.success(
-            result.data,
-            'Products retrieved',
-            'تم استرجاع المنتجات',
-            result.pagination,
-        );
-    }
+  @Public()
+  @Get()
+  @ApiOperation({
+    summary: 'Get all products with filters',
+    description:
+      'Retrieve a paginated list of products with optional filtering by category, brand, price range, and more',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Products retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async findAll(@Query() query: ProductFilterQueryDto) {
+    const result = await this.productsService.findAll(query);
+    return ResponseBuilder.success(
+      result.data,
+      'Products retrieved',
+      'تم استرجاع المنتجات',
+      result.pagination,
+    );
+  }
 
-    @Public()
-    @Get(':identifier')
-    @ApiOperation({
-        summary: 'Get product by ID or slug',
-        description: 'Retrieve detailed information about a product by its ID or URL-friendly slug',
-    })
-    @ApiParam({ name: 'identifier', description: 'Product ID or slug', example: 'iphone-15-pro-max' })
-    @ApiResponse({
-        status: 200,
-        description: 'Product retrieved successfully',
-        type: ApiResponseDto,
-    })
-    @ApiPublicErrorResponses()
-    async findOne(@Param('identifier') identifier: string) {
-        const product = await this.productsService.findByIdOrSlug(identifier);
-        return ResponseBuilder.success(product, 'Product retrieved', 'تم استرجاع المنتج');
-    }
+  @Public()
+  @Get(':identifier')
+  @ApiOperation({
+    summary: 'Get product by ID or slug',
+    description:
+      'Retrieve detailed information about a product by its ID or URL-friendly slug',
+  })
+  @ApiParam({
+    name: 'identifier',
+    description: 'Product ID or slug',
+    example: 'iphone-15-pro-max',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Product retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async findOne(@Param('identifier') identifier: string) {
+    const product = await this.productsService.findByIdOrSlug(identifier);
+    return ResponseBuilder.success(
+      product,
+      'Product retrieved',
+      'تم استرجاع المنتج',
+    );
+  }
 
-    @Public()
-    @Get(':id/reviews')
-    @ApiOperation({
-        summary: 'Get product reviews',
-        description: 'Retrieve all approved reviews for a product',
-    })
-    @ApiParam({ name: 'id', description: 'Product ID', example: '507f1f77bcf86cd799439011' })
-    @ApiResponse({
-        status: 200,
-        description: 'Reviews retrieved successfully',
-        type: ApiResponseDto,
-    })
-    @ApiPublicErrorResponses()
-    async getReviews(@Param('id') id: string) {
-        const reviews = await this.productsService.getReviews(id);
-        return ResponseBuilder.success(reviews, 'Reviews retrieved', 'تم استرجاع التقييمات');
-    }
+  @Public()
+  @Get(':id/reviews')
+  @ApiOperation({
+    summary: 'Get product reviews',
+    description: 'Retrieve all approved reviews for a product',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Reviews retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getReviews(@Param('id') id: string) {
+    const reviews = await this.productsService.getReviews(id);
+    return ResponseBuilder.success(
+      reviews,
+      'Reviews retrieved',
+      'تم استرجاع التقييمات',
+    );
+  }
 
-    // ═════════════════════════════════════
-    // Admin Endpoints
-    // ═════════════════════════════════════
+  // ═════════════════════════════════════
+  // Admin Endpoints
+  // ═════════════════════════════════════
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    @Post()
-    @ApiBearerAuth('JWT-auth')
-    @HttpCode(HttpStatus.CREATED)
-    @ApiOperation({
-        summary: 'Create product',
-        description: 'Create a new product. SKU and slug must be unique.',
-    })
-    @ApiResponse({
-        status: 201,
-        description: 'Product created successfully',
-        type: ApiResponseDto,
-    })
-    @ApiCommonErrorResponses()
-    async create(@Body() createProductDto: CreateProductDto) {
-        const product = await this.productsService.create(createProductDto);
-        return ResponseBuilder.created(product, 'Product created', 'تم إنشاء المنتج');
-    }
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post()
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create product',
+    description: 'Create a new product. SKU and slug must be unique.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Product created successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async create(@Body() createProductDto: CreateProductDto) {
+    const product = await this.productsService.create(createProductDto);
+    return ResponseBuilder.created(
+      product,
+      'Product created',
+      'تم إنشاء المنتج',
+    );
+  }
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    @Put(':id')
-    @ApiBearerAuth('JWT-auth')
-    @ApiOperation({
-        summary: 'Update product',
-        description: 'Update product information. All fields are optional.',
-    })
-    @ApiParam({ name: 'id', description: 'Product ID', example: '507f1f77bcf86cd799439011' })
-    @ApiResponse({
-        status: 200,
-        description: 'Product updated successfully',
-        type: ApiResponseDto,
-    })
-    @ApiCommonErrorResponses()
-    async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-        const product = await this.productsService.update(id, updateProductDto);
-        return ResponseBuilder.success(product, 'Product updated', 'تم تحديث المنتج');
-    }
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Put(':id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Update product',
+    description: 'Update product information. All fields are optional.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Product updated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async update(
+    @Param('id') id: string,
+    @Body() updateProductDto: UpdateProductDto,
+  ) {
+    const product = await this.productsService.update(id, updateProductDto);
+    return ResponseBuilder.success(
+      product,
+      'Product updated',
+      'تم تحديث المنتج',
+    );
+  }
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.SUPER_ADMIN)
-    @Delete(':id')
-    @ApiBearerAuth('JWT-auth')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiOperation({
-        summary: 'Delete product',
-        description: 'Delete a product. This action cannot be undone.',
-    })
-    @ApiParam({ name: 'id', description: 'Product ID', example: '507f1f77bcf86cd799439011' })
-    @ApiResponse({
-        status: 204,
-        description: 'Product deleted successfully',
-    })
-    @ApiCommonErrorResponses()
-    async delete(@Param('id') id: string) {
-        await this.productsService.delete(id);
-        return ResponseBuilder.success(null, 'Product deleted', 'تم حذف المنتج');
-    }
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @Delete(':id')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete product',
+    description: 'Delete a product. This action cannot be undone.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Product deleted successfully',
+  })
+  @ApiCommonErrorResponses()
+  async delete(@Param('id') id: string) {
+    await this.productsService.delete(id);
+    return ResponseBuilder.success(null, 'Product deleted', 'تم حذف المنتج');
+  }
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    @Post(':id/prices')
-    @ApiBearerAuth('JWT-auth')
-    @ApiOperation({
-        summary: 'Set product prices for all price levels',
-        description: 'Set prices for a product across different price levels (e.g., retail, wholesale)',
-    })
-    @ApiParam({ name: 'id', description: 'Product ID', example: '507f1f77bcf86cd799439011' })
-    @ApiResponse({
-        status: 200,
-        description: 'Prices updated successfully',
-        type: ApiResponseDto,
-    })
-    @ApiCommonErrorResponses()
-    async setPrices(@Param('id') id: string, @Body() setPricesDto: SetPricesDto) {
-        await this.productsService.setPrices(id, setPricesDto.prices);
-        return ResponseBuilder.success(null, 'Prices updated', 'تم تحديث الأسعار');
-    }
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post(':id/prices')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Set product prices for all price levels',
+    description:
+      'Set prices for a product across different price levels (e.g., retail, wholesale)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Prices updated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async setPrices(@Param('id') id: string, @Body() setPricesDto: SetPricesDto) {
+    await this.productsService.setPrices(id, setPricesDto.prices);
+    return ResponseBuilder.success(null, 'Prices updated', 'تم تحديث الأسعار');
+  }
 
-    // ═════════════════════════════════════
-    // Customer Endpoints
-    // ═════════════════════════════════════
+  // ═════════════════════════════════════
+  // Customer Endpoints
+  // ═════════════════════════════════════
 
-    @UseGuards(JwtAuthGuard)
-    @Get('wishlist/my')
-    @ApiBearerAuth('JWT-auth')
-    @ApiOperation({ summary: 'Get my wishlist' })
-    async getWishlist(@CurrentUser() user: any) {
-        const wishlist = await this.productsService.getWishlist(user.customerId);
-        return ResponseBuilder.success(wishlist, 'Wishlist retrieved', 'تم استرجاع المفضلة');
-    }
+  @UseGuards(JwtAuthGuard)
+  @Get('wishlist/my')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get my wishlist' })
+  async getWishlist(@CurrentUser() user: any) {
+    const wishlist = await this.productsService.getWishlist(user.customerId);
+    return ResponseBuilder.success(
+      wishlist,
+      'Wishlist retrieved',
+      'تم استرجاع المفضلة',
+    );
+  }
 
-    @UseGuards(JwtAuthGuard)
-    @Post(':id/wishlist')
-    @ApiBearerAuth('JWT-auth')
-    @ApiOperation({ summary: 'Add to wishlist' })
-    async addToWishlist(@Param('id') id: string, @CurrentUser() user: any) {
-        await this.productsService.addToWishlist(user.customerId, id);
-        return ResponseBuilder.success(null, 'Added to wishlist', 'تم الإضافة للمفضلة');
-    }
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/wishlist')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Add to wishlist' })
+  async addToWishlist(@Param('id') id: string, @CurrentUser() user: any) {
+    await this.productsService.addToWishlist(user.customerId, id);
+    return ResponseBuilder.success(
+      null,
+      'Added to wishlist',
+      'تم الإضافة للمفضلة',
+    );
+  }
 
-    @UseGuards(JwtAuthGuard)
-    @Delete(':id/wishlist')
-    @ApiBearerAuth('JWT-auth')
-    @ApiOperation({ summary: 'Remove from wishlist' })
-    async removeFromWishlist(@Param('id') id: string, @CurrentUser() user: any) {
-        await this.productsService.removeFromWishlist(user.customerId, id);
-        return ResponseBuilder.success(null, 'Removed from wishlist', 'تم الإزالة من المفضلة');
-    }
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/wishlist')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Remove from wishlist' })
+  async removeFromWishlist(@Param('id') id: string, @CurrentUser() user: any) {
+    await this.productsService.removeFromWishlist(user.customerId, id);
+    return ResponseBuilder.success(
+      null,
+      'Removed from wishlist',
+      'تم الإزالة من المفضلة',
+    );
+  }
 
-    @UseGuards(JwtAuthGuard)
-    @Post(':id/reviews')
-    @ApiBearerAuth('JWT-auth')
-    @ApiOperation({
-        summary: 'Add product review',
-        description: 'Add a review and rating for a product. One review per product per customer.',
-    })
-    @ApiParam({ name: 'id', description: 'Product ID', example: '507f1f77bcf86cd799439011' })
-    @ApiResponse({
-        status: 201,
-        description: 'Review added successfully',
-        type: ApiResponseDto,
-    })
-    @ApiCommonErrorResponses()
-    async addReview(
-        @Param('id') id: string,
-        @CurrentUser() user: any,
-        @Body() addReviewDto: AddReviewDto,
-    ) {
-        const review = await this.productsService.addReview({
-            ...addReviewDto,
-            productId: id,
-            customerId: user.customerId,
-        });
-        return ResponseBuilder.created(review, 'Review added', 'تم إضافة التقييم');
-    }
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/reviews')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Add product review',
+    description:
+      'Add a review and rating for a product. One review per product per customer.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Review added successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async addReview(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() addReviewDto: AddReviewDto,
+  ) {
+    const review = await this.productsService.addReview({
+      ...addReviewDto,
+      productId: id,
+      customerId: user.customerId,
+    });
+    return ResponseBuilder.created(review, 'Review added', 'تم إضافة التقييم');
+  }
+
+  // ═════════════════════════════════════
+  // Admin - Device Compatibility
+  // ═════════════════════════════════════
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post(':id/devices')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Add device compatibility',
+    description: 'Link devices to product for compatibility. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Device compatibility added successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async addDeviceCompatibility(
+    @Param('id') id: string,
+    @Body() addDeviceCompatibilityDto: AddDeviceCompatibilityDto,
+  ) {
+    const result = await this.productsService.addDeviceCompatibility(
+      id,
+      addDeviceCompatibilityDto.deviceIds,
+      addDeviceCompatibilityDto.compatibilityNotes,
+      addDeviceCompatibilityDto.isVerified,
+    );
+    return ResponseBuilder.success(
+      result,
+      'Device compatibility added',
+      'تم إضافة توافق الأجهزة',
+    );
+  }
+
+  // ═════════════════════════════════════
+  // Admin - Tags
+  // ═════════════════════════════════════
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post(':id/tags')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Add tags to product',
+    description: 'Associate tags with a product. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Tags added successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async addTags(@Param('id') id: string, @Body('tagIds') tagIds: string[]) {
+    await this.productsService.addTags(id, tagIds);
+    return ResponseBuilder.success(null, 'Tags added', 'تم إضافة الوسوم');
+  }
+
+  // ═════════════════════════════════════
+  // Stock Alerts (Customer)
+  // ═════════════════════════════════════
+
+  @UseGuards(JwtAuthGuard)
+  @Get('stock-alerts')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get my stock alerts',
+    description: 'Retrieve all stock alerts for the current customer',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Stock alerts retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async getStockAlerts(@CurrentUser() user: any) {
+    const alerts = await this.productsService.getStockAlerts(user.customerId);
+    return ResponseBuilder.success(
+      alerts,
+      'Stock alerts retrieved',
+      'تم استرجاع تنبيهات المخزون',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('stock-alerts')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create stock alert',
+    description:
+      'Create a stock alert for a product (back in stock, low stock, or price drop)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Stock alert created successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async createStockAlert(
+    @CurrentUser() user: any,
+    @Body() createStockAlertDto: CreateStockAlertDto,
+  ) {
+    const alert = await this.productsService.createStockAlert(
+      user.customerId,
+      createStockAlertDto.productId,
+      createStockAlertDto.alertType,
+      createStockAlertDto.targetPrice,
+    );
+    return ResponseBuilder.created(
+      alert,
+      'Stock alert created',
+      'تم إنشاء تنبيه المخزون',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('stock-alerts/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Update stock alert',
+    description: 'Enable or disable a stock alert',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Stock Alert ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Stock alert updated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async updateStockAlert(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body('isActive') isActive: boolean,
+  ) {
+    const alert = await this.productsService.updateStockAlert(
+      user.customerId,
+      id,
+      isActive,
+    );
+    return ResponseBuilder.success(
+      alert,
+      'Stock alert updated',
+      'تم تحديث تنبيه المخزون',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('stock-alerts/:id')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Delete stock alert',
+    description: 'Delete a stock alert',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Stock Alert ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Stock alert deleted successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async deleteStockAlert(@CurrentUser() user: any, @Param('id') id: string) {
+    await this.productsService.deleteStockAlert(user.customerId, id);
+    return ResponseBuilder.success(
+      null,
+      'Stock alert deleted',
+      'تم حذف تنبيه المخزون',
+    );
+  }
 }

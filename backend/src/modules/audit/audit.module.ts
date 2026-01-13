@@ -7,6 +7,7 @@ import { AdminActivity, AdminActivitySchema } from './schemas/admin-activity.sch
 import { LoginHistory, LoginHistorySchema } from './schemas/login-history.schema';
 import { AuditService } from './audit.service';
 import { AuditController } from './audit.controller';
+import { AuthModule } from '@modules/auth/auth.module';
 
 @Global() // Make available globally for logging from any module
 @Module({
@@ -26,6 +27,7 @@ import { AuditController } from './audit.controller';
             }),
             inject: [ConfigService],
         }),
+        AuthModule,
     ],
     controllers: [AuditController],
     providers: [AuditService],

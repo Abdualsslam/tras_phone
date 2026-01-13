@@ -24,17 +24,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (token && savedUser) {
                 try {
+                    // Set user from localStorage first for immediate UI
                     setUser(JSON.parse(savedUser));
-                    // Optionally verify token is still valid
+                    // Verify token is still valid (interceptor will handle refresh if needed)
                     const profile = await authApi.getProfile();
                     setUser(profile);
                     localStorage.setItem('user', JSON.stringify(profile));
                 } catch {
-                    // Token invalid, clear storage
-                    localStorage.removeItem('accessToken');
-                    localStorage.removeItem('refreshToken');
-                    localStorage.removeItem('user');
-                    setUser(null);
+                    // Check if token was refreshed during the request
+                    const currentToken = localStorage.getItem('accessToken');
+                    if (currentToken && currentToken !== token) {
+                        // Token was refreshed, retry getting profile
+                        try {
+                            const profile = await authApi.getProfile();
+                            setUser(profile);
+                            localStorage.setItem('user', JSON.stringify(profile));
+                        } catch {
+                            // Still failed, clear storage
+                            localStorage.removeItem('accessToken');
+                            localStorage.removeItem('refreshToken');
+                            localStorage.removeItem('user');
+                            setUser(null);
+                        }
+                    } else {
+                        // Token not refreshed or still invalid, clear storage
+                        localStorage.removeItem('accessToken');
+                        localStorage.removeItem('refreshToken');
+                        localStorage.removeItem('user');
+                        setUser(null);
+                    }
                 }
             }
             setIsLoading(false);

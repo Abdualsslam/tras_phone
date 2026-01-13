@@ -50,5 +50,5 @@ export class Country {
 
 export const CountrySchema = SchemaFactory.createForClass(Country);
 
-CountrySchema.index({ code: 1 }, { unique: true });
+// Note: 'code' index is automatically created by unique: true
 CountrySchema.index({ isActive: 1, sortOrder: 1 });
