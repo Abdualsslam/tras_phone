@@ -59,11 +59,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   void _handleVerify() {
     if (_otpController.text.length == 6) {
-      context.read<AuthCubit>().verifyOtp(
-        phone: widget.phone,
-        otp: _otpController.text,
-        purpose: widget.purpose,
-      );
+      if (widget.purpose == 'password_reset') {
+        // For password reset, use verifyResetOtp to get resetToken
+        context.read<AuthCubit>().verifyResetOtp(
+          phone: widget.phone,
+          otp: _otpController.text,
+        );
+      } else {
+        // For registration/login, use regular verifyOtp
+        context.read<AuthCubit>().verifyOtp(
+          phone: widget.phone,
+          otp: _otpController.text,
+          purpose: widget.purpose,
+        );
+      }
     }
   }
 
@@ -97,7 +106,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
         if (state is AuthOtpVerified) {
           if (widget.purpose == 'password_reset') {
-            context.push('/reset-password', extra: {'phone': widget.phone});
+            context.push('/reset-password', extra: {
+              'phone': widget.phone,
+              'resetToken': state.resetToken ?? '',
+            });
           } else {
             context.go('/home');
           }

@@ -8,6 +8,7 @@ import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/onboarding_screen.dart';
 import '../features/auth/presentation/screens/otp_verification_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
+import '../features/auth/presentation/screens/reset_password_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/catalog/presentation/screens/screens.dart';
 import '../features/catalog/presentation/screens/category_products_screen.dart';
@@ -96,6 +97,16 @@ final GoRouter appRouter = GoRouter(
         return OtpVerificationScreen(
           phone: extra?['phone'] ?? '',
           purpose: extra?['purpose'] ?? 'verification',
+        );
+      },
+    ),
+    GoRoute(
+      path: '/reset-password',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return ResetPasswordScreen(
+          phone: extra?['phone'] ?? '',
+          resetToken: extra?['resetToken'] ?? '',
         );
       },
     ),
