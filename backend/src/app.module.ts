@@ -38,77 +38,82 @@ import { AdminsModule } from './modules/admins/admins.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 
 @Module({
-    imports: [
-        // Configuration
-        ConfigModule.forRoot({
-            isGlobal: true,
-            envFilePath: ['.env.local', '.env'],
-        }),
+  imports: [
+    // Configuration
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
+    }),
 
-        // Database
-        MongooseModule.forRootAsync({
-            imports: [ConfigModule],
-            useFactory: async (configService: ConfigService) => ({
-                uri: configService.get<string>('MONGODB_URI', 'mongodb://localhost:27017/trasphone'),
-                retryWrites: true,
-                w: 'majority',
-            }),
-            inject: [ConfigService],
-        }),
+    // Database
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>(
+          'MONGODB_URI',
+          'mongodb://localhost:27017/trasphone',
+        ),
+        retryWrites: true,
+        w: 'majority',
+      }),
+      inject: [ConfigService],
+    }),
 
-        // Rate Limiting
-        ThrottlerModule.forRootAsync({
-            imports: [ConfigModule],
-            useFactory: async (configService: ConfigService) => ([{
-                ttl: configService.get<number>('THROTTLE_TTL', 60000),
-                limit: configService.get<number>('THROTTLE_LIMIT', 100),
-            }]),
-            inject: [ConfigService],
-        }),
+    // Rate Limiting
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => [
+        {
+          ttl: configService.get<number>('THROTTLE_TTL', 60000),
+          limit: configService.get<number>('THROTTLE_LIMIT', 100),
+        },
+      ],
+      inject: [ConfigService],
+    }),
 
-        // Global Infrastructure
-        CacheModule,
-        IntegrationsModule,
-        AuditModule,
+    // Global Infrastructure
+    CacheModule,
+    IntegrationsModule,
+    AuditModule,
 
-        // Core Authentication & Users
-        AuthModule,
-        CustomersModule,
-        AdminsModule,
+    // Core Authentication & Users
+    AuthModule,
+    CustomersModule,
+    AdminsModule,
 
-        // Products & Catalog
-        ProductsModule,
-        CategoriesModule,
-        CatalogModule,
+    // Products & Catalog
+    ProductsModule,
+    CategoriesModule,
+    CatalogModule,
 
-        // Inventory & Supply Chain
-        InventoryModule,
-        SuppliersModule,
+    // Inventory & Supply Chain
+    InventoryModule,
+    SuppliersModule,
 
-        // Commerce
-        PromotionsModule,
-        OrdersModule,
-        ReturnsModule,
-        WalletModule,
+    // Commerce
+    PromotionsModule,
+    OrdersModule,
+    ReturnsModule,
+    WalletModule,
 
-        // Communication
-        NotificationsModule,
-        SupportModule,
+    // Communication
+    NotificationsModule,
+    SupportModule,
 
-        // Content & Configuration
-        ContentModule,
-        SettingsModule,
+    // Content & Configuration
+    ContentModule,
+    SettingsModule,
 
-        // Analytics & Reporting
-        AnalyticsModule,
+    // Analytics & Reporting
+    AnalyticsModule,
 
-        // Background Jobs
-        JobsModule,
+    // Background Jobs
+    JobsModule,
 
-        // File Uploads
-        UploadsModule,
-    ],
-    controllers: [],
-    providers: [],
+    // File Uploads
+    UploadsModule,
+  ],
+  controllers: [],
+  providers: [],
 })
-export class AppModule { }
+export class AppModule {}
