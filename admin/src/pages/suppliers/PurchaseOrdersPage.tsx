@@ -94,7 +94,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 export function PurchaseOrdersPage() {
     const queryClient = useQueryClient();
 
-    const [statusFilter, setStatusFilter] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<string>('_all');
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
     const [isReceiveDialogOpen, setIsReceiveDialogOpen] = useState(false);
@@ -107,7 +107,7 @@ export function PurchaseOrdersPage() {
 
     const { data: ordersData, isLoading, error } = useQuery({
         queryKey: ['purchase-orders', statusFilter],
-        queryFn: () => purchaseOrdersApi.getAll({ status: statusFilter || undefined }),
+        queryFn: () => purchaseOrdersApi.getAll({ status: statusFilter === '_all' ? undefined : statusFilter }),
     });
 
     const orders = ordersData?.items || [];
@@ -324,12 +324,12 @@ export function PurchaseOrdersPage() {
                             قائمة أوامر الشراء
                         </CardTitle>
                         <div className="flex gap-2 w-full sm:w-auto">
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <Select value={statusFilter || undefined} onValueChange={setStatusFilter}>
                                 <SelectTrigger className="w-40">
                                     <SelectValue placeholder="جميع الحالات" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">جميع الحالات</SelectItem>
+                                    <SelectItem value="_all">جميع الحالات</SelectItem>
                                     <SelectItem value="draft">مسودة</SelectItem>
                                     <SelectItem value="pending">قيد الانتظار</SelectItem>
                                     <SelectItem value="approved">موافق عليه</SelectItem>

@@ -45,6 +45,62 @@ export class SettingsService {
         }, {} as Record<string, any>);
     }
 
+    async getStoreSettings(): Promise<Record<string, any>> {
+        const settings = await this.settingModel.find({
+            group: SettingGroup.GENERAL
+        });
+
+        const result: Record<string, any> = {
+            storeName: '',
+            storeEmail: '',
+            storePhone: '',
+            storeAddress: '',
+            storeDescription: '',
+            logo: '',
+            favicon: '',
+        };
+
+        settings.forEach(setting => {
+            if (setting.key === 'store_name_ar') result.storeName = setting.value ?? setting.defaultValue ?? '';
+            if (setting.key === 'store_email') result.storeEmail = setting.value ?? setting.defaultValue ?? '';
+            if (setting.key === 'store_phone') result.storePhone = setting.value ?? setting.defaultValue ?? '';
+            if (setting.key === 'store_address_ar') result.storeAddress = setting.value ?? setting.defaultValue ?? '';
+            if (setting.key === 'store_description') result.storeDescription = setting.value ?? setting.defaultValue ?? '';
+            if (setting.key === 'store_logo') result.logo = setting.value ?? setting.defaultValue ?? '';
+            if (setting.key === 'store_favicon') result.favicon = setting.value ?? setting.defaultValue ?? '';
+        });
+
+        return result;
+    }
+
+    async updateStoreSettings(data: Record<string, any>, updatedBy?: string): Promise<Record<string, any>> {
+        const keyMap: Record<string, string> = {
+            storeName: 'store_name_ar',
+            storeEmail: 'store_email',
+            storePhone: 'store_phone',
+            storeAddress: 'store_address_ar',
+            storeDescription: 'store_description',
+            logo: 'store_logo',
+            favicon: 'store_favicon',
+        };
+
+        for (const [field, value] of Object.entries(data)) {
+            const settingKey = keyMap[field];
+            if (settingKey && value !== undefined) {
+                await this.settingModel.findOneAndUpdate(
+                    { key: settingKey },
+                    { 
+                        value,
+                        lastUpdatedBy: updatedBy ? new Types.ObjectId(updatedBy) : undefined 
+                    },
+                    { upsert: true, new: true }
+                );
+            }
+        }
+
+        return this.getStoreSettings();
+    }
+
     async getNotificationSettings(): Promise<Record<string, any>> {
         const settings = await this.settingModel.find({
             group: SettingGroup.NOTIFICATION
@@ -127,8 +183,31 @@ export class SettingsService {
 
     // ==================== Countries ====================
 
-    async createCountry(data: Partial<Country>): Promise<Country> {
-        return this.countryModel.create(data);
+    async createCountry(data: Partial<Country> & { name?: string }): Promise<any> {
+        // Convert name to nameEn if provided (for frontend compatibility)
+        const createData: any = { ...data };
+        if (createData.name && !createData.nameEn) {
+            createData.nameEn = createData.name;
+            delete createData.name;
+        }
+        const country = await this.countryModel.create(createData);
+        
+        // Transform to match frontend expectations
+        return {
+            _id: country._id,
+            name: country.nameEn,
+            nameAr: country.nameAr,
+            code: country.code,
+            phoneCode: country.phoneCode,
+            isActive: country.isActive,
+            isDefault: country.isDefault,
+            allowShipping: country.allowShipping,
+            allowBilling: country.allowBilling,
+            sortOrder: country.sortOrder,
+            currency: country.currency,
+            flagEmoji: country.flagEmoji,
+            flagUrl: country.flagUrl,
+        };
     }
 
     async findAllCountries(activeOnly: boolean = true): Promise<any[]> {
@@ -157,10 +236,32 @@ export class SettingsService {
         return this.countryModel.find({ isActive: true, allowShipping: true }).sort({ sortOrder: 1 }).exec();
     }
 
-    async updateCountry(id: string, data: Partial<Country>): Promise<Country> {
-        const country = await this.countryModel.findByIdAndUpdate(id, data, { new: true });
+    async updateCountry(id: string, data: Partial<Country> & { name?: string }): Promise<any> {
+        // Convert name to nameEn if provided (for frontend compatibility)
+        const updateData: any = { ...data };
+        if (updateData.name && !updateData.nameEn) {
+            updateData.nameEn = updateData.name;
+            delete updateData.name;
+        }
+        const country = await this.countryModel.findByIdAndUpdate(id, updateData, { new: true });
         if (!country) throw new NotFoundException('Country not found');
-        return country;
+        
+        // Transform to match frontend expectations
+        return {
+            _id: country._id,
+            name: country.nameEn,
+            nameAr: country.nameAr,
+            code: country.code,
+            phoneCode: country.phoneCode,
+            isActive: country.isActive,
+            isDefault: country.isDefault,
+            allowShipping: country.allowShipping,
+            allowBilling: country.allowBilling,
+            sortOrder: country.sortOrder,
+            currency: country.currency,
+            flagEmoji: country.flagEmoji,
+            flagUrl: country.flagUrl,
+        };
     }
 
     // ==================== Cities ====================
@@ -278,13 +379,55 @@ export class SettingsService {
 
     // ==================== Currencies ====================
 
-    async createCurrency(data: Partial<Currency>): Promise<Currency> {
-        return this.currencyModel.create(data);
+    async createCurrency(data: Partial<Currency> & { name?: string }): Promise<any> {
+        // Convert name to nameEn if provided (for frontend compatibility)
+        const createData: any = { ...data };
+        if (createData.name && !createData.nameEn) {
+            createData.nameEn = createData.name;
+            delete createData.name;
+        }
+        const currency = await this.currencyModel.create(createData);
+        
+        // Transform to match frontend expectations
+        return {
+            _id: currency._id,
+            name: currency.nameEn,
+            nameAr: currency.nameAr,
+            code: currency.code,
+            symbol: currency.symbol,
+            symbolNative: currency.symbolNative,
+            decimalDigits: currency.decimalDigits,
+            exchangeRate: currency.exchangeRate,
+            isDefault: currency.isDefault,
+            isActive: currency.isActive,
+            symbolPosition: currency.symbolPosition,
+            thousandsSeparator: currency.thousandsSeparator,
+            decimalSeparator: currency.decimalSeparator,
+            sortOrder: currency.sortOrder,
+        };
     }
 
-    async findAllCurrencies(activeOnly: boolean = true): Promise<Currency[]> {
+    async findAllCurrencies(activeOnly: boolean = true): Promise<any[]> {
         const query = activeOnly ? { isActive: true } : {};
-        return this.currencyModel.find(query).sort({ sortOrder: 1 }).exec();
+        const currencies = await this.currencyModel.find(query).sort({ sortOrder: 1 }).exec();
+        
+        // Transform to match frontend expectations
+        return currencies.map(currency => ({
+            _id: currency._id,
+            name: currency.nameEn,
+            nameAr: currency.nameAr,
+            code: currency.code,
+            symbol: currency.symbol,
+            symbolNative: currency.symbolNative,
+            decimalDigits: currency.decimalDigits,
+            exchangeRate: currency.exchangeRate,
+            isDefault: currency.isDefault,
+            isActive: currency.isActive,
+            symbolPosition: currency.symbolPosition,
+            thousandsSeparator: currency.thousandsSeparator,
+            decimalSeparator: currency.decimalSeparator,
+            sortOrder: currency.sortOrder,
+        }));
     }
 
     async getDefaultCurrency(): Promise<Currency> {
@@ -293,10 +436,33 @@ export class SettingsService {
         return currency;
     }
 
-    async updateCurrency(id: string, data: Partial<Currency>): Promise<Currency> {
-        const currency = await this.currencyModel.findByIdAndUpdate(id, data, { new: true });
+    async updateCurrency(id: string, data: Partial<Currency> & { name?: string }): Promise<any> {
+        // Convert name to nameEn if provided (for frontend compatibility)
+        const updateData: any = { ...data };
+        if (updateData.name && !updateData.nameEn) {
+            updateData.nameEn = updateData.name;
+            delete updateData.name;
+        }
+        const currency = await this.currencyModel.findByIdAndUpdate(id, updateData, { new: true });
         if (!currency) throw new NotFoundException('Currency not found');
-        return currency;
+        
+        // Transform to match frontend expectations
+        return {
+            _id: currency._id,
+            name: currency.nameEn,
+            nameAr: currency.nameAr,
+            code: currency.code,
+            symbol: currency.symbol,
+            symbolNative: currency.symbolNative,
+            decimalDigits: currency.decimalDigits,
+            exchangeRate: currency.exchangeRate,
+            isDefault: currency.isDefault,
+            isActive: currency.isActive,
+            symbolPosition: currency.symbolPosition,
+            thousandsSeparator: currency.thousandsSeparator,
+            decimalSeparator: currency.decimalSeparator,
+            sortOrder: currency.sortOrder,
+        };
     }
 
     async updateExchangeRate(code: string, rate: number): Promise<Currency> {
@@ -311,16 +477,58 @@ export class SettingsService {
 
     // ==================== Tax Rates ====================
 
-    async createTaxRate(data: Partial<TaxRate>, createdBy?: string): Promise<TaxRate> {
-        return this.taxRateModel.create({
-            ...data,
+    async createTaxRate(data: Partial<TaxRate> & { name?: string }, createdBy?: string): Promise<any> {
+        // Convert name to nameEn if provided (for frontend compatibility)
+        const createData: any = { ...data };
+        if (createData.name && !createData.nameEn) {
+            createData.nameEn = createData.name;
+            delete createData.name;
+        }
+        const rate = await this.taxRateModel.create({
+            ...createData,
             createdBy: createdBy ? new Types.ObjectId(createdBy) : undefined,
         });
+        
+        // Transform to match frontend expectations
+        return {
+            _id: rate._id,
+            name: rate.nameEn,
+            nameAr: rate.nameAr,
+            code: rate.code,
+            rate: rate.rate,
+            type: rate.type,
+            isActive: rate.isActive,
+            isDefault: rate.isDefault,
+            isCompound: rate.isCompound,
+            includeInPrice: rate.includeInPrice,
+            countries: rate.countries,
+            categories: rate.categories,
+            productTypes: rate.productTypes,
+            priority: rate.priority,
+        };
     }
 
-    async findAllTaxRates(activeOnly: boolean = true): Promise<TaxRate[]> {
+    async findAllTaxRates(activeOnly: boolean = true): Promise<any[]> {
         const query = activeOnly ? { isActive: true } : {};
-        return this.taxRateModel.find(query).sort({ priority: -1 }).exec();
+        const rates = await this.taxRateModel.find(query).sort({ priority: -1 }).exec();
+        
+        // Transform to match frontend expectations
+        return rates.map(rate => ({
+            _id: rate._id,
+            name: rate.nameEn,
+            nameAr: rate.nameAr,
+            code: rate.code,
+            rate: rate.rate,
+            type: rate.type,
+            isActive: rate.isActive,
+            isDefault: rate.isDefault,
+            isCompound: rate.isCompound,
+            includeInPrice: rate.includeInPrice,
+            countries: rate.countries,
+            categories: rate.categories,
+            productTypes: rate.productTypes,
+            priority: rate.priority,
+        }));
     }
 
     async getDefaultTaxRate(): Promise<TaxRate | null> {
@@ -345,28 +553,91 @@ export class SettingsService {
             : taxRate.rate;
     }
 
-    async updateTaxRate(id: string, data: Partial<TaxRate>): Promise<TaxRate> {
-        const taxRate = await this.taxRateModel.findByIdAndUpdate(id, data, { new: true });
-        if (!taxRate) throw new NotFoundException('Tax rate not found');
-        return taxRate;
+    async updateTaxRate(id: string, data: Partial<TaxRate> & { name?: string }): Promise<any> {
+        // Convert name to nameEn if provided (for frontend compatibility)
+        const updateData: any = { ...data };
+        if (updateData.name && !updateData.nameEn) {
+            updateData.nameEn = updateData.name;
+            delete updateData.name;
+        }
+        const rate = await this.taxRateModel.findByIdAndUpdate(id, updateData, { new: true });
+        if (!rate) throw new NotFoundException('Tax rate not found');
+        
+        // Transform to match frontend expectations
+        return {
+            _id: rate._id,
+            name: rate.nameEn,
+            nameAr: rate.nameAr,
+            code: rate.code,
+            rate: rate.rate,
+            type: rate.type,
+            isActive: rate.isActive,
+            isDefault: rate.isDefault,
+            isCompound: rate.isCompound,
+            includeInPrice: rate.includeInPrice,
+            countries: rate.countries,
+            categories: rate.categories,
+            productTypes: rate.productTypes,
+            priority: rate.priority,
+        };
     }
 
     // ==================== Shipping Zones ====================
 
-    async createShippingZone(data: Partial<ShippingZone>, createdBy?: string): Promise<ShippingZone> {
-        return this.shippingZoneModel.create({
-            ...data,
+    async createShippingZone(data: Partial<ShippingZone> & { name?: string }, createdBy?: string): Promise<any> {
+        // Convert name to nameEn if provided (for frontend compatibility)
+        const createData: any = { ...data };
+        if (createData.name && !createData.nameEn) {
+            createData.nameEn = createData.name;
+            delete createData.name;
+        }
+        const zone = await this.shippingZoneModel.create({
+            ...createData,
             createdBy: createdBy ? new Types.ObjectId(createdBy) : undefined,
         });
+        
+        // Transform to match frontend expectations
+        return {
+            _id: zone._id,
+            name: zone.nameEn,
+            nameAr: zone.nameAr,
+            code: zone.code,
+            countries: zone.countries,
+            cities: zone.cities,
+            postalCodes: zone.postalCodes,
+            rates: zone.rates,
+            isActive: zone.isActive,
+            sortOrder: zone.sortOrder,
+            restrictedProducts: zone.restrictedProducts,
+            excludedCategories: zone.excludedCategories,
+            maxWeight: zone.maxWeight,
+        };
     }
 
-    async findAllShippingZones(activeOnly: boolean = true): Promise<ShippingZone[]> {
+    async findAllShippingZones(activeOnly: boolean = true): Promise<any[]> {
         const query = activeOnly ? { isActive: true } : {};
-        return this.shippingZoneModel
+        const zones = await this.shippingZoneModel
             .find(query)
             .populate('countries', 'nameAr nameEn code')
             .sort({ sortOrder: 1 })
             .exec();
+        
+        // Transform to match frontend expectations
+        return zones.map(zone => ({
+            _id: zone._id,
+            name: zone.nameEn,
+            nameAr: zone.nameAr,
+            code: zone.code,
+            countries: zone.countries,
+            cities: zone.cities,
+            postalCodes: zone.postalCodes,
+            rates: zone.rates,
+            isActive: zone.isActive,
+            sortOrder: zone.sortOrder,
+            restrictedProducts: zone.restrictedProducts,
+            excludedCategories: zone.excludedCategories,
+            maxWeight: zone.maxWeight,
+        }));
     }
 
     async findShippingZoneForCity(cityId: string): Promise<ShippingZone | null> {
@@ -420,16 +691,69 @@ export class SettingsService {
         });
     }
 
-    async updateShippingZone(id: string, data: Partial<ShippingZone>): Promise<ShippingZone> {
-        const zone = await this.shippingZoneModel.findByIdAndUpdate(id, data, { new: true });
+    async updateShippingZone(id: string, data: Partial<ShippingZone> & { name?: string }): Promise<any> {
+        // Convert name to nameEn if provided (for frontend compatibility)
+        const updateData: any = { ...data };
+        if (updateData.name && !updateData.nameEn) {
+            updateData.nameEn = updateData.name;
+            delete updateData.name;
+        }
+        const zone = await this.shippingZoneModel.findByIdAndUpdate(id, updateData, { new: true });
         if (!zone) throw new NotFoundException('Shipping zone not found');
-        return zone;
+        
+        // Transform to match frontend expectations
+        return {
+            _id: zone._id,
+            name: zone.nameEn,
+            nameAr: zone.nameAr,
+            code: zone.code,
+            countries: zone.countries,
+            cities: zone.cities,
+            postalCodes: zone.postalCodes,
+            rates: zone.rates,
+            isActive: zone.isActive,
+            sortOrder: zone.sortOrder,
+            restrictedProducts: zone.restrictedProducts,
+            excludedCategories: zone.excludedCategories,
+            maxWeight: zone.maxWeight,
+        };
     }
 
     // ==================== Payment Methods ====================
 
-    async createPaymentMethod(data: Partial<PaymentMethod>): Promise<PaymentMethod> {
-        return this.paymentMethodModel.create(data);
+    async createPaymentMethod(data: Partial<PaymentMethod> & { name?: string }): Promise<any> {
+        // Convert name to nameEn if provided (for frontend compatibility)
+        const createData: any = { ...data };
+        if (createData.name && !createData.nameEn) {
+            createData.nameEn = createData.name;
+            delete createData.name;
+        }
+        const method = await this.paymentMethodModel.create(createData);
+        
+        // Transform to match frontend expectations
+        return {
+            _id: method._id,
+            name: method.nameEn,
+            nameAr: method.nameAr,
+            type: method.type,
+            descriptionAr: method.descriptionAr,
+            descriptionEn: method.descriptionEn,
+            icon: method.icon,
+            logo: method.logo,
+            gateway: method.gateway,
+            gatewayConfig: method.gatewayConfig,
+            fixedFee: method.fixedFee,
+            percentageFee: method.percentageFee,
+            minAmount: method.minAmount,
+            maxAmount: method.maxAmount,
+            isActive: method.isActive,
+            countries: method.countries,
+            platforms: method.platforms,
+            sortOrder: method.sortOrder,
+            instructionsAr: method.instructionsAr,
+            instructionsEn: method.instructionsEn,
+            bankDetails: method.bankDetails,
+        };
     }
 
     async findActivePaymentMethods(platform?: string): Promise<PaymentMethod[]> {
@@ -443,8 +767,33 @@ export class SettingsService {
             .exec();
     }
 
-    async findAllPaymentMethods(): Promise<PaymentMethod[]> {
-        return this.paymentMethodModel.find().sort({ sortOrder: 1 }).exec();
+    async findAllPaymentMethods(): Promise<any[]> {
+        const methods = await this.paymentMethodModel.find().sort({ sortOrder: 1 }).exec();
+        
+        // Transform to match frontend expectations
+        return methods.map(method => ({
+            _id: method._id,
+            name: method.nameEn,
+            nameAr: method.nameAr,
+            type: method.type,
+            descriptionAr: method.descriptionAr,
+            descriptionEn: method.descriptionEn,
+            icon: method.icon,
+            logo: method.logo,
+            gateway: method.gateway,
+            gatewayConfig: method.gatewayConfig,
+            fixedFee: method.fixedFee,
+            percentageFee: method.percentageFee,
+            minAmount: method.minAmount,
+            maxAmount: method.maxAmount,
+            isActive: method.isActive,
+            countries: method.countries,
+            platforms: method.platforms,
+            sortOrder: method.sortOrder,
+            instructionsAr: method.instructionsAr,
+            instructionsEn: method.instructionsEn,
+            bankDetails: method.bankDetails,
+        }));
     }
 
     async getPaymentMethodConfig(type: PaymentMethodType): Promise<PaymentMethod> {
@@ -453,14 +802,44 @@ export class SettingsService {
         return method;
     }
 
-    async updatePaymentMethod(id: string, data: Partial<PaymentMethod>, updatedBy?: string): Promise<PaymentMethod> {
+    async updatePaymentMethod(id: string, data: Partial<PaymentMethod> & { name?: string }, updatedBy?: string): Promise<any> {
+        // Convert name to nameEn if provided (for frontend compatibility)
+        const updateData: any = { ...data };
+        if (updateData.name && !updateData.nameEn) {
+            updateData.nameEn = updateData.name;
+            delete updateData.name;
+        }
         const method = await this.paymentMethodModel.findByIdAndUpdate(
             id,
-            { ...data, lastUpdatedBy: updatedBy ? new Types.ObjectId(updatedBy) : undefined },
+            { ...updateData, lastUpdatedBy: updatedBy ? new Types.ObjectId(updatedBy) : undefined },
             { new: true }
         );
         if (!method) throw new NotFoundException('Payment method not found');
-        return method;
+        
+        // Transform to match frontend expectations
+        return {
+            _id: method._id,
+            name: method.nameEn,
+            nameAr: method.nameAr,
+            type: method.type,
+            descriptionAr: method.descriptionAr,
+            descriptionEn: method.descriptionEn,
+            icon: method.icon,
+            logo: method.logo,
+            gateway: method.gateway,
+            gatewayConfig: method.gatewayConfig,
+            fixedFee: method.fixedFee,
+            percentageFee: method.percentageFee,
+            minAmount: method.minAmount,
+            maxAmount: method.maxAmount,
+            isActive: method.isActive,
+            countries: method.countries,
+            platforms: method.platforms,
+            sortOrder: method.sortOrder,
+            instructionsAr: method.instructionsAr,
+            instructionsEn: method.instructionsEn,
+            bankDetails: method.bankDetails,
+        };
     }
 
     // ==================== Seeding ====================

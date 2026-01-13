@@ -50,6 +50,10 @@ export function LiveChatPage() {
     refetchInterval: 5000,
   });
 
+  // Ensure arrays are arrays
+  const safeWaitingSessions = Array.isArray(waitingSessions) ? waitingSessions : [];
+  const safeMySessions = Array.isArray(mySessions) ? mySessions : [];
+
   const { data: sessionData, isLoading: sessionLoading } = useQuery({
     queryKey: ["chat-session", selectedSession?._id],
     queryFn: () => chatApi.getSession(selectedSession!._id),
@@ -111,7 +115,7 @@ export function LiveChatPage() {
     endSessionMutation.mutate(selectedSession._id);
   };
 
-  const messages = sessionData?.messages || [];
+  const messages = Array.isArray(sessionData?.messages) ? sessionData.messages : [];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -136,7 +140,7 @@ export function LiveChatPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">
-                {stats?.waiting || waitingSessions.length}
+                {stats?.waiting || safeWaitingSessions.length}
               </p>
               <p className="text-sm text-gray-500">بالانتظار</p>
             </div>
@@ -149,7 +153,7 @@ export function LiveChatPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">
-                {stats?.active || mySessions.length}
+                {stats?.active || safeMySessions.length}
               </p>
               <p className="text-sm text-gray-500">نشطة</p>
             </div>
@@ -191,8 +195,8 @@ export function LiveChatPage() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="h-4 w-4 text-yellow-500" />
                 بالانتظار
-                {waitingSessions.length > 0 && (
-                  <Badge variant="warning">{waitingSessions.length}</Badge>
+                {safeWaitingSessions.length > 0 && (
+                  <Badge variant="warning">{safeWaitingSessions.length}</Badge>
                 )}
               </CardTitle>
             </CardHeader>
@@ -201,13 +205,13 @@ export function LiveChatPage() {
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="h-6 w-6 animate-spin text-primary-600" />
                 </div>
-              ) : waitingSessions.length === 0 ? (
+              ) : safeWaitingSessions.length === 0 ? (
                 <div className="py-6 text-center text-gray-500 text-sm">
                   لا توجد محادثات بالانتظار
                 </div>
               ) : (
                 <div className="divide-y dark:divide-slate-700">
-                  {waitingSessions.map((session) => (
+                  {safeWaitingSessions.map((session) => (
                     <div
                       key={session._id}
                       className="p-3 flex items-center justify-between"
@@ -256,13 +260,13 @@ export function LiveChatPage() {
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="h-6 w-6 animate-spin text-primary-600" />
                 </div>
-              ) : mySessions.length === 0 ? (
+              ) : safeMySessions.length === 0 ? (
                 <div className="py-6 text-center text-gray-500 text-sm">
                   لا توجد محادثات نشطة
                 </div>
               ) : (
                 <div className="divide-y dark:divide-slate-700">
-                  {mySessions.map((session) => (
+                  {safeMySessions.map((session) => (
                     <div
                       key={session._id}
                       onClick={() => setSelectedSession(session)}

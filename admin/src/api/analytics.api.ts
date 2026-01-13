@@ -1,6 +1,20 @@
 import apiClient from './client';
 import type { ApiResponse } from '@/types';
 
+// Helper function to extract data from nested API response
+function extractData<T>(responseData: any): T {
+    if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+        return responseData.data as T;
+    }
+    return responseData as T;
+}
+
+// Helper function to extract array data safely
+function extractArrayData<T>(responseData: any): T[] {
+    const data = extractData<T[] | T>(responseData);
+    return Array.isArray(data) ? data : [];
+}
+
 // ══════════════════════════════════════════════════════════════
 // Types
 // ══════════════════════════════════════════════════════════════
@@ -109,8 +123,34 @@ export const analyticsApi = {
     // ─────────────────────────────────────────
 
     getDashboard: async (): Promise<DashboardStats> => {
-        const response = await apiClient.get<ApiResponse<ApiResponse<DashboardStats>>>('/analytics/dashboard');
-        return response.data.data.data;
+        const response = await apiClient.get<ApiResponse<any>>('/analytics/dashboard');
+        let data = response.data.data;
+        
+        // Handle nested response: response.data.data.data
+        if (data && typeof data === 'object' && 'data' in data) {
+            data = (data as any).data;
+        }
+        
+        // Ensure arrays are arrays
+        if (data && typeof data === 'object') {
+            if (data.topProducts && !Array.isArray(data.topProducts)) {
+                data.topProducts = [];
+            }
+            if (data.topCustomers && !Array.isArray(data.topCustomers)) {
+                data.topCustomers = [];
+            }
+            if (data.lowStock && !Array.isArray(data.lowStock)) {
+                data.lowStock = [];
+            }
+            if (data.recentOrders && !Array.isArray(data.recentOrders)) {
+                data.recentOrders = [];
+            }
+            if (data.salesChart && !Array.isArray(data.salesChart)) {
+                data.salesChart = [];
+            }
+        }
+        
+        return data as DashboardStats;
     },
 
     // ─────────────────────────────────────────
@@ -121,21 +161,21 @@ export const analyticsApi = {
         const response = await apiClient.get<ApiResponse<ChartDataPoint[]>>('/analytics/revenue-chart', {
             params: { startDate, endDate, groupBy }
         });
-        return response.data.data;
+        return extractArrayData<ChartDataPoint>(response.data.data);
     },
 
     getOrdersChart: async (startDate: string, endDate: string): Promise<ChartDataPoint[]> => {
         const response = await apiClient.get<ApiResponse<ChartDataPoint[]>>('/analytics/orders-chart', {
             params: { startDate, endDate }
         });
-        return response.data.data;
+        return extractArrayData<ChartDataPoint>(response.data.data);
     },
 
     getCustomersChart: async (startDate: string, endDate: string): Promise<ChartDataPoint[]> => {
         const response = await apiClient.get<ApiResponse<ChartDataPoint[]>>('/analytics/customers-chart', {
             params: { startDate, endDate }
         });
-        return response.data.data;
+        return extractArrayData<ChartDataPoint>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -146,28 +186,28 @@ export const analyticsApi = {
         const response = await apiClient.get<ApiResponse<TopProduct[]>>('/analytics/products/top', {
             params: { startDate, endDate, limit }
         });
-        return response.data.data;
+        return extractArrayData<TopProduct>(response.data.data);
     },
 
     getTopCustomers: async (startDate: string, endDate: string, limit = 10): Promise<TopCustomer[]> => {
         const response = await apiClient.get<ApiResponse<TopCustomer[]>>('/analytics/customers/top', {
             params: { startDate, endDate, limit }
         });
-        return response.data.data;
+        return extractArrayData<TopCustomer>(response.data.data);
     },
 
     getTopSearches: async (startDate: string, endDate: string, limit = 20): Promise<any[]> => {
         const response = await apiClient.get<ApiResponse<any[]>>('/analytics/search/top', {
             params: { startDate, endDate, limit }
         });
-        return response.data.data;
+        return extractArrayData<any>(response.data.data);
     },
 
     getCategoryStats: async (startDate: string, endDate: string): Promise<CategoryStats[]> => {
         const response = await apiClient.get<ApiResponse<CategoryStats[]>>('/analytics/categories', {
             params: { startDate, endDate }
         });
-        return response.data.data;
+        return extractArrayData<CategoryStats>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -178,19 +218,19 @@ export const analyticsApi = {
         const response = await apiClient.get<ApiResponse<any>>('/analytics/sales-report', {
             params: { startDate, endDate, groupBy }
         });
-        return response.data.data;
+        return extractData<any>(response.data.data);
     },
 
     getCustomerReport: async (startDate: string, endDate: string): Promise<any> => {
         const response = await apiClient.get<ApiResponse<any>>('/analytics/customer-report', {
             params: { startDate, endDate }
         });
-        return response.data.data;
+        return extractData<any>(response.data.data);
     },
 
     getInventoryReport: async (): Promise<any> => {
         const response = await apiClient.get<ApiResponse<any>>('/analytics/inventory-report');
-        return response.data.data;
+        return extractData<any>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -201,7 +241,7 @@ export const analyticsApi = {
         const response = await apiClient.get<ApiResponse<ComparisonData>>('/analytics/comparison', {
             params: { currentStart, currentEnd, previousStart, previousEnd }
         });
-        return response.data.data;
+        return extractData<ComparisonData>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -210,17 +250,17 @@ export const analyticsApi = {
 
     getSavedReports: async (): Promise<SavedReport[]> => {
         const response = await apiClient.get<ApiResponse<SavedReport[]>>('/analytics/reports');
-        return response.data.data;
+        return extractArrayData<SavedReport>(response.data.data);
     },
 
     saveReport: async (config: ReportConfig): Promise<SavedReport> => {
         const response = await apiClient.post<ApiResponse<SavedReport>>('/analytics/reports', config);
-        return response.data.data;
+        return extractData<SavedReport>(response.data.data);
     },
 
     runReport: async (reportId: string): Promise<any> => {
         const response = await apiClient.get<ApiResponse<any>>(`/analytics/reports/${reportId}/run`);
-        return response.data.data;
+        return extractData<any>(response.data.data);
     },
 
     deleteReport: async (reportId: string): Promise<void> => {

@@ -81,7 +81,7 @@ const conditionLabels: Record<string, string> = {
 export function ReturnsPage() {
     const queryClient = useQueryClient();
 
-    const [statusFilter, setStatusFilter] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<string>('_all');
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
     const [isInspectDialogOpen, setIsInspectDialogOpen] = useState(false);
     const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
@@ -94,7 +94,7 @@ export function ReturnsPage() {
 
     const { data: returnsData, isLoading, error } = useQuery({
         queryKey: ['returns', statusFilter],
-        queryFn: () => returnsApi.getAll({ status: statusFilter || undefined }),
+        queryFn: () => returnsApi.getAll({ status: statusFilter === '_all' ? undefined : statusFilter }),
     });
 
     const returns = returnsData?.items || [];
@@ -330,12 +330,12 @@ export function ReturnsPage() {
                             طلبات الإرجاع
                         </CardTitle>
                         <div className="flex gap-2 w-full sm:w-auto">
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <Select value={statusFilter || undefined} onValueChange={setStatusFilter}>
                                 <SelectTrigger className="w-40">
                                     <SelectValue placeholder="جميع الحالات" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">جميع الحالات</SelectItem>
+                                    <SelectItem value="_all">جميع الحالات</SelectItem>
                                     <SelectItem value="pending">قيد الانتظار</SelectItem>
                                     <SelectItem value="approved">موافق عليه</SelectItem>
                                     <SelectItem value="rejected">مرفوض</SelectItem>

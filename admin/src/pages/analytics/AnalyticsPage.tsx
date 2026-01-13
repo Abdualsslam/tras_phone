@@ -34,6 +34,9 @@ export function AnalyticsPage() {
         queryFn: () => analyticsApi.getTopProducts(startDate, endDate, 5),
     });
 
+    // Use topProducts from query or fallback to stats.topProducts
+    const displayTopProducts = Array.isArray(topProducts) ? topProducts : (stats?.topProducts && Array.isArray(stats.topProducts) ? stats.topProducts : []);
+
     // Fetch customer report
     const { data: customerReport, isLoading: customersLoading } = useQuery({
         queryKey: ['customer-report', startDate, endDate],
@@ -134,7 +137,7 @@ export function AnalyticsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {(customerReport?.topCustomers || []).slice(0, 5).map((customer: any, index: number) => (
+                            {(Array.isArray(customerReport?.topCustomers) ? customerReport.topCustomers : []).slice(0, 5).map((customer: any, index: number) => (
                                 <div key={customer._id || index} className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-sm font-medium text-primary-700">
@@ -165,21 +168,21 @@ export function AnalyticsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {(topProducts || []).map((product, index) => (
-                                <div key={product._id} className="flex items-center justify-between">
+                            {displayTopProducts.map((product, index) => (
+                                <div key={product._id || index} className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-sm font-medium text-primary-700">
                                             {index + 1}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-gray-900 dark:text-gray-100">{product.name}</p>
-                                            <p className="text-xs text-gray-500">{product.sales} وحدة</p>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">{product.name || product.nameAr}</p>
+                                            <p className="text-xs text-gray-500">{product.sales || 0} وحدة</p>
                                         </div>
                                     </div>
-                                    <p className="font-medium">{formatCurrency(product.revenue, 'SAR', locale)}</p>
+                                    <p className="font-medium">{formatCurrency(product.revenue || product.basePrice || 0, 'SAR', locale)}</p>
                                 </div>
                             ))}
-                            {(!topProducts || topProducts.length === 0) && (
+                            {displayTopProducts.length === 0 && (
                                 <div className="py-8 text-center text-gray-500">لا توجد بيانات</div>
                             )}
                         </div>

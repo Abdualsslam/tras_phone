@@ -25,6 +25,7 @@ import { SupportModule } from './modules/support/support.module';
 // Content & Settings Modules
 import { ContentModule } from './modules/content/content.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { LocationsModule } from './modules/locations/locations.module';
 
 // Analytics & Audit Modules
 import { AnalyticsModule } from './modules/analytics/analytics.module';
@@ -103,6 +104,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     // Content & Configuration
     ContentModule,
     SettingsModule,
+    LocationsModule,
 
     // Analytics & Reporting
     AnalyticsModule,

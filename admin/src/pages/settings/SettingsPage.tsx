@@ -92,6 +92,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -744,10 +745,15 @@ export function SettingsPage() {
   };
 
   const onTaxSubmit = (data: TaxFormData) => {
+    // Convert "_all" value to empty string for API
+    const submitData = {
+      ...data,
+      countryId: data.countryId === "_all" ? "" : data.countryId,
+    };
     if (isEditing && selectedItem && "_id" in selectedItem) {
-      updateTaxRateMutation.mutate({ id: selectedItem._id, data });
+      updateTaxRateMutation.mutate({ id: selectedItem._id, data: submitData });
     } else {
-      createTaxRateMutation.mutate(data);
+      createTaxRateMutation.mutate(submitData);
     }
   };
 
@@ -1528,6 +1534,9 @@ export function SettingsPage() {
             <DialogTitle>
               {isEditing ? "تعديل الدولة" : "إضافة دولة جديدة"}
             </DialogTitle>
+            <DialogDescription>
+              {isEditing ? "تعديل بيانات الدولة" : "إضافة دولة جديدة للنظام"}
+            </DialogDescription>
           </DialogHeader>
           <form
             onSubmit={countryForm.handleSubmit(onCountrySubmit)}
@@ -1613,6 +1622,9 @@ export function SettingsPage() {
             <DialogTitle>
               {isEditing ? "تعديل المدينة" : "إضافة مدينة جديدة"}
             </DialogTitle>
+            <DialogDescription>
+              {isEditing ? "تعديل بيانات المدينة" : "إضافة مدينة جديدة للنظام"}
+            </DialogDescription>
           </DialogHeader>
           <form
             onSubmit={cityForm.handleSubmit(onCitySubmit)}
@@ -1637,12 +1649,12 @@ export function SettingsPage() {
                 control={cityForm.control}
                 name="countryId"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value || undefined} onValueChange={field.onChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="اختر الدولة" />
                     </SelectTrigger>
                     <SelectContent>
-                      {countries.map((country) => (
+                      {countries.filter(c => c._id).map((country) => (
                         <SelectItem key={country._id} value={country._id}>
                           {country.nameAr || country.name}
                         </SelectItem>
@@ -1701,6 +1713,9 @@ export function SettingsPage() {
             <DialogTitle>
               {isEditing ? "تعديل العملة" : "إضافة عملة جديدة"}
             </DialogTitle>
+            <DialogDescription>
+              {isEditing ? "تعديل بيانات العملة" : "إضافة عملة جديدة للنظام"}
+            </DialogDescription>
           </DialogHeader>
           <form
             onSubmit={currencyForm.handleSubmit(onCurrencySubmit)}
@@ -1809,6 +1824,9 @@ export function SettingsPage() {
             <DialogTitle>
               {isEditing ? "تعديل معدل الضريبة" : "إضافة معدل ضريبة جديد"}
             </DialogTitle>
+            <DialogDescription>
+              {isEditing ? "تعديل بيانات معدل الضريبة" : "إضافة معدل ضريبة جديد للنظام"}
+            </DialogDescription>
           </DialogHeader>
           <form
             onSubmit={taxForm.handleSubmit(onTaxSubmit)}
@@ -1843,13 +1861,13 @@ export function SettingsPage() {
                   control={taxForm.control}
                   name="countryId"
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="الكل" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">الكل</SelectItem>
-                        {countries.map((country) => (
+                        <SelectItem value="_all">الكل</SelectItem>
+                        {countries.filter(c => c._id).map((country) => (
                           <SelectItem key={country._id} value={country._id}>
                             {country.nameAr || country.name}
                           </SelectItem>
@@ -1926,6 +1944,9 @@ export function SettingsPage() {
             <DialogTitle>
               {isEditing ? "تعديل منطقة الشحن" : "إضافة منطقة شحن جديدة"}
             </DialogTitle>
+            <DialogDescription>
+              {isEditing ? "تعديل بيانات منطقة الشحن" : "إضافة منطقة شحن جديدة للنظام"}
+            </DialogDescription>
           </DialogHeader>
           <form
             onSubmit={shippingZoneForm.handleSubmit(onShippingZoneSubmit)}
@@ -1997,6 +2018,9 @@ export function SettingsPage() {
             <DialogTitle>
               {isEditing ? "تعديل طريقة الدفع" : "إضافة طريقة دفع جديدة"}
             </DialogTitle>
+            <DialogDescription>
+              {isEditing ? "تعديل بيانات طريقة الدفع" : "إضافة طريقة دفع جديدة للنظام"}
+            </DialogDescription>
           </DialogHeader>
           <form
             onSubmit={paymentMethodForm.handleSubmit(onPaymentMethodSubmit)}
@@ -2033,7 +2057,7 @@ export function SettingsPage() {
                   control={paymentMethodForm.control}
                   name="type"
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="اختر النوع" />
                       </SelectTrigger>
@@ -2097,6 +2121,9 @@ export function SettingsPage() {
             <DialogTitle>
               {isEditing ? "تعديل إصدار التطبيق" : "إضافة إصدار جديد"}
             </DialogTitle>
+            <DialogDescription>
+              {isEditing ? "تعديل بيانات إصدار التطبيق" : "إضافة إصدار جديد للتطبيق"}
+            </DialogDescription>
           </DialogHeader>
           <form
             onSubmit={appVersionForm.handleSubmit(onAppVersionSubmit)}
@@ -2109,7 +2136,7 @@ export function SettingsPage() {
                   control={appVersionForm.control}
                   name="platform"
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="اختر المنصة" />
                       </SelectTrigger>

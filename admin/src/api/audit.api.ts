@@ -1,6 +1,20 @@
 import apiClient from './client';
 import type { ApiResponse, PaginatedResponse } from '@/types';
 
+// Helper function to extract data from nested API response
+function extractData<T>(responseData: any): T {
+    if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+        return responseData.data as T;
+    }
+    return responseData as T;
+}
+
+// Helper function to extract array data safely
+function extractArrayData<T>(responseData: any): T[] {
+    const data = extractData<T[] | T>(responseData);
+    return Array.isArray(data) ? data : [];
+}
+
 // ══════════════════════════════════════════════════════════════
 // Types
 // ══════════════════════════════════════════════════════════════
@@ -83,17 +97,17 @@ export const auditApi = {
 
     getCriticalLogs: async (): Promise<AuditLog[]> => {
         const response = await apiClient.get<ApiResponse<AuditLog[]>>('/audit/logs/critical');
-        return response.data.data;
+        return extractArrayData<AuditLog>(response.data.data);
     },
 
     getResourceHistory: async (resource: string, id: string): Promise<AuditLog[]> => {
         const response = await apiClient.get<ApiResponse<AuditLog[]>>(`/audit/logs/resource/${resource}/${id}`);
-        return response.data.data;
+        return extractArrayData<AuditLog>(response.data.data);
     },
 
     getActorActivity: async (type: string, id: string): Promise<AuditLog[]> => {
         const response = await apiClient.get<ApiResponse<AuditLog[]>>(`/audit/logs/actor/${type}/${id}`);
-        return response.data.data;
+        return extractArrayData<AuditLog>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -102,17 +116,17 @@ export const auditApi = {
 
     getRecentActivities: async (): Promise<AuditLog[]> => {
         const response = await apiClient.get<ApiResponse<AuditLog[]>>('/audit/activities');
-        return response.data.data;
+        return extractArrayData<AuditLog>(response.data.data);
     },
 
     getMyActivities: async (): Promise<AuditLog[]> => {
         const response = await apiClient.get<ApiResponse<AuditLog[]>>('/audit/activities/my');
-        return response.data.data;
+        return extractArrayData<AuditLog>(response.data.data);
     },
 
     getAdminActivities: async (adminId: string): Promise<AuditLog[]> => {
         const response = await apiClient.get<ApiResponse<AuditLog[]>>(`/audit/activities/admin/${adminId}`);
-        return response.data.data;
+        return extractArrayData<AuditLog>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -121,27 +135,27 @@ export const auditApi = {
 
     getLoginHistory: async (): Promise<LoginLog[]> => {
         const response = await apiClient.get<ApiResponse<LoginLog[]>>('/audit/logins');
-        return response.data.data;
+        return extractArrayData<LoginLog>(response.data.data);
     },
 
     getMyLogins: async (): Promise<LoginLog[]> => {
         const response = await apiClient.get<ApiResponse<LoginLog[]>>('/audit/logins/my');
-        return response.data.data;
+        return extractArrayData<LoginLog>(response.data.data);
     },
 
     getSuspiciousLogins: async (): Promise<LoginLog[]> => {
         const response = await apiClient.get<ApiResponse<LoginLog[]>>('/audit/logins/suspicious');
-        return response.data.data;
+        return extractArrayData<LoginLog>(response.data.data);
     },
 
     getFailedLogins: async (): Promise<LoginLog[]> => {
         const response = await apiClient.get<ApiResponse<LoginLog[]>>('/audit/logins/failed');
-        return response.data.data;
+        return extractArrayData<LoginLog>(response.data.data);
     },
 
     getLoginsByIp: async (ip: string): Promise<LoginLog[]> => {
         const response = await apiClient.get<ApiResponse<LoginLog[]>>(`/audit/logins/ip/${encodeURIComponent(ip)}`);
-        return response.data.data;
+        return extractArrayData<LoginLog>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -150,7 +164,7 @@ export const auditApi = {
 
     getStats: async (): Promise<AuditStats> => {
         const response = await apiClient.get<ApiResponse<AuditStats>>('/audit/stats');
-        return response.data.data;
+        return extractData<AuditStats>(response.data.data);
     },
 };
 

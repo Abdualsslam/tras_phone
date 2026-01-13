@@ -59,8 +59,10 @@ export class AuditController {
     @Get('logs/critical')
     @Roles(UserRole.ADMIN)
     @ApiOperation({ summary: 'Get critical audit logs' })
-    async getCriticalLogs(@Query('days') days: number = 7) {
-        const logs = await this.auditService.getCriticalLogs(days);
+    async getCriticalLogs(@Query('days') days?: string) {
+        const daysNum = days ? parseInt(days, 10) : 7;
+        const validDays = isNaN(daysNum) ? 7 : daysNum;
+        const logs = await this.auditService.getCriticalLogs(validDays);
         return ResponseBuilder.success(logs);
     }
 
@@ -100,16 +102,20 @@ export class AuditController {
     @Get('activities/my')
     @Roles(UserRole.ADMIN)
     @ApiOperation({ summary: 'Get my activities' })
-    async getMyActivities(@CurrentUser() user: any, @Query('days') days?: number) {
-        const activities = await this.auditService.getAdminActivities(user.adminId, days);
+    async getMyActivities(@CurrentUser() user: any, @Query('days') days?: string) {
+        const daysNum = days ? parseInt(days, 10) : 30;
+        const validDays = isNaN(daysNum) ? 30 : daysNum;
+        const activities = await this.auditService.getAdminActivities(user.adminId, validDays);
         return ResponseBuilder.success(activities);
     }
 
     @Get('activities/admin/:id')
     @Roles(UserRole.ADMIN)
     @ApiOperation({ summary: 'Get admin activities by ID' })
-    async getAdminActivities(@Param('id') id: string, @Query('days') days?: number) {
-        const activities = await this.auditService.getAdminActivities(id, days);
+    async getAdminActivities(@Param('id') id: string, @Query('days') days?: string) {
+        const daysNum = days ? parseInt(days, 10) : 30;
+        const validDays = isNaN(daysNum) ? 30 : daysNum;
+        const activities = await this.auditService.getAdminActivities(id, validDays);
         return ResponseBuilder.success(activities);
     }
 
@@ -138,24 +144,30 @@ export class AuditController {
     @Get('logins/suspicious')
     @Roles(UserRole.ADMIN)
     @ApiOperation({ summary: 'Get suspicious logins' })
-    async getSuspiciousLogins(@Query('days') days?: number) {
-        const logins = await this.auditService.getSuspiciousLogins(days);
+    async getSuspiciousLogins(@Query('days') days?: string) {
+        const daysNum = days ? parseInt(days, 10) : 7;
+        const validDays = isNaN(daysNum) ? 7 : daysNum;
+        const logins = await this.auditService.getSuspiciousLogins(validDays);
         return ResponseBuilder.success(logins);
     }
 
     @Get('logins/failed')
     @Roles(UserRole.ADMIN)
     @ApiOperation({ summary: 'Get failed login attempts' })
-    async getFailedLogins(@Query('email') email?: string, @Query('days') days?: number) {
-        const logins = await this.auditService.getFailedLogins(email, days);
+    async getFailedLogins(@Query('email') email?: string, @Query('days') days?: string) {
+        const daysNum = days ? parseInt(days, 10) : 7;
+        const validDays = isNaN(daysNum) ? 7 : daysNum;
+        const logins = await this.auditService.getFailedLogins(email, validDays);
         return ResponseBuilder.success(logins);
     }
 
     @Get('logins/ip/:ip')
     @Roles(UserRole.ADMIN)
     @ApiOperation({ summary: 'Get logins by IP address' })
-    async getLoginsByIP(@Param('ip') ip: string, @Query('days') days?: number) {
-        const logins = await this.auditService.getLoginsByIP(ip, days);
+    async getLoginsByIP(@Param('ip') ip: string, @Query('days') days?: string) {
+        const daysNum = days ? parseInt(days, 10) : 7;
+        const validDays = isNaN(daysNum) ? 7 : daysNum;
+        const logins = await this.auditService.getLoginsByIP(ip, validDays);
         return ResponseBuilder.success(logins);
     }
 

@@ -80,8 +80,8 @@ const loginStatusConfig: Record<string, { label: string; variant: 'default' | 's
 export function AuditLogsPage() {
     const [activeTab, setActiveTab] = useState('logs');
     const [searchQuery, setSearchQuery] = useState('');
-    const [actionFilter, setActionFilter] = useState<string>('');
-    const [resourceFilter, setResourceFilter] = useState<string>('');
+    const [actionFilter, setActionFilter] = useState<string>('_all');
+    const [resourceFilter, setResourceFilter] = useState<string>('_all');
 
     // ─────────────────────────────────────────
     // Queries
@@ -90,8 +90,8 @@ export function AuditLogsPage() {
     const { data: logsData, isLoading: logsLoading } = useQuery({
         queryKey: ['audit-logs', actionFilter, resourceFilter],
         queryFn: () => auditApi.getLogs({
-            action: actionFilter || undefined,
-            resource: resourceFilter || undefined,
+            action: actionFilter === '_all' ? undefined : actionFilter,
+            resource: resourceFilter === '_all' ? undefined : resourceFilter,
         }),
     });
 
@@ -342,7 +342,7 @@ export function AuditLogsPage() {
                                             <SelectValue placeholder="الإجراء" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="">الكل</SelectItem>
+                                            <SelectItem value="_all">الكل</SelectItem>
                                             <SelectItem value="create">إنشاء</SelectItem>
                                             <SelectItem value="update">تحديث</SelectItem>
                                             <SelectItem value="delete">حذف</SelectItem>
@@ -353,7 +353,7 @@ export function AuditLogsPage() {
                                             <SelectValue placeholder="المورد" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="">الكل</SelectItem>
+                                            <SelectItem value="_all">الكل</SelectItem>
                                             <SelectItem value="admin">مشرف</SelectItem>
                                             <SelectItem value="product">منتج</SelectItem>
                                             <SelectItem value="order">طلب</SelectItem>

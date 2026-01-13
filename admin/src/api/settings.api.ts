@@ -1,6 +1,22 @@
 import apiClient from './client';
 import type { ApiResponse } from '@/types';
 
+// Helper function to extract data from nested API response
+// API returns: { data: { data: actualData } } or { data: actualData }
+function extractData<T>(responseData: any): T {
+    // Check if data is nested (response.data.data structure from backend)
+    if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+        return responseData.data as T;
+    }
+    return responseData as T;
+}
+
+// Helper function to extract array data safely
+function extractArrayData<T>(responseData: any): T[] {
+    const data = extractData<T[] | T>(responseData);
+    return Array.isArray(data) ? data : [];
+}
+
 // ══════════════════════════════════════════════════════════════
 // Basic Settings Types
 // ══════════════════════════════════════════════════════════════
@@ -116,12 +132,12 @@ export const settingsApi = {
 
     getStoreSettings: async (): Promise<StoreSettings> => {
         const response = await apiClient.get<ApiResponse<StoreSettings>>('/settings/store');
-        return response.data.data;
+        return extractData<StoreSettings>(response.data.data);
     },
 
     updateStoreSettings: async (data: Partial<StoreSettings>): Promise<StoreSettings> => {
         const response = await apiClient.put<ApiResponse<StoreSettings>>('/settings/store', data);
-        return response.data.data;
+        return extractData<StoreSettings>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -130,12 +146,12 @@ export const settingsApi = {
 
     getLocalizationSettings: async (): Promise<LocalizationSettings> => {
         const response = await apiClient.get<ApiResponse<LocalizationSettings>>('/settings/localization');
-        return response.data.data;
+        return extractData<LocalizationSettings>(response.data.data);
     },
 
     updateLocalizationSettings: async (data: Partial<LocalizationSettings>): Promise<LocalizationSettings> => {
         const response = await apiClient.put<ApiResponse<LocalizationSettings>>('/settings/localization', data);
-        return response.data.data;
+        return extractData<LocalizationSettings>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -144,12 +160,12 @@ export const settingsApi = {
 
     getNotificationSettings: async (): Promise<NotificationSettings> => {
         const response = await apiClient.get<ApiResponse<NotificationSettings>>('/settings/notifications');
-        return response.data.data;
+        return extractData<NotificationSettings>(response.data.data);
     },
 
     updateNotificationSettings: async (data: Partial<NotificationSettings>): Promise<NotificationSettings> => {
         const response = await apiClient.put<ApiResponse<NotificationSettings>>('/settings/notifications', data);
-        return response.data.data;
+        return extractData<NotificationSettings>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -158,12 +174,12 @@ export const settingsApi = {
 
     getPaymentSettings: async (): Promise<PaymentSettings> => {
         const response = await apiClient.get<ApiResponse<PaymentSettings>>('/settings/payment');
-        return response.data.data;
+        return extractData<PaymentSettings>(response.data.data);
     },
 
     updatePaymentSettings: async (data: Partial<PaymentSettings>): Promise<PaymentSettings> => {
         const response = await apiClient.put<ApiResponse<PaymentSettings>>('/settings/payment', data);
-        return response.data.data;
+        return extractData<PaymentSettings>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -172,12 +188,12 @@ export const settingsApi = {
 
     getShippingSettings: async (): Promise<ShippingSettings> => {
         const response = await apiClient.get<ApiResponse<ShippingSettings>>('/settings/shipping');
-        return response.data.data;
+        return extractData<ShippingSettings>(response.data.data);
     },
 
     updateShippingSettings: async (data: Partial<ShippingSettings>): Promise<ShippingSettings> => {
         const response = await apiClient.put<ApiResponse<ShippingSettings>>('/settings/shipping', data);
-        return response.data.data;
+        return extractData<ShippingSettings>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -186,17 +202,17 @@ export const settingsApi = {
 
     getCountries: async (): Promise<Country[]> => {
         const response = await apiClient.get<ApiResponse<Country[]>>('/settings/admin/countries');
-        return response.data.data;
+        return extractArrayData<Country>(response.data.data);
     },
 
     createCountry: async (data: Omit<Country, '_id'>): Promise<Country> => {
         const response = await apiClient.post<ApiResponse<Country>>('/settings/admin/countries', data);
-        return response.data.data;
+        return extractData<Country>(response.data.data);
     },
 
     updateCountry: async (id: string, data: Partial<Country>): Promise<Country> => {
         const response = await apiClient.put<ApiResponse<Country>>(`/settings/admin/countries/${id}`, data);
-        return response.data.data;
+        return extractData<Country>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -207,19 +223,17 @@ export const settingsApi = {
         const response = await apiClient.get<ApiResponse<City[]>>('/settings/admin/cities', {
             params: countryId ? { countryId } : undefined,
         });
-        const data = response.data.data;
-        // Ensure we always return an array
-        return Array.isArray(data) ? data : [];
+        return extractArrayData<City>(response.data.data);
     },
 
     createCity: async (data: Omit<City, '_id'>): Promise<City> => {
         const response = await apiClient.post<ApiResponse<City>>('/settings/admin/cities', data);
-        return response.data.data;
+        return extractData<City>(response.data.data);
     },
 
     updateCity: async (id: string, data: Partial<City>): Promise<City> => {
         const response = await apiClient.put<ApiResponse<City>>(`/settings/admin/cities/${id}`, data);
-        return response.data.data;
+        return extractData<City>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -228,17 +242,17 @@ export const settingsApi = {
 
     getCurrencies: async (): Promise<Currency[]> => {
         const response = await apiClient.get<ApiResponse<Currency[]>>('/settings/admin/currencies');
-        return response.data.data;
+        return extractArrayData<Currency>(response.data.data);
     },
 
     createCurrency: async (data: Omit<Currency, '_id'>): Promise<Currency> => {
         const response = await apiClient.post<ApiResponse<Currency>>('/settings/admin/currencies', data);
-        return response.data.data;
+        return extractData<Currency>(response.data.data);
     },
 
     updateCurrency: async (id: string, data: Partial<Currency>): Promise<Currency> => {
         const response = await apiClient.put<ApiResponse<Currency>>(`/settings/admin/currencies/${id}`, data);
-        return response.data.data;
+        return extractData<Currency>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -247,17 +261,17 @@ export const settingsApi = {
 
     getTaxRates: async (): Promise<TaxRate[]> => {
         const response = await apiClient.get<ApiResponse<TaxRate[]>>('/settings/admin/tax-rates');
-        return response.data.data;
+        return extractArrayData<TaxRate>(response.data.data);
     },
 
     createTaxRate: async (data: Omit<TaxRate, '_id'>): Promise<TaxRate> => {
         const response = await apiClient.post<ApiResponse<TaxRate>>('/settings/admin/tax-rates', data);
-        return response.data.data;
+        return extractData<TaxRate>(response.data.data);
     },
 
     updateTaxRate: async (id: string, data: Partial<TaxRate>): Promise<TaxRate> => {
         const response = await apiClient.put<ApiResponse<TaxRate>>(`/settings/admin/tax-rates/${id}`, data);
-        return response.data.data;
+        return extractData<TaxRate>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -266,17 +280,17 @@ export const settingsApi = {
 
     getShippingZones: async (): Promise<ShippingZone[]> => {
         const response = await apiClient.get<ApiResponse<ShippingZone[]>>('/settings/admin/shipping-zones');
-        return response.data.data;
+        return extractArrayData<ShippingZone>(response.data.data);
     },
 
     createShippingZone: async (data: Omit<ShippingZone, '_id'>): Promise<ShippingZone> => {
         const response = await apiClient.post<ApiResponse<ShippingZone>>('/settings/admin/shipping-zones', data);
-        return response.data.data;
+        return extractData<ShippingZone>(response.data.data);
     },
 
     updateShippingZone: async (id: string, data: Partial<ShippingZone>): Promise<ShippingZone> => {
         const response = await apiClient.put<ApiResponse<ShippingZone>>(`/settings/admin/shipping-zones/${id}`, data);
-        return response.data.data;
+        return extractData<ShippingZone>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -285,17 +299,17 @@ export const settingsApi = {
 
     getPaymentMethods: async (): Promise<PaymentMethod[]> => {
         const response = await apiClient.get<ApiResponse<PaymentMethod[]>>('/settings/admin/payment-methods');
-        return response.data.data;
+        return extractArrayData<PaymentMethod>(response.data.data);
     },
 
     createPaymentMethod: async (data: Omit<PaymentMethod, '_id'>): Promise<PaymentMethod> => {
         const response = await apiClient.post<ApiResponse<PaymentMethod>>('/settings/admin/payment-methods', data);
-        return response.data.data;
+        return extractData<PaymentMethod>(response.data.data);
     },
 
     updatePaymentMethod: async (id: string, data: Partial<PaymentMethod>): Promise<PaymentMethod> => {
         const response = await apiClient.put<ApiResponse<PaymentMethod>>(`/settings/admin/payment-methods/${id}`, data);
-        return response.data.data;
+        return extractData<PaymentMethod>(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -306,22 +320,22 @@ export const settingsApi = {
         const response = await apiClient.get<ApiResponse<AppVersion[]>>('/settings/app-versions', {
             params: platform ? { platform } : undefined,
         });
-        return response.data.data;
+        return extractArrayData<AppVersion>(response.data.data);
     },
 
     createAppVersion: async (data: Omit<AppVersion, '_id' | 'createdAt'>): Promise<AppVersion> => {
         const response = await apiClient.post<ApiResponse<AppVersion>>('/settings/admin/app-versions', data);
-        return response.data.data;
+        return extractData<AppVersion>(response.data.data);
     },
 
     updateAppVersion: async (id: string, data: Partial<AppVersion>): Promise<AppVersion> => {
         const response = await apiClient.put<ApiResponse<AppVersion>>(`/settings/admin/app-versions/${id}`, data);
-        return response.data.data;
+        return extractData<AppVersion>(response.data.data);
     },
 
     setCurrentAppVersion: async (id: string): Promise<AppVersion> => {
         const response = await apiClient.put<ApiResponse<AppVersion>>(`/settings/admin/app-versions/${id}/current`);
-        return response.data.data;
+        return extractData<AppVersion>(response.data.data);
     },
 
     deleteAppVersion: async (id: string): Promise<void> => {
@@ -336,7 +350,7 @@ export const settingsApi = {
         const response = await apiClient.get<ApiResponse<City[]>>('/settings/admin/cities', {
             params: countryId ? { countryId } : undefined,
         });
-        return response.data.data;
+        return extractArrayData<City>(response.data.data);
     },
 
     deleteCity: async (id: string): Promise<void> => {

@@ -196,6 +196,11 @@ export function ContentPage() {
     queryFn: () => contentApi.getTestimonials(),
   });
 
+  // Ensure arrays are arrays
+  const safeFaqs = Array.isArray(faqs) ? faqs : [];
+  const safeFaqCategories = Array.isArray(faqCategories) ? faqCategories : [];
+  const safeTestimonials = Array.isArray(testimonials) ? testimonials : [];
+
   // ─────────────────────────────────────────
   // Page Mutations
   // ─────────────────────────────────────────
@@ -898,7 +903,7 @@ export function ContentPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">الأسئلة الشائعة</p>
-                <p className="text-2xl font-bold">{faqs.length}</p>
+                <p className="text-2xl font-bold">{safeFaqs.length}</p>
               </div>
             </div>
           </CardContent>
@@ -1318,13 +1323,13 @@ export function ContentPage() {
                   <div className="flex justify-center items-center h-20">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
-                ) : faqCategories.length === 0 ? (
+                ) : safeFaqCategories.length === 0 ? (
                   <p className="text-center text-muted-foreground py-4">
                     لا توجد تصنيفات
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {faqCategories.map((cat) => (
+                    {safeFaqCategories.map((cat) => (
                       <div
                         key={cat._id}
                         className="flex items-center justify-between p-2 rounded-lg hover:bg-muted"
@@ -1370,7 +1375,7 @@ export function ContentPage() {
                   </CardTitle>
                   <Button
                     onClick={handleAddFaq}
-                    disabled={faqCategories.length === 0}
+                    disabled={safeFaqCategories.length === 0}
                   >
                     <Plus className="h-4 w-4 ml-2" />
                     إضافة سؤال
@@ -1382,14 +1387,14 @@ export function ContentPage() {
                   <div className="flex justify-center items-center h-40">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : faqs.length === 0 ? (
+                ) : safeFaqs.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <HelpCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>لا توجد أسئلة شائعة</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {faqs.map((faq) => (
+                    {safeFaqs.map((faq) => (
                       <Card key={faq._id}>
                         <CardContent className="p-4">
                           <div className="flex justify-between items-start">
@@ -1472,14 +1477,14 @@ export function ContentPage() {
                 <div className="flex justify-center items-center h-40">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : testimonials.length === 0 ? (
+              ) : safeTestimonials.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Star className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>لا توجد شهادات</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {testimonials.map((testimonial) => (
+                  {safeTestimonials.map((testimonial) => (
                     <Card
                       key={testimonial._id}
                       className={

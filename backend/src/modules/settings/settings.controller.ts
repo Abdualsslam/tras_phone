@@ -41,6 +41,24 @@ export class SettingsController {
     return ResponseBuilder.success(settings);
   }
 
+  // ==================== Store Settings ====================
+
+  @Get('store')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get store settings' })
+  async getStoreSettings() {
+    const settings = await this.settingsService.getStoreSettings();
+    return ResponseBuilder.success(settings);
+  }
+
+  @Put('store')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update store settings' })
+  async updateStoreSettings(@CurrentUser() user: any, @Body() data: any) {
+    const settings = await this.settingsService.updateStoreSettings(data, user.adminId);
+    return ResponseBuilder.success(settings, 'Store settings updated');
+  }
+
   // ==================== Countries & Cities ====================
 
   @Get('countries')

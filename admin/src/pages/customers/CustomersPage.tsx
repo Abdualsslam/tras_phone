@@ -25,6 +25,13 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -127,7 +134,7 @@ export function CustomersPage() {
     const { t, i18n } = useTranslation();
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('_all');
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -139,7 +146,7 @@ export function CustomersPage() {
     // Fetch customers
     const { data, isLoading, error } = useQuery({
         queryKey: ['customers', searchQuery, statusFilter],
-        queryFn: () => customersApi.getAll({ search: searchQuery, status: statusFilter, limit: 20 }),
+        queryFn: () => customersApi.getAll({ search: searchQuery, status: statusFilter === '_all' ? undefined : statusFilter, limit: 20 }),
     });
 
     // Fetch lookup data for dialog
@@ -315,17 +322,21 @@ export function CustomersPage() {
                                 className="ps-10"
                             />
                         </div>
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="h-10 rounded-lg border border-gray-300 px-3 text-sm min-w-[150px]"
+                        <Select
+                            value={statusFilter || undefined}
+                            onValueChange={setStatusFilter}
                         >
-                            <option value="">جميع الحالات</option>
-                            <option value="pending">قيد الانتظار</option>
-                            <option value="approved">معتمد</option>
-                            <option value="rejected">مرفوض</option>
-                            <option value="suspended">موقوف</option>
-                        </select>
+                            <SelectTrigger className="h-10 min-w-[150px]">
+                                <SelectValue placeholder="جميع الحالات" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="_all">جميع الحالات</SelectItem>
+                                <SelectItem value="pending">قيد الانتظار</SelectItem>
+                                <SelectItem value="approved">معتمد</SelectItem>
+                                <SelectItem value="rejected">مرفوض</SelectItem>
+                                <SelectItem value="suspended">موقوف</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </CardContent>
             </Card>
@@ -866,46 +877,56 @@ export function CustomersPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>نوع العمل <span className="text-gray-400 text-xs">(اختياري)</span></Label>
-                                        <select
+                                        <Select
                                             value={formData.businessType}
-                                            onChange={(e) => handleFormChange('businessType', e.target.value)}
-                                            className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
+                                            onValueChange={(value) => handleFormChange('businessType', value)}
                                         >
-                                            <option value="shop">محل</option>
-                                            <option value="technician">فني</option>
-                                            <option value="distributor">موزع</option>
-                                            <option value="other">أخرى</option>
-                                        </select>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="اختر نوع العمل..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="shop">محل</SelectItem>
+                                                <SelectItem value="technician">فني</SelectItem>
+                                                <SelectItem value="distributor">موزع</SelectItem>
+                                                <SelectItem value="other">أخرى</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>المدينة <span className="text-red-500">*</span></Label>
-                                        <select
-                                            value={formData.cityId}
-                                            onChange={(e) => handleFormChange('cityId', e.target.value)}
-                                            className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
+                                        <Select
+                                            value={formData.cityId || undefined}
+                                            onValueChange={(value) => handleFormChange('cityId', value)}
                                         >
-                                            <option value="">اختر المدينة...</option>
-                                            {cities.map((city) => (
-                                                <option key={city._id} value={city._id}>
-                                                    {city.nameAr || city.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="اختر المدينة..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {cities.map((city) => (
+                                                    <SelectItem key={city._id} value={city._id}>
+                                                        {city.nameAr || city.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>مستوى السعر <span className="text-red-500">*</span></Label>
-                                        <select
-                                            value={formData.priceLevelId}
-                                            onChange={(e) => handleFormChange('priceLevelId', e.target.value)}
-                                            className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
+                                        <Select
+                                            value={formData.priceLevelId || undefined}
+                                            onValueChange={(value) => handleFormChange('priceLevelId', value)}
                                         >
-                                            <option value="">اختر مستوى السعر...</option>
-                                            {priceLevels.map((level) => (
-                                                <option key={level._id} value={level._id}>
-                                                    {level.nameAr || level.name} ({level.discountPercentage}%)
-                                                </option>
-                                            ))}
-                                        </select>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="اختر مستوى السعر..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {priceLevels.map((level) => (
+                                                    <SelectItem key={level._id} value={level._id}>
+                                                        {level.nameAr || level.name} ({level.discountPercentage}%)
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
                                         <Label>العنوان <span className="text-gray-400 text-xs">(اختياري)</span></Label>

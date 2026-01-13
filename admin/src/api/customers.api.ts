@@ -161,8 +161,36 @@ export const customersApi = {
     // ═════════════════════════════════════
 
     getCities: async (): Promise<City[]> => {
-        const response = await apiClient.get<ApiResponse<City[]>>('/locations/cities');
-        return response.data.data || [];
+        try {
+            // Try settings endpoint first (admin - returns all cities)
+            const response = await apiClient.get<ApiResponse<City[]>>('/settings/admin/cities');
+            const data = response.data.data;
+            // Handle nested response: response.data.data.data
+            if (data && typeof data === 'object' && 'data' in data) {
+                const cities = (data as any).data;
+                return Array.isArray(cities) ? cities : [];
+            }
+            const cities = Array.isArray(data) ? data : [];
+            if (cities.length > 0) return cities;
+        } catch (error) {
+            // Fallback to locations endpoint if settings endpoint fails
+            console.warn('Settings cities endpoint failed, trying locations endpoint', error);
+        }
+        
+        // Fallback to locations endpoint (public - returns only active cities)
+        try {
+            const response = await apiClient.get<ApiResponse<City[]>>('/locations/cities');
+            const data = response.data.data;
+            // Handle nested response: response.data.data.data
+            if (data && typeof data === 'object' && 'data' in data) {
+                const cities = (data as any).data;
+                return Array.isArray(cities) ? cities : [];
+            }
+            return Array.isArray(data) ? data : [];
+        } catch (error) {
+            console.error('Both cities endpoints failed', error);
+            return [];
+        }
     },
 
     getPriceLevels: async (): Promise<PriceLevel[]> => {
