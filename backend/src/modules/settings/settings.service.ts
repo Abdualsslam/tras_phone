@@ -45,6 +45,40 @@ export class SettingsService {
         }, {} as Record<string, any>);
     }
 
+    async getNotificationSettings(): Promise<Record<string, any>> {
+        const settings = await this.settingModel.find({
+            group: SettingGroup.NOTIFICATION
+        });
+
+        const result: Record<string, any> = {
+            newOrder: false,
+            newCustomer: false,
+            lowStock: false,
+            supportTicket: false,
+            emailEnabled: false,
+            pushEnabled: false,
+        };
+
+        settings.forEach(setting => {
+            const key = setting.key.replace('notification_', '').replace(/_/g, '');
+            result[key] = setting.value ?? setting.defaultValue ?? false;
+        });
+
+        return result;
+    }
+
+    async updateNotificationSettings(data: Record<string, any>): Promise<Record<string, any>> {
+        for (const [key, value] of Object.entries(data)) {
+            const settingKey = `notification_${key}`;
+            await this.settingModel.findOneAndUpdate(
+                { key: settingKey },
+                { value },
+                { upsert: true, new: true }
+            );
+        }
+        return this.getNotificationSettings();
+    }
+
     async updateSetting(key: string, value: any, updatedBy?: string): Promise<Setting> {
         const setting = await this.settingModel.findOne({ key });
         if (!setting) throw new NotFoundException('Setting not found');
@@ -97,9 +131,26 @@ export class SettingsService {
         return this.countryModel.create(data);
     }
 
-    async findAllCountries(activeOnly: boolean = true): Promise<Country[]> {
+    async findAllCountries(activeOnly: boolean = true): Promise<any[]> {
         const query = activeOnly ? { isActive: true } : {};
-        return this.countryModel.find(query).sort({ sortOrder: 1, nameEn: 1 }).exec();
+        const countries = await this.countryModel.find(query).sort({ sortOrder: 1, nameEn: 1 }).exec();
+        
+        // Transform to match frontend expectations
+        return countries.map(country => ({
+            _id: country._id,
+            name: country.nameEn,
+            nameAr: country.nameAr,
+            code: country.code,
+            phoneCode: country.phoneCode,
+            isActive: country.isActive,
+            isDefault: country.isDefault,
+            allowShipping: country.allowShipping,
+            allowBilling: country.allowBilling,
+            sortOrder: country.sortOrder,
+            currency: country.currency,
+            flagEmoji: country.flagEmoji,
+            flagUrl: country.flagUrl,
+        }));
     }
 
     async findShippingCountries(): Promise<Country[]> {
@@ -114,8 +165,67 @@ export class SettingsService {
 
     // ==================== Cities ====================
 
-    async createCity(data: Partial<City>): Promise<City> {
-        return this.cityModel.create(data);
+    async createCity(data: Partial<City>): Promise<any> {
+        // Convert countryId to country if provided
+        const createData: any = { ...data };
+        if (createData.countryId) {
+            createData.country = new Types.ObjectId(createData.countryId);
+            delete createData.countryId;
+        }
+        // Convert name to nameEn if provided
+        if (createData.name && !createData.nameEn) {
+            createData.nameEn = createData.name;
+            delete createData.name;
+        }
+        const city = await this.cityModel.create(createData);
+        await city.populate('country', 'nameAr nameEn code');
+        
+        // Transform to match frontend expectations
+        return {
+            _id: city._id,
+            name: city.nameEn,
+            nameAr: city.nameAr,
+            countryId: typeof city.country === 'object' && city.country?._id ? city.country._id.toString() : city.country?.toString() || city.country,
+            country: city.country,
+            isActive: city.isActive,
+            allowDelivery: city.allowDelivery,
+            shippingFee: city.shippingFee,
+            estimatedDeliveryDays: city.estimatedDeliveryDays,
+            sortOrder: city.sortOrder,
+            code: city.code,
+            postalCode: city.postalCode,
+            latitude: city.latitude,
+            longitude: city.longitude,
+        };
+    }
+
+    async findAllCities(countryId?: string, activeOnly: boolean = false): Promise<any[]> {
+        const query: any = {};
+        if (countryId) {
+            query.country = new Types.ObjectId(countryId);
+        }
+        if (activeOnly) {
+            query.isActive = true;
+        }
+        const cities = await this.cityModel.find(query).populate('country', 'nameAr nameEn code').sort({ sortOrder: 1, nameEn: 1 }).exec();
+        
+        // Transform to match frontend expectations
+        return cities.map(city => ({
+            _id: city._id,
+            name: city.nameEn,
+            nameAr: city.nameAr,
+            countryId: typeof city.country === 'object' && city.country?._id ? city.country._id.toString() : city.country?.toString() || city.country,
+            country: city.country,
+            isActive: city.isActive,
+            allowDelivery: city.allowDelivery,
+            shippingFee: city.shippingFee,
+            estimatedDeliveryDays: city.estimatedDeliveryDays,
+            sortOrder: city.sortOrder,
+            code: city.code,
+            postalCode: city.postalCode,
+            latitude: city.latitude,
+            longitude: city.longitude,
+        }));
     }
 
     async findCitiesByCountry(countryId: string, activeOnly: boolean = true): Promise<City[]> {
@@ -132,10 +242,38 @@ export class SettingsService {
         }).sort({ sortOrder: 1 }).exec();
     }
 
-    async updateCity(id: string, data: Partial<City>): Promise<City> {
-        const city = await this.cityModel.findByIdAndUpdate(id, data, { new: true });
+    async updateCity(id: string, data: Partial<City>): Promise<any> {
+        // Convert countryId to country if provided
+        const updateData: any = { ...data };
+        if (updateData.countryId) {
+            updateData.country = new Types.ObjectId(updateData.countryId);
+            delete updateData.countryId;
+        }
+        // Convert name to nameEn if provided
+        if (updateData.name && !updateData.nameEn) {
+            updateData.nameEn = updateData.name;
+            delete updateData.name;
+        }
+        const city = await this.cityModel.findByIdAndUpdate(id, updateData, { new: true }).populate('country', 'nameAr nameEn code');
         if (!city) throw new NotFoundException('City not found');
-        return city;
+        
+        // Transform to match frontend expectations
+        return {
+            _id: city._id,
+            name: city.nameEn,
+            nameAr: city.nameAr,
+            countryId: typeof city.country === 'object' && city.country?._id ? city.country._id.toString() : city.country?.toString() || city.country,
+            country: city.country,
+            isActive: city.isActive,
+            allowDelivery: city.allowDelivery,
+            shippingFee: city.shippingFee,
+            estimatedDeliveryDays: city.estimatedDeliveryDays,
+            sortOrder: city.sortOrder,
+            code: city.code,
+            postalCode: city.postalCode,
+            latitude: city.latitude,
+            longitude: city.longitude,
+        };
     }
 
     // ==================== Currencies ====================
@@ -369,6 +507,14 @@ export class SettingsService {
             { key: 'meta_title_ar', labelAr: 'عنوان الميتا', labelEn: 'Meta Title', type: SettingType.STRING, group: SettingGroup.SEO, sortOrder: 1 },
             { key: 'meta_description_ar', labelAr: 'وصف الميتا', labelEn: 'Meta Description', type: SettingType.TEXTAREA, group: SettingGroup.SEO, sortOrder: 2 },
             { key: 'google_analytics_id', labelAr: 'معرف Google Analytics', labelEn: 'Google Analytics ID', type: SettingType.STRING, group: SettingGroup.SEO, sortOrder: 3 },
+
+            // Notifications
+            { key: 'notification_newOrder', labelAr: 'إشعار طلب جديد', labelEn: 'New Order Notification', value: true, type: SettingType.BOOLEAN, group: SettingGroup.NOTIFICATION, sortOrder: 1 },
+            { key: 'notification_newCustomer', labelAr: 'إشعار عميل جديد', labelEn: 'New Customer Notification', value: true, type: SettingType.BOOLEAN, group: SettingGroup.NOTIFICATION, sortOrder: 2 },
+            { key: 'notification_lowStock', labelAr: 'إشعار مخزون منخفض', labelEn: 'Low Stock Notification', value: true, type: SettingType.BOOLEAN, group: SettingGroup.NOTIFICATION, sortOrder: 3 },
+            { key: 'notification_supportTicket', labelAr: 'إشعار تذكرة دعم', labelEn: 'Support Ticket Notification', value: true, type: SettingType.BOOLEAN, group: SettingGroup.NOTIFICATION, sortOrder: 4 },
+            { key: 'notification_emailEnabled', labelAr: 'تفعيل الإشعارات عبر البريد', labelEn: 'Email Notifications Enabled', value: true, type: SettingType.BOOLEAN, group: SettingGroup.NOTIFICATION, sortOrder: 5 },
+            { key: 'notification_pushEnabled', labelAr: 'تفعيل الإشعارات الفورية', labelEn: 'Push Notifications Enabled', value: true, type: SettingType.BOOLEAN, group: SettingGroup.NOTIFICATION, sortOrder: 6 },
         ];
 
         await this.settingModel.insertMany(settings);

@@ -152,6 +152,24 @@ export class SettingsController {
     return ResponseBuilder.success(methods);
   }
 
+  // ==================== Notification Settings ====================
+
+  @Get('notifications')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get notification settings' })
+  async getNotificationSettings() {
+    const settings = await this.settingsService.getNotificationSettings();
+    return ResponseBuilder.success(settings);
+  }
+
+  @Put('notifications')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update notification settings' })
+  async updateNotificationSettings(@Body() data: any) {
+    const settings = await this.settingsService.updateNotificationSettings(data);
+    return ResponseBuilder.success(settings, 'Notification settings updated');
+  }
+
   // ==================== Admin - Settings ====================
 
   @Get('admin')
@@ -219,6 +237,14 @@ export class SettingsController {
   }
 
   // ==================== Admin - Cities ====================
+
+  @Get('admin/cities')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all cities (admin)' })
+  async getAllCities(@Query('countryId') countryId?: string) {
+    const cities = await this.settingsService.findAllCities(countryId, false);
+    return ResponseBuilder.success(cities);
+  }
 
   @Post('admin/cities')
   @Roles(UserRole.ADMIN)

@@ -1057,7 +1057,7 @@ export function SettingsPage() {
                         </TableCell>
                         <TableCell>
                           {countries.find((c) => c._id === city.countryId)
-                            ?.name || city.countryId}
+                            ?.nameAr || countries.find((c) => c._id === city.countryId)?.name || city.countryId}
                         </TableCell>
                         <TableCell>
                           <Badge

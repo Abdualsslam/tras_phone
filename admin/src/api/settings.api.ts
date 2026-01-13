@@ -207,7 +207,9 @@ export const settingsApi = {
         const response = await apiClient.get<ApiResponse<City[]>>('/settings/admin/cities', {
             params: countryId ? { countryId } : undefined,
         });
-        return response.data.data;
+        const data = response.data.data;
+        // Ensure we always return an array
+        return Array.isArray(data) ? data : [];
     },
 
     createCity: async (data: Omit<City, '_id'>): Promise<City> => {
