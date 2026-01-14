@@ -297,6 +297,48 @@ export class OrdersController {
     return ResponseBuilder.created(order, 'Order created', 'تم إنشاء الطلب');
   }
 
+  @Get('my/stats')
+  @ApiOperation({
+    summary: 'Get my order statistics',
+    description: 'Get order statistics for the current customer',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Order statistics retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async getMyStats(@CurrentUser() user: any) {
+    const stats = await this.ordersService.getStats(user.customerId);
+    return ResponseBuilder.success(
+      stats,
+      'Order statistics retrieved',
+      'تم استرجاع إحصائيات الطلبات',
+    );
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get('stats')
+  @ApiOperation({
+    summary: 'Get order statistics',
+    description: 'Get comprehensive order statistics. Admin only.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Order statistics retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getStats(@CurrentUser() user: any) {
+    const stats = await this.ordersService.getStats();
+    return ResponseBuilder.success(
+      stats,
+      'Order statistics retrieved',
+      'تم استرجاع إحصائيات الطلبات',
+    );
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get order details',

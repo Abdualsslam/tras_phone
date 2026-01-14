@@ -43,13 +43,33 @@ export class StorageService {
     }
 
     private initializeS3(): void {
-        this.s3Client = new S3Client({
+        const accessKeyId = this.configService.get('AWS_ACCESS_KEY_ID', '');
+        const secretAccessKey = this.configService.get('AWS_SECRET_ACCESS_KEY', '');
+        const endpoint = this.configService.get('AWS_ENDPOINT', '');
+
+        // Log configuration (without sensitive data)
+        this.logger.log(`Initializing S3 client - Region: ${this.region}, Bucket: ${this.bucketName}, Endpoint: ${endpoint ? 'Custom' : 'Default'}`);
+
+        if (!accessKeyId || !secretAccessKey) {
+            this.logger.error('AWS credentials are missing! Please check AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env');
+        }
+
+        const s3Config: any = {
             region: this.region,
             credentials: {
-                accessKeyId: this.configService.get('AWS_ACCESS_KEY_ID', ''),
-                secretAccessKey: this.configService.get('AWS_SECRET_ACCESS_KEY', ''),
+                accessKeyId,
+                secretAccessKey,
             },
-        });
+        };
+
+        // Add custom endpoint for Cloudflare R2 or other S3-compatible services
+        if (endpoint) {
+            s3Config.endpoint = endpoint;
+            // Cloudflare R2 requires forcePathStyle
+            s3Config.forcePathStyle = true;
+        }
+
+        this.s3Client = new S3Client(s3Config);
     }
 
     async upload(options: UploadOptions): Promise<UploadResult> {

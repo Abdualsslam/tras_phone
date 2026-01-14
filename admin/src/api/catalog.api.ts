@@ -1,6 +1,22 @@
 import apiClient from './client';
 import type { ApiResponse, Category, Brand } from '@/types';
 
+// Helper function to extract data from nested API response
+// API returns: { data: { data: actualData } } or { data: actualData }
+function extractData<T>(responseData: any): T {
+    // Check if data is nested (response.data.data structure from backend)
+    if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+        return responseData.data as T;
+    }
+    return responseData as T;
+}
+
+// Helper function to extract array data safely
+function extractArrayData<T>(responseData: any): T[] {
+    const data = extractData<T[] | T>(responseData);
+    return Array.isArray(data) ? data : [];
+}
+
 // ══════════════════════════════════════════════════════════════
 // Types
 // ══════════════════════════════════════════════════════════════
@@ -137,24 +153,24 @@ export const catalogApi = {
 
     getDevices: async (params?: { brandId?: string; limit?: number }): Promise<Device[]> => {
         const response = await apiClient.get<ApiResponse<Device[]>>('/catalog/devices', { params });
-        return response.data.data;
+        return extractArrayData<Device>(response.data);
     },
 
     getPopularDevices: async (limit = 10): Promise<Device[]> => {
         const response = await apiClient.get<ApiResponse<Device[]>>('/catalog/devices', {
             params: { limit }
         });
-        return response.data.data;
+        return extractArrayData<Device>(response.data);
     },
 
     getDevicesByBrand: async (brandId: string): Promise<Device[]> => {
         const response = await apiClient.get<ApiResponse<Device[]>>(`/catalog/devices/brand/${brandId}`);
-        return response.data.data;
+        return extractArrayData<Device>(response.data);
     },
 
     getDeviceBySlug: async (slug: string): Promise<Device> => {
         const response = await apiClient.get<ApiResponse<Device>>(`/catalog/devices/${slug}`);
-        return response.data.data;
+        return extractData<Device>(response.data);
     },
 
     createDevice: async (data: {
@@ -168,7 +184,7 @@ export const catalogApi = {
         isActive?: boolean;
     }): Promise<Device> => {
         const response = await apiClient.post<ApiResponse<Device>>('/catalog/devices', data);
-        return response.data.data;
+        return extractData<Device>(response.data);
     },
 
     updateDevice: async (id: string, data: Partial<{
@@ -182,7 +198,7 @@ export const catalogApi = {
         isActive?: boolean;
     }>): Promise<Device> => {
         const response = await apiClient.put<ApiResponse<Device>>(`/catalog/devices/${id}`, data);
-        return response.data.data;
+        return extractData<Device>(response.data);
     },
 
     deleteDevice: async (id: string): Promise<void> => {
@@ -195,7 +211,7 @@ export const catalogApi = {
 
     getQualityTypes: async (): Promise<QualityType[]> => {
         const response = await apiClient.get<ApiResponse<QualityType[]>>('/catalog/quality-types');
-        return response.data.data;
+        return extractArrayData<QualityType>(response.data);
     },
 
     createQualityType: async (data: {
@@ -204,9 +220,11 @@ export const catalogApi = {
         code: string;
         displayOrder?: number;
         isActive?: boolean;
+        color?: string;
+        defaultWarrantyDays?: number;
     }): Promise<QualityType> => {
         const response = await apiClient.post<ApiResponse<QualityType>>('/catalog/quality-types', data);
-        return response.data.data;
+        return extractData<QualityType>(response.data);
     },
 
     updateQualityType: async (id: string, data: Partial<{
@@ -215,9 +233,11 @@ export const catalogApi = {
         code: string;
         displayOrder?: number;
         isActive?: boolean;
+        color?: string;
+        defaultWarrantyDays?: number;
     }>): Promise<QualityType> => {
         const response = await apiClient.put<ApiResponse<QualityType>>(`/catalog/quality-types/${id}`, data);
-        return response.data.data;
+        return extractData<QualityType>(response.data);
     },
 
     deleteQualityType: async (id: string): Promise<void> => {

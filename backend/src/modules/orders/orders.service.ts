@@ -636,4 +636,173 @@ export class OrdersService {
       .find({ isActive: true })
       .sort({ sortOrder: 1, isDefault: -1 });
   }
+
+  /**
+   * Get order statistics
+   */
+  async getStats(customerId?: string): Promise<{
+    total: number;
+    byStatus: Record<string, number>;
+    byPaymentStatus: Record<string, number>;
+    totalRevenue: number;
+    totalPaid: number;
+    totalUnpaid: number;
+    todayOrders: number;
+    todayRevenue: number;
+    thisMonthOrders: number;
+    thisMonthRevenue: number;
+  }> {
+    const query: any = {};
+    if (customerId) {
+      query.customerId = new Types.ObjectId(customerId);
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+
+    const [
+      total,
+      byStatus,
+      byPaymentStatus,
+      totalRevenue,
+      totalPaid,
+      totalUnpaid,
+      todayOrders,
+      todayRevenue,
+      thisMonthOrders,
+      thisMonthRevenue,
+    ] = await Promise.all([
+      // Total orders
+      this.orderModel.countDocuments(query),
+
+      // Count by status
+      this.orderModel.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+
+      // Count by payment status
+      this.orderModel.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: '$paymentStatus',
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+
+      // Total revenue
+      this.orderModel.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$total' },
+          },
+        },
+      ]),
+
+      // Total paid
+      this.orderModel.aggregate([
+        { $match: { ...query, paymentStatus: 'paid' } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$paidAmount' },
+          },
+        },
+      ]),
+
+      // Total unpaid
+      this.orderModel.aggregate([
+        { $match: { ...query, paymentStatus: { $in: ['unpaid', 'partial'] } } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: { $subtract: ['$total', '$paidAmount'] } },
+          },
+        },
+      ]),
+
+      // Today orders
+      this.orderModel.countDocuments({
+        ...query,
+        createdAt: { $gte: today, $lt: tomorrow },
+      }),
+
+      // Today revenue
+      this.orderModel.aggregate([
+        {
+          $match: {
+            ...query,
+            createdAt: { $gte: today, $lt: tomorrow },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$total' },
+          },
+        },
+      ]),
+
+      // This month orders
+      this.orderModel.countDocuments({
+        ...query,
+        createdAt: { $gte: thisMonthStart, $lt: nextMonthStart },
+      }),
+
+      // This month revenue
+      this.orderModel.aggregate([
+        {
+          $match: {
+            ...query,
+            createdAt: { $gte: thisMonthStart, $lt: nextMonthStart },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$total' },
+          },
+        },
+      ]),
+    ]);
+
+    // Format byStatus
+    const statusMap: Record<string, number> = {};
+    byStatus.forEach((item: any) => {
+      statusMap[item._id] = item.count;
+    });
+
+    // Format byPaymentStatus
+    const paymentStatusMap: Record<string, number> = {};
+    byPaymentStatus.forEach((item: any) => {
+      paymentStatusMap[item._id] = item.count;
+    });
+
+    return {
+      total,
+      byStatus: statusMap,
+      byPaymentStatus: paymentStatusMap,
+      totalRevenue: totalRevenue[0]?.total || 0,
+      totalPaid: totalPaid[0]?.total || 0,
+      totalUnpaid: totalUnpaid[0]?.total || 0,
+      todayOrders,
+      todayRevenue: todayRevenue[0]?.total || 0,
+      thisMonthOrders,
+      thisMonthRevenue: thisMonthRevenue[0]?.total || 0,
+    };
+  }
 }

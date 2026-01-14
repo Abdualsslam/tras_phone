@@ -14,7 +14,10 @@ import {
     ApiBearerAuth,
     ApiResponse,
     ApiBody,
+    ApiProperty,
 } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsOptional, IsArray, ValidateNested, ArrayMinSize } from 'class-validator';
+import { Type } from 'class-transformer';
 import { UploadsService } from './uploads.service';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 import { RolesGuard } from '@guards/roles.guard';
@@ -24,14 +27,63 @@ import { ResponseBuilder } from '@common/interfaces/response.interface';
 import { ApiResponseDto } from '@common/dto/api-response.dto';
 import { ApiAuthErrorResponses } from '@common/decorators/api-error-responses.decorator';
 
-class UploadFileDto {
+class FileItemDto {
+    @ApiProperty({ example: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...' })
+    @IsString()
+    @IsNotEmpty()
     base64: string;
+
+    @ApiProperty({ example: 'product-image.jpg' })
+    @IsString()
+    @IsNotEmpty()
     filename: string;
+}
+
+class UploadFileDto {
+    @ApiProperty({
+        example: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
+        description: 'Base64 encoded file with data URI prefix'
+    })
+    @IsString()
+    @IsNotEmpty()
+    base64: string;
+
+    @ApiProperty({
+        example: 'product-image.jpg',
+        description: 'Original filename'
+    })
+    @IsString()
+    @IsNotEmpty()
+    filename: string;
+
+    @ApiProperty({
+        example: 'products',
+        description: 'Storage folder (default: products)',
+        required: false
+    })
+    @IsString()
+    @IsOptional()
     folder?: string;
 }
 
 class UploadMultipleDto {
-    files: Array<{ base64: string; filename: string }>;
+    @ApiProperty({
+        type: [FileItemDto],
+        description: 'Array of files to upload'
+    })
+    @IsArray()
+    @ArrayMinSize(1)
+    @ValidateNested({ each: true })
+    @Type(() => FileItemDto)
+    files: FileItemDto[];
+
+    @ApiProperty({
+        example: 'products',
+        description: 'Storage folder (default: products)',
+        required: false
+    })
+    @IsString()
+    @IsOptional()
     folder?: string;
 }
 

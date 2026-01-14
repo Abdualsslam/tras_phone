@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -312,9 +313,9 @@ export class CatalogController {
   @Public()
   @Get('devices')
   @ApiOperation({
-    summary: 'Get popular devices',
+    summary: 'Get all active devices',
     description:
-      'Retrieve popular devices with optional limit. Public endpoint.',
+      'Retrieve all active devices with optional limit. Public endpoint.',
   })
   @ApiQuery({
     name: 'limit',
@@ -322,14 +323,25 @@ export class CatalogController {
     type: Number,
     description: 'Maximum number of devices to return',
   })
+  @ApiQuery({
+    name: 'popular',
+    required: false,
+    type: Boolean,
+    description: 'Filter popular devices only',
+  })
   @ApiResponse({
     status: 200,
     description: 'Devices retrieved successfully',
     type: ApiResponseDto,
   })
   @ApiPublicErrorResponses()
-  async getPopularDevices(@Query('limit') limit?: number) {
-    const devices = await this.catalogService.findPopularDevices(limit);
+  async getDevices(
+    @Query('limit') limit?: number,
+    @Query('popular') popular?: boolean,
+  ) {
+    const devices = popular
+      ? await this.catalogService.findPopularDevices(limit)
+      : await this.catalogService.findAllDevices(limit);
     return ResponseBuilder.success(
       devices,
       'Devices retrieved',
@@ -390,8 +402,89 @@ export class CatalogController {
     );
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post('devices')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create device',
+    description: 'Create a new device. Admin only.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Device created successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async createDevice(@Body() data: any) {
+    const device = await this.catalogService.createDevice(data);
+    return ResponseBuilder.created(
+      device,
+      'Device created',
+      'تم إنشاء الجهاز',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Put('devices/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Update device',
+    description: 'Update device information. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Device ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Device updated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async updateDevice(@Param('id') id: string, @Body() data: any) {
+    const device = await this.catalogService.updateDevice(id, data);
+    return ResponseBuilder.success(
+      device,
+      'Device updated',
+      'تم تحديث الجهاز',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Delete('devices/:id')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Delete device',
+    description: 'Delete a device. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Device ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Device deleted successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async deleteDevice(@Param('id') id: string) {
+    await this.catalogService.deleteDevice(id);
+    return ResponseBuilder.success(
+      null,
+      'Device deleted',
+      'تم حذف الجهاز',
+    );
+  }
+
   // ═════════════════════════════════════
-  // Quality Types (Public)
+  // Quality Types (Public Read)
   // ═════════════════════════════════════
 
   @Public()
@@ -413,6 +506,87 @@ export class CatalogController {
       types,
       'Quality types retrieved',
       'تم استرجاع أنواع الجودة',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post('quality-types')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create quality type',
+    description: 'Create a new quality type. Admin only.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Quality type created successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async createQualityType(@Body() data: any) {
+    const qualityType = await this.catalogService.createQualityType(data);
+    return ResponseBuilder.created(
+      qualityType,
+      'Quality type created',
+      'تم إنشاء نوع الجودة',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Put('quality-types/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Update quality type',
+    description: 'Update quality type information. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Quality type ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Quality type updated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async updateQualityType(@Param('id') id: string, @Body() data: any) {
+    const qualityType = await this.catalogService.updateQualityType(id, data);
+    return ResponseBuilder.success(
+      qualityType,
+      'Quality type updated',
+      'تم تحديث نوع الجودة',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Delete('quality-types/:id')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Delete quality type',
+    description: 'Delete a quality type. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Quality type ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Quality type deleted successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async deleteQualityType(@Param('id') id: string) {
+    await this.catalogService.deleteQualityType(id);
+    return ResponseBuilder.success(
+      null,
+      'Quality type deleted',
+      'تم حذف نوع الجودة',
     );
   }
 }

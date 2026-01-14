@@ -75,7 +75,12 @@ export const uploadsApi = {
             filename: file.name,
             folder,
         });
-        return response.data.data;
+        // Handle nested response: response.data.data.data
+        const data = response.data.data;
+        if (data && typeof data === 'object' && 'data' in data) {
+            return (data as any).data as UploadedFile;
+        }
+        return data as UploadedFile;
     },
 
     /**
@@ -87,7 +92,12 @@ export const uploadsApi = {
             filename,
             folder,
         });
-        return response.data.data;
+        // Handle nested response: response.data.data.data
+        const data = response.data.data;
+        if (data && typeof data === 'object' && 'data' in data) {
+            return (data as any).data as UploadedFile;
+        }
+        return data as UploadedFile;
     },
 
     /**
@@ -104,7 +114,13 @@ export const uploadsApi = {
             files: filesData,
             folder,
         });
-        return response.data.data;
+        // Handle nested response: response.data.data.data
+        const data = response.data.data;
+        if (data && typeof data === 'object' && 'data' in data) {
+            const files = (data as any).data;
+            return Array.isArray(files) ? files : [];
+        }
+        return Array.isArray(data) ? data : [];
     },
 
     /**

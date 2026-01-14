@@ -76,7 +76,21 @@ export class CatalogService {
     async findDevicesByBrand(brandId: string): Promise<DeviceDocument[]> {
         return this.deviceModel
             .find({ brandId, isActive: true })
+            .populate('brandId', 'name nameAr slug logo')
             .sort({ releaseYear: -1, displayOrder: 1 });
+    }
+
+    async findAllDevices(limit?: number): Promise<DeviceDocument[]> {
+        const query = this.deviceModel
+            .find({ isActive: true })
+            .populate('brandId', 'name nameAr slug logo')
+            .sort({ displayOrder: 1, releaseYear: -1 });
+        
+        if (limit) {
+            query.limit(limit);
+        }
+        
+        return query.exec();
     }
 
     async findPopularDevices(limit: number = 10): Promise<DeviceDocument[]> {
@@ -114,6 +128,14 @@ export class CatalogService {
     // Quality Types
     // ═════════════════════════════════════
 
+    async createQualityType(data: any): Promise<QualityTypeDocument> {
+        const existing = await this.qualityTypeModel.findOne({ code: data.code });
+        if (existing) {
+            throw new ConflictException('Quality type with this code already exists');
+        }
+        return this.qualityTypeModel.create(data);
+    }
+
     async findAllQualityTypes(): Promise<QualityTypeDocument[]> {
         return this.qualityTypeModel
             .find({ isActive: true })
@@ -124,6 +146,31 @@ export class CatalogService {
         const qualityType = await this.qualityTypeModel.findOne({ code });
         if (!qualityType) throw new NotFoundException('Quality type not found');
         return qualityType;
+    }
+
+    async updateQualityType(id: string, data: any): Promise<QualityTypeDocument> {
+        // Check if code is being updated and if it conflicts
+        if (data.code) {
+            const existing = await this.qualityTypeModel.findOne({ 
+                code: data.code, 
+                _id: { $ne: id } 
+            });
+            if (existing) {
+                throw new ConflictException('Quality type with this code already exists');
+            }
+        }
+        const qualityType = await this.qualityTypeModel.findByIdAndUpdate(
+            id,
+            { $set: data },
+            { new: true },
+        );
+        if (!qualityType) throw new NotFoundException('Quality type not found');
+        return qualityType;
+    }
+
+    async deleteQualityType(id: string): Promise<void> {
+        const result = await this.qualityTypeModel.deleteOne({ _id: id });
+        if (result.deletedCount === 0) throw new NotFoundException('Quality type not found');
     }
 
     // ═════════════════════════════════════

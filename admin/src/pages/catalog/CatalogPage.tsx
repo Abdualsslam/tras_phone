@@ -6,6 +6,11 @@ import {
   type Device,
   type QualityType,
 } from "@/api/catalog.api";
+import {
+  uploadsApi,
+  isValidImageType,
+  isValidFileSize,
+} from "@/api/uploads.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +53,8 @@ import {
   Building2,
   CheckCircle,
   XCircle,
+  Upload,
+  X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -70,6 +77,8 @@ function BrandsTab() {
     isFeatured: false,
     isActive: true,
   });
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const { data: brands, isLoading } = useQuery({
     queryKey: ["brands"],
@@ -337,15 +346,71 @@ function BrandsTab() {
             </div>
 
             <div className="space-y-2">
-              <Label>رابط الشعار</Label>
-              <Input
-                dir="ltr"
-                placeholder="https://..."
-                value={formData.logo}
-                onChange={(e) =>
-                  setFormData({ ...formData, logo: e.target.value })
-                }
-              />
+              <Label>شعار البراند</Label>
+              {formData.logo ? (
+                <div className="relative">
+                  <div className="relative w-32 h-32 rounded-lg border-2 border-gray-300 dark:border-slate-600 overflow-hidden bg-gray-50 dark:bg-slate-800">
+                    <img
+                      src={formData.logo}
+                      alt="Brand logo"
+                      className="w-full h-full object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, logo: "" })}
+                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 dark:border-slate-600 hover:border-primary-500 dark:hover:border-primary-500 cursor-pointer transition-colors bg-gray-50 dark:bg-slate-800">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={isUploadingLogo}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      if (!isValidImageType(file)) {
+                        setUploadError("نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP");
+                        return;
+                      }
+                      if (!isValidFileSize(file)) {
+                        setUploadError("حجم الملف كبير جداً. الحد الأقصى 10MB");
+                        return;
+                      }
+                      
+                      setUploadError(null);
+                      setIsUploadingLogo(true);
+                      try {
+                        const result = await uploadsApi.uploadSingle(file, "brands");
+                        setFormData({ ...formData, logo: result.url });
+                      } catch (error: any) {
+                        setUploadError(error?.response?.data?.message || "فشل رفع الصورة");
+                      } finally {
+                        setIsUploadingLogo(false);
+                      }
+                    }}
+                  />
+                  {isUploadingLogo ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+                  ) : (
+                    <>
+                      <Upload className="h-6 w-6 text-gray-400 mb-2" />
+                      <span className="text-xs text-gray-500 dark:text-gray-400 text-center px-2">
+                        اضغط لرفع الشعار
+                      </span>
+                    </>
+                  )}
+                </label>
+              )}
+              {uploadError && (
+                <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+              )}
             </div>
 
             <div className="flex items-center justify-between">
@@ -413,6 +478,8 @@ function DevicesTab() {
     isPopular: false,
     isActive: true,
   });
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const { data: brands } = useQuery({
     queryKey: ["brands"],
@@ -736,15 +803,71 @@ function DevicesTab() {
             </div>
 
             <div className="space-y-2">
-              <Label>رابط الصورة</Label>
-              <Input
-                dir="ltr"
-                placeholder="https://..."
-                value={formData.image}
-                onChange={(e) =>
-                  setFormData({ ...formData, image: e.target.value })
-                }
-              />
+              <Label>صورة الجهاز</Label>
+              {formData.image ? (
+                <div className="relative">
+                  <div className="relative w-32 h-32 rounded-lg border-2 border-gray-300 dark:border-slate-600 overflow-hidden bg-gray-50 dark:bg-slate-800">
+                    <img
+                      src={formData.image}
+                      alt="Device image"
+                      className="w-full h-full object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, image: "" })}
+                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 dark:border-slate-600 hover:border-primary-500 dark:hover:border-primary-500 cursor-pointer transition-colors bg-gray-50 dark:bg-slate-800">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={isUploadingImage}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      if (!isValidImageType(file)) {
+                        setUploadError("نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP");
+                        return;
+                      }
+                      if (!isValidFileSize(file)) {
+                        setUploadError("حجم الملف كبير جداً. الحد الأقصى 10MB");
+                        return;
+                      }
+                      
+                      setUploadError(null);
+                      setIsUploadingImage(true);
+                      try {
+                        const result = await uploadsApi.uploadSingle(file, "devices");
+                        setFormData({ ...formData, image: result.url });
+                      } catch (error: any) {
+                        setUploadError(error?.response?.data?.message || "فشل رفع الصورة");
+                      } finally {
+                        setIsUploadingImage(false);
+                      }
+                    }}
+                  />
+                  {isUploadingImage ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+                  ) : (
+                    <>
+                      <Upload className="h-6 w-6 text-gray-400 mb-2" />
+                      <span className="text-xs text-gray-500 dark:text-gray-400 text-center px-2">
+                        اضغط لرفع الصورة
+                      </span>
+                    </>
+                  )}
+                </label>
+              )}
+              {uploadError && (
+                <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+              )}
             </div>
 
             <div className="flex items-center justify-between">
