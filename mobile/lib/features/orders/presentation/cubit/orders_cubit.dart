@@ -3,7 +3,9 @@ library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/order_entity.dart';
+import '../../domain/enums/order_enums.dart';
 import '../../data/datasources/orders_remote_datasource.dart';
+import '../../data/models/shipping_address_model.dart';
 import 'orders_state.dart';
 
 class OrdersCubit extends Cubit<OrdersState> {
@@ -13,13 +15,21 @@ class OrdersCubit extends Cubit<OrdersState> {
     : _dataSource = dataSource,
       super(const OrdersInitial());
 
-  /// Load orders
-  Future<void> loadOrders({OrderStatus? status}) async {
+  /// Load my orders
+  Future<void> loadOrders({OrderStatus? status, int page = 1, int limit = 20}) async {
     emit(const OrdersLoading());
 
     try {
-      final orders = await _dataSource.getOrders(status: status);
-      emit(OrdersLoaded(orders, filterStatus: status));
+      final response = await _dataSource.getMyOrders(
+        status: status,
+        page: page,
+        limit: limit,
+      );
+      emit(OrdersLoaded(
+        response.orders,
+        total: response.total,
+        filterStatus: status,
+      ));
     } catch (e) {
       emit(OrdersError(e.toString()));
     }
@@ -30,8 +40,30 @@ class OrdersCubit extends Cubit<OrdersState> {
     await loadOrders(status: status);
   }
 
+  /// Create new order
+  Future<OrderEntity?> createOrder({
+    String? shippingAddressId,
+    ShippingAddressModel? shippingAddress,
+    OrderPaymentMethod? paymentMethod,
+    String? customerNotes,
+    String? couponCode,
+  }) async {
+    try {
+      return await _dataSource.createOrder(
+        shippingAddressId: shippingAddressId,
+        shippingAddress: shippingAddress,
+        paymentMethod: paymentMethod,
+        customerNotes: customerNotes,
+        couponCode: couponCode,
+      );
+    } catch (e) {
+      emit(OrdersError(e.toString()));
+      return null;
+    }
+  }
+
   /// Cancel order
-  Future<void> cancelOrder(int orderId, {String? reason}) async {
+  Future<void> cancelOrder(String orderId, {String? reason}) async {
     try {
       await _dataSource.cancelOrder(orderId, reason: reason);
       await loadOrders();
@@ -41,7 +73,7 @@ class OrdersCubit extends Cubit<OrdersState> {
   }
 
   /// Reorder
-  Future<void> reorder(int orderId) async {
+  Future<void> reorder(String orderId) async {
     try {
       await _dataSource.reorder(orderId);
       await loadOrders();
@@ -51,7 +83,7 @@ class OrdersCubit extends Cubit<OrdersState> {
   }
 
   /// Get order by ID
-  Future<OrderEntity?> getOrderById(int orderId) async {
+  Future<OrderEntity?> getOrderById(String orderId) async {
     try {
       return await _dataSource.getOrderById(orderId);
     } catch (e) {
@@ -60,7 +92,7 @@ class OrdersCubit extends Cubit<OrdersState> {
   }
 
   /// Track order
-  Future<Map<String, dynamic>?> trackOrder(int orderId) async {
+  Future<Map<String, dynamic>?> trackOrder(String orderId) async {
     try {
       return await _dataSource.trackOrder(orderId);
     } catch (e) {
@@ -70,7 +102,7 @@ class OrdersCubit extends Cubit<OrdersState> {
 
   /// Rate order
   Future<bool> rateOrder({
-    required int orderId,
+    required String orderId,
     required int rating,
     String? comment,
   }) async {
