@@ -2,10 +2,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
 import '../../../../core/utils/validators.dart';
@@ -23,9 +25,30 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController(text: '555123456');
-  final _passwordController = TextEditingController(text: 'asdfasdf');
+  final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
+
+  static const String _lastPhoneKey = 'last_login_phone';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLastPhone();
+  }
+
+  Future<void> _loadLastPhone() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastPhone = prefs.getString(_lastPhoneKey);
+    if (lastPhone != null && lastPhone.isNotEmpty) {
+      _phoneController.text = lastPhone;
+    }
+  }
+
+  Future<void> _saveLastPhone(String phone) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastPhoneKey, phone);
+  }
 
   @override
   void dispose() {
@@ -56,6 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         if (state is AuthAuthenticated) {
+          _saveLastPhone(_phoneController.text.trim());
           context.go('/home');
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -135,6 +159,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       prefixIcon: Iconsax.call,
                       validator: Validators.phone,
                       textInputAction: TextInputAction.next,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(9),
+                      ],
                     ),
                     SizedBox(height: 16.h),
 
@@ -176,37 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 24.h),
 
-                    // Test credentials hint
-                    Container(
-                      padding: EdgeInsets.all(16.w),
-                      decoration: BoxDecoration(
-                        color: AppColors.info.withValues(alpha: 0.1),
-                        borderRadius: AppTheme.radiusMd,
-                        border: Border.all(
-                          color: AppColors.info.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Iconsax.info_circle,
-                            size: 20.sp,
-                            color: AppColors.info,
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: Text(
-                              'للتجربة: الجوال 555123456 | كلمة المرور 123456',
-                              style: TextStyle(
-                                fontSize: 13.sp,
-                                color: AppColors.info,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 32.h),
+                    SizedBox(height: 8.h),
 
                     // Register Link
                     Row(

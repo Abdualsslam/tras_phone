@@ -97,14 +97,21 @@ class TokenManager {
 
   /// Save tokens from API response
   Future<void> saveTokensFromResponse(Map<String, dynamic> response) async {
-    final accessToken = response['access_token'] as String?;
-    final refreshToken = response['refresh_token'] as String?;
+    final data = response['data'] ?? response;
+    final accessToken = data['accessToken'] as String?;
+    final refreshToken = data['refreshToken'] as String?;
 
     if (accessToken == null || refreshToken == null) {
       throw Exception('Invalid token response');
     }
 
-    final expiresIn = response['expires_in'] as int?;
+    final expiresInValue = data['expiresIn'];
+    int? expiresIn;
+    if (expiresInValue is int) {
+      expiresIn = expiresInValue;
+    } else if (expiresInValue is String) {
+      expiresIn = int.tryParse(expiresInValue);
+    }
     DateTime? expiresAt;
     if (expiresIn != null) {
       expiresAt = DateTime.now().add(Duration(seconds: expiresIn));
