@@ -102,8 +102,14 @@ class ApiEndpoints {
   // ═══════════════════════════════════════════════════════════════════════════
   // SUPPORT
   // ═══════════════════════════════════════════════════════════════════════════
-  static const String tickets = '/support/tickets';
+  static const String ticketCategories = '/tickets/categories';
+  static const String myTickets = '/tickets/my';
+  static const String tickets = '/tickets';
   static const String supportCategories = '/support/categories';
+  
+  // Live Chat
+  static const String chatStart = '/chat/start';
+  static const String chatMySession = '/chat/my-session';
   static const String chatConversations = '/chat/conversations';
 
   // ═══════════════════════════════════════════════════════════════════════════

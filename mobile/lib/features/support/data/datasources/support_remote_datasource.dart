@@ -8,37 +8,73 @@ import '../models/support_model.dart';
 
 /// Abstract interface for support data source
 abstract class SupportRemoteDataSource {
-  // Tickets
-  Future<List<SupportTicketModel>> getTickets({
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TICKET CATEGORIES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// جلب فئات التذاكر (Public)
+  Future<List<TicketCategoryModel>> getCategories();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MY TICKETS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// جلب تذاكري
+  Future<List<TicketModel>> getMyTickets({
     TicketStatus? status,
     int page = 1,
-    int limit = 20,
+    int limit = 10,
   });
-  Future<SupportTicketModel> getTicketById(int id);
-  Future<SupportTicketModel> createTicket(CreateTicketRequest request);
-  Future<bool> closeTicket(int id);
-  Future<bool> reopenTicket(int id);
 
-  // Messages
-  Future<List<TicketMessageModel>> getTicketMessages(int ticketId);
-  Future<TicketMessageModel> sendMessage(
-    int ticketId,
-    String message, {
+  /// جلب تفاصيل تذكرتي
+  Future<TicketModel> getMyTicketById(String ticketId);
+
+  /// إنشاء تذكرة جديدة
+  Future<TicketModel> createTicket(CreateTicketRequest request);
+
+  /// إضافة رسالة لتذكرتي
+  Future<TicketMessageModel> addMessageToTicket({
+    required String ticketId,
+    required String content,
     List<String>? attachments,
   });
 
-  // Categories
-  Future<List<SupportCategoryModel>> getCategories();
+  /// تقييم التذكرة
+  Future<void> rateTicket({
+    required String ticketId,
+    required int rating,
+    String? feedback,
+  });
 
-  // FAQs
-  Future<List<Map<String, dynamic>>> getFaqs({int? categoryId});
-  Future<Map<String, dynamic>> searchFaqs(String query);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LIVE CHAT
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  // Attachments
+  /// بدء محادثة جديدة
+  Future<ChatSessionModel> startChat({
+    String? initialMessage,
+    String? department,
+    String? categoryId,
+  });
+
+  /// جلب جلستي النشطة
+  Future<ChatSessionModel?> getMySession();
+
+  /// إرسال رسالة في المحادثة
+  Future<ChatMessageModel> sendChatMessage({
+    required String content,
+    ChatMessageType messageType = ChatMessageType.text,
+  });
+
+  /// إنهاء المحادثة
+  Future<void> endChat({int? rating, String? feedback});
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ATTACHMENTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// رفع المرفقات
   Future<List<String>> uploadAttachments(List<String> filePaths);
-
-  // Contact
-  Future<Map<String, dynamic>> getContactInfo();
 }
 
 /// Implementation of SupportRemoteDataSource using API client
@@ -46,47 +82,63 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
   final ApiClient _apiClient;
 
   SupportRemoteDataSourceImpl({required ApiClient apiClient})
-    : _apiClient = apiClient;
+      : _apiClient = apiClient;
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TICKETS
+  // TICKET CATEGORIES
   // ═══════════════════════════════════════════════════════════════════════════
 
   @override
-  Future<List<SupportTicketModel>> getTickets({
+  Future<List<TicketCategoryModel>> getCategories() async {
+    developer.log('Fetching ticket categories', name: 'SupportDataSource');
+
+    final response = await _apiClient.get(ApiEndpoints.ticketCategories);
+
+    final data = response.data['data'] ?? response.data;
+    final List<dynamic> list = data is List ? data : [];
+
+    return list.map((json) => TicketCategoryModel.fromJson(json)).toList();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MY TICKETS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  Future<List<TicketModel>> getMyTickets({
     TicketStatus? status,
     int page = 1,
-    int limit = 20,
+    int limit = 10,
   }) async {
-    developer.log('Fetching tickets (page: $page)', name: 'SupportDataSource');
+    developer.log('Fetching my tickets (page: $page)', name: 'SupportDataSource');
 
     final response = await _apiClient.get(
-      ApiEndpoints.tickets,
+      ApiEndpoints.myTickets,
       queryParameters: {
         'page': page,
         'limit': limit,
-        if (status != null) 'status': status.name,
+        if (status != null) 'status': status.apiValue,
       },
     );
 
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    return list.map((json) => SupportTicketModel.fromJson(json)).toList();
+    return list.map((json) => TicketModel.fromJson(json)).toList();
   }
 
   @override
-  Future<SupportTicketModel> getTicketById(int id) async {
-    developer.log('Fetching ticket: $id', name: 'SupportDataSource');
+  Future<TicketModel> getMyTicketById(String ticketId) async {
+    developer.log('Fetching my ticket: $ticketId', name: 'SupportDataSource');
 
-    final response = await _apiClient.get('${ApiEndpoints.tickets}/$id');
+    final response = await _apiClient.get('${ApiEndpoints.myTickets}/$ticketId');
     final data = response.data['data'] ?? response.data;
 
-    return SupportTicketModel.fromJson(data);
+    return TicketModel.fromJson(data);
   }
 
   @override
-  Future<SupportTicketModel> createTicket(CreateTicketRequest request) async {
+  Future<TicketModel> createTicket(CreateTicketRequest request) async {
     developer.log('Creating ticket', name: 'SupportDataSource');
 
     final response = await _apiClient.post(
@@ -95,65 +147,24 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     );
 
     final data = response.data['data'] ?? response.data;
-    return SupportTicketModel.fromJson(data);
+    return TicketModel.fromJson(data);
   }
 
   @override
-  Future<bool> closeTicket(int id) async {
-    developer.log('Closing ticket: $id', name: 'SupportDataSource');
-
-    final response = await _apiClient.post('${ApiEndpoints.tickets}/$id/close');
-
-    return response.statusCode == 200;
-  }
-
-  @override
-  Future<bool> reopenTicket(int id) async {
-    developer.log('Reopening ticket: $id', name: 'SupportDataSource');
-
-    final response = await _apiClient.post(
-      '${ApiEndpoints.tickets}/$id/reopen',
-    );
-
-    return response.statusCode == 200;
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MESSAGES
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  @override
-  Future<List<TicketMessageModel>> getTicketMessages(int ticketId) async {
-    developer.log(
-      'Fetching messages for ticket: $ticketId',
-      name: 'SupportDataSource',
-    );
-
-    final response = await _apiClient.get(
-      '${ApiEndpoints.tickets}/$ticketId/messages',
-    );
-
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => TicketMessageModel.fromJson(json)).toList();
-  }
-
-  @override
-  Future<TicketMessageModel> sendMessage(
-    int ticketId,
-    String message, {
+  Future<TicketMessageModel> addMessageToTicket({
+    required String ticketId,
+    required String content,
     List<String>? attachments,
   }) async {
     developer.log(
-      'Sending message to ticket: $ticketId',
+      'Adding message to ticket: $ticketId',
       name: 'SupportDataSource',
     );
 
     final response = await _apiClient.post(
-      '${ApiEndpoints.tickets}/$ticketId/messages',
+      '${ApiEndpoints.myTickets}/$ticketId/messages',
       data: {
-        'message': message,
+        'content': content,
         if (attachments != null) 'attachments': attachments,
       },
     );
@@ -162,51 +173,103 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     return TicketMessageModel.fromJson(data);
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CATEGORIES & FAQs
-  // ═══════════════════════════════════════════════════════════════════════════
-
   @override
-  Future<List<SupportCategoryModel>> getCategories() async {
-    developer.log('Fetching support categories', name: 'SupportDataSource');
+  Future<void> rateTicket({
+    required String ticketId,
+    required int rating,
+    String? feedback,
+  }) async {
+    developer.log('Rating ticket: $ticketId', name: 'SupportDataSource');
 
-    final response = await _apiClient.get(ApiEndpoints.supportCategories);
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => SupportCategoryModel.fromJson(json)).toList();
-  }
-
-  @override
-  Future<List<Map<String, dynamic>>> getFaqs({int? categoryId}) async {
-    developer.log('Fetching FAQs', name: 'SupportDataSource');
-
-    final response = await _apiClient.get(
-      ApiEndpoints.faqs,
-      queryParameters: {if (categoryId != null) 'category_id': categoryId},
+    final response = await _apiClient.post(
+      '${ApiEndpoints.myTickets}/$ticketId/rate',
+      data: {
+        'rating': rating,
+        if (feedback != null) 'feedback': feedback,
+      },
     );
 
-    final data = response.data['data'] ?? response.data;
-    if (data is List) {
-      return data.cast<Map<String, dynamic>>();
+    if (response.data['success'] != true) {
+      throw Exception(response.data['messageAr'] ?? 'Failed to rate ticket');
     }
-    return [];
-  }
-
-  @override
-  Future<Map<String, dynamic>> searchFaqs(String query) async {
-    developer.log('Searching FAQs: $query', name: 'SupportDataSource');
-
-    final response = await _apiClient.get(
-      '${ApiEndpoints.faqs}/search',
-      queryParameters: {'q': query},
-    );
-
-    return response.data['data'] ?? response.data;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // ATTACHMENTS & CONTACT
+  // LIVE CHAT
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  Future<ChatSessionModel> startChat({
+    String? initialMessage,
+    String? department,
+    String? categoryId,
+  }) async {
+    developer.log('Starting chat session', name: 'SupportDataSource');
+
+    final response = await _apiClient.post(
+      ApiEndpoints.chatStart,
+      data: {
+        if (initialMessage != null) 'initialMessage': initialMessage,
+        if (department != null) 'department': department,
+        if (categoryId != null) 'categoryId': categoryId,
+      },
+    );
+
+    final data = response.data['data'] ?? response.data;
+    return ChatSessionModel.fromJson(data);
+  }
+
+  @override
+  Future<ChatSessionModel?> getMySession() async {
+    developer.log('Fetching my chat session', name: 'SupportDataSource');
+
+    final response = await _apiClient.get(ApiEndpoints.chatMySession);
+
+    if (response.data['success'] == true) {
+      if (response.data['data'] == null) return null;
+      return ChatSessionModel.fromJson(response.data['data']);
+    }
+    return null;
+  }
+
+  @override
+  Future<ChatMessageModel> sendChatMessage({
+    required String content,
+    ChatMessageType messageType = ChatMessageType.text,
+  }) async {
+    developer.log('Sending chat message', name: 'SupportDataSource');
+
+    final response = await _apiClient.post(
+      '${ApiEndpoints.chatMySession}/messages',
+      data: {
+        'content': content,
+        'messageType': messageType.apiValue,
+      },
+    );
+
+    final data = response.data['data'] ?? response.data;
+    return ChatMessageModel.fromJson(data);
+  }
+
+  @override
+  Future<void> endChat({int? rating, String? feedback}) async {
+    developer.log('Ending chat session', name: 'SupportDataSource');
+
+    final response = await _apiClient.post(
+      '${ApiEndpoints.chatMySession}/end',
+      data: {
+        if (rating != null) 'rating': rating,
+        if (feedback != null) 'feedback': feedback,
+      },
+    );
+
+    if (response.data['success'] != true) {
+      throw Exception(response.data['messageAr'] ?? 'Failed to end chat');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ATTACHMENTS
   // ═══════════════════════════════════════════════════════════════════════════
 
   @override
@@ -226,15 +289,5 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     }
 
     return uploadedUrls;
-  }
-
-  @override
-  Future<Map<String, dynamic>> getContactInfo() async {
-    developer.log('Fetching contact info', name: 'SupportDataSource');
-
-    final response = await _apiClient.get(
-      '${ApiEndpoints.supportCategories}/contact',
-    );
-    return response.data['data'] ?? response.data;
   }
 }

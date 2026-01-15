@@ -2,9 +2,13 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../data/models/support_model.dart';
+import '../cubit/live_chat_cubit.dart';
 
 class LiveChatScreen extends StatefulWidget {
   const LiveChatScreen({super.key});
@@ -16,15 +20,6 @@ class LiveChatScreen extends StatefulWidget {
 class _LiveChatScreenState extends State<LiveChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
-  bool _isTyping = false;
-
-  final List<Map<String, dynamic>> _messages = [
-    {
-      'sender': 'bot',
-      'message': 'مرحباً بك في خدمة الدعم! 👋\nكيف يمكنني مساعدتك اليوم؟',
-      'time': DateTime.now().subtract(const Duration(minutes: 1)),
-    },
-  ];
 
   final _quickReplies = [
     'استفسار عن طلب',
@@ -34,10 +29,28 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    context.read<LiveChatCubit>().initChat();
+  }
+
+  @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -46,41 +59,64 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 18.r,
-              backgroundColor: AppColors.success,
-              child: Icon(Iconsax.headphone, size: 18.sp, color: Colors.white),
-            ),
-            SizedBox(width: 12.w),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        title: BlocBuilder<LiveChatCubit, LiveChatState>(
+          builder: (context, state) {
+            return Row(
               children: [
-                Text('الدعم المباشر', style: TextStyle(fontSize: 16.sp)),
-                Row(
+                CircleAvatar(
+                  radius: 18.r,
+                  backgroundColor: state.isActive
+                      ? AppColors.success
+                      : state.isWaiting
+                          ? AppColors.warning
+                          : AppColors.textTertiaryLight,
+                  child: Icon(
+                    Iconsax.headphone,
+                    size: 18.sp,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 8.w,
-                      height: 8.w,
-                      decoration: const BoxDecoration(
-                        color: AppColors.success,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    SizedBox(width: 4.w),
                     Text(
-                      'متصل الآن',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.normal,
-                      ),
+                      'الدعم المباشر',
+                      style: TextStyle(fontSize: 16.sp),
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 8.w,
+                          height: 8.w,
+                          decoration: BoxDecoration(
+                            color: state.isActive
+                                ? AppColors.success
+                                : state.isWaiting
+                                    ? AppColors.warning
+                                    : AppColors.textTertiaryLight,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: 4.w),
+                        Text(
+                          state.isActive
+                              ? 'متصل الآن'
+                              : state.isWaiting
+                                  ? 'في الانتظار (${state.queuePosition})'
+                                  : 'غير متصل',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ],
-            ),
-          ],
+            );
+          },
         ),
         actions: [
           IconButton(
@@ -89,40 +125,145 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Messages
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: EdgeInsets.all(16.w),
-              itemCount: _messages.length + (_isTyping ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == _messages.length && _isTyping) {
-                  return _buildTypingIndicator(isDark);
-                }
-                final msg = _messages[index];
-                final isUser = msg['sender'] == 'user';
-                return _buildMessageBubble(msg, isUser, isDark);
-              },
-            ),
-          ),
+      body: BlocConsumer<LiveChatCubit, LiveChatState>(
+        listener: (context, state) {
+          if (state.status == LiveChatStatus.error && state.error != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.error!),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          // Scroll to bottom when new messages arrive
+          if (state.messages.isNotEmpty) {
+            _scrollToBottom();
+          }
+        },
+        builder: (context, state) {
+          if (state.status == LiveChatStatus.loading &&
+              state.session == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          // Quick Replies
-          if (_messages.length <= 2) _buildQuickReplies(isDark),
+          // Show start chat UI if no session
+          if (state.status == LiveChatStatus.initial) {
+            return _buildStartChatUI(isDark);
+          }
 
-          // Message Input
-          _buildMessageInput(isDark),
-        ],
+          return Column(
+            children: [
+              // Waiting indicator
+              if (state.isWaiting)
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 20.w,
+                        height: 20.w,
+                        child: const CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 16.w),
+                      Expanded(
+                        child: Text(
+                          'جاري توصيلك بأحد ممثلي الدعم...\nموقعك في الانتظار: ${state.queuePosition}',
+                          style: TextStyle(
+                            color: AppColors.warning,
+                            fontSize: 13.sp,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Messages
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: EdgeInsets.all(16.w),
+                  itemCount:
+                      state.messages.length + (state.isSending ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == state.messages.length && state.isSending) {
+                      return _buildTypingIndicator(isDark);
+                    }
+                    final msg = state.messages[index];
+                    return _buildMessageBubble(msg, isDark);
+                  },
+                ),
+              ),
+
+              // Quick Replies
+              if (state.messages.length <= 2 && state.session != null)
+                _buildQuickReplies(isDark, state),
+
+              // Message Input
+              _buildMessageInput(isDark, state),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildMessageBubble(
-    Map<String, dynamic> msg,
-    bool isUser,
-    bool isDark,
-  ) {
+  Widget _buildStartChatUI(bool isDark) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Iconsax.message_favorite,
+              size: 80.sp,
+              color: AppColors.primary,
+            ),
+            SizedBox(height: 24.h),
+            Text(
+              'مرحباً بك في الدعم المباشر',
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'ابدأ محادثة مع فريق الدعم للحصول على المساعدة الفورية',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: AppColors.textSecondaryLight,
+              ),
+            ),
+            SizedBox(height: 32.h),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  context.read<LiveChatCubit>().startChat();
+                },
+                icon: const Icon(Iconsax.message_add),
+                label: const Text('بدء المحادثة'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageBubble(ChatMessageModel msg, bool isDark) {
+    final isUser = msg.isFromVisitor;
+
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -146,28 +287,54 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (!isUser && msg.senderName != null) ...[
+              Text(
+                msg.senderName!,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
+              ),
+              SizedBox(height: 4.h),
+            ],
             Text(
-              msg['message'],
+              msg.content,
               style: TextStyle(
                 fontSize: 14.sp,
                 color: isUser
                     ? Colors.white
                     : (isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimaryLight),
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight),
               ),
             ),
             SizedBox(height: 4.h),
-            Text(
-              _formatTime(msg['time'] as DateTime),
-              style: TextStyle(
-                fontSize: 10.sp,
-                color: isUser
-                    ? Colors.white.withValues(alpha: 0.7)
-                    : (isDark
-                          ? AppColors.textTertiaryDark
-                          : AppColors.textTertiaryLight),
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _formatTime(msg.createdAt),
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    color: isUser
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : (isDark
+                            ? AppColors.textTertiaryDark
+                            : AppColors.textTertiaryLight),
+                  ),
+                ),
+                if (isUser) ...[
+                  SizedBox(width: 4.w),
+                  Icon(
+                    msg.isRead ? Iconsax.tick_circle : Iconsax.tick_square,
+                    size: 12.sp,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
@@ -208,7 +375,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
     );
   }
 
-  Widget _buildQuickReplies(bool isDark) {
+  Widget _buildQuickReplies(bool isDark, LiveChatState state) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Wrap(
@@ -217,17 +384,20 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
         children: _quickReplies.map((reply) {
           return ActionChip(
             label: Text(reply),
-            onPressed: () => _sendQuickReply(reply),
-            backgroundColor: isDark
-                ? AppColors.cardDark
-                : AppColors.backgroundLight,
+            onPressed: () {
+              context.read<LiveChatCubit>().sendMessage(reply);
+            },
+            backgroundColor:
+                isDark ? AppColors.cardDark : AppColors.backgroundLight,
           );
         }).toList(),
       ),
     );
   }
 
-  Widget _buildMessageInput(bool isDark) {
+  Widget _buildMessageInput(bool isDark, LiveChatState state) {
+    final canSend = state.isActive || state.isWaiting;
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -242,40 +412,54 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
         child: Row(
           children: [
             IconButton(
-              onPressed: () {},
+              onPressed: canSend ? () {} : null,
               icon: Icon(
                 Iconsax.attach_circle,
-                color: AppColors.textSecondaryLight,
+                color: canSend
+                    ? AppColors.textSecondaryLight
+                    : AppColors.textTertiaryLight,
               ),
             ),
             Expanded(
               child: TextField(
                 controller: _messageController,
+                enabled: canSend,
                 decoration: InputDecoration(
-                  hintText: 'اكتب رسالتك...',
+                  hintText: canSend
+                      ? 'اكتب رسالتك...'
+                      : 'لا يمكن إرسال الرسائل الآن',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(25.r),
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: isDark
-                      ? AppColors.cardDark
-                      : AppColors.backgroundLight,
+                  fillColor:
+                      isDark ? AppColors.cardDark : AppColors.backgroundLight,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 16.w,
                     vertical: 10.h,
                   ),
                 ),
-                onSubmitted: (_) => _sendMessage(),
+                onSubmitted: canSend ? (_) => _sendMessage() : null,
               ),
             ),
             SizedBox(width: 8.w),
             CircleAvatar(
               radius: 22.r,
-              backgroundColor: AppColors.primary,
+              backgroundColor:
+                  canSend ? AppColors.primary : AppColors.textTertiaryLight,
               child: IconButton(
-                onPressed: _sendMessage,
-                icon: Icon(Iconsax.send_1, color: Colors.white, size: 20.sp),
+                onPressed: canSend && !state.isSending ? _sendMessage : null,
+                icon: state.isSending
+                    ? SizedBox(
+                        width: 18.w,
+                        height: 18.w,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Icon(Iconsax.send_1, color: Colors.white, size: 20.sp),
               ),
             ),
           ],
@@ -287,70 +471,8 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
   void _sendMessage() {
     if (_messageController.text.trim().isEmpty) return;
     final message = _messageController.text.trim();
-    setState(() {
-      _messages.add({
-        'sender': 'user',
-        'message': message,
-        'time': DateTime.now(),
-      });
-      _messageController.clear();
-      _isTyping = true;
-    });
-    _scrollToBottom();
-
-    // Simulate bot response
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _isTyping = false;
-          _messages.add({
-            'sender': 'bot',
-            'message':
-                'شكراً لتواصلك معنا. سيتم الرد عليك من قبل أحد موظفي الدعم قريباً.',
-            'time': DateTime.now(),
-          });
-        });
-        _scrollToBottom();
-      }
-    });
-  }
-
-  void _sendQuickReply(String reply) {
-    setState(() {
-      _messages.add({
-        'sender': 'user',
-        'message': reply,
-        'time': DateTime.now(),
-      });
-      _isTyping = true;
-    });
-    _scrollToBottom();
-
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() {
-          _isTyping = false;
-          _messages.add({
-            'sender': 'bot',
-            'message': 'تم استلام طلبك. جاري تحويلك إلى أحد موظفي الدعم...',
-            'time': DateTime.now(),
-          });
-        });
-        _scrollToBottom();
-      }
-    });
-  }
-
-  void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    _messageController.clear();
+    context.read<LiveChatCubit>().sendMessage(message);
   }
 
   String _formatTime(DateTime time) {
@@ -360,31 +482,108 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
   void _showOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
+      builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Iconsax.ticket),
               title: const Text('تحويل إلى تذكرة'),
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push('/support/create-ticket');
+              },
             ),
             ListTile(
-              leading: const Icon(Iconsax.call),
-              title: const Text('اتصال هاتفي'),
-              onTap: () => Navigator.pop(context),
+              leading: const Icon(Iconsax.star),
+              title: const Text('تقييم المحادثة'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showRatingDialog();
+              },
             ),
             ListTile(
-              leading: const Icon(Iconsax.trash),
+              leading: const Icon(Iconsax.close_circle),
               title: const Text('إنهاء المحادثة'),
               onTap: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
+                Navigator.pop(ctx);
+                _endChat();
               },
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _showRatingDialog() async {
+    int selectedRating = 5;
+
+    final rating = await showDialog<int>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('قيم المحادثة'),
+            content: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(5, (index) {
+                return IconButton(
+                  icon: Icon(
+                    index < selectedRating ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 32.sp,
+                  ),
+                  onPressed: () {
+                    setDialogState(() => selectedRating = index + 1);
+                  },
+                );
+              }),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('تخطي'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, selectedRating),
+                child: const Text('إرسال'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (rating != null && mounted) {
+      await context.read<LiveChatCubit>().endChat(rating: rating);
+      if (mounted) {
+        context.pop();
+      }
+    }
+  }
+
+  Future<void> _endChat() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('إنهاء المحادثة'),
+        content: const Text('هل تريد إنهاء المحادثة؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('إنهاء'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _showRatingDialog();
+    }
   }
 }

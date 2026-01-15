@@ -28,6 +28,8 @@ import '../../features/notifications/presentation/cubit/notifications_cubit.dart
 import '../../features/notifications/services/push_notification_manager.dart';
 import '../../features/returns/data/datasources/returns_remote_datasource.dart';
 import '../../features/support/data/datasources/support_remote_datasource.dart';
+import '../../features/support/presentation/cubit/support_cubit.dart';
+import '../../features/support/presentation/cubit/live_chat_cubit.dart';
 import '../../features/reviews/data/datasources/reviews_remote_datasource.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
@@ -238,6 +240,15 @@ Future<void> setupDependencies() async {
   // DataSources
   getIt.registerLazySingleton<SupportRemoteDataSource>(
     () => SupportRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Cubits
+  getIt.registerFactory<SupportCubit>(
+    () => SupportCubit(getIt<SupportRemoteDataSource>()),
+  );
+
+  getIt.registerFactory<LiveChatCubit>(
+    () => LiveChatCubit(getIt<SupportRemoteDataSource>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
