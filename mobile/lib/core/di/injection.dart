@@ -23,6 +23,9 @@ import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
 import '../../features/wishlist/data/datasources/wishlist_remote_datasource.dart';
 import '../../features/notifications/data/datasources/notifications_remote_datasource.dart';
+import '../../features/notifications/data/repositories/notifications_repository.dart';
+import '../../features/notifications/presentation/cubit/notifications_cubit.dart';
+import '../../features/notifications/services/push_notification_manager.dart';
 import '../../features/returns/data/datasources/returns_remote_datasource.dart';
 import '../../features/support/data/datasources/support_remote_datasource.dart';
 import '../../features/reviews/data/datasources/reviews_remote_datasource.dart';
@@ -198,6 +201,23 @@ Future<void> setupDependencies() async {
   // DataSources
   getIt.registerLazySingleton<NotificationsRemoteDataSource>(
     () => NotificationsRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<NotificationsRepository>(
+    () => NotificationsRepositoryImpl(
+      remoteDataSource: getIt<NotificationsRemoteDataSource>(),
+    ),
+  );
+
+  // Cubit
+  getIt.registerFactory<NotificationsCubit>(
+    () => NotificationsCubit(repository: getIt<NotificationsRepository>()),
+  );
+
+  // Push Notification Manager
+  getIt.registerLazySingleton<PushNotificationManager>(
+    () => PushNotificationManager(repository: getIt<NotificationsRepository>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════

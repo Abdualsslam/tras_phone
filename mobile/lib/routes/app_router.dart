@@ -48,6 +48,7 @@ import '../features/education/presentation/screens/education_categories_screen.d
 import '../features/education/presentation/screens/education_list_screen.dart';
 import '../features/education/presentation/screens/education_details_screen.dart';
 import '../features/orders/presentation/screens/order_details_screen.dart';
+import '../features/profile/domain/entities/address_entity.dart';
 import '../features/orders/presentation/screens/order_tracking_screen.dart';
 import '../features/orders/presentation/screens/upload_receipt_screen.dart';
 import '../features/orders/presentation/screens/invoice_view_screen.dart';
@@ -391,10 +392,10 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const AddEditAddressScreen(),
     ),
     GoRoute(
-      path: '/address/edit/:id',
+      path: '/address/edit',
       builder: (context, state) {
-        final id = state.pathParameters['id'] ?? '';
-        return AddEditAddressScreen(addressId: id);
+        final address = state.extra as AddressEntity?;
+        return AddEditAddressScreen(address: address);
       },
     ),
 

@@ -3,7 +3,6 @@ library;
 
 import 'dart:developer' as developer;
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../auth/domain/entities/customer_entity.dart';
 import '../../domain/entities/address_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../../data/models/address_model.dart';
@@ -14,8 +13,8 @@ class ProfileCubit extends Cubit<ProfileState> {
   final ProfileRepository _repository;
 
   ProfileCubit({required ProfileRepository repository})
-      : _repository = repository,
-        super(const ProfileInitial());
+    : _repository = repository,
+      super(const ProfileInitial());
 
   /// Load customer profile
   Future<void> loadProfile() async {
@@ -68,8 +67,8 @@ class AddressesCubit extends Cubit<AddressesState> {
   List<AddressEntity> _addresses = [];
 
   AddressesCubit({required ProfileRepository repository})
-      : _repository = repository,
-        super(const AddressesInitial());
+    : _repository = repository,
+      super(const AddressesInitial());
 
   /// Load all addresses
   Future<void> loadAddresses() async {
@@ -110,12 +109,14 @@ class AddressesCubit extends Cubit<AddressesState> {
       );
 
       final newAddress = await _repository.createAddress(request);
-      
+
       // If new address is default, update other addresses
       if (isDefault) {
-        _addresses = _addresses.map((a) => a.copyWith(isDefault: false)).toList();
+        _addresses = _addresses
+            .map((a) => a.copyWith(isDefault: false))
+            .toList();
       }
-      
+
       _addresses.add(newAddress);
       emit(AddressOperationSuccess(_addresses, 'تم إضافة العنوان بنجاح'));
     } catch (e) {
@@ -157,7 +158,9 @@ class AddressesCubit extends Cubit<AddressesState> {
       if (index != -1) {
         // If setting as default, update others
         if (isDefault == true) {
-          _addresses = _addresses.map((a) => a.copyWith(isDefault: false)).toList();
+          _addresses = _addresses
+              .map((a) => a.copyWith(isDefault: false))
+              .toList();
         }
         _addresses[index] = updated;
       }
@@ -187,7 +190,7 @@ class AddressesCubit extends Cubit<AddressesState> {
     emit(AddressOperationLoading(_addresses));
     try {
       await _repository.setDefaultAddress(id);
-      
+
       // Update local list
       _addresses = _addresses.map((a) {
         return a.copyWith(isDefault: a.id == id);
@@ -195,7 +198,10 @@ class AddressesCubit extends Cubit<AddressesState> {
 
       emit(AddressOperationSuccess(_addresses, 'تم تعيين العنوان الافتراضي'));
     } catch (e) {
-      developer.log('Error setting default address: $e', name: 'AddressesCubit');
+      developer.log(
+        'Error setting default address: $e',
+        name: 'AddressesCubit',
+      );
       emit(AddressesError(e.toString()));
     }
   }
