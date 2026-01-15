@@ -3,53 +3,120 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../domain/entities/address_entity.dart';
+import '../cubit/profile_cubit.dart';
+import '../cubit/profile_state.dart';
+import 'add_edit_address_screen.dart';
 
 class AddressesListScreen extends StatelessWidget {
   const AddressesListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => getIt<AddressesCubit>()..loadAddresses(),
+      child: const _AddressesListView(),
+    );
+  }
+}
+
+class _AddressesListView extends StatelessWidget {
+  const _AddressesListView();
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
-    final addresses = [
-      _Address(
-        id: 1,
-        title: 'المنزل',
-        address: 'الرياض - حي الملز - شارع الأمير سلطان',
-        phone: '0555123456',
-        isDefault: true,
-      ),
-      _Address(
-        id: 2,
-        title: 'العمل',
-        address: 'الرياض - حي العليا - برج المملكة',
-        phone: '0555123456',
-        isDefault: false,
-      ),
-    ];
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.addresses)),
-      body: addresses.isEmpty
-          ? _buildEmptyState(theme)
-          : ListView.separated(
-              padding: EdgeInsets.all(16.w),
-              itemCount: addresses.length,
-              separatorBuilder: (_, __) => SizedBox(height: 12.h),
-              itemBuilder: (context, index) {
-                return _buildAddressCard(theme, isDark, addresses[index]);
-              },
-            ),
+      appBar: AppBar(title: Text(l10n.addresses)),
+      body: BlocConsumer<AddressesCubit, AddressesState>(
+        listener: (context, state) {
+          if (state is AddressOperationSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          } else if (state is AddressesError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          if (state is AddressesLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final addresses = _getAddresses(state);
+
+          if (addresses.isEmpty) {
+            return _buildEmptyState(theme);
+          }
+
+          return ListView.separated(
+            padding: EdgeInsets.all(16.w),
+            itemCount: addresses.length,
+            separatorBuilder: (_, __) => SizedBox(height: 12.h),
+            itemBuilder: (context, index) {
+              return _buildAddressCard(
+                context,
+                theme,
+                isDark,
+                addresses[index],
+              );
+            },
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: () => _navigateToAddAddress(context),
         icon: const Icon(Iconsax.add),
-        label: Text(AppLocalizations.of(context)!.addAddress),
+        label: Text(l10n.addAddress),
+      ),
+    );
+  }
+
+  List<AddressEntity> _getAddresses(AddressesState state) {
+    if (state is AddressesLoaded) return state.addresses;
+    if (state is AddressOperationLoading) return state.addresses;
+    if (state is AddressOperationSuccess) return state.addresses;
+    return [];
+  }
+
+  void _navigateToAddAddress(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: context.read<AddressesCubit>(),
+          child: const AddEditAddressScreen(),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToEditAddress(BuildContext context, AddressEntity address) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: context.read<AddressesCubit>(),
+          child: AddEditAddressScreen(address: address),
+        ),
       ),
     );
   }
@@ -83,7 +150,12 @@ class AddressesListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAddressCard(ThemeData theme, bool isDark, _Address address) {
+  Widget _buildAddressCard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    AddressEntity address,
+  ) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -115,7 +187,7 @@ class AddressesListScreen extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          address.title,
+                          address.label,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
@@ -145,7 +217,7 @@ class AddressesListScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      address.address,
+                      address.fullAddress,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondaryLight,
                       ),
@@ -170,35 +242,68 @@ class AddressesListScreen extends StatelessWidget {
                     ),
                   ),
                 ],
-                onSelected: (value) => HapticFeedback.selectionClick(),
+                onSelected: (value) {
+                  HapticFeedback.selectionClick();
+                  _handleMenuAction(context, value, address);
+                },
               ),
             ],
           ),
-          SizedBox(height: 8.h),
-          Text(
-            address.phone,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textTertiaryLight,
+          if (address.phone != null) ...[
+            SizedBox(height: 8.h),
+            Text(
+              address.phone!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.textTertiaryLight,
+              ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _handleMenuAction(
+    BuildContext context,
+    String action,
+    AddressEntity address,
+  ) {
+    final cubit = context.read<AddressesCubit>();
+
+    switch (action) {
+      case 'edit':
+        _navigateToEditAddress(context, address);
+        break;
+      case 'default':
+        cubit.setDefaultAddress(address.id);
+        break;
+      case 'delete':
+        _showDeleteConfirmation(context, address);
+        break;
+    }
+  }
+
+  void _showDeleteConfirmation(BuildContext context, AddressEntity address) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('حذف العنوان'),
+        content: Text('هل أنت متأكد من حذف "${address.label}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.read<AddressesCubit>().deleteAddress(address.id);
+            },
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('حذف'),
           ),
         ],
       ),
     );
   }
-}
-
-class _Address {
-  final int id;
-  final String title;
-  final String address;
-  final String phone;
-  final bool isDefault;
-
-  _Address({
-    required this.id,
-    required this.title,
-    required this.address,
-    required this.phone,
-    required this.isDefault,
-  });
 }

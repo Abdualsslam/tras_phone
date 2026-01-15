@@ -26,6 +26,9 @@ import '../../features/notifications/data/datasources/notifications_remote_datas
 import '../../features/returns/data/datasources/returns_remote_datasource.dart';
 import '../../features/support/data/datasources/support_remote_datasource.dart';
 import '../../features/reviews/data/datasources/reviews_remote_datasource.dart';
+import '../../features/profile/domain/repositories/profile_repository.dart';
+import '../../features/profile/data/repositories/profile_repository_impl.dart';
+import '../../features/profile/presentation/cubit/profile_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -159,6 +162,22 @@ Future<void> setupDependencies() async {
   // DataSources
   getIt.registerLazySingleton<ProfileRemoteDataSource>(
     () => ProfileRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(
+      dataSource: getIt<ProfileRemoteDataSource>(),
+    ),
+  );
+
+  // Cubits
+  getIt.registerFactory<ProfileCubit>(
+    () => ProfileCubit(repository: getIt<ProfileRepository>()),
+  );
+
+  getIt.registerFactory<AddressesCubit>(
+    () => AddressesCubit(repository: getIt<ProfileRepository>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
