@@ -31,6 +31,11 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    // Skip if this is a retry request (already has token)
+    if (options.headers['X-Retry-Request'] == 'true') {
+      return handler.next(options);
+    }
+    
     // Skip auth header for public endpoints
     if (_isPublicEndpoint(options.path)) {
       return handler.next(options);
@@ -53,6 +58,12 @@ class AuthInterceptor extends Interceptor {
 
       // Don't retry refresh token endpoint
       if (requestOptions.path.contains(ApiEndpoints.refreshToken)) {
+        await _handleLogout();
+        return handler.next(err);
+      }
+
+      // Don't retry if this is already a retry request (prevent infinite loop)
+      if (requestOptions.headers['X-Retry-Request'] == 'true') {
         await _handleLogout();
         return handler.next(err);
       }
@@ -99,6 +110,7 @@ class AuthInterceptor extends Interceptor {
       ApiEndpoints.verifyOtp,
       ApiEndpoints.forgotPassword,
       ApiEndpoints.resetPassword,
+      ApiEndpoints.refreshToken,
       ApiEndpoints.brands,
       ApiEndpoints.categories,
       ApiEndpoints.products,
@@ -126,7 +138,12 @@ class AuthInterceptor extends Interceptor {
       );
 
       if (response.statusCode == 200 && response.data != null) {
+        developer.log('Refresh response: ${response.data}', name: 'AuthInterceptor');
         await _tokenManager.saveTokensFromResponse(response.data);
+
+        // Verify token was saved correctly
+        final savedToken = await _tokenManager.getAccessToken();
+        developer.log('Verified saved token: ${savedToken?.substring(0, 30)}...', name: 'AuthInterceptor');
 
         // Retry pending requests
         await _retryPendingRequests();
@@ -149,9 +166,25 @@ class AuthInterceptor extends Interceptor {
   /// Retry a request with new token
   Future<Response<dynamic>> _retryRequest(RequestOptions requestOptions) async {
     final token = await _tokenManager.getAccessToken();
-    requestOptions.headers['Authorization'] = 'Bearer $token';
+    developer.log('Retrying ${requestOptions.path}', name: 'AuthInterceptor');
+    developer.log('Full token for retry: $token', name: 'AuthInterceptor');
+    
+    // Create new options to avoid modifying the original
+    final newOptions = Options(
+      method: requestOptions.method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        'X-Retry-Request': 'true', // Mark as retry to prevent infinite loop
+      },
+    );
 
-    return await _dio.fetch(requestOptions);
+    return await _dio.request(
+      requestOptions.path,
+      data: requestOptions.data,
+      queryParameters: requestOptions.queryParameters,
+      options: newOptions,
+    );
   }
 
   /// Retry all pending requests after successful refresh
