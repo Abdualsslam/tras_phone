@@ -35,7 +35,7 @@ abstract class CartRemoteDataSource {
   Future<CartEntity> applyCoupon({
     String? couponId,
     String? couponCode,
-    required double discountAmount,
+    double? discountAmount,
   });
 
   /// Remove coupon
@@ -137,7 +137,7 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
   Future<CartEntity> applyCoupon({
     String? couponId,
     String? couponCode,
-    required double discountAmount,
+    double? discountAmount,
   }) async {
     developer.log(
       'Applying coupon: code=$couponCode, id=$couponId, discount=$discountAmount',
@@ -149,7 +149,7 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
       data: {
         if (couponId != null) 'couponId': couponId,
         if (couponCode != null) 'couponCode': couponCode,
-        'discountAmount': discountAmount,
+        if (discountAmount != null) 'discountAmount': discountAmount,
       },
     );
 

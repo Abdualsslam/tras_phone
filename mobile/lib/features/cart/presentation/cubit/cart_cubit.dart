@@ -93,10 +93,10 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Apply coupon
-  Future<void> applyCoupon({
+  Future<void> applyCoupon(
+    String couponCode, {
     String? couponId,
-    String? couponCode,
-    required double discountAmount,
+    double? discountAmount,
   }) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
