@@ -29,6 +29,8 @@ import '../../features/reviews/data/datasources/reviews_remote_datasource.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/presentation/cubit/profile_cubit.dart';
+import '../../features/locations/data/datasources/locations_remote_datasource.dart';
+import '../../features/locations/presentation/cubit/locations_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -223,6 +225,20 @@ Future<void> setupDependencies() async {
   // DataSources
   getIt.registerLazySingleton<ReviewsRemoteDataSource>(
     () => ReviewsRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOCATIONS FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<LocationsRemoteDataSource>(
+    () => LocationsRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Cubits
+  getIt.registerFactory<LocationsCubit>(
+    () => LocationsCubit(dataSource: getIt<LocationsRemoteDataSource>()),
   );
 }
 

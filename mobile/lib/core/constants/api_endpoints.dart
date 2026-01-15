@@ -119,6 +119,15 @@ class ApiEndpoints {
   static const String banners = '/banners';
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // LOCATIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  static const String locationsCountries = '/locations/countries';
+  static const String locationsCities = '/locations/cities';
+  static const String locationsMarkets = '/locations/markets';
+  static const String locationsShippingCalculate = '/locations/shipping/calculate';
+  static const String locationsShippingZones = '/locations/shipping-zones';
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // GENERAL
   // ═══════════════════════════════════════════════════════════════════════════
   static const String countries = '/countries';
