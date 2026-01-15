@@ -3,6 +3,7 @@ library;
 
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
+import '../../data/models/product_review_model.dart';
 import '../entities/brand_entity.dart';
 import '../entities/category_entity.dart';
 import '../entities/device_entity.dart';
@@ -57,4 +58,22 @@ abstract class CatalogRepository {
 
   /// Get all quality types
   Future<Either<Failure, List<QualityTypeEntity>>> getQualityTypes();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REVIEWS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Get reviews for a product
+  Future<Either<Failure, List<ProductReviewModel>>> getProductReviews(
+    String productId,
+  );
+
+  /// Add a review for a product
+  Future<Either<Failure, ProductReviewModel>> addReview({
+    required String productId,
+    required int rating,
+    String? title,
+    String? comment,
+    List<String>? images,
+  });
 }

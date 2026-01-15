@@ -12,13 +12,16 @@ abstract class WishlistRemoteDataSource {
   Future<List<WishlistItemModel>> getWishlist();
 
   /// Add product to wishlist
-  Future<WishlistItemModel> addToWishlist(int productId);
+  Future<void> addToWishlist(String productId);
 
   /// Remove product from wishlist
-  Future<bool> removeFromWishlist(int productId);
+  Future<void> removeFromWishlist(String productId);
+
+  /// Toggle wishlist status
+  Future<bool> toggleWishlist(String productId, bool isInWishlist);
 
   /// Check if product is in wishlist
-  Future<bool> isInWishlist(int productId);
+  Future<bool> isInWishlist(String productId);
 
   /// Clear entire wishlist
   Future<bool> clearWishlist();
@@ -27,7 +30,7 @@ abstract class WishlistRemoteDataSource {
   Future<int> getWishlistCount();
 
   /// Move item to cart
-  Future<bool> moveToCart(int productId);
+  Future<bool> moveToCart(String productId);
 
   /// Move all items to cart
   Future<bool> moveAllToCart();
@@ -36,16 +39,16 @@ abstract class WishlistRemoteDataSource {
   Future<List<Map<String, dynamic>>> getRecentlyViewed();
 
   /// Add to recently viewed
-  Future<bool> addToRecentlyViewed(int productId);
+  Future<bool> addToRecentlyViewed(String productId);
 
   /// Clear recently viewed
   Future<bool> clearRecentlyViewed();
 
   /// Create stock alert for product
-  Future<bool> createStockAlert(int productId);
+  Future<bool> createStockAlert(String productId);
 
   /// Remove stock alert
-  Future<bool> removeStockAlert(int productId);
+  Future<bool> removeStockAlert(String productId);
 
   /// Get stock alerts
   Future<List<Map<String, dynamic>>> getStockAlerts();
@@ -62,7 +65,7 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
   Future<List<WishlistItemModel>> getWishlist() async {
     developer.log('Fetching wishlist', name: 'WishlistDataSource');
 
-    final response = await _apiClient.get(ApiEndpoints.wishlist);
+    final response = await _apiClient.get(ApiEndpoints.wishlistMy);
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
@@ -70,34 +73,47 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
   }
 
   @override
-  Future<WishlistItemModel> addToWishlist(int productId) async {
+  Future<void> addToWishlist(String productId) async {
     developer.log('Adding to wishlist: $productId', name: 'WishlistDataSource');
 
     final response = await _apiClient.post(
-      ApiEndpoints.wishlist,
-      data: {'product_id': productId},
+      ApiEndpoints.productWishlist(productId),
     );
 
-    final data = response.data['data'] ?? response.data;
-    return WishlistItemModel.fromJson(data);
+    if (response.data['success'] != true) {
+      throw Exception(response.data['messageAr'] ?? 'Failed to add to wishlist');
+    }
   }
 
   @override
-  Future<bool> removeFromWishlist(int productId) async {
+  Future<void> removeFromWishlist(String productId) async {
     developer.log(
       'Removing from wishlist: $productId',
       name: 'WishlistDataSource',
     );
 
     final response = await _apiClient.delete(
-      '${ApiEndpoints.wishlist}/$productId',
+      ApiEndpoints.productWishlist(productId),
     );
 
-    return response.statusCode == 200;
+    if (response.data['success'] != true) {
+      throw Exception(response.data['messageAr'] ?? 'Failed to remove from wishlist');
+    }
   }
 
   @override
-  Future<bool> isInWishlist(int productId) async {
+  Future<bool> toggleWishlist(String productId, bool isInWishlist) async {
+    if (isInWishlist) {
+      await removeFromWishlist(productId);
+      return false;
+    } else {
+      await addToWishlist(productId);
+      return true;
+    }
+  }
+
+  @override
+  Future<bool> isInWishlist(String productId) async {
     developer.log('Checking wishlist: $productId', name: 'WishlistDataSource');
 
     final response = await _apiClient.get(
@@ -127,7 +143,7 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
   }
 
   @override
-  Future<bool> moveToCart(int productId) async {
+  Future<bool> moveToCart(String productId) async {
     developer.log('Moving to cart: $productId', name: 'WishlistDataSource');
 
     final response = await _apiClient.post(
@@ -162,7 +178,7 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
   }
 
   @override
-  Future<bool> addToRecentlyViewed(int productId) async {
+  Future<bool> addToRecentlyViewed(String productId) async {
     developer.log(
       'Adding to recently viewed: $productId',
       name: 'WishlistDataSource',
@@ -185,7 +201,7 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
   }
 
   @override
-  Future<bool> createStockAlert(int productId) async {
+  Future<bool> createStockAlert(String productId) async {
     developer.log(
       'Creating stock alert: $productId',
       name: 'WishlistDataSource',
@@ -200,7 +216,7 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
   }
 
   @override
-  Future<bool> removeStockAlert(int productId) async {
+  Future<bool> removeStockAlert(String productId) async {
     developer.log(
       'Removing stock alert: $productId',
       name: 'WishlistDataSource',

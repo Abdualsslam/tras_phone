@@ -9,6 +9,7 @@ import '../../domain/entities/device_entity.dart';
 import '../../domain/entities/quality_type_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../datasources/catalog_remote_datasource.dart';
+import '../models/product_review_model.dart';
 
 /// Implementation of CatalogRepository using remote data source
 class CatalogRepositoryImpl implements CatalogRepository {
@@ -145,6 +146,44 @@ class CatalogRepositoryImpl implements CatalogRepository {
     try {
       final qualityTypes = await _remoteDataSource.getQualityTypes();
       return Right(qualityTypes);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REVIEWS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  Future<Either<Failure, List<ProductReviewModel>>> getProductReviews(
+    String productId,
+  ) async {
+    try {
+      final reviews = await _remoteDataSource.getProductReviews(productId);
+      return Right(reviews);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ProductReviewModel>> addReview({
+    required String productId,
+    required int rating,
+    String? title,
+    String? comment,
+    List<String>? images,
+  }) async {
+    try {
+      final review = await _remoteDataSource.addReview(
+        productId: productId,
+        rating: rating,
+        title: title,
+        comment: comment,
+        images: images,
+      );
+      return Right(review);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
     }
