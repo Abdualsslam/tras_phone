@@ -530,17 +530,22 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
 
-    // Extract token ID (use JWT payload or generate unique ID)
-    const tokenId = token.substring(0, 32);
+    // Generate unique token ID using timestamp + random string
+    const tokenId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 
-    const session = await this.sessionModel.create({
-      userId,
-      tokenId,
-      ipAddress,
-      userAgent,
-      expiresAt,
-      lastActivityAt: new Date(),
-    });
+    // Use findOneAndUpdate with upsert to avoid duplicate key errors
+    const session = await this.sessionModel.findOneAndUpdate(
+      { tokenId },
+      {
+        userId,
+        tokenId,
+        ipAddress,
+        userAgent,
+        expiresAt,
+        lastActivityAt: new Date(),
+      },
+      { upsert: true, new: true },
+    );
 
     return session;
   }
