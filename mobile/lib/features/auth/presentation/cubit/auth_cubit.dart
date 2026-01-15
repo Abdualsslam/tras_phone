@@ -1,6 +1,7 @@
 /// Auth Cubit - State management for authentication
 library;
 
+import 'dart:developer' as developer;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -15,24 +16,63 @@ class AuthCubit extends Cubit<AuthState> {
 
   /// Check auth status on app start
   Future<void> checkAuthStatus() async {
+    developer.log('checkAuthStatus started', name: 'AuthCubit');
     emit(const AuthLoading());
 
     final isFirstLaunch = await _repository.isFirstLaunch();
+    developer.log('isFirstLaunch: $isFirstLaunch', name: 'AuthCubit');
     if (isFirstLaunch) {
       emit(const AuthUnauthenticated(isFirstLaunch: true));
       return;
     }
 
     final isLoggedIn = await _repository.isLoggedIn();
+    developer.log('isLoggedIn: $isLoggedIn', name: 'AuthCubit');
     if (!isLoggedIn) {
       emit(const AuthUnauthenticated(isFirstLaunch: false));
       return;
     }
 
+    // Try to use cached user first to avoid unnecessary API calls
+    final cachedUser = _repository.getCachedUser();
+    developer.log('cachedUser: ${cachedUser?.phone}', name: 'AuthCubit');
+    if (cachedUser != null) {
+      developer.log('Using cached user, going to AuthAuthenticated', name: 'AuthCubit');
+      emit(AuthAuthenticated(cachedUser));
+      // Optionally refresh profile in background
+      _refreshProfileInBackground();
+      return;
+    }
+
+    // If no cached user, fetch from API
+    developer.log('No cached user, fetching from API', name: 'AuthCubit');
     final result = await _repository.getProfile();
     result.fold(
-      (failure) => emit(const AuthUnauthenticated(isFirstLaunch: false)),
-      (user) => emit(AuthAuthenticated(user)),
+      (failure) {
+        developer.log('getProfile failed: ${failure.message}', name: 'AuthCubit');
+        emit(const AuthUnauthenticated(isFirstLaunch: false));
+      },
+      (user) {
+        developer.log('getProfile success: ${user.phone}', name: 'AuthCubit');
+        emit(AuthAuthenticated(user));
+      },
+    );
+  }
+
+  /// Refresh profile in background without affecting UI
+  Future<void> _refreshProfileInBackground() async {
+    final result = await _repository.getProfile();
+    result.fold(
+      (failure) {
+        // If profile fetch fails, don't logout - just log the error
+        // The user can continue using cached data
+      },
+      (user) {
+        // Update state with fresh data if still authenticated
+        if (state is AuthAuthenticated) {
+          emit(AuthAuthenticated(user));
+        }
+      },
     );
   }
 

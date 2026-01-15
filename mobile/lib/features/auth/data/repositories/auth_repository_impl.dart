@@ -1,6 +1,8 @@
 /// Auth Repository Implementation
 library;
 
+import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:dartz/dartz.dart';
 import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/errors/failures.dart';
@@ -18,6 +20,12 @@ class AuthRepositoryImpl implements AuthRepository {
 
   UserModel? _cachedUser;
 
+  /// Save user to storage
+  Future<void> _saveUserToStorage(UserModel user) async {
+    _cachedUser = user;
+    await _localStorage.setString(StorageKeys.userData, jsonEncode(user.toJson()));
+  }
+
   AuthRepositoryImpl({
     required AuthRemoteDataSource dataSource,
     required LocalStorage localStorage,
@@ -30,8 +38,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<bool> isLoggedIn() async {
     try {
       final token = await _secureStorage.read(StorageKeys.accessToken);
+      developer.log('isLoggedIn check - token exists: ${token != null && token.isNotEmpty}', name: 'AuthRepo');
+      if (token != null) {
+        developer.log('Token first 20 chars: ${token.substring(0, token.length > 20 ? 20 : token.length)}...', name: 'AuthRepo');
+      }
       return token != null && token.isNotEmpty;
-    } catch (_) {
+    } catch (e) {
+      developer.log('isLoggedIn error: $e', name: 'AuthRepo');
       return false;
     }
   }
@@ -62,6 +75,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
 
       // Save tokens
+      developer.log('Login: Saving accessToken...', name: 'AuthRepo');
       await _secureStorage.write(
         StorageKeys.accessToken,
         authResponse.accessToken,
@@ -71,10 +85,16 @@ class AuthRepositoryImpl implements AuthRepository {
         authResponse.refreshToken,
       );
       await _localStorage.setBool(StorageKeys.isLoggedIn, true);
+      
+      // Verify token was saved
+      final savedToken = await _secureStorage.read(StorageKeys.accessToken);
+      developer.log('Login: Token saved verification: ${savedToken != null && savedToken.isNotEmpty}', name: 'AuthRepo');
 
-      _cachedUser = authResponse.user;
+      // Save user data to storage for persistence
+      await _saveUserToStorage(authResponse.user);
       return Right(authResponse.user.toEntity());
     } catch (e) {
+      developer.log('Login error: $e', name: 'AuthRepo');
       return Left(AuthFailure(message: e.toString()));
     }
   }
@@ -103,7 +123,8 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       await _localStorage.setBool(StorageKeys.isLoggedIn, true);
 
-      _cachedUser = authResponse.user;
+      // Save user data to storage for persistence
+      await _saveUserToStorage(authResponse.user);
       return Right(authResponse.user.toEntity());
     } catch (e) {
       return Left(AuthFailure(message: e.toString()));
@@ -214,23 +235,37 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> logout() async {
     try {
       await _dataSource.logout();
-      await _secureStorage.delete(StorageKeys.accessToken);
-      await _secureStorage.delete(StorageKeys.refreshToken);
-      await _localStorage.setBool(StorageKeys.isLoggedIn, false);
-      _cachedUser = null;
+      await _clearAllUserData();
       return const Right(null);
     } catch (e) {
       // Still clear local data even if server logout fails
-      await _secureStorage.delete(StorageKeys.accessToken);
-      await _secureStorage.delete(StorageKeys.refreshToken);
-      await _localStorage.setBool(StorageKeys.isLoggedIn, false);
-      _cachedUser = null;
+      await _clearAllUserData();
       return const Right(null);
     }
   }
 
+  Future<void> _clearAllUserData() async {
+    await _secureStorage.delete(StorageKeys.accessToken);
+    await _secureStorage.delete(StorageKeys.refreshToken);
+    await _localStorage.setBool(StorageKeys.isLoggedIn, false);
+    await _localStorage.remove(StorageKeys.userData);
+    _cachedUser = null;
+  }
+
   @override
   UserEntity? getCachedUser() {
+    // Try to load from storage if not in memory
+    if (_cachedUser == null) {
+      final userData = _localStorage.getString(StorageKeys.userData);
+      if (userData != null && userData.isNotEmpty) {
+        try {
+          final json = jsonDecode(userData) as Map<String, dynamic>;
+          _cachedUser = UserModel.fromJson(json);
+        } catch (_) {
+          // Ignore parse errors
+        }
+      }
+    }
     return _cachedUser?.toEntity();
   }
 }
