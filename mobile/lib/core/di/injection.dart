@@ -34,6 +34,8 @@ import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/presentation/cubit/profile_cubit.dart';
 import '../../features/locations/data/datasources/locations_remote_datasource.dart';
 import '../../features/locations/presentation/cubit/locations_cubit.dart';
+import '../../features/promotions/data/datasources/promotions_remote_datasource.dart';
+import '../../features/promotions/presentation/cubit/promotions_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -259,6 +261,20 @@ Future<void> setupDependencies() async {
   // Cubits
   getIt.registerFactory<LocationsCubit>(
     () => LocationsCubit(dataSource: getIt<LocationsRemoteDataSource>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROMOTIONS FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<PromotionsRemoteDataSource>(
+    () => PromotionsRemoteDataSourceImpl(getIt<ApiClient>()),
+  );
+
+  // Cubits
+  getIt.registerFactory<PromotionsCubit>(
+    () => PromotionsCubit(getIt<PromotionsRemoteDataSource>()),
   );
 }
 

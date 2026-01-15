@@ -31,25 +31,23 @@ class PromotionsRemoteDataSourceImpl implements PromotionsRemoteDataSource {
   @override
   Future<List<Promotion>> getActivePromotions() async {
     final response = await _apiClient.get('/promotions/active');
+    final data = response.data;
 
-    if (response['success'] == true) {
-      return (response['data'] as List)
-          .map((p) => Promotion.fromJson(p))
-          .toList();
+    if (data['success'] == true) {
+      return (data['data'] as List).map((p) => Promotion.fromJson(p)).toList();
     }
-    throw Exception(response['messageAr'] ?? 'فشل في جلب العروض');
+    throw Exception(data['messageAr'] ?? 'فشل في جلب العروض');
   }
 
   @override
   Future<List<Coupon>> getPublicCoupons() async {
     final response = await _apiClient.get('/promotions/coupons/public');
+    final data = response.data;
 
-    if (response['success'] == true) {
-      return (response['data'] as List)
-          .map((c) => Coupon.fromJson(c))
-          .toList();
+    if (data['success'] == true) {
+      return (data['data'] as List).map((c) => Coupon.fromJson(c)).toList();
     }
-    throw Exception(response['messageAr'] ?? 'فشل في جلب الكوبونات');
+    throw Exception(data['messageAr'] ?? 'فشل في جلب الكوبونات');
   }
 
   @override
@@ -66,10 +64,11 @@ class PromotionsRemoteDataSourceImpl implements PromotionsRemoteDataSource {
         if (items != null) 'items': items.map((i) => i.toJson()).toList(),
       },
     );
+    final data = response.data;
 
-    if (response['success'] == true) {
-      return CouponValidation.fromJson(response['data']);
+    if (data['success'] == true) {
+      return CouponValidation.fromJson(data['data']);
     }
-    throw Exception(response['messageAr'] ?? 'فشل في التحقق من الكوبون');
+    throw Exception(data['messageAr'] ?? 'فشل في التحقق من الكوبون');
   }
 }

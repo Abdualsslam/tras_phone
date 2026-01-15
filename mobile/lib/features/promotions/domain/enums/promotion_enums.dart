@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 /// نوع خصم العرض
 enum DiscountType {
   percentage, // نسبة مئوية

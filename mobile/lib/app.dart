@@ -15,6 +15,8 @@ import 'features/home/presentation/cubit/home_cubit.dart';
 import 'features/catalog/data/datasources/catalog_remote_datasource.dart';
 import 'features/orders/presentation/cubit/orders_cubit.dart';
 import 'features/orders/data/datasources/orders_remote_datasource.dart';
+import 'features/promotions/presentation/cubit/promotions_cubit.dart';
+import 'features/promotions/data/datasources/promotions_remote_datasource.dart';
 import 'l10n/app_localizations.dart';
 import 'routes/app_router.dart';
 
@@ -47,6 +49,10 @@ class TrasPhoneApp extends StatelessWidget {
             BlocProvider(
               create: (_) =>
                   OrdersCubit(dataSource: getIt<OrdersRemoteDataSource>()),
+            ),
+            BlocProvider(
+              create: (_) =>
+                  PromotionsCubit(getIt<PromotionsRemoteDataSource>()),
             ),
           ],
           child: BlocBuilder<LocaleCubit, LocaleState>(

@@ -19,6 +19,7 @@ import '../../../catalog/domain/entities/product_entity.dart';
 import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../promotions/presentation/widgets/promotions_banner.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -130,6 +131,11 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         // Banner Slider
         if (state.banners.isNotEmpty) _buildBannerSlider(state.banners),
+
+        SizedBox(height: 16.h),
+
+        // Promotions Banner
+        const PromotionsBanner(),
 
         SizedBox(height: 24.h),
 
