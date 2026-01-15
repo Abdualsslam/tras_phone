@@ -209,8 +209,18 @@ class ApiClient {
 
     final statusCode = response.statusCode;
     final data = response.data;
+    
+    // Extract error message, handling both String and List types
+    String extractMessage(dynamic value) {
+      if (value is String) return value;
+      if (value is List) {
+        return value.map((e) => e.toString()).join(', ');
+      }
+      return value?.toString() ?? 'خطأ في الخادم';
+    }
+    
     final String message = data is Map
-        ? (data['message'] ?? 'خطأ في الخادم')
+        ? extractMessage(data['messageAr'] ?? data['message'] ?? 'خطأ في الخادم')
         : 'خطأ في الخادم';
 
     switch (statusCode) {

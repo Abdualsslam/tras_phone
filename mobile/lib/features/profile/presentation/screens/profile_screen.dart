@@ -11,6 +11,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../../auth/domain/entities/user_entity.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -52,18 +53,18 @@ class ProfileScreen extends StatelessWidget {
     BuildContext context,
     ThemeData theme,
     bool isDark,
-    dynamic customer,
+    UserEntity user,
   ) {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.w),
       child: Column(
         children: [
           // Profile Header
-          _buildProfileHeader(context, theme, isDark, customer),
+          _buildProfileHeader(context, theme, isDark, user),
           SizedBox(height: 24.h),
 
           // Stats Cards
-          _buildStatsRow(theme, isDark, customer),
+          _buildStatsRow(theme, isDark, user),
           SizedBox(height: 24.h),
 
           // Menu Sections
@@ -186,7 +187,7 @@ class ProfileScreen extends StatelessWidget {
     BuildContext context,
     ThemeData theme,
     bool isDark,
-    dynamic customer,
+    UserEntity user,
   ) {
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -218,7 +219,7 @@ class ProfileScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  customer?.responsiblePersonName ?? 'مستخدم',
+                  user.email ?? user.phone,
                   style: TextStyle(
                     fontSize: 20.sp,
                     fontWeight: FontWeight.w700,
@@ -227,7 +228,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  customer?.shopName ?? 'متجر',
+                  user.phone,
                   style: TextStyle(
                     fontSize: 14.sp,
                     color: Colors.white.withValues(alpha: 0.8),
@@ -241,7 +242,7 @@ class ProfileScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10.r),
                   ),
                   child: Text(
-                    customer?.loyaltyTier?.toString().toUpperCase() ?? 'SILVER',
+                    user.status.toUpperCase(),
                     style: TextStyle(
                       fontSize: 11.sp,
                       fontWeight: FontWeight.w600,
@@ -263,7 +264,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsRow(ThemeData theme, bool isDark, dynamic customer) {
+  Widget _buildStatsRow(ThemeData theme, bool isDark, UserEntity user) {
     return Row(
       children: [
         Expanded(
@@ -271,7 +272,7 @@ class ProfileScreen extends StatelessWidget {
             theme,
             isDark,
             icon: Iconsax.shopping_bag,
-            value: '${customer?.totalOrders ?? 25}',
+            value: '0',
             label: 'طلب',
             color: Colors.blue,
           ),
@@ -282,7 +283,7 @@ class ProfileScreen extends StatelessWidget {
             theme,
             isDark,
             icon: Iconsax.wallet_money,
-            value: '${customer?.walletBalance?.toStringAsFixed(0) ?? '500'}',
+            value: '0',
             label: 'ر.س',
             color: Colors.green,
           ),
@@ -293,7 +294,7 @@ class ProfileScreen extends StatelessWidget {
             theme,
             isDark,
             icon: Iconsax.medal_star,
-            value: '${customer?.loyaltyPoints ?? 150}',
+            value: '0',
             label: 'نقطة',
             color: Colors.orange,
           ),

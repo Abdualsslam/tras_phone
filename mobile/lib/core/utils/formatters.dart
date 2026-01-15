@@ -90,6 +90,32 @@ class Formatters {
     return phone;
   }
 
+  /// Format phone number to international format for API (e.g., "+966501234567")
+  static String phoneToInternational(String phone, {String countryCode = '+966'}) {
+    final cleaned = phone.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // If already in international format, return as is
+    if (phone.startsWith('+')) {
+      return phone.replaceAll(RegExp(r'[^\d+]'), '');
+    }
+    
+    // Remove leading 0 if present
+    final withoutLeadingZero = cleaned.startsWith('0') ? cleaned.substring(1) : cleaned;
+    
+    // If 9 digits, add country code
+    if (withoutLeadingZero.length == 9) {
+      return '$countryCode$withoutLeadingZero';
+    }
+    
+    // If already has country code digits (12 digits), add +
+    if (withoutLeadingZero.length == 12 && withoutLeadingZero.startsWith('966')) {
+      return '+$withoutLeadingZero';
+    }
+    
+    // Return as is if format is unclear
+    return phone;
+  }
+
   /// Format phone for display (e.g., "05X XXX XXXX")
   static String phoneDisplay(String phone) {
     final cleaned = phone.replaceAll(RegExp(r'[^\d]'), '');

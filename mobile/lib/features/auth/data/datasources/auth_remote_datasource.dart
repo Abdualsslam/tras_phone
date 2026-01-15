@@ -4,6 +4,8 @@ library;
 import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/utils/formatters.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../models/user_model.dart';
 import '../models/token_response.dart';
 
@@ -104,9 +106,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }) async {
     developer.log('Attempting login for phone: $phone', name: 'AuthDataSource');
 
+    // Format phone to international format
+    final formattedPhone = Formatters.phoneToInternational(phone);
+
     final response = await _apiClient.post(
       ApiEndpoints.login,
-      data: {'phone': phone, 'password': password},
+      data: {'phone': formattedPhone, 'password': password},
     );
 
     final authResponse = AuthResponse.fromJson(response.data);
@@ -122,17 +127,29 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }) async {
     developer.log('Registering new user: $phone', name: 'AuthDataSource');
 
-    final response = await _apiClient.post(
-      ApiEndpoints.register,
-      data: {
-        'phone': phone,
-        'password': password,
-        'userType': 'customer', // Always customer for mobile app
-        if (email != null) 'email': email,
-      },
-    );
+    // Format phone to international format
+    final formattedPhone = Formatters.phoneToInternational(phone);
 
-    return AuthResponse.fromJson(response.data);
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.register,
+        data: {
+          'phone': formattedPhone,
+          'password': password,
+          'userType': 'customer', // Always customer for mobile app
+          if (email != null) 'email': email,
+        },
+      );
+
+      return AuthResponse.fromJson(response.data);
+    } on ServerException catch (e) {
+      // Extract error message from API response
+      developer.log('Registration failed: ${e.message}', name: 'AuthDataSource');
+      throw Exception(e.message);
+    } catch (e) {
+      developer.log('Registration error: $e', name: 'AuthDataSource', error: e);
+      rethrow;
+    }
   }
 
   @override
@@ -142,9 +159,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       name: 'AuthDataSource',
     );
 
+    // Format phone to international format
+    final formattedPhone = Formatters.phoneToInternational(phone);
+
     final response = await _apiClient.post(
       ApiEndpoints.sendOtp,
-      data: {'phone': phone, 'purpose': purpose},
+      data: {'phone': formattedPhone, 'purpose': purpose},
     );
 
     if (response.data['success'] != true) {
@@ -164,9 +184,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }) async {
     developer.log('Verifying OTP for: $phone', name: 'AuthDataSource');
 
+    // Format phone to international format
+    final formattedPhone = Formatters.phoneToInternational(phone);
+
     final response = await _apiClient.post(
       ApiEndpoints.verifyOtp,
-      data: {'phone': phone, 'otp': otp, 'purpose': purpose},
+      data: {'phone': formattedPhone, 'otp': otp, 'purpose': purpose},
     );
 
     return response.data['success'] == true;
@@ -176,9 +199,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<void> forgotPassword({required String phone}) async {
     developer.log('Forgot password for: $phone', name: 'AuthDataSource');
 
+    // Format phone to international format
+    final formattedPhone = Formatters.phoneToInternational(phone);
+
     final response = await _apiClient.post(
       ApiEndpoints.forgotPassword,
-      data: {'phone': phone},
+      data: {'phone': formattedPhone},
     );
 
     if (response.data['success'] != true) {
@@ -197,9 +223,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }) async {
     developer.log('Verifying reset OTP for: $phone', name: 'AuthDataSource');
 
+    // Format phone to international format
+    final formattedPhone = Formatters.phoneToInternational(phone);
+
     final response = await _apiClient.post(
       ApiEndpoints.verifyResetOtp,
-      data: {'phone': phone, 'otp': otp, 'purpose': 'password_reset'},
+      data: {'phone': formattedPhone, 'otp': otp, 'purpose': 'password_reset'},
     );
 
     if (response.data['success'] != true) {
