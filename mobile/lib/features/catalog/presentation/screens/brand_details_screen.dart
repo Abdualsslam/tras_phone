@@ -221,13 +221,8 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
   }
 
   String? _getBrandLogoUrl(String brandName) {
-    final brandLogos = {
-      'Apple': 'assets/images/brands/apple-13.svg',
-      'Samsung': 'assets/images/brands/samsung-8.svg',
-      'Huawei': 'assets/images/brands/huawei-pure-.svg',
-      'Xiaomi': 'assets/images/brands/xiaomi-3.svg',
-    };
-    return brandLogos[brandName];
+    // TODO: استخدم صور العلامات التجارية من الـ API
+    return null;
   }
 
   Widget _buildBrandInitial(String brandName) {

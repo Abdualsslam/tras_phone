@@ -645,12 +645,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String? _getBrandLogo(String slug) {
-    final brandLogos = {
-      'apple': 'assets/images/brands/apple-13.svg',
-      'samsung': 'assets/images/brands/samsung-8.svg',
-      'huawei': 'assets/images/brands/huawei-pure-.svg',
-      'xiaomi': 'assets/images/brands/xiaomi-3.svg',
-    };
-    return brandLogos[slug.toLowerCase()];
+    // TODO: استخدم صور العلامات التجارية من الـ API
+    return null;
   }
 }

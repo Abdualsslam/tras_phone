@@ -1,6 +1,7 @@
 /// Token Manager - Handles access and refresh token storage and retrieval
 library;
 
+import 'dart:developer' as developer;
 import '../constants/storage_keys.dart';
 import '../storage/secure_storage.dart';
 
@@ -120,6 +121,8 @@ class TokenManager {
       }
     }
 
+    developer.log('Saving new tokens - accessToken: ${accessToken.substring(0, 20)}...', name: 'TokenManager');
+    
     await saveTokens(
       TokenData(
         accessToken: accessToken,
@@ -127,6 +130,8 @@ class TokenManager {
         expiresAt: expiresAt,
       ),
     );
+    
+    developer.log('Tokens saved successfully', name: 'TokenManager');
   }
 
   /// Clear all tokens (logout)
