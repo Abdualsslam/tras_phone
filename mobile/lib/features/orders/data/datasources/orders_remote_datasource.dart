@@ -5,44 +5,54 @@ import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
 import '../../domain/entities/order_entity.dart';
+import '../../domain/enums/order_enums.dart';
 import '../models/order_model.dart';
+import '../models/shipping_address_model.dart';
+
+/// Response for paginated orders
+class OrdersResponseData {
+  final List<OrderEntity> orders;
+  final int total;
+
+  OrdersResponseData({required this.orders, required this.total});
+}
 
 /// Abstract interface for orders data source
 abstract class OrdersRemoteDataSource {
-  /// Get all orders with optional filtering and pagination
-  Future<List<OrderEntity>> getOrders({
+  /// Get my orders with optional filtering and pagination
+  Future<OrdersResponseData> getMyOrders({
     OrderStatus? status,
     int page = 1,
     int limit = 20,
   });
 
   /// Get order by ID
-  Future<OrderEntity> getOrderById(int id);
+  Future<OrderEntity> getOrderById(String orderId);
 
   /// Create new order (checkout)
   Future<OrderEntity> createOrder({
-    int? shippingAddressId,
-    String? shippingAddress,
-    required String paymentMethod,
-    String? notes,
+    String? shippingAddressId,
+    ShippingAddressModel? shippingAddress,
+    OrderPaymentMethod? paymentMethod,
+    String? customerNotes,
     String? couponCode,
   });
 
   /// Cancel order
-  Future<OrderEntity> cancelOrder(int id, {String? reason});
+  Future<OrderEntity> cancelOrder(String orderId, {String? reason});
 
   /// Reorder (create new order from existing)
-  Future<OrderEntity> reorder(int orderId);
+  Future<OrderEntity> reorder(String orderId);
 
   /// Track order
-  Future<Map<String, dynamic>> trackOrder(int id);
+  Future<Map<String, dynamic>> trackOrder(String orderId);
 
   /// Get order invoice
-  Future<String> getOrderInvoice(int id);
+  Future<String> getOrderInvoice(String orderId);
 
   /// Rate order / product
   Future<bool> rateOrder({
-    required int orderId,
+    required String orderId,
     required int rating,
     String? comment,
   });
@@ -55,8 +65,8 @@ abstract class OrdersRemoteDataSource {
 
   /// Calculate shipping cost
   Future<double> calculateShipping({
-    required int addressId,
-    required List<int> productIds,
+    required String addressId,
+    required List<String> productIds,
   });
 }
 
@@ -68,15 +78,15 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     : _apiClient = apiClient;
 
   @override
-  Future<List<OrderEntity>> getOrders({
+  Future<OrdersResponseData> getMyOrders({
     OrderStatus? status,
     int page = 1,
     int limit = 20,
   }) async {
-    developer.log('Fetching orders (page: $page)', name: 'OrdersDataSource');
+    developer.log('Fetching my orders (page: $page)', name: 'OrdersDataSource');
 
     final response = await _apiClient.get(
-      ApiEndpoints.orders,
+      ApiEndpoints.ordersMy,
       queryParameters: {
         'page': page,
         'limit': limit,
@@ -86,15 +96,19 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
 
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
+    final total = response.data['meta']?['total'] ?? list.length;
 
-    return list.map((json) => OrderModel.fromJson(json).toEntity()).toList();
+    return OrdersResponseData(
+      orders: list.map((json) => OrderModel.fromJson(json).toEntity()).toList(),
+      total: total,
+    );
   }
 
   @override
-  Future<OrderEntity> getOrderById(int id) async {
-    developer.log('Fetching order: $id', name: 'OrdersDataSource');
+  Future<OrderEntity> getOrderById(String orderId) async {
+    developer.log('Fetching order: $orderId', name: 'OrdersDataSource');
 
-    final response = await _apiClient.get('${ApiEndpoints.orders}/$id');
+    final response = await _apiClient.get('${ApiEndpoints.orders}/$orderId');
     final data = response.data['data'] ?? response.data;
 
     return OrderModel.fromJson(data).toEntity();
@@ -102,22 +116,22 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
 
   @override
   Future<OrderEntity> createOrder({
-    int? shippingAddressId,
-    String? shippingAddress,
-    required String paymentMethod,
-    String? notes,
+    String? shippingAddressId,
+    ShippingAddressModel? shippingAddress,
+    OrderPaymentMethod? paymentMethod,
+    String? customerNotes,
     String? couponCode,
   }) async {
     developer.log('Creating order', name: 'OrdersDataSource');
 
     final response = await _apiClient.post(
-      ApiEndpoints.ordersCreate,
+      ApiEndpoints.orders,
       data: {
-        if (shippingAddressId != null) 'shipping_address_id': shippingAddressId,
-        if (shippingAddress != null) 'shipping_address': shippingAddress,
-        'payment_method': paymentMethod,
-        if (notes != null) 'notes': notes,
-        if (couponCode != null) 'coupon_code': couponCode,
+        if (shippingAddressId != null) 'shippingAddressId': shippingAddressId,
+        if (shippingAddress != null) 'shippingAddress': shippingAddress.toJson(),
+        if (paymentMethod != null) 'paymentMethod': paymentMethod.value,
+        if (customerNotes != null) 'customerNotes': customerNotes,
+        if (couponCode != null) 'couponCode': couponCode,
       },
     );
 
@@ -126,11 +140,11 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
   }
 
   @override
-  Future<OrderEntity> cancelOrder(int id, {String? reason}) async {
-    developer.log('Cancelling order: $id', name: 'OrdersDataSource');
+  Future<OrderEntity> cancelOrder(String orderId, {String? reason}) async {
+    developer.log('Cancelling order: $orderId', name: 'OrdersDataSource');
 
     final response = await _apiClient.post(
-      '${ApiEndpoints.orders}/$id/cancel',
+      '${ApiEndpoints.orders}/$orderId/cancel',
       data: {if (reason != null) 'reason': reason},
     );
 
@@ -139,7 +153,7 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
   }
 
   @override
-  Future<OrderEntity> reorder(int orderId) async {
+  Future<OrderEntity> reorder(String orderId) async {
     developer.log('Reordering from: $orderId', name: 'OrdersDataSource');
 
     final response = await _apiClient.post(
@@ -151,26 +165,33 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> trackOrder(int id) async {
-    developer.log('Tracking order: $id', name: 'OrdersDataSource');
+  Future<Map<String, dynamic>> trackOrder(String orderId) async {
+    developer.log('Tracking order: $orderId', name: 'OrdersDataSource');
 
-    final response = await _apiClient.get('${ApiEndpoints.orders}/$id/track');
+    final response = await _apiClient.get(
+      '${ApiEndpoints.orders}/$orderId/track',
+    );
 
     return response.data['data'] ?? response.data;
   }
 
   @override
-  Future<String> getOrderInvoice(int id) async {
-    developer.log('Getting invoice for order: $id', name: 'OrdersDataSource');
+  Future<String> getOrderInvoice(String orderId) async {
+    developer.log(
+      'Getting invoice for order: $orderId',
+      name: 'OrdersDataSource',
+    );
 
-    final response = await _apiClient.get('${ApiEndpoints.orders}/$id/invoice');
+    final response = await _apiClient.get(
+      '${ApiEndpoints.orders}/$orderId/invoice',
+    );
 
     return response.data['data']?['url'] ?? '';
   }
 
   @override
   Future<bool> rateOrder({
-    required int orderId,
+    required String orderId,
     required int rating,
     String? comment,
   }) async {
@@ -212,8 +233,8 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
 
   @override
   Future<double> calculateShipping({
-    required int addressId,
-    required List<int> productIds,
+    required String addressId,
+    required List<String> productIds,
   }) async {
     developer.log('Calculating shipping', name: 'OrdersDataSource');
 

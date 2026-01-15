@@ -1,84 +1,128 @@
-/// Notifications Screen - User notifications list
+/// Notifications Screen - User notifications list with real API
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../domain/enums/notification_enums.dart';
+import '../cubit/notifications_cubit.dart';
+import '../cubit/notifications_state.dart';
+import '../widgets/notification_tile.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    // Load notifications on init
+    context.read<NotificationsCubit>().loadNotifications();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      context.read<NotificationsCubit>().loadMore();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final notifications = [
-      _Notification(
-        title: 'تم شحن طلبك',
-        body: 'طلبك #ORD-2024-002 في الطريق إليك',
-        time: DateTime.now().subtract(const Duration(hours: 2)),
-        type: _NotificationType.order,
-        isRead: false,
-      ),
-      _Notification(
-        title: 'عرض خاص 🎉',
-        body: 'خصم 20% على جميع شاشات الآيفون لمدة 24 ساعة',
-        time: DateTime.now().subtract(const Duration(hours: 5)),
-        type: _NotificationType.promotion,
-        isRead: false,
-      ),
-      _Notification(
-        title: 'تم تسليم طلبك',
-        body: 'طلبك #ORD-2024-001 تم تسليمه بنجاح',
-        time: DateTime.now().subtract(const Duration(days: 1)),
-        type: _NotificationType.order,
-        isRead: true,
-      ),
-      _Notification(
-        title: 'رصيد جديد',
-        body: 'تمت إضافة 500 ر.س إلى محفظتك',
-        time: DateTime.now().subtract(const Duration(days: 2)),
-        type: _NotificationType.wallet,
-        isRead: true,
-      ),
-      _Notification(
-        title: 'نقاط ولاء',
-        body: 'حصلت على 25 نقطة من آخر طلب',
-        time: DateTime.now().subtract(const Duration(days: 3)),
-        type: _NotificationType.loyalty,
-        isRead: true,
-      ),
-    ];
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.notifications),
         actions: [
-          TextButton(onPressed: () {}, child: const Text('تحديد الكل كمقروء')),
+          BlocBuilder<NotificationsCubit, NotificationsState>(
+            builder: (context, state) {
+              if (state is NotificationsLoaded && state.unreadCount > 0) {
+                return TextButton(
+                  onPressed: () {
+                    context.read<NotificationsCubit>().markAllAsRead();
+                  },
+                  child: Text(
+                    'تحديد الكل كمقروء',
+                    style: TextStyle(fontSize: 12.sp),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ],
       ),
-      body: notifications.isEmpty
-          ? _buildEmptyState(context, theme)
-          : ListView.separated(
-              padding: EdgeInsets.symmetric(vertical: 8.h),
-              itemCount: notifications.length,
-              separatorBuilder: (_, __) => Divider(
-                height: 1,
-                indent: 72.w,
-                color: AppColors.dividerLight,
+      body: BlocBuilder<NotificationsCubit, NotificationsState>(
+        builder: (context, state) {
+          if (state is NotificationsLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is NotificationsError) {
+            return _buildErrorState(context, theme, state.message);
+          }
+
+          if (state is NotificationsLoaded) {
+            if (state.notifications.isEmpty) {
+              return _buildEmptyState(context, theme);
+            }
+
+            return RefreshIndicator(
+              onRefresh: () => context.read<NotificationsCubit>().refresh(),
+              child: ListView.separated(
+                controller: _scrollController,
+                padding: EdgeInsets.symmetric(vertical: 8.h),
+                itemCount: state.notifications.length + (state.isLoadingMore ? 1 : 0),
+                separatorBuilder: (_, __) => Divider(
+                  height: 1,
+                  indent: 72.w,
+                  color: AppColors.dividerLight,
+                ),
+                itemBuilder: (context, index) {
+                  if (index >= state.notifications.length) {
+                    return Padding(
+                      padding: EdgeInsets.all(16.w),
+                      child: const Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final notification = state.notifications[index];
+                  return NotificationTile(
+                    notification: notification,
+                    locale: locale,
+                    onTap: () => _handleNotificationTap(context, notification),
+                    onDismiss: () {
+                      context.read<NotificationsCubit>().deleteNotification(notification.id);
+                    },
+                  );
+                },
               ),
-              itemBuilder: (context, index) {
-                final notification = notifications[index];
-                return _NotificationItem(
-                  notification: notification,
-                  isDark: isDark,
-                );
-              },
-            ),
+            );
+          }
+
+          return _buildEmptyState(context, theme);
+        },
+      ),
     );
   }
 
@@ -110,123 +154,75 @@ class NotificationsScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-class _NotificationItem extends StatelessWidget {
-  final _Notification notification;
-  final bool isDark;
-
-  const _NotificationItem({required this.notification, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    IconData icon;
-    Color iconColor;
-
-    switch (notification.type) {
-      case _NotificationType.order:
-        icon = Iconsax.box;
-        iconColor = AppColors.primary;
-        break;
-      case _NotificationType.promotion:
-        icon = Iconsax.discount_shape;
-        iconColor = Colors.red;
-        break;
-      case _NotificationType.wallet:
-        icon = Iconsax.wallet;
-        iconColor = AppColors.success;
-        break;
-      case _NotificationType.loyalty:
-        icon = Iconsax.medal_star;
-        iconColor = Colors.orange;
-        break;
-    }
-
-    return Container(
-      color: notification.isRead
-          ? Colors.transparent
-          : AppColors.primary.withValues(alpha: 0.05),
-      child: ListTile(
-        leading: Container(
-          width: 48.w,
-          height: 48.w,
-          decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+  Widget _buildErrorState(BuildContext context, ThemeData theme, String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Iconsax.warning_2,
+            size: 80.sp,
+            color: Colors.red,
           ),
-          child: Icon(icon, color: iconColor, size: 24.sp),
-        ),
-        title: Text(
-          notification.title,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            fontWeight: notification.isRead ? FontWeight.w400 : FontWeight.w600,
+          SizedBox(height: 24.h),
+          Text(
+            'حدث خطأ',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 4.h),
-            Text(
-              notification.body,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondaryLight,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+          SizedBox(height: 8.h),
+          Text(
+            message,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textTertiaryLight,
             ),
-            SizedBox(height: 4.h),
-            Text(
-              _formatTime(notification.time),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textTertiaryLight,
-                fontSize: 11.sp,
-              ),
-            ),
-          ],
-        ),
-        trailing: !notification.isRead
-            ? Container(
-                width: 8.w,
-                height: 8.w,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-              )
-            : null,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-        onTap: () {},
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 24.h),
+          ElevatedButton.icon(
+            onPressed: () {
+              context.read<NotificationsCubit>().refresh();
+            },
+            icon: const Icon(Iconsax.refresh),
+            label: const Text('إعادة المحاولة'),
+          ),
+        ],
       ),
     );
   }
 
-  String _formatTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
+  void _handleNotificationTap(BuildContext context, notification) {
+    // Mark as read if not already
+    if (!notification.isRead) {
+      context.read<NotificationsCubit>().markAsRead(notification.id);
+    }
 
-    if (diff.inMinutes < 60) return 'منذ ${diff.inMinutes} دقيقة';
-    if (diff.inHours < 24) return 'منذ ${diff.inHours} ساعة';
-    if (diff.inDays == 1) return 'أمس';
-    if (diff.inDays < 7) return 'منذ ${diff.inDays} أيام';
-    return '${time.day}/${time.month}/${time.year}';
+    // Navigate based on action type
+    if (notification.hasAction) {
+      switch (notification.actionTypeEnum) {
+        case NotificationActionType.order:
+          if (notification.actionId != null) {
+            context.push('/orders/${notification.actionId}');
+          }
+          break;
+        case NotificationActionType.product:
+          if (notification.actionId != null) {
+            context.push('/products/${notification.actionId}');
+          }
+          break;
+        case NotificationActionType.promotion:
+          if (notification.actionId != null) {
+            context.push('/promotions/${notification.actionId}');
+          }
+          break;
+        case NotificationActionType.url:
+          // Handle URL action - could use url_launcher
+          break;
+        case null:
+          break;
+      }
+    }
   }
 }
-
-class _Notification {
-  final String title;
-  final String body;
-  final DateTime time;
-  final _NotificationType type;
-  final bool isRead;
-
-  _Notification({
-    required this.title,
-    required this.body,
-    required this.time,
-    required this.type,
-    required this.isRead,
-  });
-}
-
-enum _NotificationType { order, promotion, wallet, loyalty }

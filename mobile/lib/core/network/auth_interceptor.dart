@@ -121,7 +121,7 @@ class AuthInterceptor extends Interceptor {
 
       final response = await _dio.post(
         ApiEndpoints.refreshToken,
-        data: {'refresh_token': refreshToken},
+        data: {'refreshToken': refreshToken},
         options: Options(headers: {'Authorization': 'Bearer $refreshToken'}),
       );
 
@@ -206,12 +206,38 @@ class LoggingInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    developer.log(
-      '✗ ${err.response?.statusCode ?? 'ERROR'} ${err.requestOptions.path}',
-      name: 'API',
-      level: 900,
-      error: err.message ?? 'Unknown error',
-    );
+    final statusCode = err.response?.statusCode ?? 'ERROR';
+    final path = err.requestOptions.path;
+
+    developer.log('✗ $statusCode $path', name: 'API', level: 900);
+
+    // Log error response body if available
+    if (err.response != null && err.response!.data != null) {
+      final errorData = err.response!.data;
+      if (errorData is Map) {
+        // Extract error message, handling both String and List types
+        dynamic messageValue = errorData['messageAr'] ?? errorData['message'];
+        String errorMessage;
+        if (messageValue is String) {
+          errorMessage = messageValue;
+        } else if (messageValue is List) {
+          errorMessage = messageValue.map((e) => e.toString()).join(', ');
+        } else {
+          errorMessage = errorData.toString();
+        }
+        developer.log('Error message: $errorMessage', name: 'API', level: 900);
+      } else {
+        developer.log('Error response: $errorData', name: 'API', level: 900);
+      }
+    } else {
+      developer.log(
+        'Error: ${err.message ?? 'Unknown error'}',
+        name: 'API',
+        level: 900,
+        error: err,
+      );
+    }
+
     return handler.next(err);
   }
 }

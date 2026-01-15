@@ -92,11 +92,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Header
                     Text(
                       'أهلاً بك في تراس فون',
+                      textAlign: TextAlign.right,
+                      textDirection: TextDirection.rtl,
                       style: TextStyle(
                         fontSize: 24.sp,
                         fontWeight: FontWeight.w700,
@@ -108,6 +110,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     SizedBox(height: 8.h),
                     Text(
                       'أنشئ حسابك للاستفادة من أسعار الجملة',
+                      textAlign: TextAlign.right,
+                      textDirection: TextDirection.rtl,
                       style: TextStyle(
                         fontSize: 15.sp,
                         color: isDark
@@ -162,6 +166,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // City Dropdown
                     Text(
                       AppLocalizations.of(context)!.city,
+                      textAlign: TextAlign.right,
+                      textDirection: TextDirection.rtl,
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w500,
@@ -182,10 +188,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               : AppColors.textSecondaryLight,
                         ),
                       ),
+                      alignment: AlignmentDirectional.centerStart,
                       items: _cities.map((city) {
                         return DropdownMenuItem<int>(
                           value: city['id'] as int,
-                          child: Text(city['name'] as String),
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Text(
+                            city['name'] as String,
+                            textDirection: TextDirection.rtl,
+                            textAlign: TextAlign.right,
+                          ),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -240,6 +252,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         Text(
                           'لديك حساب بالفعل؟',
+                          textAlign: TextAlign.right,
+                          textDirection: TextDirection.rtl,
                           style: TextStyle(
                             fontSize: 15.sp,
                             color: isDark
@@ -251,6 +265,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           onPressed: () => context.pop(),
                           child: Text(
                             AppLocalizations.of(context)!.login,
+                            textDirection: TextDirection.rtl,
                             style: TextStyle(
                               fontSize: 15.sp,
                               fontWeight: FontWeight.w600,
@@ -275,6 +290,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       title,
+      textAlign: TextAlign.right,
+      textDirection: TextDirection.rtl,
       style: TextStyle(
         fontSize: 18.sp,
         fontWeight: FontWeight.w600,

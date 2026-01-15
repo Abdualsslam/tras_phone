@@ -48,6 +48,9 @@ class ApiEndpoints {
   // WISHLIST & REVIEWS
   // ═══════════════════════════════════════════════════════════════════════════
   static const String wishlist = '/wishlist';
+  static const String wishlistMy = '/products/wishlist/my';
+  static String productWishlist(String id) => '/products/$id/wishlist';
+  static String productReviews(String id) => '/products/$id/reviews';
   static const String reviews = '/reviews';
   static const String myReviews = '/customer/reviews';
   static const String pendingReviews = '/customer/pending-reviews';
@@ -59,16 +62,18 @@ class ApiEndpoints {
   // ═══════════════════════════════════════════════════════════════════════════
   static const String cart = '/cart';
   static const String cartItems = '/cart/items';
-  static const String cartAdd = '/cart/add';
-  static const String cartUpdate = '/cart/update';
-  static const String cartRemove = '/cart/remove';
-  static const String cartClear = '/cart/clear';
+  static const String cartCoupon = '/cart/coupon';
+  // Legacy endpoints (kept for backward compatibility)
+  static const String cartAdd = '/cart/items';
+  static const String cartUpdate = '/cart/items';
+  static const String cartRemove = '/cart/items';
+  static const String cartClear = '/cart';
   static const String cartCount = '/cart/count';
   static const String cartSync = '/cart/sync';
-  static const String cartApplyCoupon = '/cart/apply-coupon';
-  static const String cartRemoveCoupon = '/cart/remove-coupon';
-  static const String applyCoupon = '/cart/apply-coupon';
-  static const String removeCoupon = '/cart/remove-coupon';
+  static const String cartApplyCoupon = '/cart/coupon';
+  static const String cartRemoveCoupon = '/cart/coupon';
+  static const String applyCoupon = '/cart/coupon';
+  static const String removeCoupon = '/cart/coupon';
   static const String checkoutSummary = '/checkout/summary';
   static const String placeOrder = '/checkout/place-order';
   static const String paymentMethods = '/checkout/payment-methods';
@@ -82,7 +87,8 @@ class ApiEndpoints {
   // ORDERS
   // ═══════════════════════════════════════════════════════════════════════════
   static const String orders = '/orders';
-  static const String ordersCreate = '/orders/create';
+  static const String ordersMy = '/orders/my';
+  static const String ordersCreate = '/orders';
   static const String ordersStats = '/orders/stats';
   static const String ordersRecent = '/orders/recent';
   static const String ordersPendingPayment = '/orders/pending-payment';
@@ -96,8 +102,14 @@ class ApiEndpoints {
   // ═══════════════════════════════════════════════════════════════════════════
   // SUPPORT
   // ═══════════════════════════════════════════════════════════════════════════
-  static const String tickets = '/support/tickets';
+  static const String ticketCategories = '/tickets/categories';
+  static const String myTickets = '/tickets/my';
+  static const String tickets = '/tickets';
   static const String supportCategories = '/support/categories';
+  
+  // Live Chat
+  static const String chatStart = '/chat/start';
+  static const String chatMySession = '/chat/my-session';
   static const String chatConversations = '/chat/conversations';
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -117,6 +129,15 @@ class ApiEndpoints {
   static const String pages = '/pages';
   static const String faqs = '/faqs';
   static const String banners = '/banners';
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOCATIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  static const String locationsCountries = '/locations/countries';
+  static const String locationsCities = '/locations/cities';
+  static const String locationsMarkets = '/locations/markets';
+  static const String locationsShippingCalculate = '/locations/shipping/calculate';
+  static const String locationsShippingZones = '/locations/shipping-zones';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GENERAL

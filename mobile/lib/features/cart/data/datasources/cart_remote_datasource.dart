@@ -13,22 +13,30 @@ abstract class CartRemoteDataSource {
   Future<CartEntity> getCart();
 
   /// Add item to cart
-  Future<CartEntity> addToCart({required int productId, int quantity = 1});
+  Future<CartEntity> addToCart({
+    required String productId,
+    required int quantity,
+    required double unitPrice,
+  });
 
   /// Update item quantity
   Future<CartEntity> updateQuantity({
-    required int itemId,
+    required String productId,
     required int quantity,
   });
 
   /// Remove item from cart
-  Future<CartEntity> removeFromCart({required int itemId});
+  Future<CartEntity> removeFromCart({required String productId});
 
   /// Clear entire cart
   Future<CartEntity> clearCart();
 
   /// Apply coupon code
-  Future<CartEntity> applyCoupon({required String code});
+  Future<CartEntity> applyCoupon({
+    String? couponId,
+    String? couponCode,
+    double? discountAmount,
+  });
 
   /// Remove coupon
   Future<CartEntity> removeCoupon();
@@ -59,17 +67,22 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
 
   @override
   Future<CartEntity> addToCart({
-    required int productId,
-    int quantity = 1,
+    required String productId,
+    required int quantity,
+    required double unitPrice,
   }) async {
     developer.log(
-      'Adding to cart: product=$productId, qty=$quantity',
+      'Adding to cart: product=$productId, qty=$quantity, price=$unitPrice',
       name: 'CartDataSource',
     );
 
     final response = await _apiClient.post(
-      ApiEndpoints.cartAdd,
-      data: {'product_id': productId, 'quantity': quantity},
+      ApiEndpoints.cartItems,
+      data: {
+        'productId': productId,
+        'quantity': quantity,
+        'unitPrice': unitPrice,
+      },
     );
 
     final data = response.data['data'] ?? response.data;
@@ -78,16 +91,16 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
 
   @override
   Future<CartEntity> updateQuantity({
-    required int itemId,
+    required String productId,
     required int quantity,
   }) async {
     developer.log(
-      'Updating cart item: id=$itemId, qty=$quantity',
+      'Updating cart item: productId=$productId, qty=$quantity',
       name: 'CartDataSource',
     );
 
     final response = await _apiClient.put(
-      '${ApiEndpoints.cartUpdate}/$itemId',
+      '${ApiEndpoints.cartItems}/$productId',
       data: {'quantity': quantity},
     );
 
@@ -96,11 +109,14 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
   }
 
   @override
-  Future<CartEntity> removeFromCart({required int itemId}) async {
-    developer.log('Removing from cart: id=$itemId', name: 'CartDataSource');
+  Future<CartEntity> removeFromCart({required String productId}) async {
+    developer.log(
+      'Removing from cart: productId=$productId',
+      name: 'CartDataSource',
+    );
 
     final response = await _apiClient.delete(
-      '${ApiEndpoints.cartRemove}/$itemId',
+      '${ApiEndpoints.cartItems}/$productId',
     );
 
     final data = response.data['data'] ?? response.data;
@@ -111,19 +127,30 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
   Future<CartEntity> clearCart() async {
     developer.log('Clearing cart', name: 'CartDataSource');
 
-    final response = await _apiClient.delete(ApiEndpoints.cartClear);
+    final response = await _apiClient.delete(ApiEndpoints.cart);
     final data = response.data['data'] ?? response.data;
 
     return CartModel.fromJson(data).toEntity();
   }
 
   @override
-  Future<CartEntity> applyCoupon({required String code}) async {
-    developer.log('Applying coupon: $code', name: 'CartDataSource');
+  Future<CartEntity> applyCoupon({
+    String? couponId,
+    String? couponCode,
+    double? discountAmount,
+  }) async {
+    developer.log(
+      'Applying coupon: code=$couponCode, id=$couponId, discount=$discountAmount',
+      name: 'CartDataSource',
+    );
 
     final response = await _apiClient.post(
-      ApiEndpoints.cartApplyCoupon,
-      data: {'code': code},
+      ApiEndpoints.cartCoupon,
+      data: {
+        if (couponId != null) 'couponId': couponId,
+        if (couponCode != null) 'couponCode': couponCode,
+        if (discountAmount != null) 'discountAmount': discountAmount,
+      },
     );
 
     final data = response.data['data'] ?? response.data;
@@ -134,7 +161,7 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
   Future<CartEntity> removeCoupon() async {
     developer.log('Removing coupon', name: 'CartDataSource');
 
-    final response = await _apiClient.delete(ApiEndpoints.cartRemoveCoupon);
+    final response = await _apiClient.delete(ApiEndpoints.cartCoupon);
     final data = response.data['data'] ?? response.data;
 
     return CartModel.fromJson(data).toEntity();

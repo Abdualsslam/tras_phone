@@ -5,26 +5,27 @@ import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
 import '../models/return_model.dart';
+import '../../domain/enums/return_enums.dart';
 
 /// Abstract interface for returns data source
 abstract class ReturnsRemoteDataSource {
-  /// Get all returns with optional filtering
-  Future<List<ReturnModel>> getReturns({
+  /// Get my returns with optional filtering
+  Future<List<ReturnModel>> getMyReturns({
     ReturnStatus? status,
     int page = 1,
     int limit = 20,
   });
 
   /// Get return by ID
-  Future<ReturnModel> getReturnById(int id);
+  Future<ReturnModel> getReturnById(String id);
 
   /// Create new return request
   Future<ReturnModel> createReturn(CreateReturnRequest request);
 
   /// Cancel return request
-  Future<bool> cancelReturn(int id);
+  Future<bool> cancelReturn(String id);
 
-  /// Get return reasons
+  /// Get return reasons (public endpoint)
   Future<List<ReturnReasonModel>> getReturnReasons();
 
   /// Upload return images
@@ -34,7 +35,7 @@ abstract class ReturnsRemoteDataSource {
   Future<Map<String, dynamic>> getReturnPolicy();
 
   /// Check if order is eligible for return
-  Future<Map<String, dynamic>> checkReturnEligibility(int orderId);
+  Future<Map<String, dynamic>> checkReturnEligibility(String orderId);
 }
 
 /// Implementation of ReturnsRemoteDataSource using API client
@@ -45,19 +46,19 @@ class ReturnsRemoteDataSourceImpl implements ReturnsRemoteDataSource {
     : _apiClient = apiClient;
 
   @override
-  Future<List<ReturnModel>> getReturns({
+  Future<List<ReturnModel>> getMyReturns({
     ReturnStatus? status,
     int page = 1,
     int limit = 20,
   }) async {
-    developer.log('Fetching returns (page: $page)', name: 'ReturnsDataSource');
+    developer.log('Fetching my returns (page: $page)', name: 'ReturnsDataSource');
 
     final response = await _apiClient.get(
-      ApiEndpoints.returns,
+      '${ApiEndpoints.returns}/my',
       queryParameters: {
         'page': page,
         'limit': limit,
-        if (status != null) 'status': status.name,
+        if (status != null) 'status': status.toApiString(),
       },
     );
 
@@ -68,7 +69,7 @@ class ReturnsRemoteDataSourceImpl implements ReturnsRemoteDataSource {
   }
 
   @override
-  Future<ReturnModel> getReturnById(int id) async {
+  Future<ReturnModel> getReturnById(String id) async {
     developer.log('Fetching return: $id', name: 'ReturnsDataSource');
 
     final response = await _apiClient.get('${ApiEndpoints.returns}/$id');
@@ -91,7 +92,7 @@ class ReturnsRemoteDataSourceImpl implements ReturnsRemoteDataSource {
   }
 
   @override
-  Future<bool> cancelReturn(int id) async {
+  Future<bool> cancelReturn(String id) async {
     developer.log('Cancelling return: $id', name: 'ReturnsDataSource');
 
     final response = await _apiClient.post(
@@ -140,7 +141,7 @@ class ReturnsRemoteDataSourceImpl implements ReturnsRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> checkReturnEligibility(int orderId) async {
+  Future<Map<String, dynamic>> checkReturnEligibility(String orderId) async {
     developer.log(
       'Checking return eligibility: $orderId',
       name: 'ReturnsDataSource',

@@ -3,49 +3,34 @@ library;
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../domain/entities/category_entity.dart';
-import '../../data/datasources/catalog_remote_datasource.dart';
+import '../../domain/repositories/catalog_repository.dart';
+import '../cubit/categories_cubit.dart';
+import '../cubit/categories_state.dart';
 import '../../../../l10n/app_localizations.dart';
 
-class CategoriesListScreen extends StatefulWidget {
+class CategoriesListScreen extends StatelessWidget {
   const CategoriesListScreen({super.key});
 
   @override
-  State<CategoriesListScreen> createState() => _CategoriesListScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => CategoriesCubit(
+        repository: getIt<CatalogRepository>(),
+      )..loadCategories(),
+      child: const _CategoriesListView(),
+    );
+  }
 }
 
-class _CategoriesListScreenState extends State<CategoriesListScreen> {
-  final _dataSource = getIt<CatalogRemoteDataSource>();
-  List<CategoryEntity> _categories = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCategories();
-  }
-
-  Future<void> _loadCategories() async {
-    setState(() {
-      _isLoading = true;
-    });
-    try {
-      final categories = await _dataSource.getCategories();
-      setState(() {
-        _categories = categories;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
+class _CategoriesListView extends StatelessWidget {
+  const _CategoriesListView();
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +46,33 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadCategories,
+      body: BlocBuilder<CategoriesCubit, CategoriesState>(
+        builder: (context, state) {
+          if (state is CategoriesLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is CategoriesError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(state.message),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: () =>
+                        context.read<CategoriesCubit>().loadCategories(),
+                    child: const Text('إعادة المحاولة'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (state is CategoriesLoaded) {
+            return RefreshIndicator(
+              onRefresh: () =>
+                  context.read<CategoriesCubit>().loadCategories(),
               child: GridView.builder(
                 padding: EdgeInsets.all(16.w),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -73,9 +81,9 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                   crossAxisSpacing: 14.w,
                   mainAxisSpacing: 14.h,
                 ),
-                itemCount: _categories.length,
+                itemCount: state.categories.length,
                 itemBuilder: (context, index) {
-                  final category = _categories[index];
+                  final category = state.categories[index];
                   return _CategoryCard(
                     category: category,
                     isDark: isDark,
@@ -85,7 +93,12 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                   );
                 },
               ),
-            ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 }

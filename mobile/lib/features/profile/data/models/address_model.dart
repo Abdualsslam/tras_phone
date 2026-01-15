@@ -2,6 +2,7 @@
 library;
 
 import 'package:json_annotation/json_annotation.dart';
+import '../../domain/entities/address_entity.dart';
 
 part 'address_model.g.dart';
 
@@ -167,6 +168,28 @@ class AddressModel {
       parts.add(city!.nameAr ?? city!.name);
     }
     return parts.join('، ');
+  }
+
+  /// Convert to domain entity
+  AddressEntity toEntity() {
+    return AddressEntity(
+      id: id,
+      customerId: customerId,
+      label: label,
+      recipientName: recipientName,
+      phone: phone,
+      cityId: cityId,
+      marketId: marketId,
+      addressLine: addressLine,
+      latitude: latitude,
+      longitude: longitude,
+      isDefault: isDefault,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      city: city != null
+          ? CityEntity(id: city!.id, name: city!.name, nameAr: city!.nameAr)
+          : null,
+    );
   }
 }
 

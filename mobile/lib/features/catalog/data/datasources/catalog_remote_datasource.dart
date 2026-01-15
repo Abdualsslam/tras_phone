@@ -15,6 +15,7 @@ import '../models/brand_model.dart';
 import '../models/category_model.dart';
 import '../models/device_model.dart';
 import '../models/product_model.dart';
+import '../models/product_review_model.dart';
 import '../models/quality_type_model.dart';
 
 /// Abstract interface for catalog data source
@@ -64,6 +65,16 @@ abstract class CatalogRemoteDataSource {
   });
   Future<List<String>> getSearchSuggestions(String query);
   Future<List<String>> getPopularSearches();
+
+  // Reviews
+  Future<List<ProductReviewModel>> getProductReviews(String productId);
+  Future<ProductReviewModel> addReview({
+    required String productId,
+    required int rating,
+    String? title,
+    String? comment,
+    List<String>? images,
+  });
 
   // Banners
   Future<List<BannerEntity>> getBanners({String? placement});
@@ -423,6 +434,52 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       return data.map((e) => e.toString()).toList();
     }
     return [];
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REVIEWS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  Future<List<ProductReviewModel>> getProductReviews(String productId) async {
+    developer.log('Fetching reviews for product: $productId', name: 'CatalogDataSource');
+
+    final response = await _apiClient.get(
+      ApiEndpoints.productReviews(productId),
+    );
+
+    if (response.data['success'] == true) {
+      final data = response.data['data'] ?? [];
+      final List<dynamic> list = data is List ? data : [];
+      return list.map((json) => ProductReviewModel.fromJson(json)).toList();
+    }
+    throw Exception(response.data['messageAr'] ?? 'Failed to fetch reviews');
+  }
+
+  @override
+  Future<ProductReviewModel> addReview({
+    required String productId,
+    required int rating,
+    String? title,
+    String? comment,
+    List<String>? images,
+  }) async {
+    developer.log('Adding review for product: $productId', name: 'CatalogDataSource');
+
+    final response = await _apiClient.post(
+      ApiEndpoints.productReviews(productId),
+      data: {
+        'rating': rating,
+        if (title != null) 'title': title,
+        if (comment != null) 'comment': comment,
+        if (images != null && images.isNotEmpty) 'images': images,
+      },
+    );
+
+    if (response.data['success'] == true) {
+      return ProductReviewModel.fromJson(response.data['data']);
+    }
+    throw Exception(response.data['messageAr'] ?? 'Failed to add review');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

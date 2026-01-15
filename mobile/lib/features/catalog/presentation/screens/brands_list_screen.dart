@@ -3,49 +3,34 @@ library;
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../domain/entities/brand_entity.dart';
-import '../../data/datasources/catalog_remote_datasource.dart';
+import '../../domain/repositories/catalog_repository.dart';
+import '../cubit/brands_cubit.dart';
+import '../cubit/brands_state.dart';
 import '../../../../l10n/app_localizations.dart';
 
-class BrandsListScreen extends StatefulWidget {
+class BrandsListScreen extends StatelessWidget {
   const BrandsListScreen({super.key});
 
   @override
-  State<BrandsListScreen> createState() => _BrandsListScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => BrandsCubit(
+        repository: getIt<CatalogRepository>(),
+      )..loadBrands(),
+      child: const _BrandsListView(),
+    );
+  }
 }
 
-class _BrandsListScreenState extends State<BrandsListScreen> {
-  final _dataSource = getIt<CatalogRemoteDataSource>();
-  List<BrandEntity> _brands = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBrands();
-  }
-
-  Future<void> _loadBrands() async {
-    setState(() {
-      _isLoading = true;
-    });
-    try {
-      final brands = await _dataSource.getBrands();
-      setState(() {
-        _brands = brands;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
+class _BrandsListView extends StatelessWidget {
+  const _BrandsListView();
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +46,32 @@ class _BrandsListScreenState extends State<BrandsListScreen> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadBrands,
+      body: BlocBuilder<BrandsCubit, BrandsState>(
+        builder: (context, state) {
+          if (state is BrandsLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is BrandsError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(state.message),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: () =>
+                        context.read<BrandsCubit>().loadBrands(),
+                    child: const Text('إعادة المحاولة'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (state is BrandsLoaded) {
+            return RefreshIndicator(
+              onRefresh: () => context.read<BrandsCubit>().loadBrands(),
               child: GridView.builder(
                 padding: EdgeInsets.all(16.w),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -73,9 +80,9 @@ class _BrandsListScreenState extends State<BrandsListScreen> {
                   crossAxisSpacing: 12.w,
                   mainAxisSpacing: 12.h,
                 ),
-                itemCount: _brands.length,
+                itemCount: state.brands.length,
                 itemBuilder: (context, index) {
-                  final brand = _brands[index];
+                  final brand = state.brands[index];
                   return _BrandCard(
                     brand: brand,
                     isDark: isDark,
@@ -85,7 +92,12 @@ class _BrandsListScreenState extends State<BrandsListScreen> {
                   );
                 },
               ),
-            ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 }

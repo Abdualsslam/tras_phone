@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
@@ -10,65 +11,51 @@ import '../../../../core/config/theme/app_theme.dart';
 import '../../../../core/di/injection.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/device_entity.dart';
-import '../../data/datasources/catalog_remote_datasource.dart';
+import '../../domain/repositories/catalog_repository.dart';
+import '../cubit/brands_cubit.dart';
+import '../cubit/brands_state.dart';
+import '../cubit/devices_cubit.dart';
+import '../cubit/devices_state.dart';
 import '../../../../l10n/app_localizations.dart';
 
-class DevicesListScreen extends StatefulWidget {
+class DevicesListScreen extends StatelessWidget {
   const DevicesListScreen({super.key});
 
   @override
-  State<DevicesListScreen> createState() => _DevicesListScreenState();
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) => BrandsCubit(
+            repository: getIt<CatalogRepository>(),
+          )..loadBrands(),
+        ),
+        BlocProvider(
+          create: (context) => DevicesCubit(
+            repository: getIt<CatalogRepository>(),
+          ),
+        ),
+      ],
+      child: const _DevicesListView(),
+    );
+  }
 }
 
-class _DevicesListScreenState extends State<DevicesListScreen> {
-  final _dataSource = getIt<CatalogRemoteDataSource>();
-  List<BrandEntity> _brands = [];
-  String? _selectedBrandId;
-  List<DeviceEntity> _devices = [];
-  bool _isLoading = true;
-  final _searchController = TextEditingController();
+class _DevicesListView extends StatefulWidget {
+  const _DevicesListView();
 
   @override
-  void initState() {
-    super.initState();
-    _loadBrands();
-  }
+  State<_DevicesListView> createState() => _DevicesListViewState();
+}
+
+class _DevicesListViewState extends State<_DevicesListView> {
+  String? _selectedBrandId;
+  final _searchController = TextEditingController();
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadBrands() async {
-    setState(() => _isLoading = true);
-    try {
-      final brands = await _dataSource.getBrands();
-      setState(() {
-        _brands = brands;
-        if (brands.isNotEmpty) {
-          _selectedBrandId = brands.first.id.toString();
-          _loadDevices();
-        }
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _loadDevices() async {
-    if (_selectedBrandId == null) return;
-    try {
-      final devices = await _dataSource.getDevicesByBrand(_selectedBrandId!);
-      setState(() {
-        _devices = devices;
-      });
-    } catch (e) {
-      setState(() {
-        _devices = [];
-      });
-    }
   }
 
   @override
@@ -85,9 +72,38 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+      body: BlocConsumer<BrandsCubit, BrandsState>(
+        listener: (context, state) {
+          if (state is BrandsLoaded && state.brands.isNotEmpty) {
+            if (_selectedBrandId == null) {
+              _selectedBrandId = state.brands.first.id;
+              context.read<DevicesCubit>().loadDevicesByBrand(_selectedBrandId!);
+            }
+          }
+        },
+        builder: (context, brandsState) {
+          if (brandsState is BrandsLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (brandsState is BrandsError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(brandsState.message),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: () => context.read<BrandsCubit>().loadBrands(),
+                    child: const Text('إعادة المحاولة'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (brandsState is BrandsLoaded) {
+            return Column(
               children: [
                 // Search Bar
                 Padding(
@@ -111,35 +127,57 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
                 ),
 
                 // Brands Filter
-                _buildBrandsFilter(isDark),
+                _buildBrandsFilter(brandsState.brands, isDark),
 
                 // Devices List
                 Expanded(
-                  child: _devices.isEmpty
-                      ? _buildEmptyState(isDark)
-                      : _buildDevicesList(isDark),
+                  child: BlocBuilder<DevicesCubit, DevicesState>(
+                    builder: (context, devicesState) {
+                      if (devicesState is DevicesLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (devicesState is DevicesError) {
+                        return Center(child: Text(devicesState.message));
+                      }
+
+                      if (devicesState is DevicesLoaded) {
+                        if (devicesState.devices.isEmpty) {
+                          return _buildEmptyState(isDark);
+                        }
+                        return _buildDevicesList(devicesState.devices, isDark);
+                      }
+
+                      return _buildEmptyState(isDark);
+                    },
+                  ),
                 ),
               ],
-            ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 
-  Widget _buildBrandsFilter(bool isDark) {
+  Widget _buildBrandsFilter(List<BrandEntity> brands, bool isDark) {
     return SizedBox(
       height: 50.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16.w),
-        itemCount: _brands.length,
+        itemCount: brands.length,
         separatorBuilder: (_, __) => SizedBox(width: 8.w),
         itemBuilder: (context, index) {
-          final brand = _brands[index];
-          final isSelected = _selectedBrandId == brand.id.toString();
+          final brand = brands[index];
+          final isSelected = _selectedBrandId == brand.id;
 
           return GestureDetector(
             onTap: () {
-              setState(() => _selectedBrandId = brand.id.toString());
-              _loadDevices();
+              setState(() => _selectedBrandId = brand.id);
+              context.read<DevicesCubit>().loadDevicesByBrand(brand.id);
             },
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -177,9 +215,9 @@ class _DevicesListScreenState extends State<DevicesListScreen> {
     );
   }
 
-  Widget _buildDevicesList(bool isDark) {
+  Widget _buildDevicesList(List<DeviceEntity> devices, bool isDark) {
     final searchQuery = _searchController.text.toLowerCase();
-    final filteredDevices = _devices
+    final filteredDevices = devices
         .where(
           (d) =>
               d.name.toLowerCase().contains(searchQuery) ||

@@ -25,7 +25,11 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Add product to cart
-  Future<void> addToCart({required String productId, int quantity = 1}) async {
+  Future<void> addToCart({
+    required String productId,
+    required int quantity,
+    required double unitPrice,
+  }) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
       emit(CartUpdating(currentCart));
@@ -33,8 +37,9 @@ class CartCubit extends Cubit<CartState> {
 
     try {
       final cart = await _dataSource.addToCart(
-        productId: int.tryParse(productId) ?? 0,
+        productId: productId,
         quantity: quantity,
+        unitPrice: unitPrice,
       );
       emit(CartLoaded(cart));
     } catch (e) {
@@ -43,7 +48,7 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Update item quantity
-  Future<void> updateQuantity(String itemId, int quantity) async {
+  Future<void> updateQuantity(String productId, int quantity) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
       emit(CartUpdating(currentCart));
@@ -51,7 +56,7 @@ class CartCubit extends Cubit<CartState> {
 
     try {
       final cart = await _dataSource.updateQuantity(
-        itemId: int.tryParse(itemId) ?? 0,
+        productId: productId,
         quantity: quantity,
       );
       emit(CartLoaded(cart));
@@ -61,16 +66,14 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Remove item from cart
-  Future<void> removeFromCart(String itemId) async {
+  Future<void> removeFromCart(String productId) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
       emit(CartUpdating(currentCart));
     }
 
     try {
-      final cart = await _dataSource.removeFromCart(
-        itemId: int.tryParse(itemId) ?? 0,
-      );
+      final cart = await _dataSource.removeFromCart(productId: productId);
       emit(CartLoaded(cart));
     } catch (e) {
       emit(CartError(e.toString(), previousCart: currentCart));
@@ -90,14 +93,22 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Apply coupon
-  Future<void> applyCoupon(String code) async {
+  Future<void> applyCoupon(
+    String couponCode, {
+    String? couponId,
+    double? discountAmount,
+  }) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
       emit(CartUpdating(currentCart));
     }
 
     try {
-      final cart = await _dataSource.applyCoupon(code: code);
+      final cart = await _dataSource.applyCoupon(
+        couponId: couponId,
+        couponCode: couponCode,
+        discountAmount: discountAmount,
+      );
       emit(CartLoaded(cart));
     } catch (e) {
       emit(CartError(e.toString(), previousCart: currentCart));

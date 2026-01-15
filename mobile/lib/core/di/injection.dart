@@ -12,14 +12,32 @@ import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/catalog/data/datasources/catalog_remote_datasource.dart';
+import '../../features/catalog/data/repositories/catalog_repository_impl.dart';
+import '../../features/catalog/domain/repositories/catalog_repository.dart';
+import '../../features/catalog/presentation/cubit/brands_cubit.dart';
+import '../../features/catalog/presentation/cubit/categories_cubit.dart';
+import '../../features/catalog/presentation/cubit/devices_cubit.dart';
+import '../../features/catalog/presentation/cubit/quality_types_cubit.dart';
 import '../../features/cart/data/datasources/cart_remote_datasource.dart';
 import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
 import '../../features/wishlist/data/datasources/wishlist_remote_datasource.dart';
 import '../../features/notifications/data/datasources/notifications_remote_datasource.dart';
+import '../../features/notifications/data/repositories/notifications_repository.dart';
+import '../../features/notifications/presentation/cubit/notifications_cubit.dart';
+import '../../features/notifications/services/push_notification_manager.dart';
 import '../../features/returns/data/datasources/returns_remote_datasource.dart';
 import '../../features/support/data/datasources/support_remote_datasource.dart';
+import '../../features/support/presentation/cubit/support_cubit.dart';
+import '../../features/support/presentation/cubit/live_chat_cubit.dart';
 import '../../features/reviews/data/datasources/reviews_remote_datasource.dart';
+import '../../features/profile/domain/repositories/profile_repository.dart';
+import '../../features/profile/data/repositories/profile_repository_impl.dart';
+import '../../features/profile/presentation/cubit/profile_cubit.dart';
+import '../../features/locations/data/datasources/locations_remote_datasource.dart';
+import '../../features/locations/presentation/cubit/locations_cubit.dart';
+import '../../features/promotions/data/datasources/promotions_remote_datasource.dart';
+import '../../features/promotions/presentation/cubit/promotions_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -84,6 +102,50 @@ Future<void> setupDependencies() async {
     () => CatalogRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
 
+  // Repository
+  getIt.registerLazySingleton<CatalogRepository>(
+    () => CatalogRepositoryImpl(
+      remoteDataSource: getIt<CatalogRemoteDataSource>(),
+    ),
+  );
+
+  // Cubits
+  getIt.registerFactory<BrandsCubit>(
+    () => BrandsCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<BrandDetailsCubit>(
+    () => BrandDetailsCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<CategoriesCubit>(
+    () => CategoriesCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<CategoryTreeCubit>(
+    () => CategoryTreeCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<CategoryDetailsCubit>(
+    () => CategoryDetailsCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<CategoryChildrenCubit>(
+    () => CategoryChildrenCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<DevicesCubit>(
+    () => DevicesCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<DeviceDetailsCubit>(
+    () => DeviceDetailsCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<QualityTypesCubit>(
+    () => QualityTypesCubit(repository: getIt<CatalogRepository>()),
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   // CART FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
@@ -111,6 +173,22 @@ Future<void> setupDependencies() async {
     () => ProfileRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
 
+  // Repository
+  getIt.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(
+      dataSource: getIt<ProfileRemoteDataSource>(),
+    ),
+  );
+
+  // Cubits
+  getIt.registerFactory<ProfileCubit>(
+    () => ProfileCubit(repository: getIt<ProfileRepository>()),
+  );
+
+  getIt.registerFactory<AddressesCubit>(
+    () => AddressesCubit(repository: getIt<ProfileRepository>()),
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   // WISHLIST FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
@@ -127,6 +205,23 @@ Future<void> setupDependencies() async {
   // DataSources
   getIt.registerLazySingleton<NotificationsRemoteDataSource>(
     () => NotificationsRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<NotificationsRepository>(
+    () => NotificationsRepositoryImpl(
+      remoteDataSource: getIt<NotificationsRemoteDataSource>(),
+    ),
+  );
+
+  // Cubit
+  getIt.registerFactory<NotificationsCubit>(
+    () => NotificationsCubit(repository: getIt<NotificationsRepository>()),
+  );
+
+  // Push Notification Manager
+  getIt.registerLazySingleton<PushNotificationManager>(
+    () => PushNotificationManager(repository: getIt<NotificationsRepository>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -147,6 +242,15 @@ Future<void> setupDependencies() async {
     () => SupportRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
 
+  // Cubits
+  getIt.registerFactory<SupportCubit>(
+    () => SupportCubit(getIt<SupportRemoteDataSource>()),
+  );
+
+  getIt.registerFactory<LiveChatCubit>(
+    () => LiveChatCubit(getIt<SupportRemoteDataSource>()),
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   // REVIEWS FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
@@ -154,6 +258,34 @@ Future<void> setupDependencies() async {
   // DataSources
   getIt.registerLazySingleton<ReviewsRemoteDataSource>(
     () => ReviewsRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOCATIONS FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<LocationsRemoteDataSource>(
+    () => LocationsRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Cubits
+  getIt.registerFactory<LocationsCubit>(
+    () => LocationsCubit(dataSource: getIt<LocationsRemoteDataSource>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROMOTIONS FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<PromotionsRemoteDataSource>(
+    () => PromotionsRemoteDataSourceImpl(getIt<ApiClient>()),
+  );
+
+  // Cubits
+  getIt.registerFactory<PromotionsCubit>(
+    () => PromotionsCubit(getIt<PromotionsRemoteDataSource>()),
   );
 }
 

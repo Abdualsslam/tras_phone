@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../promotions/presentation/widgets/coupon_input.dart';
+import '../../../promotions/data/models/coupon_validation_model.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -19,6 +21,7 @@ class CheckoutScreen extends StatefulWidget {
 class _CheckoutScreenState extends State<CheckoutScreen> {
   int _selectedAddressIndex = 0;
   int _selectedPaymentIndex = 0;
+  CouponValidation? _appliedCoupon;
 
   final _addresses = [
     _Address(
@@ -99,6 +102,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ..._paymentMethods.asMap().entries.map((entry) {
               return _buildPaymentCard(theme, isDark, entry.key, entry.value);
             }),
+            SizedBox(height: 24.h),
+
+            // Coupon Section
+            _buildSectionTitle(theme, 'كود الخصم'),
+            SizedBox(height: 12.h),
+            CouponInput(
+              orderTotal: 1325.0, // TODO: Get actual order total
+              onCouponApplied: (validation) {
+                setState(() => _appliedCoupon = validation);
+              },
+              onCouponRemoved: () {
+                setState(() => _appliedCoupon = null);
+              },
+            ),
             SizedBox(height: 24.h),
 
             // Order Summary
