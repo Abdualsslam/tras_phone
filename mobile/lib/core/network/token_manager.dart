@@ -105,6 +105,7 @@ class TokenManager {
       throw Exception('Invalid token response');
     }
 
+<<<<<<< HEAD
     final expiresInValue = data['expiresIn'];
     int? expiresIn;
     if (expiresInValue is int) {
@@ -112,9 +113,21 @@ class TokenManager {
     } else if (expiresInValue is String) {
       expiresIn = int.tryParse(expiresInValue);
     }
+=======
+>>>>>>> 4d61ecaaeaf50677163e22e8ab72266e13670e23
     DateTime? expiresAt;
-    if (expiresIn != null) {
-      expiresAt = DateTime.now().add(Duration(seconds: expiresIn));
+    final expiresInRaw = response['expires_in'];
+    if (expiresInRaw != null) {
+      int? expiresInSeconds;
+      if (expiresInRaw is int) {
+        expiresInSeconds = expiresInRaw;
+      } else if (expiresInRaw is String) {
+        // Parse duration strings like '15m', '1h', '7d'
+        expiresInSeconds = _parseDurationString(expiresInRaw);
+      }
+      if (expiresInSeconds != null) {
+        expiresAt = DateTime.now().add(Duration(seconds: expiresInSeconds));
+      }
     }
 
     await saveTokens(
@@ -144,5 +157,23 @@ class TokenManager {
     final tokens = await getTokenData();
     if (tokens == null) return false;
     return tokens.willExpireSoon;
+  }
+
+  /// Parse duration string like '15m', '1h', '7d' to seconds
+  static int? _parseDurationString(String duration) {
+    final match = RegExp(r'^(\d+)([smhd])$').firstMatch(duration.trim());
+    if (match == null) return null;
+    
+    final value = int.tryParse(match.group(1)!);
+    if (value == null) return null;
+    
+    final unit = match.group(2)!;
+    return switch (unit) {
+      's' => value,
+      'm' => value * 60,
+      'h' => value * 3600,
+      'd' => value * 86400,
+      _ => null,
+    };
   }
 }

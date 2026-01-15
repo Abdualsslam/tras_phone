@@ -149,6 +149,12 @@ export function CustomersPage() {
         queryFn: () => customersApi.getAll({ search: searchQuery, status: statusFilter === '_all' ? undefined : statusFilter, limit: 20 }),
     });
 
+    // Fetch unlinked users (always)
+    const { data: unlinkedUsers = [] } = useQuery<AvailableUser[]>({
+        queryKey: ['unlinkedUsers'],
+        queryFn: () => customersApi.getAvailableUsers(),
+    });
+
     // Fetch lookup data for dialog
     const { data: cities = [] } = useQuery<City[]>({
         queryKey: ['cities'],
@@ -308,6 +314,54 @@ export function CustomersPage() {
                     {t('customers.addCustomer')}
                 </Button>
             </div>
+
+            {/* Unlinked Users Alert */}
+            {unlinkedUsers.length > 0 && (
+                <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-amber-100 dark:bg-amber-900 rounded-full">
+                                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <div>
+                                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                                        يوجد {unlinkedUsers.length} مستخدم بدون ملف عميل
+                                    </p>
+                                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                                        هؤلاء المستخدمون سجلوا كعملاء لكن لم يكملوا بياناتهم
+                                    </p>
+                                </div>
+                            </div>
+                            <Button
+                                variant="outline"
+                                className="border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300"
+                                onClick={() => {
+                                    setAddMode('convertUser');
+                                    setIsAddDialogOpen(true);
+                                }}
+                            >
+                                <UserCog className="h-4 w-4" />
+                                تحويل إلى عملاء
+                            </Button>
+                        </div>
+                        {/* List of unlinked users */}
+                        <div className="mt-4 flex flex-wrap gap-2">
+                            {unlinkedUsers.slice(0, 5).map((user) => (
+                                <Badge key={user._id} variant="outline" className="bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-300">
+                                    <Phone className="h-3 w-3 ml-1" />
+                                    {user.phone}
+                                </Badge>
+                            ))}
+                            {unlinkedUsers.length > 5 && (
+                                <Badge variant="secondary" className="text-amber-600">
+                                    +{unlinkedUsers.length - 5} آخرين
+                                </Badge>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Search and Filters */}
             <Card>
