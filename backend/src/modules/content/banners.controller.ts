@@ -19,12 +19,8 @@ export class BannersController {
     @ApiOperation({ summary: 'Get banners by placement' })
     @ApiQuery({ name: 'placement', required: false, enum: BannerPosition })
     async getBanners(@Query('placement') placement?: BannerPosition) {
-        const position = placement || BannerPosition.HOME_SLIDER;
+        const position = placement || BannerPosition.HOME_TOP;
         const banners = await this.contentService.findActiveBanners(position);
-        return ResponseBuilder.success(
-            banners,
-            'Banners retrieved',
-            'تم استرجاع البنرات',
-        );
+        return ResponseBuilder.success(banners, 'Banners retrieved');
     }
 }
