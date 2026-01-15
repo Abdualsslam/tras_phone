@@ -105,18 +105,8 @@ class TokenManager {
       throw Exception('Invalid token response');
     }
 
-<<<<<<< HEAD
-    final expiresInValue = data['expiresIn'];
-    int? expiresIn;
-    if (expiresInValue is int) {
-      expiresIn = expiresInValue;
-    } else if (expiresInValue is String) {
-      expiresIn = int.tryParse(expiresInValue);
-    }
-=======
->>>>>>> 4d61ecaaeaf50677163e22e8ab72266e13670e23
     DateTime? expiresAt;
-    final expiresInRaw = response['expires_in'];
+    final expiresInRaw = data['expiresIn'];
     if (expiresInRaw != null) {
       int? expiresInSeconds;
       if (expiresInRaw is int) {
