@@ -12,6 +12,12 @@ import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../features/catalog/data/datasources/catalog_remote_datasource.dart';
+import '../../features/catalog/data/repositories/catalog_repository_impl.dart';
+import '../../features/catalog/domain/repositories/catalog_repository.dart';
+import '../../features/catalog/presentation/cubit/brands_cubit.dart';
+import '../../features/catalog/presentation/cubit/categories_cubit.dart';
+import '../../features/catalog/presentation/cubit/devices_cubit.dart';
+import '../../features/catalog/presentation/cubit/quality_types_cubit.dart';
 import '../../features/cart/data/datasources/cart_remote_datasource.dart';
 import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
@@ -82,6 +88,50 @@ Future<void> setupDependencies() async {
   // DataSources
   getIt.registerLazySingleton<CatalogRemoteDataSource>(
     () => CatalogRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<CatalogRepository>(
+    () => CatalogRepositoryImpl(
+      remoteDataSource: getIt<CatalogRemoteDataSource>(),
+    ),
+  );
+
+  // Cubits
+  getIt.registerFactory<BrandsCubit>(
+    () => BrandsCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<BrandDetailsCubit>(
+    () => BrandDetailsCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<CategoriesCubit>(
+    () => CategoriesCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<CategoryTreeCubit>(
+    () => CategoryTreeCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<CategoryDetailsCubit>(
+    () => CategoryDetailsCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<CategoryChildrenCubit>(
+    () => CategoryChildrenCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<DevicesCubit>(
+    () => DevicesCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<DeviceDetailsCubit>(
+    () => DeviceDetailsCubit(repository: getIt<CatalogRepository>()),
+  );
+
+  getIt.registerFactory<QualityTypesCubit>(
+    () => QualityTypesCubit(repository: getIt<CatalogRepository>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
