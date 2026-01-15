@@ -77,6 +77,83 @@ export class ProductsController {
   }
 
   @Public()
+  @Get('featured')
+  @ApiOperation({
+    summary: 'Get featured products',
+    description: 'Retrieve featured products for homepage',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Featured products retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getFeatured(@Query('limit') limit?: number) {
+    const result = await this.productsService.findAll({
+      featured: true,
+      limit: limit || 10,
+      page: 1,
+    });
+    return ResponseBuilder.success(
+      result.data,
+      'Featured products retrieved',
+      'تم استرجاع المنتجات المميزة',
+    );
+  }
+
+  @Public()
+  @Get('new-arrivals')
+  @ApiOperation({
+    summary: 'Get new arrival products',
+    description: 'Retrieve recently added products',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'New arrivals retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getNewArrivals(@Query('limit') limit?: number) {
+    const result = await this.productsService.findAll({
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+      limit: limit || 10,
+      page: 1,
+    });
+    return ResponseBuilder.success(
+      result.data,
+      'New arrivals retrieved',
+      'تم استرجاع المنتجات الجديدة',
+    );
+  }
+
+  @Public()
+  @Get('best-sellers')
+  @ApiOperation({
+    summary: 'Get best selling products',
+    description: 'Retrieve best selling products based on sales count',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Best sellers retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getBestSellers(@Query('limit') limit?: number) {
+    const result = await this.productsService.findAll({
+      sortBy: 'salesCount',
+      sortOrder: 'desc',
+      limit: limit || 10,
+      page: 1,
+    });
+    return ResponseBuilder.success(
+      result.data,
+      'Best sellers retrieved',
+      'تم استرجاع الأكثر مبيعاً',
+    );
+  }
+
+  @Public()
   @Get()
   @ApiOperation({
     summary: 'Get all products with filters',

@@ -20,6 +20,7 @@ import { ContentService } from './content.service';
 import { EducationalService } from './educational.service';
 import { ContentController } from './content.controller';
 import { EducationalController } from './educational.controller';
+import { BannersController } from './banners.controller';
 import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
@@ -46,7 +47,7 @@ import { AuthModule } from '@modules/auth/auth.module';
     }),
     AuthModule,
   ],
-  controllers: [ContentController, EducationalController],
+  controllers: [ContentController, EducationalController, BannersController],
   providers: [ContentService, EducationalService],
   exports: [ContentService, EducationalService],
 })
