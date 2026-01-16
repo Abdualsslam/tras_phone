@@ -61,6 +61,7 @@ export class JwtAuthGuard implements CanActivate {
             // Build base user object
             const userObj: any = {
                 id: user._id.toString(),
+                customerId: user._id.toString(), // For customer type, customerId is the same as id
                 phone: user.phone,
                 email: user.email,
                 userType: user.userType,
