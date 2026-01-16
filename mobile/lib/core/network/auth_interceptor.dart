@@ -64,7 +64,8 @@ class AuthInterceptor extends Interceptor {
 
       // Don't retry if this is already a retry request (prevent infinite loop)
       if (requestOptions.headers['X-Retry-Request'] == 'true') {
-        await _handleLogout();
+        // Don't logout here - just pass the error
+        developer.log('Retry request failed, not clearing tokens', name: 'AuthInterceptor');
         return handler.next(err);
       }
 
@@ -78,19 +79,31 @@ class AuthInterceptor extends Interceptor {
 
           if (refreshed) {
             // Retry original request
-            final response = await _retryRequest(requestOptions);
-            return handler.resolve(response);
+            try {
+              final response = await _retryRequest(requestOptions);
+              return handler.resolve(response);
+            } catch (retryError) {
+              // Retry failed but don't logout - token might still be valid for other requests
+              developer.log(
+                'Failed to retry request: ${requestOptions.path}',
+                name: 'AuthInterceptor',
+                error: retryError,
+              );
+              // Just pass the error, don't clear tokens
+            }
           } else {
+            // Refresh failed - clear tokens and logout
             await _handleLogout();
           }
         } catch (e) {
           _isRefreshing = false;
-          await _handleLogout();
+          // Only logout if refresh itself failed
           developer.log(
             'Token refresh failed',
             name: 'AuthInterceptor',
             error: e,
           );
+          await _handleLogout();
         }
       } else {
         // Wait for refresh to complete then retry
