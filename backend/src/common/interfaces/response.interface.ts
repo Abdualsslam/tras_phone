@@ -55,28 +55,16 @@ export interface ApiResponse<T = any> {
 export interface ErrorDetail {
     field?: string;
     message: string;
-    code?: string;
 }
 
 export interface ResponseMeta {
-    /**
-     * Pagination metadata
-     */
-    pagination?: PaginationMeta;
-
-    /**
-     * Additional metadata
-     */
+    pagination?: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
     [key: string]: any;
-}
-
-export interface PaginationMeta {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
 }
 
 /**
@@ -206,23 +194,33 @@ export class ResponseBuilder {
     /**
      * Build not found response
      */
-    static notFound(
-        message: string = 'Resource not found',
-        messageAr?: string,
-    ): ApiResponse {
+    static notFound(message: string = 'Resource not found'): ApiResponse {
         return {
             status: 'error',
             statusCode: 404,
             message,
-            messageAr: messageAr || 'المورد غير موجود',
+            messageAr: 'المورد غير موجود',
             timestamp: new Date().toISOString(),
         };
     }
 
     /**
-     * Build server error response
+     * Build conflict response
      */
-    static serverError(
+    static conflict(message: string = 'Conflict'): ApiResponse {
+        return {
+            status: 'error',
+            statusCode: 409,
+            message,
+            messageAr: 'تعارض',
+            timestamp: new Date().toISOString(),
+        };
+    }
+
+    /**
+     * Build internal server error response
+     */
+    static internalServerError(
         message: string = 'Internal server error',
     ): ApiResponse {
         return {
@@ -234,24 +232,6 @@ export class ResponseBuilder {
         };
     }
 
-    /**
-     * Build paginated response
-     */
-    static paginated<T>(
-        data: T[],
-        pagination: PaginationMeta,
-        message: string = 'Data retrieved successfully',
-    ): ApiResponse<T[]> {
-        return {
-            status: 'success',
-            statusCode: 200,
-            message,
-            messageAr: 'تم استرجاع البيانات بنجاح',
-            data,
-            meta: { pagination },
-            timestamp: new Date().toISOString(),
-        };
-    }
 
     /**
      * Simple Arabic translation helper
@@ -268,7 +248,23 @@ export class ResponseBuilder {
             'Resource not found': 'المورد غير موجود',
             'Internal server error': 'خطأ في الخادم الداخلي',
             'Data retrieved successfully': 'تم استرجاع البيانات بنجاح',
+            
+            // Authentication error messages
+            'Invalid credentials': 'بيانات الدخول غير صحيحة. الحالة: غير مفعل أو بيانات خاطئة',
+            'Your account is under review. Please wait for activation': 'حسابك قيد المراجعة. الحالة: قيد المراجعة - يرجى انتظار التفعيل',
+            'Your account is not active. Please verify your account or contact support': 'حسابك غير مفعل. الحالة: غير مفعل - يرجى التحقق من حسابك أو الاتصال بالدعم',
+            'Your account has been suspended': 'تم تعليق حسابك. الحالة: معطل',
+            'Your account has been deleted': 'تم حذف حسابك. الحالة: محذوف',
+            'Your account is not active': 'حسابك غير مفعل. الحالة: غير مفعل',
+            'User not found': 'المستخدم غير موجود',
+            'Account is locked': 'الحساب مقفل',
         };
+
+        // Handle dynamic messages like "Account is locked. Try again in X minutes"
+        if (message.startsWith('Account is locked. Try again in')) {
+            const minutes = message.match(/\d+/)?.[0] || '';
+            return `الحساب مقفل. يرجى المحاولة مرة أخرى بعد ${minutes} دقيقة`;
+        }
 
         return translations[message] || message;
     }
