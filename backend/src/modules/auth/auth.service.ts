@@ -138,6 +138,21 @@ export class AuthService {
       throw new UnauthorizedException('Your account has been deleted');
     }
 
+    // Check if account is active (must be active to login)
+    if (user.status !== 'active') {
+      await this.logLoginAttempt({
+        identifier: phone,
+        identifierType: 'phone',
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        status: 'blocked',
+        failureReason: `Account status is ${user.status}`,
+      });
+      throw new UnauthorizedException(
+        'Your account is not active. Please verify your account or contact support',
+      );
+    }
+
     // Check if account is locked
     if (user.lockedUntil && user.lockedUntil > new Date()) {
       const minutesLeft = Math.ceil(
@@ -236,6 +251,13 @@ export class AuthService {
       throw new UnauthorizedException('Your account has been deleted');
     }
 
+    // Check if account is active (must be active to login)
+    if (user.status !== 'active') {
+      throw new UnauthorizedException(
+        'Your account is not active. Please verify your account or contact support',
+      );
+    }
+
     // Check if account is locked
     if (user.lockedUntil && user.lockedUntil > new Date()) {
       const minutesLeft = Math.ceil(
@@ -288,6 +310,11 @@ export class AuthService {
 
       if (!user) {
         throw new UnauthorizedException('User not found');
+      }
+
+      // Check if account is active before refreshing token
+      if (user.status !== 'active') {
+        throw new UnauthorizedException('Your account is not active');
       }
 
       const tokens = await this.generateTokens(user);
@@ -358,12 +385,21 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_SECRET', 'your-super-secret-jwt-key'),
+        secret: this.configService.get<string>(
+          'JWT_SECRET',
+          'your-super-secret-jwt-key',
+        ),
         expiresIn: this.configService.get<string>('JWT_EXPIRATION', '7d'),
       }),
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET', 'your-super-secret-refresh-key'),
-        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION', '30d'),
+        secret: this.configService.get<string>(
+          'JWT_REFRESH_SECRET',
+          'your-super-secret-refresh-key',
+        ),
+        expiresIn: this.configService.get<string>(
+          'JWT_REFRESH_EXPIRATION',
+          '30d',
+        ),
       }),
     ]);
 
