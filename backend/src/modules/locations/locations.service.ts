@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Country, CountryDocument } from './schemas/country.schema';
 import { City, CityDocument } from './schemas/city.schema';
 import { Market, MarketDocument } from './schemas/market.schema';
@@ -44,21 +44,25 @@ export class LocationsService {
         const query: any = { isActive: true };
 
         if (countryId) {
-            query.countryId = countryId;
+            // دعم كلا الحقلين للتوافق مع البيانات القديمة والجديدة
+            // البيانات الحالية تستخدم 'country' (من settings schema)
+            // البيانات القديمة قد تستخدم 'countryId' (من locations schema)
+            query.$or = [
+                { country: new Types.ObjectId(countryId) },
+                { countryId: new Types.ObjectId(countryId) },
+            ];
         }
 
         return this.cityModel
             .find(query)
-            .populate('countryId', 'name nameAr')
-            .populate('shippingZoneId', 'name nameAr baseCost')
-            .sort({ displayOrder: 1, name: 1 });
+            .populate('country', 'nameAr nameEn code')
+            .sort({ sortOrder: 1, displayOrder: 1, nameEn: 1, name: 1 }); // دعم كلا الحقلين
     }
 
     async findCityById(id: string): Promise<CityDocument | null> {
         return this.cityModel
             .findById(id)
-            .populate('countryId')
-            .populate('shippingZoneId');
+            .populate('country', 'nameAr nameEn code');
     }
 
     // ═════════════════════════════════════
