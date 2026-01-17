@@ -68,12 +68,14 @@ class AuthResponse {
   final String accessToken;
   final String refreshToken;
   final String expiresIn;
+  final String? sessionId;  // موجود في login فقط
 
   AuthResponse({
     required this.user,
     required this.accessToken,
     required this.refreshToken,
     required this.expiresIn,
+    this.sessionId,
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
@@ -82,6 +84,7 @@ class AuthResponse {
       accessToken: json['accessToken'],
       refreshToken: json['refreshToken'],
       expiresIn: json['expiresIn'],
+      sessionId: json['sessionId'],
     );
   }
 }
@@ -144,12 +147,19 @@ class TokenResponse {
     "user": { /* User object */ },
     "accessToken": "eyJhbGciOiJIUzI1NiIs...",
     "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
-    "expiresIn": "15m"
+    "expiresIn": "15m"  // أو "7d" حسب إعدادات JWT_EXPIRATION
   },
   "message": "User registered successfully",
   "messageAr": "تم تسجيل المستخدم بنجاح"
 }
 ```
+
+> 📝 **ملاحظة:** يمكن إرسال بيانات ملف العميل الاختيارية عند التسجيل:
+> - `responsiblePersonName`: اسم الشخص المسؤول
+> - `shopName`: اسم المتجر
+> - `shopNameAr`: اسم المتجر بالعربية
+> - `cityId`: معرف المدينة (MongoDB ObjectId)
+> - `businessType`: نوع العمل ('shop' | 'technician' | 'distributor' | 'other')
 
 **Flutter Code:**
 ```dart
@@ -186,8 +196,10 @@ class AuthService {
 | Status | Message | السبب |
 |--------|---------|-------|
 | 409 | User with this phone or email already exists | المستخدم مسجل مسبقاً |
-| 400 | Phone number must be valid | تنسيق الهاتف خاطئ |
-| 400 | Password must contain... | كلمة المرور ضعيفة |
+| 400 | Phone number must be a valid international format | تنسيق الهاتف خاطئ (يجب أن يكون بصيغة دولية مثل +966501234567) |
+| 400 | Password must contain at least one uppercase letter, one lowercase letter, one number and one special character | كلمة المرور ضعيفة (يجب أن تحتوي على حرف كبير وصغير ورقم ورمز خاص) |
+| 400 | Password must be at least 8 characters | كلمة المرور قصيرة (أقل من 8 أحرف) |
+| 400 | Default price level not found. Please contact support. | لم يتم العثور على مستوى السعر الافتراضي (عند إنشاء ملف عميل) |
 
 ---
 
@@ -211,7 +223,8 @@ class AuthService {
     "user": { /* User object */ },
     "accessToken": "eyJhbGciOiJIUzI1NiIs...",
     "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
-    "expiresIn": "15m"
+    "expiresIn": "15m",  // أو "7d" حسب إعدادات JWT_EXPIRATION
+    "sessionId": "507f1f77bcf86cd799439011"  // معرف الجلسة
   },
   "message": "Login successful",
   "messageAr": "تم تسجيل الدخول بنجاح"
@@ -232,8 +245,12 @@ Future<AuthResponse> login({
     
     if (response.data['success']) {
       final authResponse = AuthResponse.fromJson(response.data['data']);
-      // حفظ الـ tokens
-      await _saveTokens(authResponse.accessToken, authResponse.refreshToken);
+      // حفظ الـ tokens والـ sessionId
+      await _saveTokens(
+        authResponse.accessToken, 
+        authResponse.refreshToken,
+        sessionId: authResponse.sessionId,
+      );
       return authResponse;
     }
     throw Exception(response.data['messageAr'] ?? response.data['message']);
@@ -248,7 +265,10 @@ Future<AuthResponse> login({
 |--------|---------|-------|
 | 401 | Invalid credentials | بيانات خاطئة |
 | 401 | Your account has been suspended | الحساب معلق |
-| 401 | Account is locked. Try again in X minutes | تم قفل الحساب (5 محاولات فاشلة) |
+| 401 | Your account has been deleted | الحساب محذوف |
+| 401 | Your account is under review. Please wait for activation | الحساب قيد المراجعة (pending) |
+| 401 | Your account is not active. Please verify your account or contact support | الحساب غير نشط |
+| 401 | Account is locked. Try again in X minutes | تم قفل الحساب (5 محاولات فاشلة لمدة 30 دقيقة) |
 
 ---
 
@@ -270,12 +290,14 @@ Future<AuthResponse> login({
   "data": {
     "accessToken": "eyJhbGciOiJIUzI1NiIs...",
     "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
-    "expiresIn": "15m"
+    "expiresIn": "15m"  // أو "7d" حسب إعدادات JWT_EXPIRATION
   },
   "message": "Token refreshed successfully",
   "messageAr": "تم تحديث الرمز بنجاح"
 }
 ```
+
+> ⚠️ **ملاحظة:** عند تحديث الـ token، يتم التحقق من أن الحساب نشط (active) قبل إصدار tokens جديدة.
 
 **Flutter Code:**
 ```dart
@@ -316,13 +338,18 @@ Future<TokenResponse> refreshToken(String refreshToken) async {
 {
   "success": true,
   "data": {
-    "expiresAt": "2024-01-15T10:30:00.000Z",
-    "retryAfter": 60  // ثواني قبل إعادة الإرسال
+    "otpId": "507f1f77bcf86cd799439011",  // معرف OTP (للاستخدام الداخلي)
+    "expiresIn": 300  // ثواني (5 دقائق) - مدة صلاحية OTP
   },
   "message": "OTP sent successfully",
   "messageAr": "تم إرسال رمز التحقق بنجاح"
 }
 ```
+
+> ⚠️ **ملاحظات مهمة:**
+> - OTP صالح لمدة 5 دقائق (300 ثانية)
+> - لا يمكن إعادة إرسال OTP قبل مرور 60 ثانية من الإرسال السابق
+> - الحد الأقصى لمحاولات التحقق من OTP هو 3 محاولات
 
 **Flutter Code:**
 ```dart
@@ -407,6 +434,13 @@ Future<bool> verifyOtp({
 }
 ```
 
+**Errors المحتملة:**
+| Status | Message | السبب |
+|--------|---------|-------|
+| 400 | Invalid or expired OTP | OTP غير صحيح أو منتهي الصلاحية |
+| 400 | Maximum OTP verification attempts exceeded | تم تجاوز الحد الأقصى لمحاولات التحقق (3 محاولات) |
+| 400 | Invalid OTP. X attempts remaining | OTP خاطئ (X = عدد المحاولات المتبقية) |
+
 ---
 
 ### 6️⃣ نسيت كلمة المرور (Forgot Password)
@@ -431,7 +465,10 @@ Future<bool> verifyOtp({
 ```dart
 {
   "success": true,
-  "data": { "expiresAt": "...", "retryAfter": 60 },
+  "data": {
+    "message": "Password reset OTP sent successfully",
+    "expiresIn": 300  // ثواني (5 دقائق) - مدة صلاحية OTP
+  },
   "message": "Password reset OTP sent",
   "messageAr": "تم إرسال رمز إعادة تعيين كلمة المرور"
 }
@@ -508,13 +545,13 @@ class PasswordResetFlow {
     final response = await _dio.post('/auth/verify-reset-otp', data: {
       'phone': phone,
       'otp': otp,
-      'purpose': 'password_reset',
+      'purpose': 'password_reset',  // ⚠️ مطلوب
     });
     
     if (response.data['success']) {
       _resetToken = response.data['data']['resetToken'];
     } else {
-      throw Exception(response.data['messageAr']);
+      throw Exception(response.data['messageAr'] ?? response.data['message']);
     }
   }
   
@@ -585,6 +622,13 @@ Future<void> changePassword({
 }
 ```
 
+**Errors المحتملة:**
+| Status | Message | السبب |
+|--------|---------|-------|
+| 400 | Current password is incorrect | كلمة المرور الحالية خاطئة |
+| 400 | New password must be different from current password | كلمة المرور الجديدة يجب أن تكون مختلفة عن الحالية |
+| 400 | Password must contain... | كلمة المرور الجديدة لا تلبي الشروط |
+
 ---
 
 ### 8️⃣ جلب الملف الشخصي (Get Profile)
@@ -618,6 +662,11 @@ Future<User> getProfile() async {
   }
 }
 ```
+
+> 📝 **ملاحظة:** إذا كان المستخدم من نوع `admin`، ستحتوي البيانات الإضافية على:
+> - `isSuperAdmin`: boolean
+> - `adminUserId`: string
+> - `fullName`: string
 
 ---
 
@@ -751,6 +800,121 @@ class AuthProvider extends ChangeNotifier {
 | PATCH | `/auth/change-password` | ✅ | تغيير كلمة المرور |
 | GET | `/auth/me` | ✅ | جلب الملف الشخصي |
 | POST | `/auth/logout` | ✅ | تسجيل خروج |
+| POST | `/auth/fcm-token` | ✅ | تحديث FCM token للإشعارات |
+| GET | `/auth/sessions` | ✅ | جلب جميع الجلسات النشطة |
+| DELETE | `/auth/sessions/:id` | ✅ | حذف جلسة محددة |
+
+---
+
+---
+
+## 🔔 FCM Token Management
+
+### تحديث FCM Token
+
+**Endpoint:** `POST /auth/fcm-token`
+
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**Request Body:**
+```dart
+{
+  "fcmToken": "dGhpcyBpcyBhIGZha2UgZmNtIHRva2Vu...",
+  "deviceInfo": {  // اختياري
+    "platform": "android",
+    "version": "1.0.0"
+  }
+}
+```
+
+**Response (200 OK):**
+```dart
+{
+  "success": true,
+  "data": {
+    "message": "FCM token updated successfully"
+  },
+  "message": "FCM token updated successfully",
+  "messageAr": "تم تحديث رمز الإشعارات بنجاح"
+}
+```
+
+---
+
+## 📱 Sessions Management
+
+### جلب الجلسات النشطة
+
+**Endpoint:** `GET /auth/sessions`
+
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**Response (200 OK):**
+```dart
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "userId": "507f1f77bcf86cd799439012",
+      "tokenId": "1234567890-abc123",
+      "ipAddress": "192.168.1.1",
+      "userAgent": "Mozilla/5.0...",
+      "expiresAt": "2024-02-15T10:30:00.000Z",
+      "lastActivityAt": "2024-01-15T10:30:00.000Z",
+      "createdAt": "2024-01-15T10:00:00.000Z"
+    }
+  ],
+  "message": "Sessions retrieved successfully",
+  "messageAr": "تم استرجاع الجلسات بنجاح"
+}
+```
+
+### حذف جلسة محددة
+
+**Endpoint:** `DELETE /auth/sessions/:id`
+
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**Response (200 OK):**
+```dart
+{
+  "success": true,
+  "data": {
+    "message": "Session deleted successfully"
+  },
+  "message": "Session deleted successfully",
+  "messageAr": "تم حذف الجلسة بنجاح"
+}
+```
+
+---
+
+## 📝 ملاحظات إضافية
+
+### حالة الحساب (Account Status)
+
+الحساب يمكن أن يكون في إحدى الحالات التالية:
+- `pending`: قيد المراجعة (لا يمكن تسجيل الدخول)
+- `active`: نشط (يمكن تسجيل الدخول)
+- `suspended`: معلق (لا يمكن تسجيل الدخول)
+- `deleted`: محذوف (لا يمكن تسجيل الدخول)
+
+### قفل الحساب (Account Locking)
+
+- بعد 5 محاولات تسجيل دخول فاشلة، يتم قفل الحساب لمدة 30 دقيقة
+- عند تسجيل الدخول بنجاح، يتم إعادة تعيين عدد المحاولات الفاشلة
+
+### صلاحية Tokens
+
+- **Access Token**: افتراضياً `15m` (15 دقيقة) أو `7d` (7 أيام) حسب إعدادات `JWT_EXPIRATION`
+- **Refresh Token**: افتراضياً `30d` (30 يوم) حسب إعدادات `JWT_REFRESH_EXPIRATION`
+
+### OTP
+
+- مدة صلاحية OTP: 5 دقائق (300 ثانية)
+- الحد الأقصى لمحاولات التحقق: 3 محاولات
+- لا يمكن إعادة إرسال OTP قبل مرور 60 ثانية من الإرسال السابق
 
 ---
 
