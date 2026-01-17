@@ -63,6 +63,8 @@ export interface ResponseMeta {
         limit: number;
         total: number;
         totalPages: number;
+        hasNextPage?: boolean;
+        hasPreviousPage?: boolean;
     };
     [key: string]: any;
 }
