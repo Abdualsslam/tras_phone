@@ -206,6 +206,21 @@ export class AuthService {
       throw new UnauthorizedException('Your account has been deleted');
     }
 
+    // Check if account is pending (under review)
+    if (user.status === 'pending') {
+      await this.logLoginAttempt({
+        identifier: phone,
+        identifierType: 'phone',
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        status: 'blocked',
+        failureReason: 'Account pending review',
+      });
+      throw new UnauthorizedException(
+        'Your account is under review. Please wait for activation',
+      );
+    }
+
     // Check if account is active (must be active to login)
     if (user.status !== 'active') {
       await this.logLoginAttempt({
@@ -319,6 +334,13 @@ export class AuthService {
       throw new UnauthorizedException('Your account has been deleted');
     }
 
+    // Check if account is pending (under review)
+    if (user.status === 'pending') {
+      throw new UnauthorizedException(
+        'Your account is under review. Please wait for activation',
+      );
+    }
+
     // Check if account is active (must be active to login)
     if (user.status !== 'active') {
       throw new UnauthorizedException(
@@ -389,6 +411,11 @@ export class AuthService {
 
       return tokens;
     } catch (error) {
+      // If it's already an UnauthorizedException, rethrow it as-is
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      // Otherwise, it's an invalid token format/verification error
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
