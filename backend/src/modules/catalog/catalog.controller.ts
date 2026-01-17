@@ -63,14 +63,23 @@ export class CatalogController {
     type: Boolean,
     description: 'Filter featured brands only',
   })
+  @ApiQuery({
+    name: 'includeInactive',
+    required: false,
+    type: Boolean,
+    description: 'Include inactive brands in results (admin only)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Brands retrieved successfully',
     type: ApiResponseDto,
   })
   @ApiPublicErrorResponses()
-  async getBrands(@Query('featured') featured?: boolean) {
-    const brands = await this.catalogService.findAllBrands({ featured });
+  async getBrands(
+    @Query('featured') featured?: boolean,
+    @Query('includeInactive') includeInactive?: boolean,
+  ) {
+    const brands = await this.catalogService.findAllBrands({ featured, includeInactive });
     return ResponseBuilder.success(
       brands,
       'Brands retrieved',

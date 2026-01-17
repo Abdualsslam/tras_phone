@@ -84,7 +84,7 @@ function BrandsTab() {
 
   const { data: brands, isLoading } = useQuery({
     queryKey: ["brands"],
-    queryFn: () => catalogApi.getBrands(),
+    queryFn: () => catalogApi.getBrands(undefined, true), // includeInactive = true to show all brands
   });
 
   const createMutation = useMutation({
