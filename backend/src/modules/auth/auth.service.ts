@@ -33,7 +33,6 @@ import {
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
-import { SocialLoginDto } from './dto/social-login.dto';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -98,7 +97,7 @@ export class AuthService {
       password: hashedPassword,
       userType,
       referralCode,
-      status: 'pending', // Will be activated after OTP verification
+      status: 'pending', // Will be activated after admin approval
     });
 
     // If customer type and customer profile data is provided, create customer profile
@@ -638,39 +637,6 @@ export class AuthService {
   }
 
   /**
-   * Social login
-   */
-  async socialLogin(
-    _socialLoginDto: SocialLoginDto,
-    provider: 'google' | 'apple',
-    _ipAddress?: string,
-    _userAgent?: string,
-  ) {
-    console.log('socialLoginDto', _socialLoginDto);
-    console.log('provider', provider);
-    console.log('ipAddress', _ipAddress);
-    console.log('userAgent', _userAgent);
-    // TODO: Implement actual social provider verification
-    // This is a placeholder implementation
-    if (provider === 'google') {
-      // Verify Google token and extract user info
-      // For now, we'll throw an error indicating it needs implementation
-      throw new BadRequestException(
-        'Google login is not yet implemented. Please use phone login.',
-      );
-    } else if (provider === 'apple') {
-      // Verify Apple token and extract user info
-      // For now, we'll throw an error indicating it needs implementation
-      throw new BadRequestException(
-        'Apple login is not yet implemented. Please use phone login.',
-      );
-    } else {
-      // This will never be reached, but satisfies TypeScript's control flow analysis
-      throw new BadRequestException('Invalid provider');
-    }
-  }
-
-  /**
    * Create user session
    */
   private async createSession(
@@ -714,5 +680,72 @@ export class AuthService {
     failureReason?: string;
   }) {
     await this.loginAttemptModel.create(data);
+  }
+
+  /**
+   * Change password (for authenticated users)
+   */
+  async changePassword(
+    userId: string,
+    oldPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    // Find user with password
+    const user = await this.userModel.findById(userId).select('+password');
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Verify old password
+    const isPasswordValid = await this.comparePassword(
+      oldPassword,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // Check if new password is same as old
+    const isSamePassword = await this.comparePassword(
+      newPassword,
+      user.password,
+    );
+
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password must be different from current password',
+      );
+    }
+
+    // Hash new password
+    const hashedPassword = await this.hashPassword(newPassword);
+
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
+  }
+
+  /**
+   * Reset user password by admin (for admin panel)
+   */
+  async resetUserPasswordByAdmin(
+    userId: string,
+    newPassword: string,
+  ): Promise<void> {
+    // Find user
+    const user = await this.userModel.findById(userId);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Hash new password
+    const hashedPassword = await this.hashPassword(newPassword);
+
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
   }
 }

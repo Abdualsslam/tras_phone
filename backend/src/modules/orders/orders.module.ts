@@ -23,6 +23,7 @@ import {
   AdminOrdersController,
 } from './orders.controller';
 import { AuthModule } from '@modules/auth/auth.module';
+import { PromotionsModule } from '@modules/promotions/promotions.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { AuthModule } from '@modules/auth/auth.module';
       inject: [ConfigService],
     }),
     AuthModule,
+    PromotionsModule,
   ],
   controllers: [
     CartController,

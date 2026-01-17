@@ -22,19 +22,12 @@ import {
 import { ThrottlerGuard } from '@nestjs/throttler';
 
 import { AuthService } from './auth.service';
-import { OtpService } from './otp.service';
-import { PasswordResetService } from './password-reset.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { SendOtpDto } from './dto/send-otp.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
-import { SocialLoginDto } from './dto/social-login.dto';
 import { Public } from '@decorators/public.decorator';
 import { CurrentUser } from '@decorators/current-user.decorator';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
@@ -57,8 +50,6 @@ import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly otpService: OtpService,
-    private readonly passwordResetService: PasswordResetService,
   ) {}
 
   // ═════════════════════════════════════
@@ -71,7 +62,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Register a new user',
     description:
-      'Register a new user account. Requires phone verification via OTP. User can be either customer or admin type.',
+      'Register a new user account. User can be either customer or admin type. Account will be activated after admin approval.',
   })
   @ApiResponse({
     status: 201,
@@ -168,148 +159,9 @@ export class AuthController {
     );
   }
 
-  // ═════════════════════════════════════
-  // 📱 OTP Verification
-  // ═════════════════════════════════════
-
-  @Public()
-  @Post('send-otp')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Send OTP to phone number',
-    description:
-      'Send a one-time password (OTP) to the specified phone number for verification purposes (registration, login, password reset, etc.)',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'OTP sent successfully',
-    type: ApiResponseDto,
-  })
-  @ApiPublicErrorResponses()
-  async sendOtp(@Body() sendOtpDto: SendOtpDto) {
-    const result = await this.otpService.sendOtp(
-      sendOtpDto.phone,
-      sendOtpDto.purpose,
-    );
-
-    return ResponseBuilder.success(
-      result,
-      'OTP sent successfully',
-      'تم إرسال رمز التحقق بنجاح',
-    );
-  }
-
-  @Public()
-  @Post('verify-otp')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Verify OTP code',
-    description:
-      'Verify the OTP code sent to the phone number. Must match the purpose for which OTP was sent.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'OTP verified successfully',
-    type: ApiResponseDto,
-  })
-  @ApiPublicErrorResponses()
-  async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-    await this.otpService.verifyOtp(
-      verifyOtpDto.phone,
-      verifyOtpDto.otp,
-      verifyOtpDto.purpose,
-    );
-
-    return ResponseBuilder.success(
-      null,
-      'OTP verified successfully',
-      'تم التحقق من الرمز بنجاح',
-    );
-  }
-
   // ═══════════════════════════════════
   // 🔑 Password Management
   // ═══════════════════════════════════
-
-  @Public()
-  @Post('forgot-password')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Request password reset OTP',
-    description:
-      "Request a password reset OTP to be sent to the user's phone number",
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Password reset OTP sent',
-    type: ApiResponseDto,
-  })
-  @ApiPublicErrorResponses()
-  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    const result = await this.passwordResetService.requestPasswordReset(
-      forgotPasswordDto.phone,
-    );
-
-    return ResponseBuilder.success(
-      result,
-      'Password reset OTP sent',
-      'تم إرسال رمز إعادة تعيين كلمة المرور',
-    );
-  }
-
-  @Public()
-  @Post('verify-reset-otp')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Verify password reset OTP and get token',
-    description:
-      'Verify the OTP code for password reset and receive a reset token to use in the reset-password endpoint',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'OTP verified. Use the reset token to set new password.',
-    type: ApiResponseDto,
-  })
-  @ApiPublicErrorResponses()
-  async verifyResetOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-    const result = await this.passwordResetService.verifyResetOtp(
-      verifyOtpDto.phone,
-      verifyOtpDto.otp,
-    );
-
-    return ResponseBuilder.success(
-      result,
-      'OTP verified. Use the reset token to set new password.',
-      'تم التحقق. استخدم الرمز لتعيين كلمة مرور جديدة.',
-    );
-  }
-
-  @Public()
-  @Post('reset-password')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Reset password using reset token',
-    description:
-      'Reset user password using the reset token obtained from verify-reset-otp endpoint',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Password reset successfully',
-    type: ApiResponseDto,
-  })
-  @ApiPublicErrorResponses()
-  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    await this.passwordResetService.resetPassword(
-      resetPasswordDto.resetToken,
-      resetPasswordDto.newPassword,
-    );
-
-    return ResponseBuilder.success(
-      null,
-      'Password reset successfully',
-      'تم إعادة تعيين كلمة المرور بنجاح',
-    );
-  }
 
   @Patch('change-password')
   @UseGuards(JwtAuthGuard)
@@ -330,7 +182,7 @@ export class AuthController {
     @CurrentUser() user: any,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    await this.passwordResetService.changePassword(
+    await this.authService.changePassword(
       user.id,
       changePasswordDto.oldPassword,
       changePasswordDto.newPassword,
@@ -496,46 +348,36 @@ export class AuthController {
   }
 
   // ═════════════════════════════════════
-  // Social Login
+  // 🔐 Admin Password Reset
   // ═════════════════════════════════════
 
-  @Public()
-  @Post('social/:provider')
+  @Post('admin/reset-password')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Social login',
-    description: 'Login using Google or Apple social authentication',
-  })
-  @ApiParam({
-    name: 'provider',
-    enum: ['google', 'apple'],
-    description: 'Social provider',
+    summary: 'Reset user password by admin',
+    description:
+      'Reset password for any user account. This endpoint is only accessible to admin users and allows direct password reset without OTP verification.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Social login successful',
+    description: 'Password reset successfully',
     type: ApiResponseDto,
   })
-  @ApiPublicErrorResponses()
-  async socialLogin(
-    @Param('provider') provider: 'google' | 'apple',
-    @Body() socialLoginDto: SocialLoginDto,
-    @Req() req: Request,
+  @ApiAuthErrorResponses()
+  async resetUserPasswordByAdmin(
+    @Body() body: { userId: string; newPassword: string },
   ) {
-    const ipAddress =
-      req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown';
-    const userAgent = req.headers['user-agent'] || 'unknown';
-    const result = await this.authService.socialLogin(
-      socialLoginDto,
-      provider,
-      ipAddress,
-      userAgent,
+    await this.authService.resetUserPasswordByAdmin(
+      body.userId,
+      body.newPassword,
     );
 
     return ResponseBuilder.success(
-      result,
-      'Social login successful',
-      'تم تسجيل الدخول بنجاح',
+      null,
+      'Password reset successfully',
+      'تم إعادة تعيين كلمة المرور بنجاح',
     );
   }
 }

@@ -20,6 +20,8 @@ import {
   BankAccountDocument,
 } from './schemas/bank-account.schema';
 import { CartService } from './cart.service';
+import { CouponsService } from '@modules/promotions/coupons.service';
+import { PromotionsService } from '@modules/promotions/promotions.service';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -42,6 +44,8 @@ export class OrdersService {
     @InjectModel(BankAccount.name)
     private bankAccountModel: Model<BankAccountDocument>,
     private cartService: CartService,
+    private couponsService: CouponsService,
+    private promotionsService: PromotionsService,
   ) {}
 
   /**
@@ -103,6 +107,44 @@ export class OrdersService {
 
     // Convert cart
     await this.cartService.convertCart(customerId, order._id.toString());
+
+    // Record coupon usage if applied
+    if (order.couponId && order.couponDiscount > 0) {
+      await this.couponsService.recordUsage({
+        couponId: order.couponId.toString(),
+        customerId: customerId,
+        orderId: order._id.toString(),
+        discountAmount: order.couponDiscount,
+        orderAmount: order.subtotal,
+      });
+    }
+
+    // Record promotion usage if applied
+    if (order.appliedPromotions && order.appliedPromotions.length > 0) {
+      // Calculate promotion discount (discount minus coupon discount)
+      // Note: Promotions might be applied at item level, so we use 0 if no separate promotion discount
+      // If there's a general promotion discount, it would be: order.discount - order.couponDiscount
+      const totalPromotionDiscount = Math.max(
+        0,
+        order.discount - order.couponDiscount,
+      );
+      const promotionDiscountPerPromo =
+        totalPromotionDiscount > 0
+          ? totalPromotionDiscount / order.appliedPromotions.length
+          : 0;
+
+      await Promise.all(
+        order.appliedPromotions.map((promotionId) =>
+          this.promotionsService.recordUsage({
+            promotionId: promotionId.toString(),
+            customerId: customerId,
+            orderId: order._id.toString(),
+            discountAmount: promotionDiscountPerPromo,
+            orderAmount: order.subtotal,
+          }),
+        ),
+      );
+    }
 
     // Create invoice
     await this.createInvoice(order);
@@ -663,7 +705,11 @@ export class OrdersService {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const nextMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      1,
+    );
 
     const [
       total,
