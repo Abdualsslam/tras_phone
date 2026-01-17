@@ -57,15 +57,25 @@ async function seedAdmin() {
       position: 'Super Administrator',
     };
 
-    // Check if admin already exists
+    // Check if admin already exists (by user email/phone or employee code)
     const existingUser = await userModel.findOne({
       $or: [{ phone: adminData.phone }, { email: adminData.email }],
     });
 
-    if (existingUser) {
+    const existingAdminUser = await adminUserModel.findOne({
+      employeeCode: adminData.employeeCode,
+    });
+
+    if (existingUser || existingAdminUser) {
       console.log('⚠️  Admin user already exists:');
-      console.log(`   Email: ${existingUser.email}`);
-      console.log(`   Phone: ${existingUser.phone}`);
+      if (existingUser) {
+        console.log(`   Email: ${existingUser.email}`);
+        console.log(`   Phone: ${existingUser.phone}`);
+      }
+      if (existingAdminUser) {
+        console.log(`   Employee Code: ${existingAdminUser.employeeCode}`);
+        console.log(`   Full Name: ${existingAdminUser.fullName}`);
+      }
       console.log('\n   Use these credentials to login.');
       await app.close();
       return;
@@ -112,8 +122,21 @@ async function seedAdmin() {
     console.log(`🔑 Password: ${adminData.password}`);
     console.log(`👤 Name:     ${adminData.fullName}`);
     console.log('════════════════════════════════════════\n');
-  } catch (error) {
-    console.error('❌ Error seeding admin:', error);
+  } catch (error: any) {
+    console.error('❌ Error seeding admin:', error.message);
+
+    // Handle duplicate key errors specifically
+    if (error.code === 11000) {
+      console.error('\n💡 Tip: Admin user or employee code already exists.');
+      console.error(
+        '   If you want to recreate it, delete the existing record first.',
+      );
+      console.error(
+        `   Key that caused conflict: ${error.keyValue ? JSON.stringify(error.keyValue) : 'unknown'}`,
+      );
+    } else {
+      console.error('Full error:', error);
+    }
   } finally {
     await app.close();
   }

@@ -12,6 +12,9 @@ import '../../../../core/widgets/widgets.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../locations/presentation/cubit/locations_cubit.dart';
+import '../../../locations/presentation/cubit/locations_state.dart';
+import '../../../locations/data/models/city_model.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -28,15 +31,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _shopNameController = TextEditingController();
   bool _isLoading = false;
-  int _selectedCityId = 1;
+  CityModel? _selectedCity;
 
-  final List<Map<String, dynamic>> _cities = [
-    {'id': 1, 'name': 'الرياض'},
-    {'id': 2, 'name': 'جدة'},
-    {'id': 3, 'name': 'الدمام'},
-    {'id': 4, 'name': 'مكة المكرمة'},
-    {'id': 5, 'name': 'المدينة المنورة'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Load cities when screen is initialized
+    context.read<LocationsCubit>().loadCities();
+  }
 
   @override
   void dispose() {
@@ -50,12 +52,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _handleRegister() {
     if (_formKey.currentState?.validate() ?? false) {
+      if (_selectedCity == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('يرجى اختيار المدينة'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
       context.read<AuthCubit>().register(
         phone: _phoneController.text.trim(),
         password: _passwordController.text,
         responsiblePersonName: _nameController.text.trim(),
         shopName: _shopNameController.text.trim(),
-        cityId: _selectedCityId.toString(), // Convert to string for API
+        cityId: _selectedCity!.id, // Use MongoDB ObjectId from API
         businessType: 'shop', // Default business type
         // email: optional email field would go here
       );
@@ -197,31 +208,75 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     SizedBox(height: 8.h),
-                    DropdownButtonFormField<int>(
-                      value: _selectedCityId,
-                      decoration: InputDecoration(
-                        prefixIcon: Icon(
-                          Iconsax.location,
-                          size: 20.sp,
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                        ),
-                      ),
-                      alignment: AlignmentDirectional.centerStart,
-                      items: _cities.map((city) {
-                        return DropdownMenuItem<int>(
-                          value: city['id'] as int,
+                    BlocBuilder<LocationsCubit, LocationsState>(
+                      builder: (context, locationsState) {
+                        if (locationsState.status == LocationsStatus.loading &&
+                            locationsState.cities.isEmpty) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+
+                        if (locationsState.cities.isEmpty) {
+                          return Text(
+                            'لا توجد مدن متاحة',
+                            textAlign: TextAlign.right,
+                            textDirection: TextDirection.rtl,
+                            style: TextStyle(
+                              color: AppColors.error,
+                              fontSize: 14.sp,
+                            ),
+                          );
+                        }
+
+                        return DropdownButtonFormField<CityModel>(
+                          value: _selectedCity,
+                          decoration: InputDecoration(
+                            prefixIcon: Icon(
+                              Iconsax.location,
+                              size: 20.sp,
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondaryLight,
+                            ),
+                          ),
                           alignment: AlignmentDirectional.centerStart,
-                          child: Text(
-                            city['name'] as String,
+                          hint: Text(
+                            'اختر المدينة',
                             textDirection: TextDirection.rtl,
                             textAlign: TextAlign.right,
                           ),
+                          items: locationsState.cities.map((city) {
+                            return DropdownMenuItem<CityModel>(
+                              value: city,
+                              alignment: AlignmentDirectional.centerStart,
+                              child: Row(
+                                children: [
+                                  if (city.isCapital)
+                                    Icon(
+                                      Icons.star,
+                                      size: 16.sp,
+                                      color: Colors.amber,
+                                    ),
+                                  if (city.isCapital) SizedBox(width: 8.w),
+                                  Expanded(
+                                    child: Text(
+                                      city.nameAr,
+                                      textDirection: TextDirection.rtl,
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (city) {
+                            setState(() => _selectedCity = city);
+                          },
                         );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() => _selectedCityId = value ?? 1);
                       },
                     ),
                     SizedBox(height: 24.h),
