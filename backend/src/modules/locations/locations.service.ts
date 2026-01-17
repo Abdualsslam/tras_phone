@@ -56,7 +56,6 @@ export class LocationsService {
         return this.cityModel
             .find(query)
             .populate('country', 'nameAr nameEn code')
-            .populate('countryId', 'name nameAr') // للتوافق مع البيانات القديمة
             .populate('shippingZoneId', 'name nameAr baseCost')
             .sort({ sortOrder: 1, displayOrder: 1, nameEn: 1, name: 1 }); // دعم كلا الحقلين
     }
@@ -64,7 +63,7 @@ export class LocationsService {
     async findCityById(id: string): Promise<CityDocument | null> {
         return this.cityModel
             .findById(id)
-            .populate('countryId')
+            .populate('country', 'nameAr nameEn code')
             .populate('shippingZoneId');
     }
 
