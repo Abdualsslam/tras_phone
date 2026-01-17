@@ -116,6 +116,221 @@ class TokenResponse {
 
 ---
 
+## 🏙️ جلب المدن عند التسجيل
+
+عند إنشاء حساب جديد، يجب جلب قائمة المدن المتاحة لعرضها في dropdown/select للمستخدم.
+
+### جلب المدن
+
+**Endpoint:** `GET /locations/cities` 🌐 (Public - لا يحتاج Token)
+
+**Query Parameters (اختياري):**
+- `countryId`: معرف الدولة (لتصفية المدن حسب الدولة)
+
+**Response (200 OK):**
+```dart
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "name": "Riyadh",
+      "nameAr": "الرياض",
+      "countryId": {
+        "_id": "507f1f77bcf86cd799439012",
+        "name": "Saudi Arabia",
+        "nameAr": "المملكة العربية السعودية"
+      },
+      "shippingZoneId": {
+        "_id": "507f1f77bcf86cd799439013",
+        "name": "Central Region",
+        "nameAr": "المنطقة الوسطى"
+      },
+      "latitude": 24.7136,
+      "longitude": 46.6753,
+      "timezone": "Asia/Riyadh",
+      "region": "Central",
+      "regionAr": "الوسطى",
+      "isActive": true,
+      "isCapital": true,
+      "displayOrder": 1
+    }
+  ],
+  "message": "Cities retrieved successfully",
+  "messageAr": "تم استرجاع المدن بنجاح"
+}
+```
+
+### Flutter Implementation
+
+#### 1. استخدام Locations Service
+
+```dart
+import 'package:your_app/features/locations/data/datasources/locations_remote_datasource.dart';
+
+class RegisterScreen extends StatefulWidget {
+  @override
+  _RegisterScreenState createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final LocationsRemoteDataSource _locationsDataSource;
+  List<CityModel> _cities = [];
+  CityModel? _selectedCity;
+  bool _loadingCities = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCities();
+  }
+
+  Future<void> _loadCities() async {
+    setState(() => _loadingCities = true);
+    try {
+      // جلب جميع المدن النشطة
+      final cities = await _locationsDataSource.getCities();
+      setState(() {
+        _cities = cities;
+        _loadingCities = false;
+      });
+    } catch (e) {
+      setState(() => _loadingCities = false);
+      // عرض رسالة خطأ
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل تحميل المدن: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Form(
+        child: Column(
+          children: [
+            // ... حقول أخرى (phone, email, password)
+            
+            // Dropdown للمدن
+            DropdownButtonFormField<CityModel>(
+              decoration: InputDecoration(
+                labelText: 'المدينة',
+                border: OutlineInputBorder(),
+              ),
+              value: _selectedCity,
+              items: _cities.map((city) {
+                return DropdownMenuItem(
+                  value: city,
+                  child: Row(
+                    children: [
+                      if (city.isCapital)
+                        Icon(Icons.star, size: 16, color: Colors.amber),
+                      if (city.isCapital) SizedBox(width: 8),
+                      Text(city.getName('ar')), // أو 'en' حسب اللغة
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (city) {
+                setState(() => _selectedCity = city);
+              },
+              validator: (value) {
+                if (value == null) {
+                  return 'يرجى اختيار المدينة';
+                }
+                return null;
+              },
+            ),
+            
+            // زر التسجيل
+            ElevatedButton(
+              onPressed: _selectedCity != null ? _register : null,
+              child: Text('تسجيل'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _register() async {
+    if (_selectedCity == null) return;
+    
+    // إرسال cityId مع بيانات التسجيل
+    await authService.register(
+      phone: phoneController.text,
+      password: passwordController.text,
+      email: emailController.text,
+      cityId: _selectedCity!.id, // ⚠️ إرسال معرف المدينة
+      // ... باقي الحقول الاختيارية
+    );
+  }
+}
+```
+
+#### 2. استخدام LocationsCubit (Bloc Pattern)
+
+```dart
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:your_app/features/locations/presentation/cubit/locations_cubit.dart';
+import 'package:your_app/features/locations/presentation/widgets/city_selector.dart';
+
+class RegisterScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => LocationsCubit()..loadCities(),
+      child: Scaffold(
+        body: Form(
+          child: Column(
+            children: [
+              // ... حقول أخرى
+              
+              // استخدام CitySelector Widget
+              CitySelector(
+                labelText: 'المدينة',
+                locale: 'ar',
+                onCitySelected: (city) {
+                  // حفظ المدينة المختارة
+                  _selectedCityId = city.id;
+                },
+              ),
+              
+              // ... باقي الحقول
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+#### 3. جلب المدن حسب الدولة (اختياري)
+
+```dart
+// جلب المدن لدولة محددة
+Future<void> _loadCitiesByCountry(String countryId) async {
+  try {
+    final cities = await _locationsDataSource.getCities(countryId: countryId);
+    setState(() => _cities = cities);
+  } catch (e) {
+    // معالجة الخطأ
+  }
+}
+```
+
+> 📝 **ملاحظات:**
+> - Endpoint `/locations/cities` **عام** ولا يحتاج Token
+> - يتم إرجاع المدن النشطة فقط (`isActive: true`)
+> - المدن مرتبة حسب `displayOrder` ثم `name`
+> - يمكن استخدام `isCapital` لعرض نجمة بجانب العاصمة
+> - استخدم `nameAr` للعربية و `name` للإنجليزية
+
+> 🔗 **للمزيد من التفاصيل:** راجع [locations.md](./locations.md) - دليل ربط المواقع والمدن
+
+---
+
 ## 📞 API Endpoints
 
 ### 1️⃣ تسجيل مستخدم جديد (Register)
@@ -128,7 +343,15 @@ class TokenResponse {
   "phone": "+966501234567",      // مطلوب - رقم الهاتف بالصيغة الدولية
   "email": "user@example.com",  // اختياري
   "password": "StrongP@ss123",  // مطلوب - 8 أحرف على الأقل
-  "userType": "customer"        // مطلوب - 'customer' للتطبيق
+  "userType": "customer",       // مطلوب - 'customer' للتطبيق
+  // ═════════════════════════════════════
+  // حقول ملف العميل (اختيارية)
+  // ═════════════════════════════════════
+  "cityId": "507f1f77bcf86cd799439011",  // معرف المدينة (MongoDB ObjectId)
+  "responsiblePersonName": "أحمد علي",
+  "shopName": "Phone Repair Center",
+  "shopNameAr": "مركز صيانة الجوالات",
+  "businessType": "shop"  // 'shop' | 'technician' | 'distributor' | 'other'
 }
 ```
 
@@ -155,11 +378,13 @@ class TokenResponse {
 ```
 
 > 📝 **ملاحظة:** يمكن إرسال بيانات ملف العميل الاختيارية عند التسجيل:
+> - `cityId`: معرف المدينة (MongoDB ObjectId) - **يُنصح بإرساله** لإنشاء ملف عميل كامل
 > - `responsiblePersonName`: اسم الشخص المسؤول
 > - `shopName`: اسم المتجر
 > - `shopNameAr`: اسم المتجر بالعربية
-> - `cityId`: معرف المدينة (MongoDB ObjectId)
 > - `businessType`: نوع العمل ('shop' | 'technician' | 'distributor' | 'other')
+> 
+> ⚠️ **مهم:** إذا تم إرسال `cityId` مع `responsiblePersonName` و `shopName`، سيتم إنشاء ملف عميل تلقائياً عند التسجيل.
 
 **Flutter Code:**
 ```dart
@@ -172,6 +397,14 @@ class AuthService {
     required String phone,
     required String password,
     String? email,
+    // ═════════════════════════════════════
+    // حقول ملف العميل (اختيارية)
+    // ═════════════════════════════════════
+    String? cityId,
+    String? responsiblePersonName,
+    String? shopName,
+    String? shopNameAr,
+    String? businessType,
   }) async {
     try {
       final response = await _dio.post('/auth/register', data: {
@@ -179,6 +412,12 @@ class AuthService {
         'password': password,
         'userType': 'customer', // دائماً customer للتطبيق
         if (email != null) 'email': email,
+        // حقول ملف العميل
+        if (cityId != null) 'cityId': cityId,
+        if (responsiblePersonName != null) 'responsiblePersonName': responsiblePersonName,
+        if (shopName != null) 'shopName': shopName,
+        if (shopNameAr != null) 'shopNameAr': shopNameAr,
+        if (businessType != null) 'businessType': businessType,
       });
       
       if (response.data['success']) {
