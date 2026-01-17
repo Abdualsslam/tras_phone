@@ -47,17 +47,20 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
+      const jwtSecret = this.configService.get<string>(
+        'JWT_SECRET',
+        'your-super-secret-jwt-key',
+      );
+
       const payload = await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get<string>(
-          'JWT_SECRET',
-          'your-super-secret-jwt-key',
-        ),
+        secret: jwtSecret,
       });
 
       // Validate user exists and is active
       const user = await this.authService.validateUser(payload.sub);
 
       if (!user) {
+        console.error(`[JwtAuthGuard] User not found: ${payload.sub}`);
         throw new UnauthorizedException('User not found');
       }
 
@@ -89,7 +92,24 @@ export class JwtAuthGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired token');
+      // Log the actual error for debugging
+      console.error('[JwtAuthGuard] Authentication error:', {
+        error: error instanceof Error ? error.message : String(error),
+        errorName: error instanceof Error ? error.name : typeof error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      // If it's already an UnauthorizedException, re-throw it as is
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      // For JWT verification errors, provide more context
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new UnauthorizedException(
+        `Invalid or expired token: ${errorMessage}`,
+      );
     }
   }
 
