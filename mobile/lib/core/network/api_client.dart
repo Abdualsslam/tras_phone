@@ -1,17 +1,21 @@
 /// API Client wrapper using Dio
 library;
 
+import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import '../config/app_config.dart';
 import '../errors/exceptions.dart';
 import 'auth_interceptor.dart';
 import 'token_manager.dart';
+import '../constants/storage_keys.dart';
+import '../storage/local_storage.dart';
 
 class ApiClient {
   late final Dio _dio;
   TokenManager? _tokenManager;
+  LocalStorage? _localStorage;
 
-  ApiClient() {
+  ApiClient({LocalStorage? localStorage}) : _localStorage = localStorage {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConfig.baseUrl,
@@ -202,6 +206,48 @@ class ApiClient {
     }
   }
 
+  /// Get current locale from storage or system
+  String _getCurrentLocale() {
+    if (_localStorage != null) {
+      final savedLocale = _localStorage!.getString(StorageKeys.locale);
+      if (savedLocale != null) {
+        return savedLocale;
+      }
+    }
+    // Fallback to system locale
+    return ui.PlatformDispatcher.instance.locale.languageCode;
+  }
+
+  /// Translate common error messages based on locale
+  String _translateError(String englishMessage) {
+    final locale = _getCurrentLocale();
+    if (locale != 'ar') {
+      return englishMessage; // Return English if not Arabic
+    }
+
+    // Common error message translations
+    final translations = {
+      'Your account is under review. Please wait for activation':
+          'حسابك قيد المراجعة. يرجى انتظار التفعيل',
+      'Invalid credentials': 'رقم الجوال أو كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى',
+      'User not found': 'المستخدم غير موجود',
+      'Account is locked': 'الحساب مقفل',
+      'Account suspended': 'الحساب معلق',
+      'Email already exists': 'البريد الإلكتروني مستخدم بالفعل',
+      'Phone number already exists': 'رقم الهاتف مستخدم بالفعل',
+      'Invalid token': 'رمز غير صحيح',
+      'Token expired': 'انتهت صلاحية الرمز',
+      'Unauthorized': 'غير مصرح',
+      'Forbidden': 'غير مسموح',
+      'Not found': 'غير موجود',
+      'Internal server error': 'خطأ في الخادم',
+      'Bad request': 'طلب غير صحيح',
+      'Validation error': 'خطأ في التحقق',
+    };
+
+    return translations[englishMessage] ?? englishMessage;
+  }
+
   AppException _handleBadResponse(Response? response) {
     if (response == null) {
       return const ServerException(message: 'خطأ في الخادم');
@@ -219,9 +265,37 @@ class ApiClient {
       return value?.toString() ?? 'خطأ في الخادم';
     }
     
-    final String message = data is Map
-        ? extractMessage(data['messageAr'] ?? data['message'] ?? 'خطأ في الخادم')
-        : 'خطأ في الخادم';
+    final locale = _getCurrentLocale();
+    
+    // Choose message based on locale: prefer messageAr for Arabic, message for others
+    String message;
+    if (data is Map) {
+      final messageAr = data['messageAr'];
+      final messageEn = data['message'];
+      
+      if (locale == 'ar') {
+        // For Arabic: prefer messageAr, fallback to translated message
+        if (messageAr != null) {
+          message = extractMessage(messageAr);
+        } else if (messageEn != null) {
+          // Translate English message to Arabic
+          message = _translateError(extractMessage(messageEn));
+        } else {
+          message = 'خطأ في الخادم';
+        }
+      } else {
+        // For English: prefer message, fallback to messageAr
+        if (messageEn != null) {
+          message = extractMessage(messageEn);
+        } else if (messageAr != null) {
+          message = extractMessage(messageAr);
+        } else {
+          message = 'Server error';
+        }
+      }
+    } else {
+      message = locale == 'ar' ? 'خطأ في الخادم' : 'Server error';
+    }
 
     switch (statusCode) {
       case 400:

@@ -62,7 +62,7 @@ Future<void> setupDependencies() async {
   getIt.registerSingleton<NetworkInfo>(NetworkInfoImpl());
 
   // API Client with interceptors
-  final apiClient = ApiClient();
+  final apiClient = ApiClient(localStorage: localStorage);
   apiClient.initialize(
     tokenManager: tokenManager,
     onLogout: _handleForcedLogout,
