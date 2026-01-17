@@ -153,6 +153,35 @@ export class CatalogController {
     );
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Delete('brands/:id')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Delete brand',
+    description: 'Delete a brand. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Brand ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Brand deleted successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async deleteBrand(@Param('id') id: string) {
+    await this.catalogService.deleteBrand(id);
+    return ResponseBuilder.success(
+      null,
+      'Brand deleted',
+      'تم حذف العلامة التجارية',
+    );
+  }
+
   // ═════════════════════════════════════
   // Categories (Public Read)
   // ═════════════════════════════════════

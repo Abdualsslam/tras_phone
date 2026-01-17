@@ -30,22 +30,24 @@ export class StorageService {
     private readonly bucketName: string;
     private readonly region: string;
     private readonly cdnUrl: string;
+    private readonly hasCustomEndpoint: boolean;
 
     constructor(private readonly configService: ConfigService) {
         this.provider = this.configService.get('STORAGE_PROVIDER', 's3');
         this.bucketName = this.configService.get('AWS_S3_BUCKET', '');
         this.region = this.configService.get('AWS_REGION', 'me-south-1');
         this.cdnUrl = this.configService.get('CDN_URL', '');
+        const endpoint = this.configService.get('AWS_ENDPOINT', '');
+        this.hasCustomEndpoint = !!endpoint;
 
         if (this.provider === 's3') {
-            this.initializeS3();
+            this.initializeS3(endpoint);
         }
     }
 
-    private initializeS3(): void {
+    private initializeS3(endpoint: string): void {
         const accessKeyId = this.configService.get('AWS_ACCESS_KEY_ID', '');
         const secretAccessKey = this.configService.get('AWS_SECRET_ACCESS_KEY', '');
-        const endpoint = this.configService.get('AWS_ENDPOINT', '');
 
         // Log configuration (without sensitive data)
         this.logger.log(`Initializing S3 client - Region: ${this.region}, Bucket: ${this.bucketName}, Endpoint: ${endpoint ? 'Custom' : 'Default'}`);
@@ -137,14 +139,21 @@ export class StorageService {
         contentType: string,
         isPublic: boolean = true
     ): Promise<UploadResult> {
-        const command = new PutObjectCommand({
+        const commandParams: any = {
             Bucket: this.bucketName,
             Key: key,
             Body: file,
             ContentType: contentType,
-            ACL: isPublic ? 'public-read' : 'private',
             CacheControl: 'max-age=31536000', // 1 year cache
-        });
+        };
+
+        // ACL is not supported by some S3-compatible services (e.g., Cloudflare R2)
+        // Only add ACL if using standard AWS S3 (no custom endpoint)
+        if (!this.hasCustomEndpoint) {
+            commandParams.ACL = isPublic ? 'public-read' : 'private';
+        }
+
+        const command = new PutObjectCommand(commandParams);
 
         await this.s3Client.send(command);
 
