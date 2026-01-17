@@ -75,7 +75,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
 
         if (state is AuthAuthenticated) {
-          context.go('/home');
+          if (state.user.isPending) {
+            // Show success banner for pending registration
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('تم إرسال طلب تسجيل الحساب بنجاح... انتظر حتى يتم قبولك'),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            // Logout to clear tokens and redirect to login
+            context.read<AuthCubit>().logout();
+            // Redirect after a small delay to allow logout to process
+            Future.delayed(const Duration(milliseconds: 100), () {
+              if (mounted) context.go('/login');
+            });
+          } else {
+            // Active user, proceed to home
+            context.go('/home');
+          }
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
