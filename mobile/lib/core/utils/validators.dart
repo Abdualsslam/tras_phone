@@ -6,12 +6,19 @@ import '../constants/app_constants.dart';
 class Validators {
   Validators._();
 
-  /// Phone number validation
+  /// Phone number validation - must be exactly 9 digits
   static String? phone(String? value) {
     if (value == null || value.isEmpty) {
       return 'رقم الجوال مطلوب';
     }
     final cleaned = value.replaceAll(RegExp(r'[^\d]'), '');
+    if (cleaned.length != 9) {
+      if (cleaned.length < 9) {
+        return 'رقم الجوال يجب أن يكون 9 أرقام';
+      } else {
+        return 'رقم الجوال يجب أن يكون 9 أرقام فقط';
+      }
+    }
     if (!AppConstants.phonePattern.hasMatch(cleaned)) {
       return 'رقم الجوال غير صحيح';
     }

@@ -1,4 +1,5 @@
 /// Locations Remote DataSource
+import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
 import '../models/country_model.dart';
@@ -44,16 +45,47 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
   Future<List<CountryModel>> getCountries() async {
     final response = await _apiClient.get(ApiEndpoints.locationsCountries);
 
-    if (response.data['success'] == true) {
-      return (response.data['data'] as List)
+    // Print full response to terminal
+    print('═══════════════════════════════════════════════════════');
+    print('📍 [LocationsDataSource] Countries API Full Response:');
+    print('═══════════════════════════════════════════════════════');
+    print(response.data);
+    print('═══════════════════════════════════════════════════════');
+
+    developer.log('Countries API response: success=${response.data['success']}, data type=${response.data['data']?.runtimeType}', name: 'LocationsDataSource');
+    
+    // Check if data exists (some APIs return data directly without success field)
+    final data = response.data['data'] ?? response.data;
+    
+    // If data is a List, parse it regardless of success field
+    if (data is List) {
+      developer.log('Parsing ${data.length} countries', name: 'LocationsDataSource');
+      final countries = data
           .map((c) => CountryModel.fromJson(c))
           .toList();
+      developer.log('Parsed ${countries.length} countries successfully', name: 'LocationsDataSource');
+      return countries;
     }
-    throw Exception(response.data['messageAr'] ?? 'Failed to get countries');
+    
+    // If success is explicitly false or error message exists, throw error
+    if (response.data['success'] == false) {
+      throw Exception(response.data['messageAr'] ?? response.data['message'] ?? 'Failed to get countries');
+    }
+    
+    // If no data found, throw error
+    throw Exception(response.data['messageAr'] ?? response.data['message'] ?? 'No countries data found');
   }
 
   @override
   Future<List<CityModel>> getCities({String? countryId}) async {
+    // Print request details
+    print('═══════════════════════════════════════════════════════');
+    print('🏙️ [LocationsDataSource] Cities API Request:');
+    print('   Endpoint: ${ApiEndpoints.locationsCities}');
+    print('   CountryId: $countryId');
+    print('   Query Parameters: ${countryId != null ? {'countryId': countryId} : {}}');
+    print('═══════════════════════════════════════════════════════');
+
     final response = await _apiClient.get(
       ApiEndpoints.locationsCities,
       queryParameters: {
@@ -61,12 +93,74 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
       },
     );
 
-    if (response.data['success'] == true) {
-      return (response.data['data'] as List)
-          .map((c) => CityModel.fromJson(c))
-          .toList();
+    // Print full response to terminal
+    print('═══════════════════════════════════════════════════════');
+    print('🏙️ [LocationsDataSource] Cities API Full Response:');
+    print('   CountryId: $countryId');
+    print('═══════════════════════════════════════════════════════');
+    print(response.data);
+    print('═══════════════════════════════════════════════════════');
+
+    developer.log('Cities API response: status=${response.data['status']}, success=${response.data['success']}, data type=${response.data['data']?.runtimeType}, countryId=$countryId', name: 'LocationsDataSource');
+    
+    // Check if data exists (some APIs return data directly without success field)
+    final data = response.data['data'] ?? response.data;
+    
+    // Print data details
+    if (data is List) {
+      print('📋 [LocationsDataSource] Data List Details:');
+      print('   List length: ${data.length}');
+      if (data.isNotEmpty) {
+        print('   First item: ${data.first}');
+        print('   All cities data:');
+        for (var i = 0; i < data.length; i++) {
+          print('   [$i] ${data[i]}');
+        }
+      } else {
+        print('   ⚠️ WARNING: Cities list is EMPTY!');
+        print('   This might mean:');
+        print('     1. No cities exist for countryId: $countryId');
+        print('     2. API query parameter issue');
+        print('     3. Backend data issue');
+      }
+      print('═══════════════════════════════════════════════════════');
+    } else {
+      print('⚠️ [LocationsDataSource] Data is NOT a List! Type: ${data?.runtimeType}');
+      print('   Data value: $data');
+      print('═══════════════════════════════════════════════════════');
     }
-    throw Exception(response.data['messageAr'] ?? 'Failed to get cities');
+    
+    // If data is a List, parse it regardless of success field
+    if (data is List) {
+      developer.log('Parsing ${data.length} cities', name: 'LocationsDataSource');
+      final cities = data
+          .map((c) {
+            developer.log('Parsing city: $c', name: 'LocationsDataSource');
+            return CityModel.fromJson(c);
+          })
+          .toList();
+      
+      print('✅ [LocationsDataSource] Parsed Cities:');
+      for (var i = 0; i < cities.length; i++) {
+        final city = cities[i];
+        print('   [$i] ${city.nameAr} (id: ${city.id}) - Capital: ${city.isCapital}');
+      }
+      if (cities.isEmpty) {
+        print('   ⚠️ No cities parsed - list is empty');
+      }
+      print('═══════════════════════════════════════════════════════');
+      
+      developer.log('Parsed ${cities.length} cities successfully', name: 'LocationsDataSource');
+      return cities;
+    }
+    
+    // If success is explicitly false or error message exists, throw error
+    if (response.data['success'] == false || response.data['status'] == 'error') {
+      throw Exception(response.data['messageAr'] ?? response.data['message'] ?? 'Failed to get cities');
+    }
+    
+    // If no data found, throw error
+    throw Exception(response.data['messageAr'] ?? response.data['message'] ?? 'No cities data found');
   }
 
   @override

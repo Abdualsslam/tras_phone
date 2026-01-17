@@ -136,25 +136,31 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String? businessType,
   }) async {
     developer.log('Registering new user: $phone', name: 'AuthDataSource');
+    if (cityId != null) {
+      developer.log('CityId received: $cityId (type: ${cityId.runtimeType})', name: 'AuthDataSource');
+    }
 
     // Format phone to international format
     final formattedPhone = Formatters.phoneToInternational(phone);
 
     try {
+      final requestData = {
+        'phone': formattedPhone,
+        'password': password,
+        'userType': 'customer', // Always customer for mobile app
+        if (email != null) 'email': email,
+        if (responsiblePersonName != null)
+          'responsiblePersonName': responsiblePersonName,
+        if (shopName != null) 'shopName': shopName,
+        if (shopNameAr != null) 'shopNameAr': shopNameAr,
+        if (cityId != null) 'cityId': cityId,
+        if (businessType != null) 'businessType': businessType,
+      };
+      developer.log('Registration request data: $requestData', name: 'AuthDataSource');
+      
       final response = await _apiClient.post(
         ApiEndpoints.register,
-        data: {
-          'phone': formattedPhone,
-          'password': password,
-          'userType': 'customer', // Always customer for mobile app
-          if (email != null) 'email': email,
-          if (responsiblePersonName != null)
-            'responsiblePersonName': responsiblePersonName,
-          if (shopName != null) 'shopName': shopName,
-          if (shopNameAr != null) 'shopNameAr': shopNameAr,
-          if (cityId != null) 'cityId': cityId,
-          if (businessType != null) 'businessType': businessType,
-        },
+        data: requestData,
       );
 
       return AuthResponse.fromJson(response.data);

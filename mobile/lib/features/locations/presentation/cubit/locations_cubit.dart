@@ -1,4 +1,5 @@
 /// Locations Cubit
+import 'dart:developer' as developer;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/datasources/locations_remote_datasource.dart';
 import '../../data/models/city_model.dart';
@@ -18,10 +19,23 @@ class LocationsCubit extends Cubit<LocationsState> {
     emit(state.copyWith(status: LocationsStatus.loading));
     try {
       final countries = await _dataSource.getCountries();
+      developer.log('Loaded ${countries.length} countries', name: 'LocationsCubit');
+      
+      if (countries.isEmpty) {
+        developer.log('No countries found', name: 'LocationsCubit');
+        emit(state.copyWith(
+          status: LocationsStatus.success,
+          countries: countries,
+        ));
+        return;
+      }
+      
       final defaultCountry = countries.firstWhere(
         (c) => c.isDefault,
         orElse: () => countries.first,
       );
+      developer.log('Default country: ${defaultCountry.nameAr} (${defaultCountry.id})', name: 'LocationsCubit');
+      
       emit(state.copyWith(
         status: LocationsStatus.success,
         countries: countries,
@@ -30,6 +44,7 @@ class LocationsCubit extends Cubit<LocationsState> {
       // تحميل مدن الدولة الافتراضية
       await loadCities(countryId: defaultCountry.id);
     } catch (e) {
+      developer.log('Error loading countries: $e', name: 'LocationsCubit', error: e);
       emit(state.copyWith(
         status: LocationsStatus.failure,
         errorMessage: e.toString(),
@@ -40,12 +55,18 @@ class LocationsCubit extends Cubit<LocationsState> {
   /// تحميل المدن
   Future<void> loadCities({String? countryId}) async {
     try {
+      developer.log('Loading cities for countryId: $countryId', name: 'LocationsCubit');
       final cities = await _dataSource.getCities(countryId: countryId);
+      developer.log('Loaded ${cities.length} cities', name: 'LocationsCubit');
+      
       emit(state.copyWith(
         status: LocationsStatus.success,
         cities: cities,
       ));
+      
+      developer.log('Cities state updated: ${cities.length} cities in state', name: 'LocationsCubit');
     } catch (e) {
+      developer.log('Error loading cities: $e', name: 'LocationsCubit', error: e);
       emit(state.copyWith(
         status: LocationsStatus.failure,
         errorMessage: e.toString(),

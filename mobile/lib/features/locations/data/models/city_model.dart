@@ -31,24 +31,49 @@ class CityModel {
   });
 
   factory CityModel.fromJson(Map<String, dynamic> json) {
+    // Ensure id is always a String (MongoDB ObjectId)
+    final idValue = json['_id'] ?? json['id'];
+    final id = idValue != null ? idValue.toString() : '';
+    
+    // Extract countryId - can be from 'countryId' field or 'country._id'
+    final countryId = json['countryId'] is String
+        ? json['countryId']
+        : json['country'] is Map
+            ? (json['country']?['_id'] ?? json['country']?['id'] ?? '')
+            : json['countryId']?['_id'] ?? '';
+    
+    // Extract name - can be 'name' or 'nameEn'
+    final name = json['name'] ?? json['nameEn'] ?? '';
+    
+    // Extract shippingZoneId - can be missing, use empty string as default
+    final shippingZoneIdValue = json['shippingZoneId'];
+    final shippingZoneId = shippingZoneIdValue is String
+        ? shippingZoneIdValue
+        : shippingZoneIdValue is Map
+            ? (shippingZoneIdValue['_id'] ?? shippingZoneIdValue['id'] ?? '')
+            : '';
+    
+    // Extract displayOrder - can be 'displayOrder' or 'sortOrder'
+    final displayOrder = json['displayOrder'] ?? json['sortOrder'] ?? 0;
+    
+    // Determine if capital - only use the value from API, don't assume
+    final isCapitalValue = json['isCapital'];
+    final isCapital = isCapitalValue is bool && isCapitalValue == true;
+    
     return CityModel(
-      id: json['_id'] ?? json['id'] ?? '',
-      name: json['name'] ?? '',
+      id: id,
+      name: name,
       nameAr: json['nameAr'] ?? '',
-      countryId: json['countryId'] is String
-          ? json['countryId']
-          : json['countryId']?['_id'] ?? '',
-      shippingZoneId: json['shippingZoneId'] is String
-          ? json['shippingZoneId']
-          : json['shippingZoneId']?['_id'] ?? '',
+      countryId: countryId,
+      shippingZoneId: shippingZoneId,
       latitude: json['latitude']?.toDouble(),
       longitude: json['longitude']?.toDouble(),
       timezone: json['timezone'],
       region: json['region'],
       regionAr: json['regionAr'],
       isActive: json['isActive'] ?? true,
-      isCapital: json['isCapital'] ?? false,
-      displayOrder: json['displayOrder'] ?? 0,
+      isCapital: isCapital,
+      displayOrder: displayOrder is int ? displayOrder : (displayOrder as num?)?.toInt() ?? 0,
     );
   }
 

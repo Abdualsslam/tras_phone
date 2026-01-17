@@ -1,6 +1,7 @@
 /// Register Screen - New user registration
 library;
 
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -15,6 +16,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../locations/presentation/cubit/locations_cubit.dart';
 import '../../../locations/presentation/cubit/locations_state.dart';
 import '../../../locations/data/models/city_model.dart';
+import '../../../locations/data/models/country_model.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -36,8 +38,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    // Load cities when screen is initialized
-    context.read<LocationsCubit>().loadCities();
+    // Load countries first, which will load cities for default country (Saudi Arabia)
+    context.read<LocationsCubit>().loadCountries();
   }
 
   @override
@@ -61,12 +63,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
         return;
       }
+      
+      // Log cityId for debugging
+      final cityIdValue = _selectedCity!.id;
+      developer.log('Selected city: ${_selectedCity!.nameAr} (id: $cityIdValue, type: ${cityIdValue.runtimeType})', name: 'RegisterScreen');
+      
       context.read<AuthCubit>().register(
         phone: _phoneController.text.trim(),
         password: _passwordController.text,
         responsiblePersonName: _nameController.text.trim(),
         shopName: _shopNameController.text.trim(),
-        cityId: _selectedCity!.id, // Use MongoDB ObjectId from API
+        cityId: cityIdValue, // Use MongoDB ObjectId from API
         businessType: 'shop', // Default business type
         // email: optional email field would go here
       );
@@ -176,6 +183,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       prefixIcon: Iconsax.call,
                       validator: Validators.phone,
                       textInputAction: TextInputAction.next,
+                      maxLength: 9,
                     ),
                     SizedBox(height: 24.h),
 
@@ -191,6 +199,129 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       prefixIcon: Iconsax.shop,
                       validator: Validators.shopName,
                       textInputAction: TextInputAction.next,
+                    ),
+                    SizedBox(height: 16.h),
+
+                    // Country Dropdown
+                    Text(
+                      'الدولة',
+                      textAlign: TextAlign.right,
+                      textDirection: TextDirection.rtl,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimaryLight,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    BlocConsumer<LocationsCubit, LocationsState>(
+                      listener: (context, locationsState) {
+                        // Auto-select first city when cities are loaded for the first time
+                        if (locationsState.cities.isNotEmpty && _selectedCity == null) {
+                          if (mounted) {
+                            setState(() {
+                              _selectedCity = locationsState.cities.first;
+                            });
+                          }
+                        }
+                        // Reset and auto-select first city when country changes
+                        if (locationsState.selectedCountry != null) {
+                          // Check if current city belongs to different country
+                          if (_selectedCity != null &&
+                              _selectedCity!.countryId != locationsState.selectedCountry!.id) {
+                            // Reset city and select first city of new country
+                            if (locationsState.cities.isNotEmpty) {
+                              if (mounted) {
+                                setState(() {
+                                  _selectedCity = locationsState.cities.first;
+                                });
+                              }
+                            } else if (mounted) {
+                              setState(() {
+                                _selectedCity = null;
+                              });
+                            }
+                          }
+                        }
+                      },
+                      builder: (context, locationsState) {
+                        // Show loading only when initial load and countries are empty
+                        if (locationsState.status == LocationsStatus.loading &&
+                            locationsState.countries.isEmpty &&
+                            locationsState.selectedCountry == null) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+
+                        // Show error if countries failed to load
+                        if (locationsState.status == LocationsStatus.failure &&
+                            locationsState.countries.isEmpty) {
+                          return Text(
+                            locationsState.errorMessage ?? 'فشل تحميل الدول',
+                            textAlign: TextAlign.right,
+                            textDirection: TextDirection.rtl,
+                            style: TextStyle(
+                              color: AppColors.error,
+                              fontSize: 14.sp,
+                            ),
+                          );
+                        }
+
+                        // Show message if no countries available (but not loading)
+                        if (locationsState.countries.isEmpty &&
+                            locationsState.status != LocationsStatus.loading) {
+                          return Text(
+                            'لا توجد دول متاحة',
+                            textAlign: TextAlign.right,
+                            textDirection: TextDirection.rtl,
+                            style: TextStyle(
+                              color: AppColors.error,
+                              fontSize: 14.sp,
+                            ),
+                          );
+                        }
+
+                        return DropdownButtonFormField<CountryModel>(
+                          value: locationsState.selectedCountry,
+                          decoration: InputDecoration(
+                            prefixIcon: Icon(
+                              Iconsax.global,
+                              size: 20.sp,
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                          alignment: AlignmentDirectional.centerStart,
+                          hint: Text(
+                            'اختر الدولة',
+                            textDirection: TextDirection.rtl,
+                            textAlign: TextAlign.right,
+                          ),
+                          items: locationsState.countries.map((country) {
+                            return DropdownMenuItem<CountryModel>(
+                              value: country,
+                              alignment: AlignmentDirectional.centerStart,
+                              child: Text(
+                                country.nameAr,
+                                textDirection: TextDirection.rtl,
+                                textAlign: TextAlign.right,
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (country) {
+                            if (country != null) {
+                              context.read<LocationsCubit>().selectCountry(country);
+                            }
+                          },
+                        );
+                      },
                     ),
                     SizedBox(height: 16.h),
 
@@ -211,7 +342,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     BlocBuilder<LocationsCubit, LocationsState>(
                       builder: (context, locationsState) {
                         if (locationsState.status == LocationsStatus.loading &&
-                            locationsState.cities.isEmpty) {
+                            locationsState.cities.isEmpty &&
+                            locationsState.selectedCountry != null) {
                           return const Center(
                             child: Padding(
                               padding: EdgeInsets.all(16.0),
@@ -254,6 +386,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               value: city,
                               alignment: AlignmentDirectional.centerStart,
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (city.isCapital)
                                     Icon(
@@ -262,11 +395,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       color: Colors.amber,
                                     ),
                                   if (city.isCapital) SizedBox(width: 8.w),
-                                  Expanded(
+                                  Flexible(
                                     child: Text(
                                       city.nameAr,
                                       textDirection: TextDirection.rtl,
                                       textAlign: TextAlign.right,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
