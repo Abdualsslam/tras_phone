@@ -104,12 +104,22 @@ class AuthRepositoryImpl implements AuthRepository {
     required String phone,
     required String password,
     String? email,
+    String? responsiblePersonName,
+    String? shopName,
+    String? shopNameAr,
+    String? cityId,
+    String? businessType,
   }) async {
     try {
       final authResponse = await _dataSource.register(
         phone: phone,
         password: password,
         email: email,
+        responsiblePersonName: responsiblePersonName,
+        shopName: shopName,
+        shopNameAr: shopNameAr,
+        cityId: cityId,
+        businessType: businessType,
       );
 
       // Save tokens

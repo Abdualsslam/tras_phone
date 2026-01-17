@@ -26,6 +26,11 @@ abstract class AuthRepository {
     required String phone,
     required String password,
     String? email,
+    String? responsiblePersonName,
+    String? shopName,
+    String? shopNameAr,
+    String? cityId,
+    String? businessType,
   });
 
   /// Send OTP to phone

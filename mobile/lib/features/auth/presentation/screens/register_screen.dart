@@ -50,11 +50,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _handleRegister() {
     if (_formKey.currentState?.validate() ?? false) {
-      // Note: The new API uses simplified registration (phone, password, email)
-      // Business details (shop name, city) would be collected in a separate profile update step
       context.read<AuthCubit>().register(
         phone: _phoneController.text.trim(),
         password: _passwordController.text,
+        responsiblePersonName: _nameController.text.trim(),
+        shopName: _shopNameController.text.trim(),
+        cityId: _selectedCityId.toString(), // Convert to string for API
+        businessType: 'shop', // Default business type
         // email: optional email field would go here
       );
     }

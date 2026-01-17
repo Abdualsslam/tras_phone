@@ -52,6 +52,11 @@ abstract class AuthRemoteDataSource {
     required String phone,
     required String password,
     String? email,
+    String? responsiblePersonName,
+    String? shopName,
+    String? shopNameAr,
+    String? cityId,
+    String? businessType,
   });
 
   /// Send OTP for verification
@@ -124,6 +129,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String phone,
     required String password,
     String? email,
+    String? responsiblePersonName,
+    String? shopName,
+    String? shopNameAr,
+    String? cityId,
+    String? businessType,
   }) async {
     developer.log('Registering new user: $phone', name: 'AuthDataSource');
 
@@ -138,6 +148,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'password': password,
           'userType': 'customer', // Always customer for mobile app
           if (email != null) 'email': email,
+          if (responsiblePersonName != null)
+            'responsiblePersonName': responsiblePersonName,
+          if (shopName != null) 'shopName': shopName,
+          if (shopNameAr != null) 'shopNameAr': shopNameAr,
+          if (cityId != null) 'cityId': cityId,
+          if (businessType != null) 'businessType': businessType,
         },
       );
 

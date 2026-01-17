@@ -29,6 +29,8 @@ import {
   AdminUser,
   AdminUserSchema,
 } from '@modules/admins/schemas/admin-user.schema';
+import { Customer, CustomerSchema } from '@modules/customers/schemas/customer.schema';
+import { PriceLevel, PriceLevelSchema } from '@modules/products/schemas/price-level.schema';
 
 @Module({
   imports: [
@@ -51,6 +53,8 @@ import {
       { name: LoginAttempt.name, schema: LoginAttemptSchema },
       { name: ApiToken.name, schema: ApiTokenSchema },
       { name: AdminUser.name, schema: AdminUserSchema },
+      { name: Customer.name, schema: CustomerSchema },
+      { name: PriceLevel.name, schema: PriceLevelSchema },
     ]),
   ],
   controllers: [AuthController],

@@ -8,6 +8,7 @@ import {
     MaxLength,
     Matches,
     IsEnum,
+    IsMongoId,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -57,4 +58,52 @@ export class RegisterDto {
     @IsNotEmpty()
     @IsEnum(['customer', 'admin'])
     userType: string;
+
+    // ═════════════════════════════════════
+    // Customer Profile Fields (Optional)
+    // ═════════════════════════════════════
+    @ApiProperty({
+        example: 'Ahmed Ali',
+        description: 'Responsible person name (required if userType is customer)',
+        required: false
+    })
+    @IsString()
+    @IsOptional()
+    responsiblePersonName?: string;
+
+    @ApiProperty({
+        example: 'Phone Repair Center',
+        description: 'Shop name (required if userType is customer)',
+        required: false
+    })
+    @IsString()
+    @IsOptional()
+    shopName?: string;
+
+    @ApiProperty({
+        example: 'مركز صيانة الجوالات',
+        description: 'Shop name in Arabic',
+        required: false
+    })
+    @IsString()
+    @IsOptional()
+    shopNameAr?: string;
+
+    @ApiProperty({
+        description: 'City ID (required if userType is customer)',
+        required: false
+    })
+    @IsMongoId()
+    @IsOptional()
+    cityId?: string;
+
+    @ApiProperty({
+        enum: ['shop', 'technician', 'distributor', 'other'],
+        default: 'shop',
+        description: 'Business type',
+        required: false
+    })
+    @IsEnum(['shop', 'technician', 'distributor', 'other'])
+    @IsOptional()
+    businessType?: string;
 }

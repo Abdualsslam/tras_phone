@@ -368,19 +368,19 @@ export function CustomersPage() {
                 <CardContent className="p-4">
                     <div className="flex flex-col sm:flex-row gap-4">
                         <div className="relative flex-1">
-                            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                             <Input
                                 placeholder="البحث عن عميل..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="ps-10"
+                                className="ps-12 h-14 text-base"
                             />
                         </div>
                         <Select
                             value={statusFilter || undefined}
                             onValueChange={setStatusFilter}
                         >
-                            <SelectTrigger className="h-10 min-w-[150px]">
+                            <SelectTrigger className="h-8 min-w-[120px] text-sm">
                                 <SelectValue placeholder="جميع الحالات" />
                             </SelectTrigger>
                             <SelectContent>

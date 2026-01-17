@@ -99,6 +99,11 @@ class AuthCubit extends Cubit<AuthState> {
     required String phone,
     required String password,
     String? email,
+    String? responsiblePersonName,
+    String? shopName,
+    String? shopNameAr,
+    String? cityId,
+    String? businessType,
   }) async {
     emit(const AuthLoading(message: 'جاري إنشاء الحساب...'));
 
@@ -106,6 +111,11 @@ class AuthCubit extends Cubit<AuthState> {
       phone: phone,
       password: password,
       email: email,
+      responsiblePersonName: responsiblePersonName,
+      shopName: shopName,
+      shopNameAr: shopNameAr,
+      cityId: cityId,
+      businessType: businessType,
     );
 
     result.fold(

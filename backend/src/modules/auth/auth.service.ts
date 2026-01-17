@@ -22,6 +22,14 @@ import {
   AdminUser,
   AdminUserDocument,
 } from '@modules/admins/schemas/admin-user.schema';
+import {
+  Customer,
+  CustomerDocument,
+} from '@modules/customers/schemas/customer.schema';
+import {
+  PriceLevel,
+  PriceLevelDocument,
+} from '@modules/products/schemas/price-level.schema';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
@@ -42,6 +50,10 @@ export class AuthService {
     private loginAttemptModel: Model<LoginAttemptDocument>,
     @InjectModel(AdminUser.name)
     private adminUserModel: Model<AdminUserDocument>,
+    @InjectModel(Customer.name)
+    private customerModel: Model<CustomerDocument>,
+    @InjectModel(PriceLevel.name)
+    private priceLevelModel: Model<PriceLevelDocument>,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
@@ -50,7 +62,17 @@ export class AuthService {
    * Register new user
    */
   async register(registerDto: RegisterDto) {
-    const { phone, email, password, userType } = registerDto;
+    const {
+      phone,
+      email,
+      password,
+      userType,
+      responsiblePersonName,
+      shopName,
+      shopNameAr,
+      cityId,
+      businessType,
+    } = registerDto;
 
     // Check if user already exists
     const existingUser = await this.userModel.findOne({
@@ -78,6 +100,52 @@ export class AuthService {
       referralCode,
       status: 'pending', // Will be activated after OTP verification
     });
+
+    // If customer type and customer profile data is provided, create customer profile
+    if (
+      userType === 'customer' &&
+      responsiblePersonName &&
+      shopName &&
+      cityId
+    ) {
+      try {
+        // Generate customer code
+        const customerCode = await this.generateCustomerCode();
+
+        // Get default price level
+        const defaultPriceLevel = await this.priceLevelModel.findOne({
+          isDefault: true,
+          isActive: true,
+        });
+
+        if (!defaultPriceLevel) {
+          throw new BadRequestException(
+            'Default price level not found. Please contact support.',
+          );
+        }
+
+        // Create customer profile
+        await this.customerModel.create({
+          userId: user._id,
+          customerCode,
+          responsiblePersonName,
+          shopName,
+          shopNameAr,
+          cityId: new Types.ObjectId(cityId),
+          businessType: businessType || 'shop',
+          priceLevelId: defaultPriceLevel._id,
+          creditLimit: 0,
+          walletBalance: 0,
+          loyaltyPoints: 0,
+          loyaltyTier: 'bronze',
+          preferredContactMethod: 'whatsapp',
+        });
+      } catch (error) {
+        // Log error but don't fail registration if customer creation fails
+        console.error('Failed to create customer profile:', error);
+        // Optionally, you could delete the user here if customer creation is critical
+      }
+    }
 
     // Generate tokens
     const tokens = await this.generateTokens(user);
@@ -456,6 +524,27 @@ export class AuthService {
     }
 
     return code;
+  }
+
+  /**
+   * Generate unique customer code
+   */
+  private async generateCustomerCode(): Promise<string> {
+    const prefix = 'CUS';
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+
+    // Get count of customers created this month
+    const count = await this.customerModel.countDocuments({
+      createdAt: {
+        $gte: new Date(date.getFullYear(), date.getMonth(), 1),
+      },
+    });
+
+    const sequence = (count + 1).toString().padStart(4, '0');
+
+    return `${prefix}${year}${month}${sequence}`;
   }
 
   /**
