@@ -17,6 +17,7 @@ import { ReferralsService } from './referrals.service';
 import { CustomersController } from './customers.controller';
 import { UsersModule } from '@modules/users/users.module';
 import { AuthModule } from '@modules/auth/auth.module';
+import { User, UserSchema } from '@modules/users/schemas/user.schema';
 
 @Module({
     imports: [
@@ -29,6 +30,7 @@ import { AuthModule } from '@modules/auth/auth.module';
                 schema: CustomerPriceLevelHistorySchema,
             },
             { name: Referral.name, schema: ReferralSchema },
+            { name: User.name, schema: UserSchema },
         ]),
         JwtModule.registerAsync({
             imports: [ConfigModule],

@@ -18,6 +18,8 @@ import {
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
+import { UsersService } from '@modules/users/users.service';
+import { User, UserDocument } from '@modules/users/schemas/user.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -33,6 +35,9 @@ export class CustomersService {
         private addressModel: Model<CustomerAddressDocument>,
         @InjectModel(CustomerPriceLevelHistory.name)
         private priceLevelHistoryModel: Model<CustomerPriceLevelHistoryDocument>,
+        @InjectModel(User.name)
+        private userModel: Model<UserDocument>,
+        private usersService: UsersService,
     ) { }
 
     /**
@@ -62,6 +67,7 @@ export class CustomersService {
 
     /**
      * Find all customers with pagination and filters
+     * Now includes users with userType=customer even if they don't have a customer profile
      */
     async findAll(filters?: any) {
         const {
@@ -98,20 +104,90 @@ export class CustomersService {
 
         const skip = (page - 1) * limit;
 
-        const [customers, total] = await Promise.all([
+        // Get all linked user IDs first (to exclude them from unlinked users)
+        const allLinkedUserIds = await this.customerModel.find({}).select('userId').lean();
+        const linkedUserIdsSet = new Set(allLinkedUserIds.map(c => c.userId.toString()));
+
+        // Get customers with profiles (all, not paginated yet)
+        const [allCustomers, customersTotal] = await Promise.all([
             this.customerModel
                 .find(query)
                 .populate('userId', 'phone email')
                 .populate('cityId', 'name nameAr')
                 .populate('priceLevelId', 'name discount')
-                .skip(skip)
-                .limit(limit)
-                .sort({ createdAt: -1 }),
+                .sort({ createdAt: -1 })
+                .lean(),
             this.customerModel.countDocuments(query),
         ]);
 
+        // Build query for unlinked users
+        const unlinkedUsersQuery: any = {
+            userType: 'customer',
+            status: 'active',
+            _id: { $nin: Array.from(linkedUserIdsSet) },
+        };
+
+        // Apply search filter to unlinked users (search in phone or email)
+        if (search) {
+            unlinkedUsersQuery.$or = [
+                { phone: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+            ];
+        }
+
+        // Get unlinked customer users
+        const unlinkedUsers = await this.userModel
+            .find(unlinkedUsersQuery)
+            .select('_id phone email createdAt')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // Transform unlinked users to customer-like format
+        const unlinkedCustomers = unlinkedUsers.map(user => ({
+            _id: user._id,
+            userId: {
+                _id: user._id,
+                phone: user.phone,
+                email: user.email,
+            },
+            customerCode: null,
+            responsiblePersonName: null,
+            shopName: null,
+            shopNameAr: null,
+            businessType: null,
+            cityId: null,
+            priceLevelId: null,
+            creditLimit: 0,
+            creditUsed: 0,
+            walletBalance: 0,
+            loyaltyPoints: 0,
+            loyaltyTier: 'bronze',
+            totalOrders: 0,
+            totalSpent: 0,
+            averageOrderValue: 0,
+            status: 'pending',
+            createdAt: user.createdAt,
+            updatedAt: user.createdAt,
+            // Mark as unlinked
+            isUnlinked: true,
+        }));
+
+        // Combine customers and unlinked users
+        const allCustomersCombined = [...allCustomers, ...unlinkedCustomers];
+        
+        // Sort by createdAt descending
+        allCustomersCombined.sort((a, b) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA;
+        });
+
+        // Apply pagination to combined results
+        const paginatedCustomers = allCustomersCombined.slice(skip, skip + limit);
+        const total = customersTotal + unlinkedUsers.length;
+
         return {
-            data: customers,
+            data: paginatedCustomers,
             pagination: {
                 total,
                 page,
