@@ -396,6 +396,88 @@ export class CatalogController {
     );
   }
 
+  @Public()
+  @Get('categories/:identifier/products')
+  @ApiOperation({
+    summary: 'Get products by category',
+    description:
+      'Retrieve all products for a specific category. If the category has subcategories, products from all descendant categories will be included. If the category has no subcategories, only products directly assigned to that category will be returned. Public endpoint.',
+  })
+  @ApiParam({
+    name: 'identifier',
+    description: 'Category ID or slug',
+    example: 'screens or 507f1f77bcf86cd799439011',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20)',
+  })
+  @ApiQuery({
+    name: 'minPrice',
+    required: false,
+    type: Number,
+    description: 'Minimum price filter',
+  })
+  @ApiQuery({
+    name: 'maxPrice',
+    required: false,
+    type: Number,
+    description: 'Maximum price filter',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Sort field (price, name, createdAt, etc.)',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order',
+  })
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    type: String,
+    description: 'Filter by brand ID',
+  })
+  @ApiQuery({
+    name: 'qualityTypeId',
+    required: false,
+    type: String,
+    description: 'Filter by quality type ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category products retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getCategoryProducts(
+    @Param('identifier') identifier: string,
+    @Query() query: Partial<ProductFilterQueryDto>,
+  ) {
+    const result = await this.categoriesService.getCategoryProducts(
+      identifier,
+      query,
+    );
+    return ResponseBuilder.success(
+      result.data,
+      'Category products retrieved',
+      'تم استرجاع منتجات القسم',
+      result.pagination,
+    );
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Post('categories')

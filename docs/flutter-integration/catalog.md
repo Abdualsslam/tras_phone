@@ -732,9 +732,125 @@ Future<List<Category>> getCategoryChildren(String parentId) async {
 
 ---
 
+#### 8️⃣ جلب المنتجات حسب الفئة
+
+**Endpoint:** `GET /catalog/categories/:identifier/products`
+
+**ملاحظات:**
+- `identifier` يمكن أن يكون `id` أو `slug`
+- إذا كانت الفئة لديها فئات فرعية، سيتم جلب المنتجات من جميع الفئات الفرعية (بما في ذلك الفئات الفرعية للفئات الفرعية)
+- إذا لم يكن للفئة فئات فرعية، سيتم جلب المنتجات مباشرة من الفئة الرئيسية
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | number | ❌ | رقم الصفحة (افتراضي: 1) |
+| `limit` | number | ❌ | عدد المنتجات في الصفحة (افتراضي: 20) |
+| `minPrice` | number | ❌ | أدنى سعر |
+| `maxPrice` | number | ❌ | أعلى سعر |
+| `sortBy` | string | ❌ | حقل الترتيب (`price`, `name`, `createdAt`, إلخ) |
+| `sortOrder` | string | ❌ | اتجاه الترتيب (`asc`, `desc`) |
+| `brandId` | string | ❌ | فلترة حسب البراند |
+| `qualityTypeId` | string | ❌ | فلترة حسب نوع الجودة |
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "...",
+      "name": "iPhone 15 Pro Max Screen",
+      "nameAr": "شاشة آيفون 15 برو ماكس",
+      "basePrice": 150.00,
+      "mainImage": "https://...",
+      "brandId": {
+        "_id": "507f1f77bcf86cd799439011",
+        "name": "Apple",
+        "nameAr": "أبل",
+        "slug": "apple"
+      },
+      "categoryId": { ... },
+      "qualityTypeId": { ... },
+      ...
+    }
+  ],
+  "message": "Category products retrieved",
+  "messageAr": "تم استرجاع منتجات القسم",
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "pages": 3
+  }
+}
+```
+
+**Flutter Code:**
+```dart
+/// جلب المنتجات حسب الفئة
+Future<Map<String, dynamic>> getCategoryProducts(
+  String categoryIdentifier, {
+  int page = 1,
+  int limit = 20,
+  double? minPrice,
+  double? maxPrice,
+  String? sortBy,
+  String? sortOrder,
+  String? brandId,
+  String? qualityTypeId,
+}) async {
+  final queryParams = <String, dynamic>{
+    'page': page,
+    'limit': limit,
+  };
+  
+  if (minPrice != null) queryParams['minPrice'] = minPrice;
+  if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
+  if (sortBy != null) queryParams['sortBy'] = sortBy;
+  if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+  if (brandId != null) queryParams['brandId'] = brandId;
+  if (qualityTypeId != null) queryParams['qualityTypeId'] = qualityTypeId;
+  
+  final response = await _dio.get(
+    '/catalog/categories/$categoryIdentifier/products',
+    queryParameters: queryParams,
+  );
+  
+  if (response.data['success']) {
+    return {
+      'products': (response.data['data'] as List)
+          .map((p) => Product.fromJson(p))
+          .toList(),
+      'pagination': response.data['meta'],
+    };
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+**مثال الاستخدام:**
+```dart
+// جلب منتجات فئة رئيسية (إذا كانت لديها فئات فرعية، سيجلب من جميعها)
+final result = await catalogService.getCategoryProducts(
+  'screens', // slug أو id
+  page: 1,
+  limit: 20,
+);
+
+// جلب منتجات فئة فرعية (سيجلب منتجات هذه الفئة فقط)
+final result = await catalogService.getCategoryProducts(
+  'lcd-screens',
+  page: 1,
+  limit: 20,
+);
+```
+
+---
+
 ### 📱 Devices
 
-#### 8️⃣ جلب الأجهزة الشائعة
+#### 9️⃣ جلب الأجهزة الشائعة
 
 **Endpoint:** `GET /catalog/devices`
 
@@ -789,7 +905,7 @@ Future<List<Device>> getPopularDevices({int? limit}) async {
 
 ---
 
-#### 9️⃣ جلب أجهزة ماركة معينة
+#### 🔟 جلب أجهزة ماركة معينة
 
 **Endpoint:** `GET /catalog/devices/brand/:brandId`
 
@@ -810,7 +926,7 @@ Future<List<Device>> getDevicesByBrand(String brandId) async {
 
 ---
 
-#### 🔟 جلب جهاز بالـ Slug
+#### 1️⃣1️⃣ جلب جهاز بالـ Slug
 
 **Endpoint:** `GET /catalog/devices/:slug`
 
@@ -831,7 +947,7 @@ Future<Device> getDeviceBySlug(String slug) async {
 
 ### ⭐ Quality Types
 
-#### 1️⃣1️⃣ جلب أنواع الجودة
+#### 1️⃣2️⃣ جلب أنواع الجودة
 
 **Endpoint:** `GET /catalog/quality-types`
 
@@ -1014,6 +1130,45 @@ class CatalogService {
       return (response.data['data'] as List)
           .map((c) => Category.fromJson(c))
           .toList();
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<Map<String, dynamic>> getCategoryProducts(
+    String categoryIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+    
+    if (minPrice != null) queryParams['minPrice'] = minPrice;
+    if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
+    if (sortBy != null) queryParams['sortBy'] = sortBy;
+    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+    if (brandId != null) queryParams['brandId'] = brandId;
+    if (qualityTypeId != null) queryParams['qualityTypeId'] = qualityTypeId;
+    
+    final response = await _dio.get(
+      '/catalog/categories/$categoryIdentifier/products',
+      queryParameters: queryParams,
+    );
+    
+    if (response.data['success']) {
+      return {
+        'products': (response.data['data'] as List)
+            .map((p) => Product.fromJson(p))
+            .toList(),
+        'pagination': response.data['meta'],
+      };
     }
     throw Exception(response.data['messageAr']);
   }
@@ -1254,6 +1409,7 @@ class CategoryTreeView extends StatelessWidget {
 | GET | `/catalog/categories/tree` | شجرة الأقسام كاملة |
 | GET | `/catalog/categories/:id` | قسم مع breadcrumb |
 | GET | `/catalog/categories/:id/children` | الأقسام الفرعية |
+| GET | `/catalog/categories/:identifier/products` | منتجات حسب الفئة |
 | GET | `/catalog/devices` | الأجهزة الشائعة |
 | GET | `/catalog/devices/brand/:brandId` | أجهزة ماركة معينة |
 | GET | `/catalog/devices/:slug` | جهاز بالـ slug |
