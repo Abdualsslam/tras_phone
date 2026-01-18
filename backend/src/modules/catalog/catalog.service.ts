@@ -34,7 +34,14 @@ export class CatalogService {
     }
 
     async findAllBrands(filters?: any): Promise<BrandDocument[]> {
-        const query: any = { isActive: true };
+        const query: any = {};
+        
+        // Only filter by isActive if includeInactive is not true
+        // This allows admin to see all brands while public endpoints see only active ones
+        if (!filters?.includeInactive) {
+            query.isActive = true;
+        }
+        
         if (filters?.featured) query.isFeatured = true;
 
         return this.brandModel.find(query).sort({ displayOrder: 1, name: 1 });

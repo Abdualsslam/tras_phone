@@ -66,6 +66,8 @@ function BrandsTab() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedBrandForDelete, setSelectedBrandForDelete] = useState<BrandWithDevices | null>(null);
   const [editingBrand, setEditingBrand] = useState<BrandWithDevices | null>(
     null
   );
@@ -82,7 +84,7 @@ function BrandsTab() {
 
   const { data: brands, isLoading } = useQuery({
     queryKey: ["brands"],
-    queryFn: () => catalogApi.getBrands(),
+    queryFn: () => catalogApi.getBrands(undefined, true), // includeInactive = true to show all brands
   });
 
   const createMutation = useMutation({
@@ -118,8 +120,21 @@ function BrandsTab() {
     mutationFn: catalogApi.deleteBrand,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["brands"] });
+      setIsDeleteDialogOpen(false);
+      setSelectedBrandForDelete(null);
     },
   });
+
+  const handleDeleteClick = (brand: BrandWithDevices) => {
+    setSelectedBrandForDelete(brand);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (selectedBrandForDelete) {
+      deleteMutation.mutate(selectedBrandForDelete._id);
+    }
+  };
 
   const handleOpenCreate = () => {
     setEditingBrand(null);
@@ -271,7 +286,7 @@ function BrandsTab() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-red-600"
-                            onClick={() => deleteMutation.mutate(brand._id)}
+                            onClick={() => handleDeleteClick(brand)}
                           >
                             <Trash2 className="h-4 w-4" />
                             حذف
@@ -450,6 +465,36 @@ function BrandsTab() {
                 <Loader2 className="h-4 w-4 animate-spin" />
               )}
               {editingBrand ? "حفظ التعديلات" : "إضافة"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تأكيد الحذف</DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من حذف العلامة التجارية "{selectedBrandForDelete?.nameAr || selectedBrandForDelete?.name}"؟ هذا الإجراء لا يمكن التراجع عنه.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              إلغاء
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              حذف
             </Button>
           </DialogFooter>
         </DialogContent>

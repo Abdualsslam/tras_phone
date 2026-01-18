@@ -63,14 +63,23 @@ export class CatalogController {
     type: Boolean,
     description: 'Filter featured brands only',
   })
+  @ApiQuery({
+    name: 'includeInactive',
+    required: false,
+    type: Boolean,
+    description: 'Include inactive brands in results (admin only)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Brands retrieved successfully',
     type: ApiResponseDto,
   })
   @ApiPublicErrorResponses()
-  async getBrands(@Query('featured') featured?: boolean) {
-    const brands = await this.catalogService.findAllBrands({ featured });
+  async getBrands(
+    @Query('featured') featured?: boolean,
+    @Query('includeInactive') includeInactive?: boolean,
+  ) {
+    const brands = await this.catalogService.findAllBrands({ featured, includeInactive });
     return ResponseBuilder.success(
       brands,
       'Brands retrieved',
@@ -150,6 +159,35 @@ export class CatalogController {
       brand,
       'Brand updated',
       'تم تحديث العلامة التجارية',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Delete('brands/:id')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Delete brand',
+    description: 'Delete a brand. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Brand ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Brand deleted successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async deleteBrand(@Param('id') id: string) {
+    await this.catalogService.deleteBrand(id);
+    return ResponseBuilder.success(
+      null,
+      'Brand deleted',
+      'تم حذف العلامة التجارية',
     );
   }
 

@@ -280,8 +280,13 @@ export class CustomersService {
       throw new NotFoundException('Customer not found');
     }
 
-    // TODO: Update user status to 'active'
-    // await this.usersService.update(customer.userId, { status: 'active' });
+    // Update user status to 'active' when customer is approved
+    const userId =
+      typeof customer.userId === 'object' && customer.userId?._id
+        ? customer.userId._id.toString()
+        : customer.userId.toString();
+
+    await this.usersService.update(userId, { status: 'active' });
 
     return customer;
   }
@@ -315,8 +320,13 @@ export class CustomersService {
       throw new NotFoundException('Customer not found');
     }
 
-    // TODO: Soft delete user as well
-    // await this.usersService.delete(customer.userId._id);
+    // Soft delete user as well
+    const userId =
+      typeof customer.userId === 'object' && customer.userId?._id
+        ? customer.userId._id.toString()
+        : customer.userId.toString();
+
+    await this.usersService.delete(userId);
 
     await customer.deleteOne();
   }

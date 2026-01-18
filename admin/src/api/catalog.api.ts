@@ -107,9 +107,13 @@ export const catalogApi = {
     // Brands
     // ─────────────────────────────────────────
 
-    getBrands: async (featured?: boolean): Promise<BrandWithDevices[]> => {
+    getBrands: async (featured?: boolean, includeInactive?: boolean): Promise<BrandWithDevices[]> => {
+        const params: any = {};
+        if (featured !== undefined) params.featured = featured;
+        if (includeInactive !== undefined) params.includeInactive = includeInactive;
+        
         const response = await apiClient.get<ApiResponse<BrandWithDevices[]>>('/catalog/brands', {
-            params: featured !== undefined ? { featured } : undefined
+            params: Object.keys(params).length > 0 ? params : undefined
         });
         return response.data.data;
     },
