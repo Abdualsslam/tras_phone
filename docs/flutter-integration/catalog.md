@@ -370,6 +370,8 @@ class BreadcrumbItem {
 
 **Endpoint:** `GET /catalog/brands`
 
+> **ملاحظة**: هذا الـ endpoint يرجع فقط البراندات النشطة (`isActive: true`). للادمن، استخدم `/catalog/brands/all` (يتطلب مصادقة).
+
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -421,7 +423,98 @@ class CatalogService {
 
 ---
 
-#### 2️⃣ جلب علامة تجارية بالـ Slug
+#### 2️⃣ جلب منتجات البراند
+
+**Endpoint:** `GET /catalog/brands/:slug/products`
+
+> **استخدام**: عند الضغط على براند معين، استخدم هذا الـ endpoint لجلب جميع المنتجات المرتبطة بهذا البراند.
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | number | ❌ | رقم الصفحة (افتراضي: 1) |
+| `limit` | number | ❌ | عدد المنتجات في الصفحة (افتراضي: 20) |
+| `minPrice` | number | ❌ | أدنى سعر |
+| `maxPrice` | number | ❌ | أعلى سعر |
+| `sortBy` | string | ❌ | حقل الترتيب (`price`, `name`, `createdAt`, إلخ) |
+| `sortOrder` | string | ❌ | اتجاه الترتيب (`asc`, `desc`) |
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "...",
+      "name": "iPhone 15 Pro Max Screen",
+      "nameAr": "شاشة آيفون 15 برو ماكس",
+      "slug": "iphone-15-pro-max-screen",
+      "basePrice": 150.00,
+      "mainImage": "https://...",
+      "brandId": {
+        "_id": "507f1f77bcf86cd799439011",
+        "name": "Apple",
+        "nameAr": "أبل",
+        "slug": "apple"
+      },
+      "categoryId": { ... },
+      "qualityTypeId": { ... },
+      ...
+    }
+  ],
+  "message": "Brand products retrieved",
+  "messageAr": "تم استرجاع منتجات العلامة التجارية",
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "pages": 3
+  }
+}
+```
+
+**Flutter Code:**
+```dart
+/// جلب منتجات براند معين
+Future<Map<String, dynamic>> getBrandProducts(
+  String brandSlug, {
+  int page = 1,
+  int limit = 20,
+  double? minPrice,
+  double? maxPrice,
+  String? sortBy,
+  String? sortOrder,
+}) async {
+  final queryParams = <String, dynamic>{
+    'page': page,
+    'limit': limit,
+  };
+  
+  if (minPrice != null) queryParams['minPrice'] = minPrice;
+  if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
+  if (sortBy != null) queryParams['sortBy'] = sortBy;
+  if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+  
+  final response = await _dio.get(
+    '/catalog/brands/$brandSlug/products',
+    queryParameters: queryParams,
+  );
+  
+  if (response.data['success']) {
+    return {
+      'products': (response.data['data'] as List)
+          .map((p) => Product.fromJson(p))
+          .toList(),
+      'pagination': response.data['meta'],
+    };
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
+#### 3️⃣ جلب علامة تجارية بالـ Slug
 
 **Endpoint:** `GET /catalog/brands/:slug`
 
@@ -463,7 +556,7 @@ Future<Brand> getBrandBySlug(String slug) async {
 
 ### 📂 Categories
 
-#### 3️⃣ جلب الأقسام الرئيسية
+#### 4️⃣ جلب الأقسام الرئيسية
 
 **Endpoint:** `GET /catalog/categories`
 
@@ -507,7 +600,7 @@ Future<List<Category>> getRootCategories() async {
 
 ---
 
-#### 4️⃣ جلب شجرة الأقسام كاملة
+#### 5️⃣ جلب شجرة الأقسام كاملة
 
 **Endpoint:** `GET /catalog/categories/tree`
 
@@ -558,7 +651,7 @@ Future<List<Category>> getCategoryTree() async {
 
 ---
 
-#### 5️⃣ جلب قسم مع Breadcrumb
+#### 6️⃣ جلب قسم مع Breadcrumb
 
 **Endpoint:** `GET /catalog/categories/:id`
 
@@ -598,7 +691,7 @@ Future<CategoryWithBreadcrumb> getCategoryById(String id) async {
 
 ---
 
-#### 6️⃣ جلب الأقسام الفرعية
+#### 7️⃣ جلب الأقسام الفرعية
 
 **Endpoint:** `GET /catalog/categories/:id/children`
 
@@ -641,7 +734,7 @@ Future<List<Category>> getCategoryChildren(String parentId) async {
 
 ### 📱 Devices
 
-#### 7️⃣ جلب الأجهزة الشائعة
+#### 8️⃣ جلب الأجهزة الشائعة
 
 **Endpoint:** `GET /catalog/devices`
 
@@ -696,7 +789,7 @@ Future<List<Device>> getPopularDevices({int? limit}) async {
 
 ---
 
-#### 8️⃣ جلب أجهزة ماركة معينة
+#### 9️⃣ جلب أجهزة ماركة معينة
 
 **Endpoint:** `GET /catalog/devices/brand/:brandId`
 
@@ -717,7 +810,7 @@ Future<List<Device>> getDevicesByBrand(String brandId) async {
 
 ---
 
-#### 9️⃣ جلب جهاز بالـ Slug
+#### 🔟 جلب جهاز بالـ Slug
 
 **Endpoint:** `GET /catalog/devices/:slug`
 
@@ -738,7 +831,7 @@ Future<Device> getDeviceBySlug(String slug) async {
 
 ### ⭐ Quality Types
 
-#### 🔟 جلب أنواع الجودة
+#### 1️⃣1️⃣ جلب أنواع الجودة
 
 **Endpoint:** `GET /catalog/quality-types`
 
@@ -840,6 +933,41 @@ class CatalogService {
     
     if (response.data['success']) {
       return Brand.fromJson(response.data['data']);
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<Map<String, dynamic>> getBrandProducts(
+    String brandSlug, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+    
+    if (minPrice != null) queryParams['minPrice'] = minPrice;
+    if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
+    if (sortBy != null) queryParams['sortBy'] = sortBy;
+    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+    
+    final response = await _dio.get(
+      '/catalog/brands/$brandSlug/products',
+      queryParameters: queryParams,
+    );
+    
+    if (response.data['success']) {
+      return {
+        'products': (response.data['data'] as List)
+            .map((p) => Product.fromJson(p))
+            .toList(),
+        'pagination': response.data['meta'],
+      };
     }
     throw Exception(response.data['messageAr']);
   }
@@ -994,6 +1122,87 @@ class BrandsBar extends StatelessWidget {
 }
 ```
 
+### عرض منتجات البراند
+
+```dart
+class BrandProductsScreen extends StatefulWidget {
+  final String brandSlug;
+  
+  const BrandProductsScreen({required this.brandSlug});
+  
+  @override
+  _BrandProductsScreenState createState() => _BrandProductsScreenState();
+}
+
+class _BrandProductsScreenState extends State<BrandProductsScreen> {
+  int _page = 1;
+  final int _limit = 20;
+  List<Product> _products = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+  
+  Future<void> _loadProducts() async {
+    if (_isLoading || !_hasMore) return;
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      final result = await catalogService.getBrandProducts(
+        widget.brandSlug,
+        page: _page,
+        limit: _limit,
+      );
+      
+      setState(() {
+        _products.addAll(result['products']);
+        final pagination = result['pagination'];
+        _hasMore = _page < pagination['pages'];
+        _page++;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Brand Products')),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          _page = 1;
+          _products.clear();
+          _hasMore = true;
+          await _loadProducts();
+        },
+        child: ListView.builder(
+          itemCount: _products.length + (_hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index < _products.length) {
+              final product = _products[index];
+              return ProductCard(product: product);
+            } else {
+              _loadProducts(); // Load more
+              return Center(child: CircularProgressIndicator());
+            }
+          },
+        ),
+      ),
+    );
+  }
+}
+```
+
 ### عرض شجرة الأقسام
 
 ```dart
@@ -1038,8 +1247,9 @@ class CategoryTreeView extends StatelessWidget {
 
 | Method | Endpoint | الوصف |
 |--------|----------|-------|
-| GET | `/catalog/brands` | جميع الماركات |
+| GET | `/catalog/brands` | جميع الماركات النشطة |
 | GET | `/catalog/brands/:slug` | ماركة بالـ slug |
+| GET | `/catalog/brands/:slug/products` | منتجات براند معين |
 | GET | `/catalog/categories` | الأقسام الرئيسية |
 | GET | `/catalog/categories/tree` | شجرة الأقسام كاملة |
 | GET | `/catalog/categories/:id` | قسم مع breadcrumb |
