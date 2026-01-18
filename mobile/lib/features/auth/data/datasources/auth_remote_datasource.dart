@@ -69,8 +69,8 @@ abstract class AuthRemoteDataSource {
     required String purpose,
   });
 
-  /// Forgot password - send reset OTP
-  Future<void> forgotPassword({required String phone});
+  /// Forgot password - request password reset
+  Future<String> forgotPassword({required String phone});
 
   /// Verify OTP for password reset - returns resetToken
   Future<String> verifyResetOtp({required String phone, required String otp});
@@ -218,14 +218,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> forgotPassword({required String phone}) async {
-    developer.log('Forgot password for: $phone', name: 'AuthDataSource');
+  Future<String> forgotPassword({required String phone}) async {
+    developer.log('Requesting password reset for: $phone', name: 'AuthDataSource');
 
     // Format phone to international format
     final formattedPhone = Formatters.phoneToInternational(phone);
 
     final response = await _apiClient.post(
-      ApiEndpoints.forgotPassword,
+      ApiEndpoints.requestPasswordReset,
       data: {'phone': formattedPhone},
     );
 
@@ -233,9 +233,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw Exception(
         response.data['messageAr'] ??
             response.data['message'] ??
-            'فشل إرسال رمز إعادة التعيين',
+            'فشل تقديم طلب إعادة تعيين كلمة المرور',
       );
     }
+
+    // Return request number
+    return response.data['data']['requestNumber'] ?? '';
   }
 
   @override

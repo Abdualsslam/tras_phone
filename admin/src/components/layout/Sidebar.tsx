@@ -1,6 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
+import logo from '@/assets/logo.png';
+import logoDark from '@/assets/logo_dark.png';
 import {
     LayoutDashboard,
     Users,
@@ -25,6 +28,7 @@ import {
     Wallet,
     Smartphone,
     MessageSquare,
+    Key,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -38,6 +42,7 @@ const menuItems = [
     { icon: Users, path: '/admins', labelKey: 'sidebar.admins' },
     { icon: Shield, path: '/roles', labelKey: 'sidebar.roles' },
     { icon: UserCheck, path: '/customers', labelKey: 'sidebar.customers' },
+    { icon: Key, path: '/password-reset-requests', labelKey: 'sidebar.passwordResetRequests' },
     { icon: Package, path: '/products', labelKey: 'sidebar.products' },
     { icon: FolderTree, path: '/categories', labelKey: 'sidebar.categories' },
     { icon: Smartphone, path: '/catalog', labelKey: 'sidebar.catalog' },
@@ -59,7 +64,9 @@ const menuItems = [
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const { t, i18n } = useTranslation();
+    const { isDark } = useTheme();
     const isRTL = i18n.language === 'ar';
+    const currentLogo = isDark ? logoDark : logo;
 
     return (
         <aside
@@ -72,15 +79,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             {/* Logo */}
             <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-slate-700 px-4">
                 {collapsed ? (
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">T</span>
-                    </div>
+                    <img 
+                        src={currentLogo} 
+                        alt="TRAS Logo" 
+                        className="h-10 w-10 object-contain"
+                    />
                 ) : (
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
-                            <span className="text-white font-bold text-lg">T</span>
-                        </div>
-                        <span className="font-bold text-lg text-gray-900 dark:text-gray-100">TRAS Phone</span>
+                        <img 
+                            src={currentLogo} 
+                            alt="TRAS Logo" 
+                            className="h-10 w-auto object-contain max-w-[140px]"
+                        />
                     </div>
                 )}
             </div>

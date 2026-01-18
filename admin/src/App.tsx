@@ -26,6 +26,7 @@ import { ContentPage } from '@/pages/content/ContentPage';
 import { WalletPage } from '@/pages/wallet/WalletPage';
 import { CatalogPage } from '@/pages/catalog/CatalogPage';
 import { LiveChatPage } from '@/pages/support/LiveChatPage';
+import { PasswordResetRequestsPage } from '@/pages/auth/PasswordResetRequestsPage';
 
 // Import i18n configuration
 import '@/locales/i18n';
@@ -62,6 +63,7 @@ function App() {
                 <Route index element={<DashboardPage />} />
                 <Route path="admins" element={<AdminsPage />} />
                 <Route path="customers" element={<CustomersPage />} />
+                <Route path="password-reset-requests" element={<PasswordResetRequestsPage />} />
                 <Route path="products" element={<ProductsPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="catalog" element={<CatalogPage />} />

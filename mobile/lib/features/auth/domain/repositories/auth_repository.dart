@@ -46,8 +46,8 @@ abstract class AuthRepository {
     required String purpose,
   });
 
-  /// Forgot password - request reset OTP
-  Future<Either<Failure, void>> forgotPassword({required String phone});
+  /// Forgot password - request password reset
+  Future<Either<Failure, String>> forgotPassword({required String phone});
 
   /// Verify OTP for password reset - returns resetToken
   Future<Either<Failure, String>> verifyResetOtp({

@@ -156,15 +156,15 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
-  /// Forgot password - send OTP
+  /// Forgot password - request password reset
   Future<void> forgotPassword({required String phone}) async {
-    emit(const AuthLoading(message: 'جاري إرسال رمز التحقق...'));
+    emit(const AuthLoading(message: 'جاري تقديم الطلب...'));
 
     final result = await _repository.forgotPassword(phone: phone);
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (_) => emit(AuthOtpSent(phone: phone, purpose: 'password_reset')),
+      (requestNumber) => emit(AuthPasswordResetRequestSubmitted(requestNumber: requestNumber)),
     );
   }
 

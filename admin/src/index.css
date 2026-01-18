@@ -2,18 +2,18 @@
 
 /* Tailwind v4 Theme - Custom colors must be defined in @theme */
 @theme {
-  /* Primary Colors */
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
-  --color-primary-950: #172554;
+  /* Primary Colors - TRAS Brand Colors */
+  --color-primary-50: #FFF5F2;
+  --color-primary-100: #FFE8E0;
+  --color-primary-200: #FFD1C0;
+  --color-primary-300: #FFBAA0;
+  --color-primary-400: #FF9466;
+  --color-primary-500: #F05423;
+  --color-primary-600: #D8451A;
+  --color-primary-700: #C03917;
+  --color-primary-800: #A82D14;
+  --color-primary-900: #8B2410;
+  --color-primary-950: #6B1C0C;
 
   /* Accent Colors */
   --color-accent-50: #f5f3ff;
