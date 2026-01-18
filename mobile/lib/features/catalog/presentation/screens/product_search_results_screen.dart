@@ -37,34 +37,88 @@ class _ProductSearchResultsScreenState
   Future<void> _loadResults() async {
     setState(() => _isLoading = true);
     try {
-      final products = await _dataSource.getProducts(
-        search: widget.filters?['query'] as String?,
-      );
-      // Apply filters
-      var filtered = products.where((p) {
-        if (widget.filters?['inStock'] == true && p.stockQuantity <= 0) {
-          return false;
-        }
-        if (widget.filters?['onSale'] == true && p.originalPrice == null) {
-          return false;
-        }
-        if (widget.filters?['minPrice'] != null &&
-            p.price < widget.filters!['minPrice']) {
-          return false;
-        }
-        if (widget.filters?['maxPrice'] != null &&
-            p.price > widget.filters!['maxPrice']) {
-          return false;
-        }
-        return true;
-      }).toList();
+      final query = widget.filters?['query'] as String? ?? '';
+      final tags = widget.filters?['tags'] as List<String>?;
+      
+      if (query.isNotEmpty || (tags != null && tags.isNotEmpty)) {
+        // Use advanced search
+        final products = await _dataSource.advancedSearch(
+          query: query,
+          tags: tags,
+          tagMode: widget.filters?['tagMode'] as String?,
+          fuzzy: widget.filters?['fuzzy'] as bool? ?? false,
+          sortBy: _getSortByForApi(),
+          sortOrder: _getSortOrderForApi(),
+          minPrice: widget.filters?['minPrice'] as double?,
+          maxPrice: widget.filters?['maxPrice'] as double?,
+          brandId: widget.filters?['brandId'] as String?,
+          categoryId: widget.filters?['categoryId'] as String?,
+          page: 1,
+          limit: 50,
+        );
 
-      setState(() {
-        _products = filtered;
-        _isLoading = false;
-      });
+        setState(() {
+          _products = products;
+          _isLoading = false;
+        });
+      } else {
+        // Use regular search with filters
+        final products = await _dataSource.getProducts(
+          search: query,
+          page: 1,
+          limit: 50,
+        );
+
+        var filtered = products.where((p) {
+          if (widget.filters?['inStock'] == true && p.stockQuantity <= 0) {
+            return false;
+          }
+          if (widget.filters?['onSale'] == true && p.originalPrice == null) {
+            return false;
+          }
+          if (widget.filters?['minPrice'] != null &&
+              p.price < widget.filters!['minPrice']) {
+            return false;
+          }
+          if (widget.filters?['maxPrice'] != null &&
+              p.price > widget.filters!['maxPrice']) {
+            return false;
+          }
+          return true;
+        }).toList();
+
+        setState(() {
+          _products = filtered;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  String _getSortByForApi() {
+    switch (_sortBy) {
+      case 'price_low':
+      case 'price_high':
+        return 'price';
+      case 'newest':
+        return 'createdAt';
+      default:
+        return 'relevance';
+    }
+  }
+
+  String _getSortOrderForApi() {
+    switch (_sortBy) {
+      case 'price_low':
+        return 'asc';
+      case 'price_high':
+        return 'desc';
+      case 'newest':
+        return 'desc';
+      default:
+        return 'desc';
     }
   }
 

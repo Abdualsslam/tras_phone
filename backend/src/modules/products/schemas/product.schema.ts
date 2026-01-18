@@ -227,7 +227,33 @@ ProductSchema.index({ isBestSeller: 1 });
 ProductSchema.index({ tags: 1 });
 ProductSchema.index({ basePrice: 1 });
 ProductSchema.index({ createdAt: -1 });
-ProductSchema.index({ name: 'text', nameAr: 'text', tags: 'text' });
+
+// Enhanced text index for advanced search
+// Supports search in name, nameAr, tags, description, shortDescription
+ProductSchema.index(
+  { 
+    name: 'text', 
+    nameAr: 'text', 
+    tags: 'text',
+    description: 'text',
+    shortDescription: 'text',
+    sku: 'text'
+  },
+  { 
+    weights: {
+      name: 10,
+      nameAr: 10,
+      tags: 8,
+      sku: 5,
+      description: 3,
+      shortDescription: 2
+    }
+  }
+);
+
+// Compound indexes for common search patterns
+ProductSchema.index({ status: 1, isActive: 1, tags: 1 });
+ProductSchema.index({ status: 1, brandId: 1, categoryId: 1 });
 
 // ═════════════════════════════════════
 // Virtuals

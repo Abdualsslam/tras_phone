@@ -102,7 +102,7 @@ export class ProductsService {
     if (categoryId) query.categoryId = categoryId;
     if (brandId) query.brandId = brandId;
     if (qualityTypeId) query.qualityTypeId = qualityTypeId;
-    if (deviceId) query.compatibleDevices = deviceId;
+    if (deviceId) query.compatibleDevices = { $in: [deviceId] };
     if (status) query.status = status;
     if (featured) query.isFeatured = true;
     if (newArrival) query.isNewArrival = true;

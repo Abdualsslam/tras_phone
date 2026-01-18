@@ -19,6 +19,8 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
+import { ProductsSearchService } from './products-search.service';
+import { ProductsSearchSuggestionsService } from './products-search-suggestions.service';
 import { Public } from '@decorators/public.decorator';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 import { RolesGuard } from '@guards/roles.guard';
@@ -31,6 +33,11 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { SetPricesDto } from './dto/set-prices.dto';
 import { AddReviewDto } from './dto/add-review.dto';
 import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
+import { 
+  AdvancedSearchQueryDto,
+  SearchSuggestionsQueryDto,
+  AutocompleteQueryDto,
+} from './dto/advanced-search-query.dto';
 import { AddDeviceCompatibilityDto } from './dto/add-device-compatibility.dto';
 import { CreateStockAlertDto } from './dto/create-stock-alert.dto';
 import { ApiResponseDto } from '@common/dto/api-response.dto';
@@ -48,7 +55,11 @@ import {
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly productsSearchService: ProductsSearchService,
+    private readonly productsSearchSuggestionsService: ProductsSearchSuggestionsService,
+  ) {}
 
   // ═════════════════════════════════════
   // Public Endpoints
@@ -150,6 +161,118 @@ export class ProductsController {
       result.data,
       'Best sellers retrieved',
       'تم استرجاع الأكثر مبيعاً',
+    );
+  }
+
+  // ═════════════════════════════════════
+  // Advanced Search Endpoints
+  // ═════════════════════════════════════
+
+  @Public()
+  @Get('search/advanced')
+  @ApiOperation({
+    summary: 'Advanced product search',
+    description:
+      'Perform advanced search with fuzzy matching, tag filtering, and relevance scoring',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async advancedSearch(@Query() query: AdvancedSearchQueryDto) {
+    const result = await this.productsSearchService.advancedSearch(query);
+    return ResponseBuilder.success(
+      result.data,
+      'Search results retrieved',
+      'تم استرجاع نتائج البحث',
+      result.pagination,
+    );
+  }
+
+  @Public()
+  @Get('search/suggestions')
+  @ApiOperation({
+    summary: 'Get search suggestions',
+    description:
+      'Get search suggestions based on query, including product names and tags',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Suggestions retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getSearchSuggestions(@Query() query: SearchSuggestionsQueryDto) {
+    const result = await this.productsSearchSuggestionsService.getSuggestions(query);
+    return ResponseBuilder.success(
+      result,
+      'Suggestions retrieved',
+      'تم استرجاع الاقتراحات',
+    );
+  }
+
+  @Public()
+  @Get('search/autocomplete')
+  @ApiOperation({
+    summary: 'Get autocomplete suggestions',
+    description: 'Get autocomplete suggestions for search input',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Autocomplete suggestions retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getAutocomplete(@Query() query: AutocompleteQueryDto) {
+    const suggestions = await this.productsSearchSuggestionsService.getAutocomplete(query);
+    return ResponseBuilder.success(
+      suggestions,
+      'Autocomplete suggestions retrieved',
+      'تم استرجاع اقتراحات الاكتمال التلقائي',
+    );
+  }
+
+  @Public()
+  @Get('search/tags')
+  @ApiOperation({
+    summary: 'Get all available tags',
+    description: 'Get all tags available in products for filtering',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Tags retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getAllTags() {
+    const tags = await this.productsSearchSuggestionsService.getAllTags();
+    return ResponseBuilder.success(
+      tags,
+      'Tags retrieved',
+      'تم استرجاع التاجات',
+    );
+  }
+
+  @Public()
+  @Get('search/popular-tags')
+  @ApiOperation({
+    summary: 'Get popular tags',
+    description: 'Get most frequently used tags with their counts',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Popular tags retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getPopularTags(@Query('limit') limit?: number) {
+    const tags = await this.productsSearchSuggestionsService.getPopularTags(limit || 20);
+    return ResponseBuilder.success(
+      tags,
+      'Popular tags retrieved',
+      'تم استرجاع التاجات الشائعة',
     );
   }
 

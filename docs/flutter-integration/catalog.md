@@ -1538,6 +1538,7 @@ class CategoryTreeView extends StatelessWidget {
 | GET | `/catalog/devices` | الأجهزة الشائعة |
 | GET | `/catalog/devices/brand/:brandId` | أجهزة ماركة معينة |
 | GET | `/catalog/devices/:slug` | جهاز بالـ slug |
+| GET | `/catalog/devices/:identifier/products` | منتجات جهاز معين |
 | GET | `/catalog/quality-types` | أنواع الجودة |
 
 ---

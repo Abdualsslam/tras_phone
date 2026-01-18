@@ -1,6 +1,7 @@
 /// Search Screen - Product search with filters
 library;
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -26,13 +27,18 @@ class _SearchScreenState extends State<SearchScreen> {
   final _dataSource = getIt<CatalogRemoteDataSource>();
 
   List<ProductEntity> _searchResults = [];
-  List<String> _recentSearches = ['شاشة آيفون', 'بطارية سامسونج', 'كابل شحن'];
+  List<String> _recentSearches = [];
+  List<String> _autocompleteSuggestions = [];
+  List<String> _popularTags = [];
+  Timer? _debounceTimer;
   bool _isLoading = false;
   bool _hasSearched = false;
+  bool _showSuggestions = false;
 
   @override
   void initState() {
     super.initState();
+    _loadPopularTags();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
@@ -40,43 +46,116 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
-  Future<void> _performSearchAsync(String query) async {
+  Future<void> _loadPopularTags() async {
+    try {
+      final tags = await _dataSource.getPopularTags(limit: 15);
+      if (mounted) {
+        setState(() {
+          _popularTags = tags.map((t) => t['tag'] as String).toList();
+        });
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    _debounceTimer?.cancel();
+
     if (query.isEmpty) {
       setState(() {
         _searchResults = [];
         _hasSearched = false;
+        _showSuggestions = false;
+        _autocompleteSuggestions = [];
       });
       return;
     }
 
-    setState(() => _isLoading = true);
-
-    try {
-      final results = await _dataSource.searchProducts(query);
+    if (query.length >= 2) {
+      // Show autocomplete suggestions with debounce
       setState(() {
-        _searchResults = results;
-        _hasSearched = true;
-        _isLoading = false;
+        _showSuggestions = true;
       });
 
-      // Add to recent searches
-      if (!_recentSearches.contains(query) && query.length > 2) {
-        _recentSearches.insert(0, query);
-        if (_recentSearches.length > 5) {
-          _recentSearches.removeLast();
+      _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+        _loadAutocompleteSuggestions(query);
+      });
+    } else {
+      setState(() {
+        _showSuggestions = false;
+        _autocompleteSuggestions = [];
+      });
+    }
+  }
+
+  Future<void> _loadAutocompleteSuggestions(String query) async {
+    try {
+      final suggestions = await _dataSource.getAutocompleteSuggestions(query, limit: 5);
+      if (mounted) {
+        setState(() {
+          _autocompleteSuggestions = suggestions;
+        });
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+
+  Future<void> _performSearchAsync(String query, {bool fromAutocomplete = false}) async {
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _hasSearched = false;
+        _showSuggestions = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _hasSearched = true;
+      _showSuggestions = false;
+    });
+
+    try {
+      // Use advanced search for better results
+      final results = await _dataSource.advancedSearch(
+        query: query,
+        page: 1,
+        limit: 20,
+      );
+
+      if (mounted) {
+        setState(() {
+          _searchResults = results;
+          _isLoading = false;
+        });
+
+        // Add to recent searches
+        if (!_recentSearches.contains(query) && query.length > 2) {
+          setState(() {
+            _recentSearches.insert(0, query);
+            if (_recentSearches.length > 5) {
+              _recentSearches.removeLast();
+            }
+          });
         }
       }
     } catch (e) {
-      setState(() {
-        _searchResults = [];
-        _hasSearched = true;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _searchResults = [];
+          _hasSearched = true;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -100,7 +179,13 @@ class _SearchScreenState extends State<SearchScreen> {
         title: _buildSearchField(theme, isDark),
         titleSpacing: 0,
       ),
-      body: _buildBody(theme, isDark),
+      body: Stack(
+        children: [
+          _buildBody(theme, isDark),
+          if (_showSuggestions && !_hasSearched)
+            _buildAutocompleteOverlay(theme, isDark),
+        ],
+      ),
     );
   }
 
@@ -208,6 +293,19 @@ class _SearchScreenState extends State<SearchScreen> {
             SizedBox(height: 32.h),
           ],
 
+          // Popular Tags
+          if (_popularTags.isNotEmpty) ...[
+            Text(
+              'التاجات الشائعة',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 12.h),
+            _buildPopularTags(theme, isDark),
+            SizedBox(height: 32.h),
+          ],
+
           // Popular Searches
           Text(
             'بحث شائع',
@@ -288,6 +386,114 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildPopularTags(ThemeData theme, bool isDark) {
+    return Wrap(
+      spacing: 8.w,
+      runSpacing: 8.h,
+      children: _popularTags.map((tag) {
+        return GestureDetector(
+          onTap: () {
+            _searchController.text = tag;
+            _performSearch(tag);
+            HapticFeedback.selectionClick();
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.primary.withValues(alpha: 0.2)
+                  : AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Iconsax.tag,
+                  size: 14.sp,
+                  color: AppColors.primary,
+                ),
+                SizedBox(width: 6.w),
+                Text(
+                  tag,
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildAutocompleteOverlay(ThemeData theme, bool isDark) {
+    if (_autocompleteSuggestions.isEmpty && _searchController.text.length < 2) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_autocompleteSuggestions.isNotEmpty)
+              ..._autocompleteSuggestions.map((suggestion) {
+                return InkWell(
+                  onTap: () {
+                    _searchController.text = suggestion;
+                    _performSearch(suggestion, fromAutocomplete: true);
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 12.h,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Iconsax.search_normal,
+                          size: 18.sp,
+                          color: AppColors.textTertiaryLight,
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Text(
+                            suggestion,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+          ],
+        ),
+      ),
     );
   }
 

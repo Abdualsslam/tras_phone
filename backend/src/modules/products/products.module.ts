@@ -32,6 +32,8 @@ import {
 import { Device, DeviceSchema } from '@modules/catalog/schemas/device.schema';
 import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
+import { ProductsSearchService } from './products-search.service';
+import { ProductsSearchSuggestionsService } from './products-search-suggestions.service';
 import { AuthModule } from '@modules/auth/auth.module';
 
 @Module({
@@ -67,7 +69,15 @@ import { AuthModule } from '@modules/auth/auth.module';
     AuthModule,
   ],
   controllers: [ProductsController],
-  providers: [ProductsService],
-  exports: [ProductsService],
+  providers: [
+    ProductsService,
+    ProductsSearchService,
+    ProductsSearchSuggestionsService,
+  ],
+  exports: [
+    ProductsService,
+    ProductsSearchService,
+    ProductsSearchSuggestionsService,
+  ],
 })
 export class ProductsModule {}
