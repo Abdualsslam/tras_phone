@@ -137,6 +137,12 @@ export class User {
     referredBy?: string;
 
     // ═════════════════════════════════════
+    // Account Deletion
+    // ═════════════════════════════════════
+    @Prop()
+    deletionReason?: string;
+
+    // ═════════════════════════════════════
     // Timestamps
     // ═════════════════════════════════════
     @Prop({ type: Date })

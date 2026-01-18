@@ -15,6 +15,7 @@ import { Referral, ReferralSchema } from './schemas/referral.schema';
 import { CustomersService } from './customers.service';
 import { ReferralsService } from './referrals.service';
 import { CustomersController } from './customers.controller';
+import { CustomerProfileController } from './customer-profile.controller';
 import { UsersModule } from '@modules/users/users.module';
 import { AuthModule } from '@modules/auth/auth.module';
 import { User, UserSchema } from '@modules/users/schemas/user.schema';
@@ -44,7 +45,7 @@ import { User, UserSchema } from '@modules/users/schemas/user.schema';
         }),
         AuthModule,
     ],
-    controllers: [CustomersController],
+    controllers: [CustomersController, CustomerProfileController],
     providers: [CustomersService, ReferralsService],
     exports: [CustomersService, ReferralsService],
 })

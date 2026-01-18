@@ -8,7 +8,11 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/cubit/locale_cubit.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../profile/presentation/cubit/profile_cubit.dart';
+import '../../../profile/presentation/cubit/profile_state.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -335,24 +339,129 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showDeleteAccountDialog() {
+    final reasonController = TextEditingController();
+    final profileCubit = getIt<ProfileCubit>();
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('حذف الحساب'),
-        content: const Text(
-          'هل أنت متأكد من حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.',
+      barrierDismissible: false,
+      builder: (ctx) => BlocProvider.value(
+        value: profileCubit,
+        child: BlocListener<ProfileCubit, ProfileState>(
+          listener: (context, state) {
+            if (state is ProfileError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            }
+            // Note: ProfileCubit.deleteAccount() returns bool, doesn't emit state
+            // We'll handle success through the Future result
+          },
+          child: BlocBuilder<ProfileCubit, ProfileState>(
+            builder: (context, state) {
+              final isLoading = state is ProfileLoading;
+
+              return AlertDialog(
+                title: const Text('حذف الحساب'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'هل أنت متأكد من حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.',
+                      ),
+                      SizedBox(height: 16.h),
+                      TextField(
+                        controller: reasonController,
+                        enabled: !isLoading,
+                        decoration: InputDecoration(
+                          labelText: 'سبب الحذف (اختياري)',
+                          hintText: 'أخبرنا لماذا تريد حذف حسابك...',
+                          border: const OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 12.h,
+                          ),
+                        ),
+                        maxLines: 3,
+                        maxLength: 500,
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            Navigator.pop(ctx);
+                            reasonController.dispose();
+                          },
+                    child: Text(AppLocalizations.of(context)!.cancel),
+                  ),
+                  ElevatedButton(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            final reason = reasonController.text.trim();
+                            final success = await profileCubit.deleteAccount(
+                              reason: reason.isEmpty ? null : reason,
+                            );
+
+                            if (!ctx.mounted) return;
+
+                            if (success) {
+                              Navigator.pop(ctx);
+                              reasonController.dispose();
+
+                              // Logout user and redirect to login
+                              if (context.mounted) {
+                                context.read<AuthCubit>().logout();
+                                context.go('/login');
+                              }
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('تم حذف حسابك بنجاح'),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('حدث خطأ أثناء حذف الحساب'),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      disabledBackgroundColor:
+                          AppColors.error.withOpacity(0.5),
+                    ),
+                    child: isLoading
+                        ? SizedBox(
+                            width: 20.w,
+                            height: 20.h,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : const Text('حذف'),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('حذف'),
-          ),
-        ],
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/address_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../../data/models/address_model.dart';
+import '../../../auth/domain/entities/customer_entity.dart';
 import 'profile_state.dart';
 
 /// Cubit for managing customer profile
@@ -52,10 +53,33 @@ class ProfileCubit extends Cubit<ProfileState> {
 
   /// Delete account
   Future<bool> deleteAccount({String? reason}) async {
+    emit(const ProfileLoading());
     try {
-      return await _repository.deleteAccount(reason: reason);
+      final success = await _repository.deleteAccount(reason: reason);
+      if (success) {
+        // Account deleted successfully - emit a success state
+        // Note: We still return bool for compatibility
+        emit(ProfileLoaded(
+          // Create a minimal customer entity for success state
+          // This won't be used but satisfies the state requirement
+          CustomerEntity(
+            id: '',
+            userId: '',
+            customerCode: '',
+            responsiblePersonName: '',
+            shopName: '',
+            cityId: '',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        ));
+      } else {
+        emit(const ProfileError('فشل حذف الحساب'));
+      }
+      return success;
     } catch (e) {
       developer.log('Error deleting account: $e', name: 'ProfileCubit');
+      emit(ProfileError(e.toString()));
       return false;
     }
   }
