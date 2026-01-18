@@ -626,6 +626,93 @@ export class CatalogController {
     );
   }
 
+  @Public()
+  @Get('devices/:identifier/products')
+  @ApiOperation({
+    summary: 'Get products by device',
+    description:
+      'Retrieve all products compatible with a specific device by device ID or slug. Public endpoint.',
+  })
+  @ApiParam({
+    name: 'identifier',
+    description: 'Device ID or slug',
+    example: 'iphone-15-pro-max or 507f1f77bcf86cd799439011',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20)',
+  })
+  @ApiQuery({
+    name: 'minPrice',
+    required: false,
+    type: Number,
+    description: 'Minimum price filter',
+  })
+  @ApiQuery({
+    name: 'maxPrice',
+    required: false,
+    type: Number,
+    description: 'Maximum price filter',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Sort field (price, name, createdAt, etc.)',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order',
+  })
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    type: String,
+    description: 'Filter by brand ID',
+  })
+  @ApiQuery({
+    name: 'qualityTypeId',
+    required: false,
+    type: String,
+    description: 'Filter by quality type ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Device products retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getDeviceProducts(
+    @Param('identifier') identifier: string,
+    @Query() query: Partial<ProductFilterQueryDto>,
+  ) {
+    // Find device by ID or slug to get device ID
+    const device = await this.catalogService.findDeviceByIdOrSlug(identifier);
+    
+    // Use productsService with deviceId filter
+    const result = await this.productsService.findAll({
+      ...query,
+      deviceId: device._id.toString(),
+    });
+    
+    return ResponseBuilder.success(
+      result.data,
+      'Device products retrieved',
+      'تم استرجاع منتجات الجهاز',
+      result.pagination,
+    );
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Post('devices')

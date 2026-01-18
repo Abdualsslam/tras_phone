@@ -116,6 +116,18 @@ export class CatalogService {
         return device;
     }
 
+    async findDeviceByIdOrSlug(identifier: string): Promise<DeviceDocument> {
+        const query = /^[0-9a-fA-F]{24}$/.test(identifier)
+            ? { _id: identifier }
+            : { slug: identifier };
+        
+        const device = await this.deviceModel
+            .findOne(query)
+            .populate('brandId');
+        if (!device) throw new NotFoundException('Device not found');
+        return device;
+    }
+
     async updateDevice(id: string, data: any): Promise<DeviceDocument> {
         const device = await this.deviceModel.findByIdAndUpdate(
             id,

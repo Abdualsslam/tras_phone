@@ -945,9 +945,95 @@ Future<Device> getDeviceBySlug(String slug) async {
 
 ---
 
+#### 1️⃣2️⃣ جلب منتجات جهاز معين
+
+**Endpoint:** `GET /catalog/devices/:identifier/products`
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | number | ❌ | رقم الصفحة (افتراضي: 1) |
+| `limit` | number | ❌ | عدد العناصر (افتراضي: 20) |
+| `minPrice` | number | ❌ | الحد الأدنى للسعر |
+| `maxPrice` | number | ❌ | الحد الأقصى للسعر |
+| `sortBy` | string | ❌ | ترتيب حسب (price, name, createdAt) |
+| `sortOrder` | string | ❌ | ترتيب (asc, desc) |
+| `brandId` | string | ❌ | فلترة حسب العلامة التجارية |
+| `qualityTypeId` | string | ❌ | فلترة حسب نوع الجودة |
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "...",
+      "name": "شاشة iPhone 15 Pro Max",
+      "nameAr": "شاشة آيفون 15 برو ماكس",
+      "slug": "screen-iphone-15-pro-max",
+      "basePrice": 500.00,
+      ...
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "pages": 3
+  },
+  "message": "Device products retrieved",
+  "messageAr": "تم استرجاع منتجات الجهاز"
+}
+```
+
+**Flutter Code:**
+```dart
+/// جلب منتجات جهاز معين
+Future<Map<String, dynamic>> getDeviceProducts(
+  String deviceIdentifier, {
+  int page = 1,
+  int limit = 20,
+  double? minPrice,
+  double? maxPrice,
+  String? sortBy,
+  String? sortOrder,
+  String? brandId,
+  String? qualityTypeId,
+}) async {
+  final queryParams = <String, dynamic>{
+    'page': page,
+    'limit': limit,
+  };
+  
+  if (minPrice != null) queryParams['minPrice'] = minPrice;
+  if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
+  if (sortBy != null) queryParams['sortBy'] = sortBy;
+  if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+  if (brandId != null) queryParams['brandId'] = brandId;
+  if (qualityTypeId != null) queryParams['qualityTypeId'] = qualityTypeId;
+  
+  final response = await _dio.get(
+    '/catalog/devices/$deviceIdentifier/products',
+    queryParameters: queryParams,
+  );
+  
+  if (response.data['success']) {
+    return {
+      'products': (response.data['data'] as List)
+          .map((p) => Product.fromJson(p))
+          .toList(),
+      'pagination': response.data['meta'],
+    };
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
 ### ⭐ Quality Types
 
-#### 1️⃣2️⃣ جلب أنواع الجودة
+#### 1️⃣3️⃣ جلب أنواع الجودة
 
 **Endpoint:** `GET /catalog/quality-types`
 
@@ -1206,6 +1292,45 @@ class CatalogService {
     
     if (response.data['success']) {
       return Device.fromJson(response.data['data']);
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<Map<String, dynamic>> getDeviceProducts(
+    String deviceIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+    
+    if (minPrice != null) queryParams['minPrice'] = minPrice;
+    if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
+    if (sortBy != null) queryParams['sortBy'] = sortBy;
+    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+    if (brandId != null) queryParams['brandId'] = brandId;
+    if (qualityTypeId != null) queryParams['qualityTypeId'] = qualityTypeId;
+    
+    final response = await _dio.get(
+      '/catalog/devices/$deviceIdentifier/products',
+      queryParameters: queryParams,
+    );
+    
+    if (response.data['success']) {
+      return {
+        'products': (response.data['data'] as List)
+            .map((p) => Product.fromJson(p))
+            .toList(),
+        'pagination': response.data['meta'],
+      };
     }
     throw Exception(response.data['messageAr']);
   }

@@ -130,6 +130,7 @@ interface AddProductForm {
   allowBackorder: boolean;
   tags: string[];
   specifications: Record<string, string>;
+  compatibleDevices: string[];
 }
 
 const initialFormData: AddProductForm = {
@@ -167,6 +168,7 @@ const initialFormData: AddProductForm = {
   allowBackorder: false,
   tags: [],
   specifications: {},
+  compatibleDevices: [],
 };
 
 export function ProductsPage() {
@@ -236,7 +238,7 @@ export function ProductsPage() {
   const { data: devices = [] } = useQuery<Device[]>({
     queryKey: ["devices-all"],
     queryFn: () => catalogDeviceApi.getDevices({ limit: 200 }),
-    enabled: isDetailDialogOpen,
+    enabled: isAddDialogOpen || isDetailDialogOpen,
   });
 
   // Fetch product reviews when detail dialog is open
@@ -458,6 +460,7 @@ export function ProductsPage() {
       allowBackorder: (product as any).allowBackorder || false,
       tags: (product as any).tags || [],
       specifications: (product as any).specifications || {},
+      compatibleDevices: (product as any).compatibleDevices?.map((d: any) => d._id || d) || [],
     });
     setFormTagsInput(((product as any).tags || []).join(", "));
     setIsAddDialogOpen(true);
@@ -530,6 +533,9 @@ export function ProductsPage() {
       ...(parsedTags.length > 0 && { tags: parsedTags }),
       ...(Object.keys(formData.specifications).length > 0 && {
         specifications: formData.specifications,
+      }),
+      ...(formData.compatibleDevices.length > 0 && {
+        compatibleDevices: formData.compatibleDevices,
       }),
     };
 
@@ -1056,6 +1062,40 @@ export function ProductsPage() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Compatible Devices Section */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                الأجهزة المتوافقة
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg">
+                {devices.map((device) => (
+                  <label
+                    key={device._id}
+                    className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.compatibleDevices.includes(device._id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          handleFormChange("compatibleDevices", [...formData.compatibleDevices, device._id]);
+                        } else {
+                          handleFormChange("compatibleDevices", formData.compatibleDevices.filter((id) => id !== device._id));
+                        }
+                      }}
+                      className="w-4 h-4 rounded"
+                    />
+                    <span className="text-sm">{device.name}</span>
+                  </label>
+                ))}
+              </div>
+              {devices.length === 0 && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                  جاري تحميل الأجهزة...
+                </p>
+              )}
             </div>
 
             {/* Status Section */}
