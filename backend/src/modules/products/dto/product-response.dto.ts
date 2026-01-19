@@ -130,6 +130,9 @@ export class ProductResponseDto {
     @ApiProperty({ example: 0, description: 'Wishlist count' })
     wishlistCount: number;
 
+    @ApiProperty({ type: [ProductResponseDto], required: false, description: 'Related products' })
+    relatedProducts?: ProductResponseDto[];
+
     @ApiProperty({ example: '2024-01-01T00:00:00.000Z', description: 'Creation timestamp' })
     createdAt: Date;
 

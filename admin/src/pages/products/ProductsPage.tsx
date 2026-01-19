@@ -131,6 +131,7 @@ interface AddProductForm {
   tags: string[];
   specifications: Record<string, string>;
   compatibleDevices: string[];
+  relatedProducts: string[];
 }
 
 const initialFormData: AddProductForm = {
@@ -169,6 +170,7 @@ const initialFormData: AddProductForm = {
   tags: [],
   specifications: {},
   compatibleDevices: [],
+  relatedProducts: [],
 };
 
 export function ProductsPage() {
@@ -193,6 +195,8 @@ export function ProductsPage() {
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [relatedProductsSearch, setRelatedProductsSearch] = useState("");
+  const [relatedProductsDisplayCount, setRelatedProductsDisplayCount] = useState(5);
   const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
 
   // Fetch products
@@ -240,6 +244,34 @@ export function ProductsPage() {
     queryFn: () => catalogDeviceApi.getDevices({ limit: 200 }),
     enabled: isAddDialogOpen || isDetailDialogOpen,
   });
+
+  // Fetch products for related products selection
+  const { data: availableProductsData } = useQuery({
+    queryKey: ["products-for-related", isAddDialogOpen, isEditMode, selectedProduct?._id],
+    queryFn: () =>
+      productsApi.getAll({
+        status: "active",
+        limit: 1000, // Get all active products
+      }),
+    enabled: isAddDialogOpen,
+  });
+
+  // Filter out current product if in edit mode and filter by search
+  const availableProducts = (availableProductsData?.items || [])
+    .filter((p: Product) => !isEditMode || p._id !== selectedProduct?._id)
+    .filter((p: Product) => {
+      if (!relatedProductsSearch.trim()) return true;
+      const searchLower = relatedProductsSearch.toLowerCase();
+      return (
+        (p.name || "").toLowerCase().includes(searchLower) ||
+        (p.nameAr || "").toLowerCase().includes(searchLower) ||
+        (p.sku || "").toLowerCase().includes(searchLower)
+      );
+    });
+
+  // Get displayed products (limited by displayCount)
+  const displayedProducts = availableProducts.slice(0, relatedProductsDisplayCount);
+  const hasMoreProducts = availableProducts.length > relatedProductsDisplayCount;
 
   // Fetch product reviews when detail dialog is open
   const { data: productReviews = [] } = useQuery<ProductReview[]>({
@@ -420,6 +452,8 @@ export function ProductsPage() {
     setSelectedProduct(null);
     setFormTagsInput("");
     setUploadError(null);
+    setRelatedProductsSearch("");
+    setRelatedProductsDisplayCount(5);
     setIsAddDialogOpen(true);
   };
 
@@ -461,6 +495,7 @@ export function ProductsPage() {
       tags: (product as any).tags || [],
       specifications: (product as any).specifications || {},
       compatibleDevices: (product as any).compatibleDevices?.map((d: any) => d._id || d) || [],
+      relatedProducts: (product as any).relatedProducts?.map((p: any) => p._id || p) || [],
     });
     setFormTagsInput(((product as any).tags || []).join(", "));
     setIsAddDialogOpen(true);
@@ -536,6 +571,9 @@ export function ProductsPage() {
       }),
       ...(formData.compatibleDevices.length > 0 && {
         compatibleDevices: formData.compatibleDevices,
+      }),
+      ...(formData.relatedProducts.length > 0 && {
+        relatedProducts: formData.relatedProducts,
       }),
     };
 
@@ -754,6 +792,8 @@ export function ProductsPage() {
           setSelectedProduct(null);
           setFormData(initialFormData);
           setFormTagsInput("");
+          setRelatedProductsSearch("");
+          setRelatedProductsDisplayCount(5);
         }
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -1108,6 +1148,95 @@ export function ProductsPage() {
               {devices.length === 0 && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                   جاري تحميل الأجهزة...
+                </p>
+              )}
+            </div>
+
+            {/* Related Products Section */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                المنتجات المشابهة
+              </h3>
+              
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="البحث عن منتج بالاسم أو SKU..."
+                  value={relatedProductsSearch}
+                  onChange={(e) => {
+                    setRelatedProductsSearch(e.target.value);
+                    setRelatedProductsDisplayCount(5); // Reset display count on search
+                  }}
+                  className="ps-10"
+                />
+                {relatedProductsSearch && (
+                  <button
+                    onClick={() => {
+                      setRelatedProductsSearch("");
+                      setRelatedProductsDisplayCount(5);
+                    }}
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Products List */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg">
+                {displayedProducts.map((product) => (
+                  <label
+                    key={product._id}
+                    className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.relatedProducts.includes(product._id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          handleFormChange("relatedProducts", [...formData.relatedProducts, product._id]);
+                        } else {
+                          handleFormChange("relatedProducts", formData.relatedProducts.filter((id) => id !== product._id));
+                        }
+                      }}
+                      className="w-4 h-4 rounded"
+                    />
+                    <span className="text-sm truncate" title={product.nameAr || product.name}>
+                      {product.nameAr || product.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Show More Button */}
+              {hasMoreProducts && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRelatedProductsDisplayCount(prev => prev + 5)}
+                  className="w-full"
+                >
+                  المزيد ({availableProducts.length - relatedProductsDisplayCount} متبقي)
+                </Button>
+              )}
+
+              {/* Empty State */}
+              {displayedProducts.length === 0 && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                  {relatedProductsSearch
+                    ? "لا توجد منتجات تطابق البحث"
+                    : isEditMode
+                    ? "لا توجد منتجات أخرى متاحة"
+                    : "جاري تحميل المنتجات..."}
+                </p>
+              )}
+
+              {/* Selected Count */}
+              {formData.relatedProducts.length > 0 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                  تم اختيار {formData.relatedProducts.length} منتج
                 </p>
               )}
             </div>

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -62,6 +63,15 @@ export class ProductsService {
     if (existing) {
       throw new ConflictException(
         'Product with this SKU or slug already exists',
+      );
+    }
+
+    // Convert relatedProducts from string[] to ObjectId[]
+    if (data.relatedProducts && Array.isArray(data.relatedProducts)) {
+      // Remove duplicates
+      const uniqueIds = [...new Set(data.relatedProducts)];
+      data.relatedProducts = uniqueIds.map(
+        (id: string) => new Types.ObjectId(id),
       );
     }
 
@@ -320,10 +330,22 @@ export class ProductsService {
       .populate('brandId')
       .populate('categoryId')
       .populate('qualityTypeId')
-      .populate('compatibleDevices');
+      .populate('compatibleDevices')
+      .populate({
+        path: 'relatedProducts',
+        select: 'name nameAr slug mainImage basePrice compareAtPrice isActive status',
+        match: { isActive: true, status: 'active' },
+      });
 
     if (!product) {
       throw new NotFoundException('Product not found');
+    }
+
+    // Filter out null values from relatedProducts (products that don't match the match condition)
+    if (product.relatedProducts && Array.isArray(product.relatedProducts)) {
+      product.relatedProducts = product.relatedProducts.filter(
+        (p: any) => p !== null && p.isActive === true && p.status === 'active',
+      );
     }
 
     // Increment views
@@ -338,6 +360,30 @@ export class ProductsService {
    * Update product
    */
   async update(id: string, data: any): Promise<ProductDocument> {
+    // Convert relatedProducts from string[] to ObjectId[] if provided
+    if (data.relatedProducts !== undefined) {
+      if (Array.isArray(data.relatedProducts)) {
+        // Remove duplicates and filter out self-reference
+        const uniqueIds = [...new Set(data.relatedProducts)].filter(
+          (relatedId: string) => relatedId !== id,
+        );
+        
+        // Validate: prevent adding the product itself to relatedProducts
+        if (data.relatedProducts.includes(id)) {
+          throw new BadRequestException(
+            'Product cannot be related to itself',
+            'لا يمكن إضافة المنتج نفسه في المنتجات المشابهة',
+          );
+        }
+        
+        data.relatedProducts = uniqueIds.map(
+          (relatedId: string) => new Types.ObjectId(relatedId),
+        );
+      } else {
+        data.relatedProducts = [];
+      }
+    }
+
     const product = await this.productModel.findByIdAndUpdate(
       id,
       { $set: data },

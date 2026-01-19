@@ -177,4 +177,10 @@ export class CreateProductDto {
     @IsString({ each: true })
     @IsOptional()
     tags?: string[];
+
+    @ApiProperty({ type: [String], example: [], required: false, description: 'Related product IDs' })
+    @IsArray()
+    @IsMongoId({ each: true })
+    @IsOptional()
+    relatedProducts?: string[];
 }

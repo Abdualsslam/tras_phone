@@ -42,6 +42,7 @@ export interface CreateProductDto {
     dimensions?: string;
     color?: string;
     tags?: string[];
+    relatedProducts?: string[];
 }
 
 export interface UpdateProductDto extends Partial<CreateProductDto> { }
