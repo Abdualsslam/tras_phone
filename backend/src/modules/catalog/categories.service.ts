@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, Inject, ForwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Category, CategoryDocument } from './schemas/category.schema';
@@ -16,7 +16,7 @@ export class CategoriesService {
         private categoryModel: Model<CategoryDocument>,
         @InjectModel('Product')
         private productModel: Model<any>,
-        @Inject(ForwardRef(() => ProductsService))
+        @Inject(forwardRef(() => ProductsService))
         private productsService: ProductsService,
     ) { }
 

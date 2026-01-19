@@ -28,6 +28,7 @@ import {
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { ApplyCouponDto } from './dto/apply-coupon.dto';
+import { SyncCartDto } from './dto/sync-cart.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { CreateShipmentDto } from './dto/create-shipment.dto';
@@ -207,6 +208,39 @@ export class CartController {
   async removeCoupon(@CurrentUser() user: any) {
     const cart = await this.cartService.removeCoupon(user.customerId);
     return ResponseBuilder.success(cart, 'Coupon removed', 'تم إزالة الكوبون');
+  }
+
+  @Post('sync')
+  @ApiOperation({
+    summary: 'Sync local cart with server',
+    description:
+      'Synchronize local cart items with server. Validates stock, prices, and product availability.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Cart synced successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async syncCart(
+    @CurrentUser() user: any,
+    @Body() syncCartDto: SyncCartDto,
+  ) {
+    const result = await this.cartService.syncCart(
+      user.customerId,
+      syncCartDto.items,
+    );
+
+    return ResponseBuilder.success(
+      {
+        cart: result.cart,
+        removedItems: result.removedItems,
+        priceChangedItems: result.priceChangedItems,
+        quantityAdjustedItems: result.quantityAdjustedItems,
+      },
+      'Cart synced successfully',
+      'تمت مزامنة السلة بنجاح',
+    );
   }
 }
 

@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
@@ -10,6 +11,13 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../promotions/presentation/widgets/coupon_input.dart';
 import '../../../promotions/data/models/coupon_validation_model.dart';
+import '../../domain/entities/cart_entity.dart';
+import '../../domain/enums/cart_enums.dart';
+import '../cubit/cart_cubit.dart';
+import '../cubit/cart_state.dart';
+import '../../../orders/presentation/cubit/orders_cubit.dart';
+import '../../../orders/domain/enums/order_enums.dart';
+import '../../../orders/data/models/shipping_address_model.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -62,6 +70,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Load local cart when entering checkout
+    context.read<CartCubit>().loadLocalCart();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -105,21 +120,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             SizedBox(height: 24.h),
 
             // Coupon Section
-            _buildSectionTitle(theme, 'كود الخصم'),
-            SizedBox(height: 12.h),
-            CouponInput(
-              orderTotal: 1325.0, // TODO: Get actual order total
-              onCouponApplied: (validation) {
-                setState(() => _appliedCoupon = validation);
-              },
-              onCouponRemoved: () {
-                setState(() => _appliedCoupon = null);
+            BlocBuilder<CartCubit, CartState>(
+              builder: (context, cartState) {
+                final cart = cartState is CartLoaded ? cartState.cart : null;
+                final orderTotal = cart?.subtotal ?? 0.0;
+                
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle(theme, 'كود الخصم'),
+                    SizedBox(height: 12.h),
+                    CouponInput(
+                      orderTotal: orderTotal,
+                      onCouponApplied: (validation) {
+                        setState(() => _appliedCoupon = validation);
+                      },
+                      onCouponRemoved: () {
+                        setState(() => _appliedCoupon = null);
+                      },
+                    ),
+                  ],
+                );
               },
             ),
             SizedBox(height: 24.h),
 
             // Order Summary
-            _buildOrderSummary(theme, isDark),
+            BlocBuilder<CartCubit, CartState>(
+              builder: (context, cartState) {
+                final cart = cartState is CartLoaded ? cartState.cart : null;
+                if (cart == null) {
+                  return SizedBox.shrink();
+                }
+                return _buildOrderSummary(theme, isDark, cart);
+              },
+            ),
             SizedBox(height: 100.h),
           ],
         ),
@@ -328,7 +363,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildOrderSummary(ThemeData theme, bool isDark) {
+  Widget _buildOrderSummary(ThemeData theme, bool isDark, CartEntity cart) {
+    final couponDiscount = _appliedCoupon?.discountAmount ?? 0.0;
+    final subtotal = cart.subtotal;
+    final shippingCost = cart.shippingCost;
+    final taxAmount = cart.taxAmount;
+    final total = subtotal - couponDiscount + shippingCost + taxAmount;
+    final itemsCount = cart.itemsCount;
+    
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -345,18 +387,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ),
           SizedBox(height: 16.h),
-          _buildSummaryRow(theme, 'المجموع الفرعي (3 منتجات)', '1,325 ر.س'),
-          SizedBox(height: 8.h),
-          _buildSummaryRow(theme, 'الشحن', '50 ر.س'),
+          _buildSummaryRow(
+            theme,
+            'المجموع الفرعي ($itemsCount ${itemsCount == 1 ? 'منتج' : 'منتجات'})',
+            '${subtotal.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+          ),
           SizedBox(height: 8.h),
           _buildSummaryRow(
             theme,
-            'الخصم',
-            '-132.5 ر.س',
-            valueColor: AppColors.success,
+            'الشحن',
+            '${shippingCost.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
           ),
+          if (couponDiscount > 0) ...[
+            SizedBox(height: 8.h),
+            _buildSummaryRow(
+              theme,
+              'الخصم',
+              '-${couponDiscount.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+              valueColor: AppColors.success,
+            ),
+          ],
+          if (taxAmount > 0) ...[
+            SizedBox(height: 8.h),
+            _buildSummaryRow(
+              theme,
+              'الضريبة',
+              '${taxAmount.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+            ),
+          ],
           Divider(height: 24.h),
-          _buildSummaryRow(theme, 'الإجمالي', '1,242.5 ر.س', isTotal: true),
+          _buildSummaryRow(
+            theme,
+            'الإجمالي',
+            '${total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+            isTotal: true,
+          ),
         ],
       ),
     );
@@ -400,36 +465,108 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildBottomBar(BuildContext context, ThemeData theme, bool isDark) {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
+    return BlocBuilder<CartCubit, CartState>(
+      builder: (context, cartState) {
+        final cart = cartState is CartLoaded ? cartState.cart : null;
+        final couponDiscount = _appliedCoupon?.discountAmount ?? 0.0;
+        final subtotal = cart?.subtotal ?? 0.0;
+        final shippingCost = cart?.shippingCost ?? 0.0;
+        final taxAmount = cart?.taxAmount ?? 0.0;
+        final total = subtotal - couponDiscount + shippingCost + taxAmount;
+        
+        return Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -5),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: SafeArea(
-        child: ElevatedButton(
-          onPressed: () {
-            HapticFeedback.mediumImpact();
-            context.push('/order-confirmation');
-          },
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.symmetric(vertical: 16.h),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14.r),
+          child: SafeArea(
+            child: ElevatedButton(
+              onPressed: () async {
+                if (cart == null || cart.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('السلة فارغة')),
+                  );
+                  return;
+                }
+
+                HapticFeedback.mediumImpact();
+
+                // Sync cart before creating order
+                final syncResult = await context.read<CartCubit>().syncCart();
+                if (syncResult == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('فشلت المزامنة. حاول مرة أخرى.')),
+                  );
+                  return;
+                }
+
+                // Get coupon code if applied
+                final couponCode = _appliedCoupon?.coupon?.code;
+
+                // Get selected address and payment method
+                final selectedAddress = _addresses[_selectedAddressIndex];
+                final selectedPayment = _paymentMethods[_selectedPaymentIndex];
+
+                // Map payment method
+                OrderPaymentMethod? paymentMethod;
+                switch (selectedPayment.id) {
+                  case 1:
+                    paymentMethod = OrderPaymentMethod.cash;
+                    break;
+                  case 2:
+                    paymentMethod = OrderPaymentMethod.wallet;
+                    break;
+                  case 3:
+                    paymentMethod = OrderPaymentMethod.bankTransfer;
+                    break;
+                }
+
+                // Create shipping address model
+                final shippingAddress = ShippingAddressModel(
+                  fullName: selectedAddress.title,
+                  phone: selectedAddress.phone,
+                  address: selectedAddress.address,
+                  city: selectedAddress.address.split(' - ')[0], // Extract city
+                );
+
+                // Create order
+                final order = await context.read<OrdersCubit>().createOrder(
+                      shippingAddress: shippingAddress,
+                      paymentMethod: paymentMethod,
+                      couponCode: couponCode,
+                    );
+
+                if (order != null) {
+                  // Clear local cart after successful order
+                  await context.read<CartCubit>().clearCartLocal();
+                  context.push('/order-confirmation');
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('فشل إنشاء الطلب. حاول مرة أخرى.')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 16.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+              ),
+              child: Text(
+                '${AppLocalizations.of(context)!.confirm} • ${total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+              ),
             ),
           ),
-          child: Text(
-            '${AppLocalizations.of(context)!.confirm} • 1,242.5 ${AppLocalizations.of(context)!.currency}',
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

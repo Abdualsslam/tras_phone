@@ -96,11 +96,10 @@ export class ProductsSearchService {
       sortObj = { relevanceScore: sortOrder === 'desc' ? -1 : 1 };
     } else {
       sortObj = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
-      if (sortBy !== 'relevance') {
-        pipeline.push({
-          $sort: { relevanceScore: -1 },
-        });
-      }
+      // Add secondary sort by relevance score for non-relevance sorts
+      pipeline.push({
+        $sort: { relevanceScore: -1 },
+      });
     }
 
     // Add sorting

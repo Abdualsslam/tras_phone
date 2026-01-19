@@ -22,6 +22,7 @@ import {
 import { CartService } from './cart.service';
 import { CouponsService } from '@modules/promotions/coupons.service';
 import { PromotionsService } from '@modules/promotions/promotions.service';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -51,7 +52,10 @@ export class OrdersService {
   /**
    * Create order from cart
    */
-  async createOrder(customerId: string, data: any): Promise<OrderDocument> {
+  async createOrder(
+    customerId: string,
+    data: CreateOrderDto,
+  ): Promise<OrderDocument> {
     const cart = await this.cartService.getCart(customerId);
 
     if (!cart.items.length) {
@@ -60,26 +64,65 @@ export class OrdersService {
 
     const orderNumber = await this.generateOrderNumber();
 
+    // Calculate subtotal from cart
+    let subtotal = cart.subtotal;
+    let couponDiscount = 0;
+    let couponId: Types.ObjectId | undefined;
+    let couponCode: string | undefined;
+
+    // Validate and apply coupon if provided
+    if (data.couponCode) {
+      try {
+        // Check if this is customer's first order
+        const previousOrdersCount = await this.orderModel.countDocuments({
+          customerId: new Types.ObjectId(customerId),
+        });
+        const isFirstOrder = previousOrdersCount === 0;
+
+        // Validate coupon
+        const validation = await this.couponsService.validate(
+          data.couponCode,
+          customerId,
+          subtotal,
+          isFirstOrder,
+        );
+
+        couponId = validation.coupon._id;
+        couponCode = validation.coupon.code;
+        couponDiscount = validation.discountAmount;
+      } catch (error) {
+        // If validation fails, throw error
+        throw new BadRequestException(
+          error.message || 'Invalid coupon code',
+        );
+      }
+    }
+
+    // Calculate totals
+    const taxAmount = cart.taxAmount;
+    const shippingCost = cart.shippingCost;
+    const discount = cart.discount; // Other discounts (promotions)
+    const total = subtotal - discount - couponDiscount + taxAmount + shippingCost;
+
     // Create order
     const order = await this.orderModel.create({
       orderNumber,
       customerId,
       status: 'pending',
-      subtotal: cart.subtotal,
-      taxAmount: cart.taxAmount,
-      shippingCost: cart.shippingCost,
-      discount: cart.discount,
-      couponDiscount: cart.couponDiscount,
-      total: cart.total,
-      couponId: cart.couponId,
-      couponCode: cart.couponCode,
+      subtotal,
+      taxAmount,
+      shippingCost,
+      discount,
+      couponDiscount,
+      total,
+      couponId,
+      couponCode,
       appliedPromotions: cart.appliedPromotions,
       shippingAddress: data.shippingAddress,
       shippingAddressId: data.shippingAddressId,
       paymentMethod: data.paymentMethod,
-      customerNotes: data.notes,
-      source: data.source || 'web',
-      ...data,
+      customerNotes: data.customerNotes,
+      source: data.source || 'mobile',
     });
 
     // Create order items

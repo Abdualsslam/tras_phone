@@ -19,6 +19,7 @@ import '../../features/catalog/presentation/cubit/categories_cubit.dart';
 import '../../features/catalog/presentation/cubit/devices_cubit.dart';
 import '../../features/catalog/presentation/cubit/quality_types_cubit.dart';
 import '../../features/cart/data/datasources/cart_remote_datasource.dart';
+import '../../features/cart/data/datasources/cart_local_datasource.dart';
 import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
 import '../../features/wishlist/data/datasources/wishlist_remote_datasource.dart';
@@ -153,6 +154,10 @@ Future<void> setupDependencies() async {
   // DataSources
   getIt.registerLazySingleton<CartRemoteDataSource>(
     () => CartRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  getIt.registerLazySingleton<CartLocalDataSource>(
+    () => CartLocalDataSourceImpl(localStorage: getIt<LocalStorage>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════

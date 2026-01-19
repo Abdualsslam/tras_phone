@@ -5,6 +5,7 @@ import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
 import '../../domain/entities/cart_entity.dart';
+import '../../domain/entities/cart_sync_result_entity.dart';
 import '../models/cart_model.dart';
 
 /// Abstract interface for cart data source
@@ -46,6 +47,11 @@ abstract class CartRemoteDataSource {
 
   /// Sync local cart with server (for after login)
   Future<CartEntity> syncCart({required List<Map<String, dynamic>> items});
+
+  /// Sync local cart with server and get sync results
+  Future<CartSyncResultEntity> syncCartWithResults({
+    required List<Map<String, dynamic>> items,
+  });
 }
 
 /// Implementation of CartRemoteDataSource using API client
@@ -192,6 +198,43 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
     );
 
     final data = response.data['data'] ?? response.data;
+    
+    // Handle both old format (cart only) and new format (with sync results)
+    if (data['cart'] != null) {
+      return CartModel.fromJson(data['cart'] as Map<String, dynamic>).toEntity();
+    }
+    
     return CartModel.fromJson(data).toEntity();
+  }
+
+  @override
+  Future<CartSyncResultEntity> syncCartWithResults({
+    required List<Map<String, dynamic>> items,
+  }) async {
+    developer.log(
+      'Syncing cart with results: ${items.length} items',
+      name: 'CartDataSource',
+    );
+
+    final response = await _apiClient.post(
+      ApiEndpoints.cartSync,
+      data: {'items': items},
+    );
+
+    final responseData = response.data['data'] ?? response.data;
+    
+    // Check if response has sync results format
+    if (responseData['cart'] != null) {
+      return CartSyncResultEntity.fromJson(responseData);
+    }
+    
+    // Fallback to old format (cart only)
+    final cart = CartModel.fromJson(responseData).toEntity();
+    return CartSyncResultEntity(
+      syncedCart: cart,
+      removedItems: [],
+      priceChangedItems: [],
+      quantityAdjustedItems: [],
+    );
   }
 }

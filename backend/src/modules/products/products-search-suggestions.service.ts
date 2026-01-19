@@ -158,14 +158,14 @@ export class ProductsSearchSuggestionsService {
           tags: { $exists: true, $ne: [] },
         },
       },
-      { $unwind: '$tags' },
+      { $unwind: '$tags' as const },
       {
         $group: {
           _id: '$tags',
           count: { $sum: 1 },
         },
       },
-      { $sort: { count: -1 } },
+      { $sort: { count: -1 as const } },
       { $limit: limit },
       {
         $project: {
@@ -191,13 +191,13 @@ export class ProductsSearchSuggestionsService {
           tags: { $exists: true, $ne: [] },
         },
       },
-      { $unwind: '$tags' },
+      { $unwind: '$tags' as const },
       {
         $group: {
           _id: '$tags',
         },
       },
-      { $sort: { _id: 1 } },
+      { $sort: { _id: 1 as const } },
       {
         $project: {
           _id: 0,

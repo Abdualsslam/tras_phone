@@ -24,6 +24,9 @@ import {
 } from './orders.controller';
 import { AuthModule } from '@modules/auth/auth.module';
 import { PromotionsModule } from '@modules/promotions/promotions.module';
+import { ProductsModule } from '@modules/products/products.module';
+import { InventoryModule } from '@modules/inventory/inventory.module';
+import { CustomersModule } from '@modules/customers/customers.module';
 
 @Module({
   imports: [
@@ -50,6 +53,9 @@ import { PromotionsModule } from '@modules/promotions/promotions.module';
     }),
     AuthModule,
     PromotionsModule,
+    ProductsModule,
+    InventoryModule,
+    CustomersModule,
   ],
   controllers: [
     CartController,
