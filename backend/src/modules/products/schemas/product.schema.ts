@@ -254,6 +254,8 @@ ProductSchema.index(
 // Compound indexes for common search patterns
 ProductSchema.index({ status: 1, isActive: 1, tags: 1 });
 ProductSchema.index({ status: 1, brandId: 1, categoryId: 1 });
+// Index for products on offer (compareAtPrice > basePrice)
+ProductSchema.index({ compareAtPrice: 1, basePrice: 1, status: 1 });
 
 // ═════════════════════════════════════
 // Virtuals

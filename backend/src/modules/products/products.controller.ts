@@ -33,6 +33,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { SetPricesDto } from './dto/set-prices.dto';
 import { AddReviewDto } from './dto/add-review.dto';
 import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
+import { ProductsOnOfferQueryDto } from './dto/products-on-offer-query.dto';
 import { 
   AdvancedSearchQueryDto,
   SearchSuggestionsQueryDto,
@@ -295,6 +296,29 @@ export class ProductsController {
       result.data,
       'Products retrieved',
       'تم استرجاع المنتجات',
+      result.pagination,
+    );
+  }
+
+  @Public()
+  @Get('on-offer')
+  @ApiOperation({
+    summary: 'Get products on offer',
+    description:
+      'Retrieve all products that have direct offers (compareAtPrice > basePrice) with pagination, sorting, and filtering options',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Products on offer retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getProductsOnOffer(@Query() query: ProductsOnOfferQueryDto) {
+    const result = await this.productsService.findProductsOnOffer(query);
+    return ResponseBuilder.success(
+      result.data,
+      'Products on offer retrieved',
+      'تم استرجاع المنتجات ذات العروض',
       result.pagination,
     );
   }

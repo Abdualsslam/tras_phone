@@ -48,6 +48,13 @@ export class PromotionsService {
     }
 
     /**
+     * Find all promotions
+     */
+    async findAll(): Promise<PromotionDocument[]> {
+        return this.promotionModel.find().sort({ createdAt: -1 });
+    }
+
+    /**
      * Find active promotions
      */
     async findActive(): Promise<PromotionDocument[]> {
@@ -131,9 +138,42 @@ export class PromotionsService {
     }
 
     /**
-     * Get promotions applicable to a product
+     * Check if product has direct offer (compareAtPrice > basePrice)
      */
-    async getPromotionsForProduct(productId: string, categoryId: string, brandId: string): Promise<PromotionDocument[]> {
+    hasDirectProductOffer(product: { basePrice: number; compareAtPrice?: number }): boolean {
+        return (
+            product.compareAtPrice != null &&
+            product.compareAtPrice > product.basePrice
+        );
+    }
+
+    /**
+     * Calculate discount percentage from compareAtPrice and basePrice
+     */
+    getProductDiscountPercentage(product: { basePrice: number; compareAtPrice?: number }): number {
+        if (!this.hasDirectProductOffer(product)) {
+            return 0;
+        }
+        const discount = ((product.compareAtPrice! - product.basePrice) / product.compareAtPrice!) * 100;
+        return Math.round(discount * 100) / 100; // Round to 2 decimal places
+    }
+
+    /**
+     * Get promotions applicable to a product with priority logic
+     * Priority: Direct product offer > Product-specific > Category > Brand > General
+     * If product has direct offer (compareAtPrice > basePrice), no other promotions apply
+     */
+    async getPromotionsForProduct(
+        productId: string,
+        categoryId: string,
+        brandId: string,
+        product?: { basePrice: number; compareAtPrice?: number },
+    ): Promise<PromotionDocument[]> {
+        // If product has direct offer, return empty array (no other promotions apply)
+        if (product && this.hasDirectProductOffer(product)) {
+            return [];
+        }
+
         const now = new Date();
         const baseQuery = {
             isActive: true,
@@ -141,27 +181,55 @@ export class PromotionsService {
             endDate: { $gte: now },
         };
 
-        // Get promotion IDs from mappings
+        // Get promotion IDs from mappings (priority order)
         const [productPromoIds, categoryPromoIds, brandPromoIds] = await Promise.all([
             this.promotionProductModel.find({ productId }).distinct('promotionId'),
             this.promotionCategoryModel.find({ categoryId }).distinct('promotionId'),
             this.promotionBrandModel.find({ brandId }).distinct('promotionId'),
         ]);
 
-        const allPromoIds = [...new Set([
-            ...productPromoIds.map(id => id.toString()),
-            ...categoryPromoIds.map(id => id.toString()),
-            ...brandPromoIds.map(id => id.toString()),
-        ])];
+        // Priority order: product-specific > category > brand > general
+        // Get promotions in priority order
+        const productPromotions = productPromoIds.length > 0
+            ? await this.promotionModel.find({
+                ...baseQuery,
+                _id: { $in: productPromoIds },
+            }).sort({ priority: -1 }).limit(1)
+            : [];
 
-        // Get all applicable promotions
-        return this.promotionModel.find({
+        if (productPromotions.length > 0) {
+            return productPromotions; // Return highest priority product-specific promotion
+        }
+
+        const categoryPromotions = categoryPromoIds.length > 0
+            ? await this.promotionModel.find({
+                ...baseQuery,
+                _id: { $in: categoryPromoIds },
+            }).sort({ priority: -1 }).limit(1)
+            : [];
+
+        if (categoryPromotions.length > 0) {
+            return categoryPromotions; // Return highest priority category promotion
+        }
+
+        const brandPromotions = brandPromoIds.length > 0
+            ? await this.promotionModel.find({
+                ...baseQuery,
+                _id: { $in: brandPromoIds },
+            }).sort({ priority: -1 }).limit(1)
+            : [];
+
+        if (brandPromotions.length > 0) {
+            return brandPromotions; // Return highest priority brand promotion
+        }
+
+        // General promotions (scope: 'all')
+        const generalPromotions = await this.promotionModel.find({
             ...baseQuery,
-            $or: [
-                { scope: 'all' },
-                { _id: { $in: allPromoIds } },
-            ],
-        }).sort({ priority: -1 });
+            scope: 'all',
+        }).sort({ priority: -1 }).limit(1);
+
+        return generalPromotions;
     }
 
     /**

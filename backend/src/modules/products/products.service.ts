@@ -141,6 +141,173 @@ export class ProductsService {
   }
 
   /**
+   * Find products on offer (with compareAtPrice > basePrice)
+   */
+  async findProductsOnOffer(
+    filters?: any,
+  ): Promise<{ data: any[]; total: number; pagination: any }> {
+    const {
+      page = 1,
+      limit = 20,
+      sortBy = 'discount',
+      sortOrder = 'desc',
+      minDiscount,
+      maxDiscount,
+      categoryId,
+      brandId,
+      status = 'active',
+    } = filters || {};
+
+    // Base query: products with direct offer (compareAtPrice > basePrice)
+    const query: any = {
+      compareAtPrice: { $exists: true, $ne: null },
+      $expr: { $gt: ['$compareAtPrice', '$basePrice'] },
+      status,
+      isActive: true,
+    };
+
+    // Additional filters
+    if (categoryId) query.categoryId = new Types.ObjectId(categoryId);
+    if (brandId) query.brandId = new Types.ObjectId(brandId);
+
+    // Calculate discount percentage for filtering
+    const pipeline: any[] = [
+      {
+        $match: query,
+      },
+      {
+        $addFields: {
+          discountPercentage: {
+            $multiply: [
+              {
+                $divide: [
+                  { $subtract: ['$compareAtPrice', '$basePrice'] },
+                  '$compareAtPrice',
+                ],
+              },
+              100,
+            ],
+          },
+        },
+      },
+    ];
+
+    // Filter by discount percentage range
+    if (minDiscount != null || maxDiscount != null) {
+      const discountFilter: any = {};
+      if (minDiscount != null) discountFilter.$gte = minDiscount;
+      if (maxDiscount != null) discountFilter.$lte = maxDiscount;
+      pipeline.push({
+        $match: { discountPercentage: discountFilter },
+      });
+    }
+
+    // Sort
+    let sortField = 'discountPercentage';
+    if (sortBy === 'price') sortField = 'basePrice';
+    else if (sortBy === 'createdAt') sortField = 'createdAt';
+    else if (sortBy === 'discount') sortField = 'discountPercentage';
+
+    const sortDirection = sortOrder === 'desc' ? -1 : 1;
+    pipeline.push({ $sort: { [sortField]: sortDirection } });
+
+    // Count total before pagination
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await this.productModel.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Pagination
+    const skip = (page - 1) * limit;
+    pipeline.push({ $skip: skip }, { $limit: limit });
+
+    // Populate related fields
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'brandId',
+          foreignField: '_id',
+          as: 'brandId',
+        },
+      },
+      {
+        $unwind: {
+          path: '$brandId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'categoryId',
+          foreignField: '_id',
+          as: 'categoryId',
+        },
+      },
+      {
+        $unwind: {
+          path: '$categoryId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'quality_types',
+          localField: 'qualityTypeId',
+          foreignField: '_id',
+          as: 'qualityTypeId',
+        },
+      },
+      {
+        $unwind: {
+          path: '$qualityTypeId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          hasDirectOffer: true,
+          originalPrice: '$compareAtPrice',
+          currentPrice: '$basePrice',
+          appliedPromotion: null,
+        },
+      },
+    );
+
+    const data = await this.productModel.aggregate(pipeline);
+
+    // Convert to ProductDocument and format
+    const formattedData = data.map((doc) => {
+      const product = this.productModel.hydrate(doc) as any;
+      // Use discountPercentage from aggregation if available, otherwise calculate
+      const discountPercentage = doc.discountPercentage != null
+        ? Math.round(doc.discountPercentage * 100) / 100
+        : Math.round(
+            ((product.compareAtPrice - product.basePrice) / product.compareAtPrice) * 100 * 100,
+          ) / 100;
+      
+      return {
+        ...product.toObject(),
+        hasDirectOffer: true,
+        originalPrice: product.compareAtPrice,
+        currentPrice: product.basePrice,
+        discountPercentage,
+        appliedPromotion: null,
+      };
+    });
+
+    return {
+      data: formattedData,
+      total,
+      pagination: {
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
    * Find product by ID or slug
    */
   async findByIdOrSlug(identifier: string): Promise<ProductDocument> {
