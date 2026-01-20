@@ -4,6 +4,7 @@ library;
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../entities/user_entity.dart';
+import '../entities/session_entity.dart';
 
 abstract class AuthRepository {
   /// Check if user is logged in
@@ -47,7 +48,10 @@ abstract class AuthRepository {
   });
 
   /// Forgot password - request password reset
-  Future<Either<Failure, String>> forgotPassword({required String phone});
+  Future<Either<Failure, String>> forgotPassword({
+    required String phone,
+    String? customerNotes,
+  });
 
   /// Verify OTP for password reset - returns resetToken
   Future<Either<Failure, String>> verifyResetOtp({
@@ -75,4 +79,16 @@ abstract class AuthRepository {
 
   /// Get cached user
   UserEntity? getCachedUser();
+
+  /// Update FCM token
+  Future<Either<Failure, void>> updateFcmToken({
+    required String fcmToken,
+    Map<String, dynamic>? deviceInfo,
+  });
+
+  /// Get all active sessions
+  Future<Either<Failure, List<SessionEntity>>> getSessions();
+
+  /// Delete a specific session
+  Future<Either<Failure, void>> deleteSession(String sessionId);
 }

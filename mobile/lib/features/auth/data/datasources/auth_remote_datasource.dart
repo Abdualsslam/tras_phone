@@ -8,39 +8,8 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../models/user_model.dart';
 import '../models/token_response.dart';
-
-/// Response model for auth endpoints
-class AuthResponse {
-  final UserModel user;
-  final String accessToken;
-  final String refreshToken;
-  final String expiresIn;
-
-  const AuthResponse({
-    required this.user,
-    required this.accessToken,
-    required this.refreshToken,
-    required this.expiresIn,
-  });
-
-  factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    // Handle nested data structure
-    final data = json['data'] ?? json;
-
-    return AuthResponse(
-      user: UserModel.fromJson(data['user']),
-      accessToken: data['accessToken'],
-      refreshToken: data['refreshToken'],
-      expiresIn: data['expiresIn'] ?? '15m',
-    );
-  }
-
-  Map<String, dynamic> toTokenJson() => {
-    'accessToken': accessToken,
-    'refreshToken': refreshToken,
-    'expiresIn': expiresIn,
-  };
-}
+import '../models/auth_response.dart';
+import '../models/session_model.dart';
 
 /// Abstract interface for auth data source
 abstract class AuthRemoteDataSource {
@@ -70,7 +39,10 @@ abstract class AuthRemoteDataSource {
   });
 
   /// Forgot password - request password reset
-  Future<String> forgotPassword({required String phone});
+  Future<String> forgotPassword({
+    required String phone,
+    String? customerNotes,
+  });
 
   /// Verify OTP for password reset - returns resetToken
   Future<String> verifyResetOtp({required String phone, required String otp});
@@ -95,6 +67,18 @@ abstract class AuthRemoteDataSource {
 
   /// Logout
   Future<void> logout();
+
+  /// Update FCM token
+  Future<void> updateFcmToken({
+    required String fcmToken,
+    Map<String, dynamic>? deviceInfo,
+  });
+
+  /// Get all active sessions
+  Future<List<SessionModel>> getSessions();
+
+  /// Delete a specific session
+  Future<void> deleteSession(String sessionId);
 }
 
 /// Implementation of AuthRemoteDataSource using API client
@@ -219,7 +203,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<String> forgotPassword({required String phone}) async {
+  Future<String> forgotPassword({
+    required String phone,
+    String? customerNotes,
+  }) async {
     developer.log('Requesting password reset for: $phone', name: 'AuthDataSource');
 
     // Format phone to international format
@@ -227,7 +214,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
     final response = await _apiClient.post(
       ApiEndpoints.requestPasswordReset,
-      data: {'phone': formattedPhone},
+      data: {
+        'phone': formattedPhone,
+        if (customerNotes != null) 'customerNotes': customerNotes,
+      },
     );
 
     if (response.data['success'] != true) {
@@ -331,6 +321,63 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       developer.log(
         'Logout API failed, proceeding locally: $e',
         name: 'AuthDataSource',
+      );
+    }
+  }
+
+  @override
+  Future<void> updateFcmToken({
+    required String fcmToken,
+    Map<String, dynamic>? deviceInfo,
+  }) async {
+    developer.log('Updating FCM token', name: 'AuthDataSource');
+
+    final response = await _apiClient.post(
+      ApiEndpoints.fcmToken,
+      data: {
+        'fcmToken': fcmToken,
+        if (deviceInfo != null) 'deviceInfo': deviceInfo,
+      },
+    );
+
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'فشل تحديث رمز الإشعارات',
+      );
+    }
+  }
+
+  @override
+  Future<List<SessionModel>> getSessions() async {
+    developer.log('Fetching active sessions', name: 'AuthDataSource');
+
+    final response = await _apiClient.get(ApiEndpoints.sessions);
+    final data = response.data['data'] ?? [];
+
+    if (data is List) {
+      return data
+          .map((json) => SessionModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+    }
+
+    return [];
+  }
+
+  @override
+  Future<void> deleteSession(String sessionId) async {
+    developer.log('Deleting session: $sessionId', name: 'AuthDataSource');
+
+    final response = await _apiClient.delete(
+      ApiEndpoints.deleteSession(sessionId),
+    );
+
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'فشل حذف الجلسة',
       );
     }
   }

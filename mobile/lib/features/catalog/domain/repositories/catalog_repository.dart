@@ -21,6 +21,17 @@ abstract class CatalogRepository {
   /// Get a single brand by its slug
   Future<Either<Failure, BrandEntity>> getBrandBySlug(String slug);
 
+  /// Get products for a brand by ID with pagination and filters
+  Future<Either<Failure, Map<String, dynamic>>> getBrandProducts(
+    String brandId, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+  });
+
   // ═══════════════════════════════════════════════════════════════════════════
   // CATEGORIES
   // ═══════════════════════════════════════════════════════════════════════════

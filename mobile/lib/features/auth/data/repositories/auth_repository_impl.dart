@@ -9,9 +9,11 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../domain/entities/user_entity.dart';
+import '../../domain/entities/session_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../models/user_model.dart';
+import '../models/session_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _dataSource;
@@ -173,9 +175,15 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, String>> forgotPassword({required String phone}) async {
+  Future<Either<Failure, String>> forgotPassword({
+    required String phone,
+    String? customerNotes,
+  }) async {
     try {
-      final requestNumber = await _dataSource.forgotPassword(phone: phone);
+      final requestNumber = await _dataSource.forgotPassword(
+        phone: phone,
+        customerNotes: customerNotes,
+      );
       return Right(requestNumber);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
@@ -277,5 +285,41 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     }
     return _cachedUser?.toEntity();
+  }
+
+  @override
+  Future<Either<Failure, void>> updateFcmToken({
+    required String fcmToken,
+    Map<String, dynamic>? deviceInfo,
+  }) async {
+    try {
+      await _dataSource.updateFcmToken(
+        fcmToken: fcmToken,
+        deviceInfo: deviceInfo,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<SessionEntity>>> getSessions() async {
+    try {
+      final sessions = await _dataSource.getSessions();
+      return Right(sessions.map((s) => s.toEntity()).toList());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteSession(String sessionId) async {
+    try {
+      await _dataSource.deleteSession(sessionId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 }

@@ -2,7 +2,12 @@
 library;
 
 import 'dart:developer' as developer;
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../../../../core/di/injection.dart';
+import '../../../notifications/services/push_notification_manager.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
@@ -90,7 +95,11 @@ class AuthCubit extends Cubit<AuthState> {
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (user) => emit(AuthAuthenticated(user)),
+      (user) {
+        emit(AuthAuthenticated(user));
+        // Update FCM token after successful login
+        _updateFcmTokenAfterAuth();
+      },
     );
   }
 
@@ -120,8 +129,91 @@ class AuthCubit extends Cubit<AuthState> {
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (user) => emit(AuthAuthenticated(user)),
+      (user) {
+        emit(AuthAuthenticated(user));
+        // Update FCM token after successful registration
+        _updateFcmTokenAfterAuth();
+      },
     );
+  }
+
+  /// Update FCM token after authentication (login/register)
+  Future<void> _updateFcmTokenAfterAuth() async {
+    try {
+      final pushManager = getIt<PushNotificationManager>();
+      final fcmToken = await pushManager.getToken();
+      
+      if (fcmToken != null) {
+        // Get device info
+        final deviceInfo = await _getDeviceInfo();
+        
+        // Update FCM token via auth endpoint
+        await updateFcmToken(
+          fcmToken: fcmToken,
+          deviceInfo: deviceInfo,
+        );
+      }
+    } catch (e) {
+      developer.log('Failed to update FCM token after auth: $e', name: 'AuthCubit');
+      // Fail silently - not critical
+    }
+  }
+
+  /// Get device info for FCM token update
+  Future<Map<String, dynamic>> _getDeviceInfo() async {
+    try {
+      final deviceInfo = await _getPlatformDeviceInfo();
+      return deviceInfo;
+    } catch (e) {
+      developer.log('Failed to get device info: $e', name: 'AuthCubit');
+      return {};
+    }
+  }
+
+  /// Get platform-specific device info
+  Future<Map<String, dynamic>> _getPlatformDeviceInfo() async {
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      final packageInfo = await PackageInfo.fromPlatform();
+
+      String platform;
+      String? deviceId;
+      String? deviceName;
+      String? deviceModel;
+      String? osVersion;
+
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        platform = 'android';
+        deviceId = androidInfo.id;
+        deviceName = androidInfo.model;
+        deviceModel = androidInfo.device;
+        osVersion = androidInfo.version.release;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        platform = 'ios';
+        deviceId = iosInfo.identifierForVendor;
+        deviceName = iosInfo.name;
+        deviceModel = iosInfo.model;
+        osVersion = iosInfo.systemVersion;
+      } else {
+        platform = 'web';
+      }
+
+      return {
+        'platform': platform,
+        'version': packageInfo.version,
+        if (deviceId != null) 'deviceId': deviceId,
+        if (deviceName != null) 'deviceName': deviceName,
+        if (deviceModel != null) 'deviceModel': deviceModel,
+        if (osVersion != null) 'osVersion': osVersion,
+      };
+    } catch (e) {
+      developer.log('Error getting device info: $e', name: 'AuthCubit');
+      return {
+        'platform': Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'web'),
+      };
+    }
   }
 
   /// Send OTP
@@ -157,10 +249,16 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   /// Forgot password - request password reset
-  Future<void> forgotPassword({required String phone}) async {
+  Future<void> forgotPassword({
+    required String phone,
+    String? customerNotes,
+  }) async {
     emit(const AuthLoading(message: 'جاري تقديم الطلب...'));
 
-    final result = await _repository.forgotPassword(phone: phone);
+    final result = await _repository.forgotPassword(
+      phone: phone,
+      customerNotes: customerNotes,
+    );
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),
@@ -238,5 +336,54 @@ class AuthCubit extends Cubit<AuthState> {
       return (state as AuthAuthenticated).user;
     }
     return _repository.getCachedUser();
+  }
+
+  /// Update FCM token
+  Future<void> updateFcmToken({
+    required String fcmToken,
+    Map<String, dynamic>? deviceInfo,
+  }) async {
+    final result = await _repository.updateFcmToken(
+      fcmToken: fcmToken,
+      deviceInfo: deviceInfo,
+    );
+
+    result.fold(
+      (failure) {
+        developer.log('Failed to update FCM token: ${failure.message}', name: 'AuthCubit');
+        // Don't emit error state for FCM token updates - fail silently
+      },
+      (_) {
+        developer.log('FCM token updated successfully', name: 'AuthCubit');
+      },
+    );
+  }
+
+  /// Get all active sessions
+  Future<void> getSessions() async {
+    emit(const AuthLoading(message: 'جاري تحميل الجلسات...'));
+
+    final result = await _repository.getSessions();
+
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (sessions) => emit(AuthSessionsLoaded(sessions)),
+    );
+  }
+
+  /// Delete a specific session
+  Future<void> deleteSession(String sessionId) async {
+    emit(const AuthLoading(message: 'جاري حذف الجلسة...'));
+
+    final result = await _repository.deleteSession(sessionId);
+
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (_) {
+        emit(AuthSessionDeleted(sessionId));
+        // Reload sessions after deletion
+        getSessions();
+      },
+    );
   }
 }

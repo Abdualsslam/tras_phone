@@ -320,10 +320,10 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
-      path: '/brand/:id',
+      path: '/brand/:slug',
       builder: (context, state) {
-        final id = state.pathParameters['id'] ?? '';
-        return BrandDetailsScreen(brandId: id);
+        final slug = state.pathParameters['slug'] ?? '';
+        return BrandDetailsScreen(brandSlug: slug);
       },
     ),
     GoRoute(

@@ -87,7 +87,7 @@ class _BrandsListView extends StatelessWidget {
                     brand: brand,
                     isDark: isDark,
                     onTap: () {
-                      context.push('/brand/${brand.id}');
+                      context.push('/brand/${brand.slug}');
                     },
                   );
                 },

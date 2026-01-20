@@ -20,6 +20,8 @@ class ApiEndpoints {
   static const String changePassword = '/auth/change-password';
   static const String me = '/auth/me';
   static const String fcmToken = '/auth/fcm-token';
+  static const String sessions = '/auth/sessions';
+  static String deleteSession(String sessionId) => '/auth/sessions/$sessionId';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // CUSTOMER ENDPOINTS
@@ -35,6 +37,7 @@ class ApiEndpoints {
   // CATALOG ENDPOINTS
   // ═══════════════════════════════════════════════════════════════════════════
   static const String brands = '/catalog/brands';
+  static String brandProducts(String brandId) => '/catalog/brands/$brandId/products';
   static const String categories = '/catalog/categories';
   static const String categoriesTree = '/catalog/categories/tree';
   static const String devices = '/catalog/devices';
