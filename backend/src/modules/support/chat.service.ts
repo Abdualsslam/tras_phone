@@ -1,14 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ChatSession, ChatSessionDocument, ChatSessionStatus } from './schemas/chat-session.schema';
 import { ChatMessage, ChatMessageDocument, ChatSenderType, ChatMessageType } from './schemas/chat-message.schema';
+import { SupportGateway } from './gateways/support.gateway';
+import { SupportNotificationsService } from './services/support-notifications.service';
+import { ChatBotService } from './services/chat-bot.service';
 
 @Injectable()
 export class ChatService {
     constructor(
         @InjectModel(ChatSession.name) private sessionModel: Model<ChatSessionDocument>,
         @InjectModel(ChatMessage.name) private messageModel: Model<ChatMessageDocument>,
+        @Inject(forwardRef(() => SupportGateway)) private supportGateway: SupportGateway,
+        @Inject(forwardRef(() => SupportNotificationsService)) private notificationsService: SupportNotificationsService,
+        @Inject(forwardRef(() => ChatBotService)) private chatBotService: ChatBotService,
     ) { }
 
     // ==================== Sessions ====================
@@ -71,6 +77,20 @@ export class ChatService {
             messageType: ChatMessageType.BOT,
             content: 'مرحباً بك! سيتم توصيلك بأحد ممثلي خدمة العملاء قريباً. / Welcome! You will be connected to a customer service representative shortly.',
         });
+
+        // Emit WebSocket event for waiting session
+        try {
+            this.supportGateway.emitChatSessionWaiting(session);
+        } catch (error) {
+            console.error('Failed to emit chat session waiting event:', error);
+        }
+
+        // Send notification to available agents
+        try {
+            await this.notificationsService.notifyChatSessionWaiting(session);
+        } catch (error) {
+            console.error('Failed to send chat waiting notification:', error);
+        }
 
         return session;
     }
@@ -148,6 +168,20 @@ export class ChatService {
             messageType: ChatMessageType.SYSTEM,
             content: `انضم ${(updatedSession?.assignedAgent as any)?.name || 'Agent'} إلى المحادثة / ${(updatedSession?.assignedAgent as any)?.name || 'Agent'} joined the chat`,
         });
+
+        // Emit WebSocket event
+        try {
+            this.supportGateway.emitChatSessionAccepted(updatedSession);
+        } catch (error) {
+            console.error('Failed to emit chat session accepted event:', error);
+        }
+
+        // Send notification to customer
+        try {
+            await this.notificationsService.notifyChatSessionAccepted(updatedSession!);
+        } catch (error) {
+            console.error('Failed to send chat accepted notification:', error);
+        }
 
         return updatedSession!;
     }
@@ -237,6 +271,17 @@ export class ChatService {
         return updatedSession!;
     }
 
+    async findLastEndedSession(customerId: string): Promise<ChatSession | null> {
+        return this.sessionModel
+            .findOne({
+                'visitor.customerId': new Types.ObjectId(customerId),
+                status: ChatSessionStatus.ENDED,
+                rating: { $exists: false },
+            })
+            .sort({ endedAt: -1 })
+            .exec();
+    }
+
     async updateVisitorPage(sessionId: string, currentPage: string): Promise<void> {
         await this.sessionModel.findByIdAndUpdate(sessionId, {
             'visitor.currentPage': currentPage,
@@ -292,6 +337,47 @@ export class ChatService {
         }
 
         await this.sessionModel.findByIdAndUpdate(sessionId, metricsUpdate);
+
+        // Process bot response for visitor messages in waiting status
+        if (data.senderType === ChatSenderType.VISITOR && session.status === ChatSessionStatus.WAITING) {
+            try {
+                const botResponse = await this.chatBotService.processMessage(
+                    data.content,
+                    session,
+                    'ar', // TODO: Get language from session or user preference
+                );
+
+                if (botResponse.shouldRespond) {
+                    // Send bot response
+                    await this.addMessage(sessionId, {
+                        senderType: ChatSenderType.BOT,
+                        senderName: 'Assistant',
+                        messageType: ChatMessageType.BOT,
+                        content: botResponse.response!,
+                        quickReplies: botResponse.quickReplies,
+                    });
+                }
+            } catch (error) {
+                console.error('Bot processing error:', error);
+            }
+        }
+
+        // Emit WebSocket event for non-internal messages
+        if (!data.isInternal) {
+            try {
+                this.supportGateway.emitChatMessage(sessionId, message);
+            } catch (error) {
+                console.error('Failed to emit chat message event:', error);
+            }
+
+            // Send notification
+            try {
+                const isFromCustomer = data.senderType === ChatSenderType.VISITOR;
+                await this.notificationsService.notifyChatMessage(session, message, isFromCustomer);
+            } catch (error) {
+                console.error('Failed to send chat message notification:', error);
+            }
+        }
 
         return message;
     }

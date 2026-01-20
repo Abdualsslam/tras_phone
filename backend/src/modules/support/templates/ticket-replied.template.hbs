@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html dir="{{#if isArabic}}rtl{{else}}ltr{{/if}}" lang="{{#if isArabic}}ar{{else}}en{{/if}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{#if isArabic}}رد جديد على تذكرتك{{else}}New Reply on Your Ticket{{/if}}</title>
+    <style>
+        body {
+            font-family: {{#if isArabic}}'Segoe UI', Tahoma, Arial, sans-serif{{else}}Arial, sans-serif{{/if}};
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #2196F3;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .ticket-number {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: inline-block;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .reply-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .sender-info {
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 12px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">TRAS Phone</div>
+            <h2>{{#if isArabic}}رد جديد على تذكرتك{{else}}New Reply on Your Ticket{{/if}}</h2>
+        </div>
+
+        <div class="ticket-number">
+            {{#if isArabic}}رقم التذكرة:{{else}}Ticket #{{/if}} {{ticketNumber}}
+        </div>
+
+        <p>{{#if isArabic}}مرحباً {{customerName}}،{{else}}Hello {{customerName}},{{/if}}</p>
+
+        <p>{{#if isArabic}}تم إضافة رد جديد على تذكرتك:{{else}}A new reply has been added to your ticket:{{/if}}</p>
+
+        <div class="reply-box">
+            <div class="sender-info">{{senderName}}</div>
+            <p>{{replyContent}}</p>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="{{ticketUrl}}" class="button">
+                {{#if isArabic}}عرض التذكرة{{else}}View Ticket{{/if}}
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>{{#if isArabic}}يمكنك الرد على هذه التذكرة من خلال التطبيق أو لوحة التحكم.{{else}}You can reply to this ticket through the app or control panel.{{/if}}</p>
+            <p>&copy; 2024 TRAS Phone. {{#if isArabic}}جميع الحقوق محفوظة.{{else}}All rights reserved.{{/if}}</p>
+        </div>
+    </div>
+</body>
+</html>

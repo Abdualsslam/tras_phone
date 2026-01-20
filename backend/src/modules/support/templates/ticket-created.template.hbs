@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html dir="{{#if isArabic}}rtl{{else}}ltr{{/if}}" lang="{{#if isArabic}}ar{{else}}en{{/if}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{#if isArabic}}تذكرة دعم جديدة{{else}}New Support Ticket{{/if}}</title>
+    <style>
+        body {
+            font-family: {{#if isArabic}}'Segoe UI', Tahoma, Arial, sans-serif{{else}}Arial, sans-serif{{/if}};
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #4CAF50;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .ticket-number {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: inline-block;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .info-row {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .label {
+            font-weight: bold;
+            color: #666;
+        }
+        .value {
+            color: #333;
+            margin-{{#if isArabic}}right{{else}}left{{/if}}: 10px;
+        }
+        .message-box {
+            background-color: #f0f8ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 12px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">TRAS Phone</div>
+            <h2>{{#if isArabic}}تذكرة دعم جديدة{{else}}New Support Ticket{{/if}}</h2>
+        </div>
+
+        <div class="ticket-number">
+            {{#if isArabic}}رقم التذكرة:{{else}}Ticket #{{/if}} {{ticketNumber}}
+        </div>
+
+        <div class="info-row">
+            <span class="label">{{#if isArabic}}الموضوع:{{else}}Subject:{{/if}}</span>
+            <span class="value">{{subject}}</span>
+        </div>
+
+        <div class="info-row">
+            <span class="label">{{#if isArabic}}الفئة:{{else}}Category:{{/if}}</span>
+            <span class="value">{{#if isArabic}}{{categoryNameAr}}{{else}}{{categoryNameEn}}{{/if}}</span>
+        </div>
+
+        <div class="info-row">
+            <span class="label">{{#if isArabic}}الأولوية:{{else}}Priority:{{/if}}</span>
+            <span class="value">{{priority}}</span>
+        </div>
+
+        <div class="info-row">
+            <span class="label">{{#if isArabic}}الحالة:{{else}}Status:{{/if}}</span>
+            <span class="value">{{status}}</span>
+        </div>
+
+        <div class="message-box">
+            <strong>{{#if isArabic}}الوصف:{{else}}Description:{{/if}}</strong>
+            <p>{{description}}</p>
+        </div>
+
+        {{#if assignedTo}}
+        <div class="info-row">
+            <span class="label">{{#if isArabic}}تم التعيين إلى:{{else}}Assigned to:{{/if}}</span>
+            <span class="value">{{assignedTo}}</span>
+        </div>
+        {{/if}}
+
+        <div style="text-align: center;">
+            <a href="{{ticketUrl}}" class="button">
+                {{#if isArabic}}عرض التذكرة{{else}}View Ticket{{/if}}
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>{{#if isArabic}}شكراً لتواصلك معنا. سنرد عليك في أقرب وقت ممكن.{{else}}Thank you for contacting us. We will respond as soon as possible.{{/if}}</p>
+            <p>&copy; 2024 TRAS Phone. {{#if isArabic}}جميع الحقوق محفوظة.{{else}}All rights reserved.{{/if}}</p>
+        </div>
+    </div>
+</body>
+</html>
