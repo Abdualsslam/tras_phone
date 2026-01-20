@@ -31,8 +31,17 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // Skip if this is a retry request (already has token)
+    // Skip if this is a retry request (token already added in _retryRequest)
     if (options.headers['X-Retry-Request'] == 'true') {
+      // Ensure token is present
+      final authHeader = options.headers['Authorization'];
+      if (authHeader == null || !authHeader.toString().startsWith('Bearer ')) {
+        // Token missing in retry request - try to add it
+        final token = await _tokenManager.getAccessToken();
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+      }
       return handler.next(options);
     }
     
@@ -82,14 +91,38 @@ class AuthInterceptor extends Interceptor {
             try {
               final response = await _retryRequest(requestOptions);
               return handler.resolve(response);
+            } on DioException catch (retryError) {
+              // If retry returns 401 again, token refresh didn't work properly
+              if (retryError.response?.statusCode == 401) {
+                developer.log(
+                  'Retry still returned 401 after refresh - clearing tokens',
+                  name: 'AuthInterceptor',
+                  error: retryError,
+                );
+                await _handleLogout();
+                return handler.next(retryError);
+              }
+              // For other errors (like 409 Conflict), just pass them through
+              developer.log(
+                'Retry returned error: ${retryError.response?.statusCode}',
+                name: 'AuthInterceptor',
+                error: retryError,
+              );
+              return handler.next(retryError);
             } catch (retryError) {
-              // Retry failed but don't logout - token might still be valid for other requests
+              // Unexpected error during retry
               developer.log(
                 'Failed to retry request: ${requestOptions.path}',
                 name: 'AuthInterceptor',
                 error: retryError,
               );
-              // Just pass the error, don't clear tokens
+              return handler.next(
+                DioException(
+                  requestOptions: requestOptions,
+                  error: retryError,
+                  type: DioExceptionType.unknown,
+                ),
+              );
             }
           } else {
             // Refresh failed - clear tokens and logout
@@ -179,25 +212,71 @@ class AuthInterceptor extends Interceptor {
   /// Retry a request with new token
   Future<Response<dynamic>> _retryRequest(RequestOptions requestOptions) async {
     final token = await _tokenManager.getAccessToken();
+    if (token == null || token.isEmpty) {
+      throw DioException(
+        requestOptions: requestOptions,
+        error: 'Access token not found after refresh',
+        type: DioExceptionType.badResponse,
+        response: Response(
+          requestOptions: requestOptions,
+          statusCode: 401,
+          statusMessage: 'Access token not found',
+        ),
+      );
+    }
+    
     developer.log('Retrying ${requestOptions.path}', name: 'AuthInterceptor');
-    developer.log('Full token for retry: $token', name: 'AuthInterceptor');
+    developer.log('Full token for retry: ${token.substring(0, 30)}...', name: 'AuthInterceptor');
+    
+    // Extract relative path (remove base URL if present)
+    String relativePath = requestOptions.path;
+    final baseUrl = _dio.options.baseUrl;
+    if (baseUrl.isNotEmpty && relativePath.startsWith(baseUrl)) {
+      relativePath = relativePath.substring(baseUrl.length);
+    }
+    // Ensure path starts with / (Dio expects it)
+    if (!relativePath.startsWith('/')) {
+      relativePath = '/$relativePath';
+    }
     
     // Create new options to avoid modifying the original
     final newOptions = Options(
       method: requestOptions.method,
       headers: {
-        'Content-Type': 'application/json',
+        ...requestOptions.headers,
         'Authorization': 'Bearer $token',
         'X-Retry-Request': 'true', // Mark as retry to prevent infinite loop
       },
+      contentType: requestOptions.contentType,
+      responseType: requestOptions.responseType,
+      followRedirects: requestOptions.followRedirects,
+      validateStatus: requestOptions.validateStatus,
     );
 
-    return await _dio.request(
-      requestOptions.path,
-      data: requestOptions.data,
-      queryParameters: requestOptions.queryParameters,
-      options: newOptions,
-    );
+    try {
+      return await _dio.request(
+        relativePath,
+        data: requestOptions.data,
+        queryParameters: requestOptions.queryParameters,
+        options: newOptions,
+      );
+    } on DioException catch (e) {
+      // If we get 409 (Conflict) or other non-auth errors, don't retry again
+      if (e.response?.statusCode != null && e.response!.statusCode! != 401) {
+        developer.log(
+          'Retry returned non-401 error: ${e.response!.statusCode}',
+          name: 'AuthInterceptor',
+        );
+        rethrow;
+      }
+      // If we get 401 again, something is wrong with the token
+      developer.log(
+        'Retry still returned 401 - token may be invalid',
+        name: 'AuthInterceptor',
+        error: e,
+      );
+      rethrow;
+    }
   }
 
   /// Retry all pending requests after successful refresh

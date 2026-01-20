@@ -76,12 +76,26 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
   Future<void> addToWishlist(String productId) async {
     developer.log('Adding to wishlist: $productId', name: 'WishlistDataSource');
 
-    final response = await _apiClient.post(
-      ApiEndpoints.productWishlist(productId),
-    );
+    try {
+      final response = await _apiClient.post(
+        ApiEndpoints.productWishlist(productId),
+      );
 
-    if (response.data['success'] != true) {
-      throw Exception(response.data['messageAr'] ?? 'Failed to add to wishlist');
+      if (response.data['success'] != true) {
+        throw Exception(response.data['messageAr'] ?? 'Failed to add to wishlist');
+      }
+    } on DioException catch (e) {
+      // Handle 409 Conflict - product already in wishlist
+      if (e.response?.statusCode == 409) {
+        developer.log(
+          'Product already in wishlist: $productId',
+          name: 'WishlistDataSource',
+        );
+        // Don't throw error - product is already in wishlist, which is fine
+        return;
+      }
+      // Re-throw other errors
+      rethrow;
     }
   }
 
