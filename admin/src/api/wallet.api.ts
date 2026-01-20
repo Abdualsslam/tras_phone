@@ -28,12 +28,26 @@ export interface WalletTransaction {
 export interface LoyaltyTier {
     _id: string;
     name: string;
-    nameAr?: string;
+    nameAr: string;
+    code: string;
+    description?: string;
+    descriptionAr?: string;
     minPoints: number;
-    maxPoints?: number;
-    benefits: string[];
-    multiplier: number;
+    minSpend?: number;
+    minOrders?: number;
+    pointsMultiplier: number;
+    discountPercentage: number;
+    freeShipping: boolean;
+    prioritySupport: boolean;
+    earlyAccess: boolean;
+    customBenefits?: string[];
+    icon?: string;
+    color?: string;
+    badgeImage?: string;
+    displayOrder: number;
     isActive: boolean;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface CreditDebitDto {
@@ -92,6 +106,11 @@ export const walletApi = {
 
     getTiers: async (): Promise<LoyaltyTier[]> => {
         const response = await apiClient.get<ApiResponse<LoyaltyTier[]>>('/wallet/tiers');
+        return response.data.data;
+    },
+
+    getAllTiers: async (): Promise<LoyaltyTier[]> => {
+        const response = await apiClient.get<ApiResponse<LoyaltyTier[]>>('/wallet/admin/tiers');
         return response.data.data;
     },
 
