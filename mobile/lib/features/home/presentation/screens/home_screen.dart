@@ -155,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildProductsSection(
             title: AppLocalizations.of(context)!.featuredProducts,
             products: state.featuredProducts,
-            onSeeAll: () => context.push('/products?featured=true'),
+            onSeeAll: () => context.push('/products?isFeatured=true'),
           ),
 
         SizedBox(height: 24.h),

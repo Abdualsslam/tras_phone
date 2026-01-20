@@ -99,7 +99,7 @@ export class ProductsService {
       minPrice,
       maxPrice,
       status = 'active',
-      featured,
+      isFeatured,
       newArrival,
       bestSeller,
       sort = 'createdAt',
@@ -117,7 +117,8 @@ export class ProductsService {
     if (qualityTypeId) query.qualityTypeId = new Types.ObjectId(qualityTypeId);
     if (deviceId) query.compatibleDevices = { $in: [new Types.ObjectId(deviceId)] };
     if (status) query.status = status;
-    if (featured) query.isFeatured = true;
+    // Filter by isFeatured field from schema (not random - must be true in database)
+    if (isFeatured) query.isFeatured = true;
     if (newArrival) query.isNewArrival = true;
     if (bestSeller) query.isBestSeller = true;
 
@@ -128,7 +129,11 @@ export class ProductsService {
     }
 
     const skip = (page - 1) * limit;
-    const sortObj: any = { [sort]: order === 'desc' ? -1 : 1 };
+    // Convert sortBy field names to match schema fields
+    let sortField = sort;
+    if (sort === 'price') sortField = 'basePrice';
+    
+    const sortObj: any = { [sortField]: order === 'desc' ? -1 : 1 };
 
     const [data, total] = await Promise.all([
       this.productModel
