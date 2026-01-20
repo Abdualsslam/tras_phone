@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -132,6 +132,7 @@ interface AddProductForm {
   specifications: Record<string, string>;
   compatibleDevices: string[];
   relatedProducts: string[];
+  priceLevelsPrices: Record<string, string>;
 }
 
 const initialFormData: AddProductForm = {
@@ -235,7 +236,7 @@ export function ProductsPage() {
   const { data: priceLevels = [] } = useQuery<PriceLevel[]>({
     queryKey: ["price-levels"],
     queryFn: productsApi.getPriceLevels,
-    enabled: isPricesDialogOpen,
+    enabled: isPricesDialogOpen || isAddDialogOpen,
   });
 
   // Fetch devices for compatibility
@@ -280,6 +281,29 @@ export function ProductsPage() {
     enabled: isDetailDialogOpen && !!selectedProduct?._id,
   });
 
+  // Fetch product prices when editing
+  const { data: productPrices = [] } = useQuery({
+    queryKey: ["product-prices", selectedProduct?._id],
+    queryFn: () => productsApi.getProductPrices(selectedProduct!._id),
+    enabled: isEditMode && !!selectedProduct?._id && isAddDialogOpen,
+  });
+
+  // Update form data when product prices are loaded
+  useEffect(() => {
+    if (productPrices && productPrices.length > 0 && isEditMode && isAddDialogOpen) {
+      const pricesMap: Record<string, string> = {};
+      productPrices.forEach((price: any) => {
+        if (price.priceLevelId && price.price) {
+          pricesMap[price.priceLevelId] = String(price.price);
+        }
+      });
+      setFormData((prev) => ({
+        ...prev,
+        priceLevelsPrices: pricesMap,
+      }));
+    }
+  }, [productPrices, isEditMode, isAddDialogOpen]);
+
   // Create mutation
   const createMutation = useMutation({
     mutationFn: (data: CreateProductDto) => productsApi.create(data),
@@ -297,6 +321,18 @@ export function ProductsPage() {
       productsApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      
+      // Save price levels prices if any
+      const pricesToSave = Object.entries(formData.priceLevelsPrices)
+        .filter(([, value]) => value && Number(value) > 0)
+        .map(([priceLevelId, price]) => ({ priceLevelId, price: Number(price) }));
+      
+      if (pricesToSave.length > 0 && selectedProduct) {
+        productsApi.setProductPrices(selectedProduct._id, pricesToSave).then(() => {
+          queryClient.invalidateQueries({ queryKey: ["products"] });
+        });
+      }
+      
       setIsAddDialogOpen(false);
       setFormData(initialFormData);
       setIsEditMode(false);
@@ -496,6 +532,7 @@ export function ProductsPage() {
       specifications: (product as any).specifications || {},
       compatibleDevices: (product as any).compatibleDevices?.map((d: any) => d._id || d) || [],
       relatedProducts: (product as any).relatedProducts?.map((p: any) => p._id || p) || [],
+      priceLevelsPrices: {},
     });
     setFormTagsInput(((product as any).tags || []).join(", "));
     setIsAddDialogOpen(true);
@@ -1240,6 +1277,73 @@ export function ProductsPage() {
                 </p>
               )}
             </div>
+
+            {/* Price Levels Section */}
+            {priceLevels.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  أسعار المستويات
+                </h3>
+                <div className="space-y-3 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    يمكنك تعيين سعر مختلف لكل مستوى تسعير. اتركه فارغاً لاستخدام السعر الأساسي.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {priceLevels.map((level) => {
+                      const currentPrice = formData.priceLevelsPrices[level._id] || "";
+                      const basePrice = Number(formData.basePrice) || 0;
+                      return (
+                        <div key={level._id} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm">
+                              {level.nameAr || level.name}
+                              {level.discountPercentage ? (
+                                <span className="text-xs text-gray-500 ms-2">
+                                  (خصم {level.discountPercentage}%)
+                                </span>
+                              ) : null}
+                            </Label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-xs"
+                              onClick={() => {
+                                handleFormChange("priceLevelsPrices", {
+                                  ...formData.priceLevelsPrices,
+                                  [level._id]: String(basePrice),
+                                });
+                              }}
+                            >
+                              استخدام السعر الأساسي
+                            </Button>
+                          </div>
+                          <Input
+                            type="number"
+                            dir="ltr"
+                            placeholder={`${basePrice.toLocaleString()} (السعر الأساسي)`}
+                            className="w-full"
+                            value={currentPrice}
+                            onChange={(e) =>
+                              handleFormChange("priceLevelsPrices", {
+                                ...formData.priceLevelsPrices,
+                                [level._id]: e.target.value,
+                              })
+                            }
+                          />
+                          {currentPrice && Number(currentPrice) > 0 && (
+                            <p className="text-xs text-gray-500">
+                              السعر: {Number(currentPrice).toLocaleString()} ر.س
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Status Section */}
             <div className="space-y-4">

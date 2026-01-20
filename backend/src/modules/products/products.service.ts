@@ -24,6 +24,7 @@ import {
 import { Tag, TagDocument } from './schemas/tag.schema';
 import { ProductTag, ProductTagDocument } from './schemas/product-tag.schema';
 import { StockAlert, StockAlertDocument } from './schemas/stock-alert.schema';
+import { Customer, CustomerDocument } from '@modules/customers/schemas/customer.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -51,6 +52,8 @@ export class ProductsService {
     private productTagModel: Model<ProductTagDocument>,
     @InjectModel(StockAlert.name)
     private stockAlertModel: Model<StockAlertDocument>,
+    @InjectModel(Customer.name)
+    private customerModel: Model<CustomerDocument>,
   ) {}
 
   /**
@@ -528,6 +531,127 @@ export class ProductsService {
     return this.priceLevelModel
       .find({ isActive: true })
       .sort({ displayOrder: 1, name: 1 });
+  }
+
+  /**
+   * Get all price levels (including inactive) - for admin
+   */
+  async findAllPriceLevelsAdmin(): Promise<PriceLevelDocument[]> {
+    return this.priceLevelModel
+      .find()
+      .sort({ displayOrder: 1, name: 1 });
+  }
+
+  /**
+   * Get price level by ID
+   */
+  async findPriceLevelById(id: string): Promise<PriceLevelDocument> {
+    const priceLevel = await this.priceLevelModel.findById(id);
+    if (!priceLevel) {
+      throw new NotFoundException('Price level not found');
+    }
+    return priceLevel;
+  }
+
+  /**
+   * Create price level
+   */
+  async createPriceLevel(createDto: any): Promise<PriceLevelDocument> {
+    // Check if code already exists
+    const existing = await this.priceLevelModel.findOne({
+      code: createDto.code,
+    });
+    if (existing) {
+      throw new ConflictException('Price level with this code already exists');
+    }
+
+    // If this is set as default, unset other defaults
+    if (createDto.isDefault) {
+      await this.priceLevelModel.updateMany(
+        { isDefault: true },
+        { $set: { isDefault: false } },
+      );
+    }
+
+    const priceLevel = await this.priceLevelModel.create(createDto);
+    return priceLevel;
+  }
+
+  /**
+   * Update price level
+   */
+  async updatePriceLevel(
+    id: string,
+    updateDto: any,
+  ): Promise<PriceLevelDocument> {
+    const priceLevel = await this.priceLevelModel.findById(id);
+    if (!priceLevel) {
+      throw new NotFoundException('Price level not found');
+    }
+
+    // Check if code is being changed and if it's unique
+    if (updateDto.code && updateDto.code !== priceLevel.code) {
+      const existing = await this.priceLevelModel.findOne({
+        code: updateDto.code,
+      });
+      if (existing) {
+        throw new ConflictException('Price level with this code already exists');
+      }
+    }
+
+    // If this is being set as default, unset other defaults
+    if (updateDto.isDefault === true) {
+      await this.priceLevelModel.updateMany(
+        { isDefault: true, _id: { $ne: id } },
+        { $set: { isDefault: false } },
+      );
+    }
+
+    Object.assign(priceLevel, updateDto);
+    await priceLevel.save();
+
+    return priceLevel;
+  }
+
+  /**
+   * Delete price level
+   */
+  async deletePriceLevel(id: string): Promise<void> {
+    const priceLevel = await this.priceLevelModel.findById(id);
+    if (!priceLevel) {
+      throw new NotFoundException('Price level not found');
+    }
+
+    // Check if used in product prices
+    const usedInProducts = await this.productPriceModel.countDocuments({
+      priceLevelId: new Types.ObjectId(id),
+    });
+
+    if (usedInProducts > 0) {
+      throw new BadRequestException(
+        `Cannot delete price level. It is used in ${usedInProducts} product price(s).`,
+      );
+    }
+
+    // Check if used in customers
+    const usedInCustomers = await this.customerModel.countDocuments({
+      priceLevelId: new Types.ObjectId(id),
+    });
+
+    if (usedInCustomers > 0) {
+      throw new BadRequestException(
+        `Cannot delete price level. It is used by ${usedInCustomers} customer(s).`,
+      );
+    }
+
+    // Check if it's the default level
+    if (priceLevel.isDefault) {
+      throw new BadRequestException(
+        'Cannot delete the default price level. Please set another level as default first.',
+      );
+    }
+
+    await this.priceLevelModel.findByIdAndDelete(id);
   }
 
   // ═════════════════════════════════════

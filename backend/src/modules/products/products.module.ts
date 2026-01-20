@@ -30,6 +30,7 @@ import {
   QualityTypeSchema,
 } from '@modules/catalog/schemas/quality-type.schema';
 import { Device, DeviceSchema } from '@modules/catalog/schemas/device.schema';
+import { Customer, CustomerSchema } from '@modules/customers/schemas/customer.schema';
 import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { ProductsSearchService } from './products-search.service';
@@ -55,6 +56,7 @@ import { AuthModule } from '@modules/auth/auth.module';
       { name: Category.name, schema: CategorySchema },
       { name: QualityType.name, schema: QualityTypeSchema },
       { name: Device.name, schema: DeviceSchema },
+      { name: Customer.name, schema: CustomerSchema },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],

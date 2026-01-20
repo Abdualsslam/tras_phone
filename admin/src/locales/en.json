@@ -41,6 +41,7 @@
         "customers": "Customers",
         "passwordResetRequests": "Password Reset Requests",
         "products": "Products",
+    "priceLevels": "Price Levels",
     "categories": "Categories",
     "catalog": "Catalog",
     "orders": "Orders",

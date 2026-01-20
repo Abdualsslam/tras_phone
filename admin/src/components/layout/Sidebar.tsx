@@ -29,6 +29,7 @@ import {
     Smartphone,
     MessageSquare,
     Key,
+    Layers,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -44,6 +45,7 @@ const menuItems = [
     { icon: UserCheck, path: '/customers', labelKey: 'sidebar.customers' },
     { icon: Key, path: '/password-reset-requests', labelKey: 'sidebar.passwordResetRequests' },
     { icon: Package, path: '/products', labelKey: 'sidebar.products' },
+    { icon: Layers, path: '/price-levels', labelKey: 'sidebar.priceLevels' },
     { icon: FolderTree, path: '/categories', labelKey: 'sidebar.categories' },
     { icon: Smartphone, path: '/catalog', labelKey: 'sidebar.catalog' },
     { icon: ShoppingCart, path: '/orders', labelKey: 'sidebar.orders' },

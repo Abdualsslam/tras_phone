@@ -31,6 +31,8 @@ import { ResponseBuilder } from '@common/interfaces/response.interface';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SetPricesDto } from './dto/set-prices.dto';
+import { CreatePriceLevelDto } from './dto/create-price-level.dto';
+import { UpdatePriceLevelDto } from './dto/update-price-level.dto';
 import { AddReviewDto } from './dto/add-review.dto';
 import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
 import { ProductsOnOfferQueryDto } from './dto/products-on-offer-query.dto';
@@ -373,6 +375,149 @@ export class ProductsController {
       reviews,
       'Reviews retrieved',
       'تم استرجاع التقييمات',
+    );
+  }
+
+  // ═════════════════════════════════════
+  // Admin Endpoints - Price Levels
+  // ═════════════════════════════════════
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get('price-levels/all')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get all price levels (admin)',
+    description:
+      'Retrieve all price levels including inactive ones. Admin only.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Price levels retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getAllPriceLevels() {
+    const priceLevels = await this.productsService.findAllPriceLevelsAdmin();
+    return ResponseBuilder.success(
+      priceLevels,
+      'Price levels retrieved',
+      'تم استرجاع مستويات الأسعار',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get('price-levels/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get price level by ID',
+    description: 'Retrieve a single price level by ID. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Price level ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Price level retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getPriceLevelById(@Param('id') id: string) {
+    const priceLevel = await this.productsService.findPriceLevelById(id);
+    return ResponseBuilder.success(
+      priceLevel,
+      'Price level retrieved',
+      'تم استرجاع مستوى السعر',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post('price-levels')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create price level',
+    description: 'Create a new price level. Admin only.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Price level created successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async createPriceLevel(@Body() createDto: CreatePriceLevelDto) {
+    const priceLevel = await this.productsService.createPriceLevel(createDto);
+    return ResponseBuilder.created(
+      priceLevel,
+      'Price level created',
+      'تم إنشاء مستوى السعر',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Put('price-levels/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Update price level',
+    description: 'Update price level information. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Price level ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Price level updated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async updatePriceLevel(
+    @Param('id') id: string,
+    @Body() updateDto: UpdatePriceLevelDto,
+  ) {
+    const priceLevel = await this.productsService.updatePriceLevel(
+      id,
+      updateDto,
+    );
+    return ResponseBuilder.success(
+      priceLevel,
+      'Price level updated',
+      'تم تحديث مستوى السعر',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Delete('price-levels/:id')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete price level',
+    description:
+      'Delete a price level. Cannot delete if used in customers or products. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Price level ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Price level deleted successfully',
+  })
+  @ApiCommonErrorResponses()
+  async deletePriceLevel(@Param('id') id: string) {
+    await this.productsService.deletePriceLevel(id);
+    return ResponseBuilder.success(
+      null,
+      'Price level deleted',
+      'تم حذف مستوى السعر',
     );
   }
 
