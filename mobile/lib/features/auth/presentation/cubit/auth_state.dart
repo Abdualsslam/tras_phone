@@ -3,6 +3,7 @@ library;
 
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/user_entity.dart';
+import '../../domain/entities/session_entity.dart';
 
 abstract class AuthState extends Equatable {
   const AuthState();
@@ -101,4 +102,24 @@ class AuthProfileUpdated extends AuthState {
 
   @override
   List<Object?> get props => [user];
+}
+
+/// Sessions loaded state
+class AuthSessionsLoaded extends AuthState {
+  final List<SessionEntity> sessions;
+
+  const AuthSessionsLoaded(this.sessions);
+
+  @override
+  List<Object?> get props => [sessions];
+}
+
+/// Session deleted state
+class AuthSessionDeleted extends AuthState {
+  final String sessionId;
+
+  const AuthSessionDeleted(this.sessionId);
+
+  @override
+  List<Object?> get props => [sessionId];
 }

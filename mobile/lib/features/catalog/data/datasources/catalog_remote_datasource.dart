@@ -4,6 +4,7 @@ library;
 import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/config/app_config.dart';
 import '../../domain/entities/banner_entity.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/category_entity.dart';
@@ -25,10 +26,30 @@ abstract class CatalogRemoteDataSource {
   Future<CategoryWithBreadcrumb?> getCategoryById(String id);
   Future<List<CategoryEntity>> getCategoryChildren(String parentId);
   Future<List<CategoryEntity>> getCategoriesTree();
+  Future<Map<String, dynamic>> getCategoryProducts(
+    String categoryIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  });
 
   // Brands
   Future<List<BrandEntity>> getBrands({bool? featured});
   Future<BrandEntity?> getBrandBySlug(String slug);
+  Future<Map<String, dynamic>> getBrandProducts(
+    String brandId, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+  });
 
   // Devices
   Future<List<DeviceEntity>> getDevices({int? limit});
@@ -107,6 +128,25 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   CatalogRemoteDataSourceImpl({required ApiClient apiClient})
     : _apiClient = apiClient;
 
+  /// Helper method to build and print full URL
+  void _printApiUrl(String endpoint, {Map<String, dynamic>? queryParams}) {
+    final uri = Uri.parse('${AppConfig.baseUrl}$endpoint');
+    final finalUri = queryParams != null && queryParams.isNotEmpty
+        ? uri.replace(queryParameters: queryParams.map((k, v) => MapEntry(k, v.toString())))
+        : uri;
+    
+    print('\n${'=' * 80}');
+    print('🌐 API Request URL:');
+    print('${'=' * 80}');
+    print('📡 ${finalUri.toString()}');
+    print('${'=' * 80}\n');
+    
+    developer.log(
+      'API URL: ${finalUri.toString()}',
+      name: 'CatalogDataSource',
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // CATEGORIES
   // ═══════════════════════════════════════════════════════════════════════════
@@ -175,6 +215,78 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     return list.map((json) => CategoryModel.fromJson(json).toEntity()).toList();
   }
 
+  @override
+  Future<Map<String, dynamic>> getCategoryProducts(
+    String categoryIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  }) async {
+    developer.log(
+      'Fetching products for category: $categoryIdentifier (page: $page)',
+      name: 'CatalogDataSource',
+    );
+
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+
+    if (minPrice != null) queryParams['minPrice'] = minPrice;
+    if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
+    if (sortBy != null) queryParams['sortBy'] = sortBy;
+    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+    if (brandId != null) queryParams['brandId'] = brandId;
+    if (qualityTypeId != null) queryParams['qualityTypeId'] = qualityTypeId;
+
+    final endpoint = ApiEndpoints.categoryProducts(categoryIdentifier);
+    _printApiUrl(endpoint, queryParams: queryParams);
+
+    final response = await _apiClient.get(
+      endpoint,
+      queryParameters: queryParams,
+    );
+
+    // Print full response
+    print('\n${'=' * 80}');
+    print('📦 API Response - Category Products:');
+    print('${'=' * 80}');
+    print('Status Code: ${response.statusCode}');
+    print('Status Message: ${response.statusMessage}');
+    print('\nResponse Data:');
+    print(response.data);
+    print('${'=' * 80}\n');
+
+    developer.log(
+      'Response: ${response.data}',
+      name: 'CatalogDataSource',
+    );
+
+    final data = response.data['data'] ?? [];
+    final meta = response.data['meta'] ?? {};
+
+    // Print parsed data summary
+    final dataList = data is List ? data : [];
+    print('\n${'=' * 80}');
+    print('📊 Parsed Data Summary:');
+    print('${'=' * 80}');
+    print('Products Count: ${dataList.length}');
+    print('Pagination Meta: $meta');
+    print('${'=' * 80}\n');
+
+    return {
+      'products': List<ProductEntity>.from(
+        dataList.map((p) => ProductModel.fromJson(p).toEntity()),
+      ),
+      'pagination': meta,
+    };
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // BRANDS
   // ═══════════════════════════════════════════════════════════════════════════
@@ -183,9 +295,15 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   Future<List<BrandEntity>> getBrands({bool? featured}) async {
     developer.log('Fetching brands', name: 'CatalogDataSource');
 
+    final queryParams = <String, dynamic>{
+      if (featured != null) 'featured': featured,
+    };
+    
+    _printApiUrl(ApiEndpoints.brands, queryParams: queryParams.isNotEmpty ? queryParams : null);
+
     final response = await _apiClient.get(
       ApiEndpoints.brands,
-      queryParameters: {if (featured != null) 'featured': featured},
+      queryParameters: queryParams,
     );
 
     final data = response.data['data'] ?? response.data;
@@ -199,13 +317,84 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     developer.log('Fetching brand: $slug', name: 'CatalogDataSource');
 
     try {
-      final response = await _apiClient.get('${ApiEndpoints.brands}/$slug');
+      final endpoint = '${ApiEndpoints.brands}/$slug';
+      _printApiUrl(endpoint);
+      
+      final response = await _apiClient.get(endpoint);
       final data = response.data['data'] ?? response.data;
       return BrandModel.fromJson(data).toEntity();
     } catch (e) {
       developer.log('Brand not found: $slug', name: 'CatalogDataSource');
       return null;
     }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getBrandProducts(
+    String brandId, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+  }) async {
+    developer.log(
+      'Fetching products for brand ID: $brandId (page: $page)',
+      name: 'CatalogDataSource',
+    );
+
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+
+    if (minPrice != null) queryParams['minPrice'] = minPrice;
+    if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
+    if (sortBy != null) queryParams['sortBy'] = sortBy;
+    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+
+    final endpoint = ApiEndpoints.brandProducts(brandId);
+    _printApiUrl(endpoint, queryParams: queryParams);
+
+    final response = await _apiClient.get(
+      endpoint,
+      queryParameters: queryParams,
+    );
+
+    // Print full response
+    print('\n${'=' * 80}');
+    print('📦 API Response - Brand Products:');
+    print('${'=' * 80}');
+    print('Status Code: ${response.statusCode}');
+    print('Status Message: ${response.statusMessage}');
+    print('\nResponse Data:');
+    print(response.data);
+    print('${'=' * 80}\n');
+
+    developer.log(
+      'Response: ${response.data}',
+      name: 'CatalogDataSource',
+    );
+
+    final data = response.data['data'] ?? [];
+    final meta = response.data['meta'] ?? {};
+
+    // Print parsed data summary
+    final dataList = data is List ? data : [];
+    print('\n${'=' * 80}');
+    print('📊 Parsed Data Summary:');
+    print('${'=' * 80}');
+    print('Products Count: ${dataList.length}');
+    print('Pagination Meta: $meta');
+    print('${'=' * 80}\n');
+
+    return {
+      'products': (data as List)
+          .map((p) => ProductModel.fromJson(p).toEntity())
+          .toList(),
+      'pagination': meta,
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

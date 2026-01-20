@@ -3,7 +3,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
@@ -11,48 +10,154 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/product_entity.dart';
-import '../../data/datasources/catalog_remote_datasource.dart';
+import '../../domain/repositories/catalog_repository.dart';
 
 class BrandDetailsScreen extends StatefulWidget {
-  final String brandId;
+  final String brandSlug;
   final BrandEntity? brand;
 
-  const BrandDetailsScreen({super.key, required this.brandId, this.brand});
+  const BrandDetailsScreen({super.key, required this.brandSlug, this.brand});
 
   @override
   State<BrandDetailsScreen> createState() => _BrandDetailsScreenState();
 }
 
 class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
-  final _dataSource = getIt<CatalogRemoteDataSource>();
+  final _repository = getIt<CatalogRepository>();
+  final ScrollController _scrollController = ScrollController();
+  
   BrandEntity? _brand;
   List<ProductEntity> _products = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _currentPage = 1;
+  final int _limit = 20;
+  Map<String, dynamic>? _pagination;
 
   @override
   void initState() {
     super.initState();
     _brand = widget.brand;
+    _scrollController.addListener(_onScroll);
     _loadData();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreProducts();
+    }
+  }
+
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _currentPage = 1;
+      _products.clear();
+      _hasMore = true;
+    });
+
     try {
+      // Load brand if not provided (required to get brand.id)
       if (_brand == null) {
-        final brands = await _dataSource.getBrands();
-        _brand = brands.firstWhere(
-          (b) => b.id.toString() == widget.brandId,
-          orElse: () => brands.first,
+        final brandResult = await _repository.getBrandBySlug(widget.brandSlug);
+        brandResult.fold(
+          (failure) {
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(failure.message)),
+            );
+            return; // Exit if brand not found
+          },
+          (brand) => _brand = brand,
         );
       }
-      final products = await _dataSource.getProducts(brandId: widget.brandId);
-      setState(() {
-        _products = products;
-        _isLoading = false;
-      });
+
+      // Ensure we have brand with ID before loading products
+      if (_brand == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Load products using brand.id (not slug)
+      final result = await _repository.getBrandProducts(
+        _brand!.id,
+        page: _currentPage,
+        limit: _limit,
+      );
+
+      result.fold(
+        (failure) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(failure.message)),
+          );
+        },
+        (data) {
+          final products = data['products'] as List<ProductEntity>;
+          final pagination = data['pagination'] as Map<String, dynamic>?;
+          
+          setState(() {
+            _products = products;
+            _pagination = pagination;
+            _hasMore = _currentPage < (pagination?['pages'] ?? 1);
+            _isLoading = false;
+          });
+        },
+      );
     } catch (e) {
       setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('حدث خطأ: $e')),
+      );
+    }
+  }
+
+  Future<void> _loadMoreProducts() async {
+    if (_isLoadingMore || !_hasMore || _brand == null) return;
+
+    setState(() => _isLoadingMore = true);
+    _currentPage++;
+
+    try {
+      // Use brand.id (not slug) for API call
+      final result = await _repository.getBrandProducts(
+        _brand!.id,
+        page: _currentPage,
+        limit: _limit,
+      );
+
+      result.fold(
+        (failure) {
+          setState(() {
+            _isLoadingMore = false;
+            _currentPage--; // Revert page on error
+          });
+        },
+        (data) {
+          final products = data['products'] as List<ProductEntity>;
+          final pagination = data['pagination'] as Map<String, dynamic>?;
+
+          setState(() {
+            _products.addAll(products);
+            _pagination = pagination;
+            _hasMore = _currentPage < (pagination?['pages'] ?? 1);
+            _isLoadingMore = false;
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _isLoadingMore = false;
+        _currentPage--; // Revert page on error
+      });
     }
   }
 
@@ -63,87 +168,106 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
     return Scaffold(
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : CustomScrollView(
-              slivers: [
-                // App Bar with Brand Banner
-                _buildSliverAppBar(isDark),
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  // App Bar with Brand Banner
+                  _buildSliverAppBar(isDark),
 
-                // Products Header
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 12.h),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'منتجات ${_brand?.nameAr ?? _brand?.name ?? ""}',
-                          style: TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w700,
-                            color: isDark
-                                ? AppColors.textPrimaryDark
-                                : AppColors.textPrimaryLight,
+                  // Products Header
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 12.h),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'منتجات ${_brand?.nameAr ?? _brand?.name ?? ""}',
+                            style: TextStyle(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimaryLight,
+                            ),
                           ),
-                        ),
-                        Text(
-                          '${_products.length} منتج',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight,
+                          Text(
+                            _pagination != null
+                                ? '${_pagination!['total'] ?? _products.length} منتج'
+                                : '${_products.length} منتج',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondaryLight,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                // Products Grid
-                _products.isEmpty
-                    ? SliverFillRemaining(child: _buildEmptyState(isDark))
-                    : SliverPadding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.w),
-                        sliver: SliverGrid(
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 12.h,
-                                crossAxisSpacing: 12.w,
-                                childAspectRatio: 0.58,
-                              ),
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final product = _products[index];
-                            return ProductCard(
-                              id: product.id.toString(),
-                              name: product.name,
-                              nameAr: product.nameAr,
-                              imageUrl: product.imageUrl,
-                              price: product.price,
-                              originalPrice: product.originalPrice,
-                              stockQuantity: product.stockQuantity,
-                              onTap: () => context.push(
-                                '/product/${product.id}',
-                                extra: product,
-                              ),
-                            );
-                          }, childCount: _products.length),
+                  // Products Grid
+                  _products.isEmpty
+                      ? SliverFillRemaining(child: _buildEmptyState(isDark))
+                      : SliverPadding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 12.h,
+                                  crossAxisSpacing: 12.w,
+                                  childAspectRatio: 0.58,
+                                ),
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              if (index < _products.length) {
+                                final product = _products[index];
+                                return ProductCard(
+                                  id: product.id.toString(),
+                                  name: product.name,
+                                  nameAr: product.nameAr,
+                                  imageUrl: product.imageUrl,
+                                  price: product.price,
+                                  originalPrice: product.originalPrice,
+                                  stockQuantity: product.stockQuantity,
+                                  onTap: () => context.push(
+                                    '/product/${product.id}',
+                                    extra: product,
+                                  ),
+                                );
+                              } else if (_isLoadingMore) {
+                                return const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              } else {
+                                return const SizedBox.shrink();
+                              }
+                            },
+                                childCount: _products.length +
+                                    (_isLoadingMore ? 1 : 0)),
+                          ),
                         ),
-                      ),
 
-                // Bottom padding
-                SliverToBoxAdapter(child: SizedBox(height: 100.h)),
-              ],
+                  // Bottom padding
+                  SliverToBoxAdapter(child: SizedBox(height: 100.h)),
+                ],
+              ),
             ),
     );
   }
 
   Widget _buildSliverAppBar(bool isDark) {
     final brandName = _brand?.name ?? '';
-    final brandLogoUrl = _getBrandLogoUrl(brandName);
+    final brandLogoUrl = _brand?.logo;
 
     return SliverAppBar(
       expandedHeight: 200.h,
@@ -178,13 +302,12 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20.r),
-                    child: brandLogoUrl != null
-                        ? Padding(
-                            padding: EdgeInsets.all(20.w),
-                            child: SvgPicture.asset(
-                              brandLogoUrl,
-                              fit: BoxFit.contain,
-                            ),
+                    child: brandLogoUrl != null && brandLogoUrl.isNotEmpty
+                        ? Image.network(
+                            brandLogoUrl,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) =>
+                                _buildBrandInitial(brandName),
                           )
                         : _buildBrandInitial(brandName),
                   ),
@@ -200,7 +323,9 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  '${_products.length} منتج',
+                  _pagination != null
+                      ? '${_pagination!['total'] ?? _products.length} منتج'
+                      : '${_products.length} منتج',
                   style: TextStyle(
                     fontSize: 14.sp,
                     color: Colors.white.withValues(alpha: 0.8),
@@ -218,11 +343,6 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
         ),
       ],
     );
-  }
-
-  String? _getBrandLogoUrl(String brandName) {
-    // TODO: استخدم صور العلامات التجارية من الـ API
-    return null;
   }
 
   Widget _buildBrandInitial(String brandName) {
