@@ -10,146 +10,146 @@ export type UserDocument = User & Document;
  * ═══════════════════════════════════════════════════════════════
  */
 @Schema({
-    timestamps: true,
-    collection: 'users',
-    toJSON: {
-        virtuals: true,
-        transform: function (doc: any, ret: any) {
-            delete ret.password;
-            delete ret.twoFactorSecret;
-            delete ret.__v;
-            return ret;
-        },
+  timestamps: true,
+  collection: 'users',
+  toJSON: {
+    virtuals: true,
+    transform: function (doc: any, ret: any) {
+      delete ret.password;
+      delete ret.twoFactorSecret;
+      delete ret.__v;
+      return ret;
     },
+  },
 })
 export class User {
-    @Prop({ type: String, default: () => uuidv4() })
-    uuid: string;
+  @Prop({ type: String, default: () => uuidv4() })
+  uuid: string;
 
-    @Prop({ required: true, unique: true, trim: true })
-    phone: string;
+  @Prop({ required: true, unique: true, trim: true })
+  phone: string;
 
-    @Prop({ unique: true, sparse: true, trim: true, lowercase: true })
-    email?: string;
+  @Prop({ unique: true, sparse: true, trim: true, lowercase: true })
+  email?: string;
 
-    @Prop({ required: true, select: false })
-    password: string;
+  @Prop({ required: true, select: false })
+  password: string;
 
-    @Prop({
-        type: String,
-        enum: ['customer', 'admin'],
-        required: true
-    })
-    userType: string;
+  @Prop({
+    type: String,
+    enum: ['customer', 'admin'],
+    required: true,
+  })
+  userType: string;
 
-    @Prop({
-        type: String,
-        enum: ['pending', 'active', 'suspended', 'deleted'],
-        default: 'pending'
-    })
-    status: string;
+  @Prop({
+    type: String,
+    enum: ['pending', 'active', 'suspended', 'deleted'],
+    default: 'pending',
+  })
+  status: string;
 
-    // ═════════════════════════════════════
-    // Profile
-    // ═════════════════════════════════════
-    @Prop()
-    avatar?: string;
+  // ═════════════════════════════════════
+  // Profile
+  // ═════════════════════════════════════
+  @Prop()
+  avatar?: string;
 
-    // ═════════════════════════════════════
-    // Verification
-    // ═════════════════════════════════════
-    @Prop({ type: Date })
-    phoneVerifiedAt?: Date;
+  // ═════════════════════════════════════
+  // Verification
+  // ═════════════════════════════════════
+  @Prop({ type: Date })
+  phoneVerifiedAt?: Date;
 
-    @Prop({ type: Date })
-    emailVerifiedAt?: Date;
+  @Prop({ type: Date })
+  emailVerifiedAt?: Date;
 
-    // ═════════════════════════════════════
-    // Two Factor Authentication
-    // ═════════════════════════════════════
-    @Prop({ default: false })
-    twoFactorEnabled: boolean;
+  // ═════════════════════════════════════
+  // Two Factor Authentication
+  // ═════════════════════════════════════
+  @Prop({ default: false })
+  twoFactorEnabled: boolean;
 
-    @Prop({ select: false })
-    twoFactorSecret?: string;
+  @Prop({ select: false })
+  twoFactorSecret?: string;
 
-    // ═════════════════════════════════════
-    // Social Login
-    // ═════════════════════════════════════
-    @Prop()
-    googleId?: string;
+  // ═════════════════════════════════════
+  // Social Login
+  // ═════════════════════════════════════
+  @Prop()
+  googleId?: string;
 
-    @Prop()
-    appleId?: string;
+  @Prop()
+  appleId?: string;
 
-    // ═════════════════════════════════════
-    // Login Tracking
-    // ═════════════════════════════════════
-    @Prop({ type: Date })
-    lastLoginAt?: Date;
+  // ═════════════════════════════════════
+  // Login Tracking
+  // ═════════════════════════════════════
+  @Prop({ type: Date })
+  lastLoginAt?: Date;
 
-    @Prop()
-    lastLoginIp?: string;
+  @Prop()
+  lastLoginIp?: string;
 
-    @Prop({ default: 0 })
-    failedLoginAttempts: number;
+  @Prop({ default: 0 })
+  failedLoginAttempts: number;
 
-    @Prop({ type: Date })
-    lockedUntil?: Date;
+  @Prop({ type: Date })
+  lockedUntil?: Date;
 
-    // ═════════════════════════════════════
-    // Device & FCM
-    // ═════════════════════════════════════
-    @Prop()
-    fcmToken?: string;
+  // ═════════════════════════════════════
+  // Device & FCM
+  // ═════════════════════════════════════
+  @Prop()
+  fcmToken?: string;
 
-    @Prop({ type: Object })
-    deviceInfo?: Record<string, any>;
+  @Prop({ type: Object })
+  deviceInfo?: Record<string, any>;
 
-    // ═════════════════════════════════════
-    // Preferences
-    // ═════════════════════════════════════
-    @Prop({ default: 'ar' })
-    language: string;
+  // ═════════════════════════════════════
+  // Preferences
+  // ═════════════════════════════════════
+  @Prop({ default: 'ar' })
+  language: string;
 
-    @Prop({ default: 'Asia/Riyadh' })
-    timezone: string;
+  @Prop({ default: 'Asia/Riyadh' })
+  timezone: string;
 
-    @Prop({ type: Object })
-    notificationPreferences?: Record<string, any>;
+  @Prop({ type: Object })
+  notificationPreferences?: Record<string, any>;
 
-    // ═════════════════════════════════════
-    // Marketing
-    // ═════════════════════════════════════
-    @Prop({ default: true })
-    acceptsMarketing: boolean;
+  // ═════════════════════════════════════
+  // Marketing
+  // ═════════════════════════════════════
+  @Prop({ default: true })
+  acceptsMarketing: boolean;
 
-    @Prop({ type: Date })
-    marketingConsentAt?: Date;
+  @Prop({ type: Date })
+  marketingConsentAt?: Date;
 
-    // ═════════════════════════════════════
-    // Referral
-    // ═════════════════════════════════════
-    @Prop({ unique: true, sparse: true })
-    referralCode?: string;
+  // ═════════════════════════════════════
+  // Referral
+  // ═════════════════════════════════════
+  @Prop({ unique: true, sparse: true })
+  referralCode?: string;
 
-    @Prop({ type: String, ref: 'User' })
-    referredBy?: string;
+  @Prop({ type: String, ref: 'User' })
+  referredBy?: string;
 
-    // ═════════════════════════════════════
-    // Account Deletion
-    // ═════════════════════════════════════
-    @Prop()
-    deletionReason?: string;
+  // ═════════════════════════════════════
+  // Account Deletion
+  // ═════════════════════════════════════
+  @Prop()
+  deletionReason?: string;
 
-    // ═════════════════════════════════════
-    // Timestamps
-    // ═════════════════════════════════════
-    @Prop({ type: Date })
-    deletedAt?: Date;
+  // ═════════════════════════════════════
+  // Timestamps
+  // ═════════════════════════════════════
+  @Prop({ type: Date })
+  deletedAt?: Date;
 
-    createdAt: Date;
-    updatedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
@@ -170,5 +170,5 @@ UserSchema.index({ createdAt: -1 });
 // Virtual for ID
 // ═════════════════════════════════════
 UserSchema.virtual('id').get(function () {
-    return this._id.toHexString();
+  return this._id.toHexString();
 });
