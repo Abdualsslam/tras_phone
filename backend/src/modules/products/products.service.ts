@@ -112,10 +112,10 @@ export class ProductsService {
       query.$text = { $search: search };
     }
 
-    if (categoryId) query.categoryId = categoryId;
-    if (brandId) query.brandId = brandId;
-    if (qualityTypeId) query.qualityTypeId = qualityTypeId;
-    if (deviceId) query.compatibleDevices = { $in: [deviceId] };
+    if (categoryId) query.categoryId = new Types.ObjectId(categoryId);
+    if (brandId) query.brandId = new Types.ObjectId(brandId);
+    if (qualityTypeId) query.qualityTypeId = new Types.ObjectId(qualityTypeId);
+    if (deviceId) query.compatibleDevices = { $in: [new Types.ObjectId(deviceId)] };
     if (status) query.status = status;
     if (featured) query.isFeatured = true;
     if (newArrival) query.isNewArrival = true;
