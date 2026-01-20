@@ -27,7 +27,7 @@ Map<String, dynamic> _$PickupAddressToJson(PickupAddress instance) =>
 ReturnModel _$ReturnModelFromJson(Map<String, dynamic> json) => ReturnModel(
   id: ReturnModel._idFromJson(json['_id']),
   returnNumber: json['returnNumber'] as String,
-  orderId: ReturnModel._idFromJson(json['orderId']),
+  orderIds: ReturnModel._orderIdsFromJson(json['orderIds']),
   customerId: ReturnModel._idFromJson(json['customerId']),
   status: json['status'] as String,
   returnType: json['returnType'] as String,
@@ -64,7 +64,7 @@ Map<String, dynamic> _$ReturnModelToJson(ReturnModel instance) =>
     <String, dynamic>{
       '_id': instance.id,
       'returnNumber': instance.returnNumber,
-      'orderId': instance.orderId,
+      'orderIds': instance.orderIds,
       'customerId': instance.customerId,
       'status': instance.status,
       'returnType': instance.returnType,
@@ -162,7 +162,6 @@ Map<String, dynamic> _$ReturnReasonModelToJson(ReturnReasonModel instance) =>
 CreateReturnRequest _$CreateReturnRequestFromJson(
   Map<String, dynamic> json,
 ) => CreateReturnRequest(
-  orderId: json['orderId'] as String,
   returnType: json['returnType'] as String,
   reasonId: json['reasonId'] as String,
   customerNotes: json['customerNotes'] as String?,
@@ -180,7 +179,6 @@ CreateReturnRequest _$CreateReturnRequestFromJson(
 Map<String, dynamic> _$CreateReturnRequestToJson(
   CreateReturnRequest instance,
 ) => <String, dynamic>{
-  'orderId': instance.orderId,
   'returnType': instance.returnType,
   'reasonId': instance.reasonId,
   'customerNotes': instance.customerNotes,

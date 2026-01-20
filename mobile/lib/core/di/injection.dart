@@ -165,7 +165,7 @@ Future<void> setupDependencies() async {
   );
 
   getIt.registerLazySingleton<CartLocalDataSource>(
-    () => CartLocalDataSourceImpl(localStorage: getIt<LocalStorage>()),
+    () => CartLocalDataSourceImpl(storage: getIt<LocalStorage>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -188,9 +188,7 @@ Future<void> setupDependencies() async {
 
   // Repository
   getIt.registerLazySingleton<ProfileRepository>(
-    () => ProfileRepositoryImpl(
-      dataSource: getIt<ProfileRemoteDataSource>(),
-    ),
+    () => ProfileRepositoryImpl(dataSource: getIt<ProfileRemoteDataSource>()),
   );
 
   // Cubits

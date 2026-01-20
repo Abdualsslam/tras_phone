@@ -8,7 +8,7 @@ part 'educational_category_model.g.dart';
 
 @JsonSerializable()
 class EducationalCategoryModel {
-  @JsonKey(name: '_id')
+  @JsonKey(name: '_id', readValue: _readId)
   final String id;
   final String name;
   final String? nameAr;
@@ -40,6 +40,15 @@ class EducationalCategoryModel {
     required this.createdAt,
     required this.updatedAt,
   });
+
+  /// Handle MongoDB _id or id field
+  static Object? _readId(Map<dynamic, dynamic> json, String key) {
+    final value = json['_id'] ?? json['id'];
+    if (value is Map) {
+      return value['\$oid'] ?? value.toString();
+    }
+    return value?.toString();
+  }
 
   factory EducationalCategoryModel.fromJson(Map<String, dynamic> json) =>
       _$EducationalCategoryModelFromJson(json);

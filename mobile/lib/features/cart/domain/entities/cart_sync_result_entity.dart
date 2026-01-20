@@ -3,10 +3,7 @@ library;
 
 import 'package:equatable/equatable.dart';
 import 'cart_entity.dart';
-import 'cart_item_entity.dart';
-import '../enums/cart_enums.dart';
 import '../../data/models/cart_model.dart';
-import '../../data/models/cart_item_model.dart';
 
 /// Entity representing a removed item during sync
 class RemovedCartItem extends Equatable {
@@ -99,8 +96,12 @@ class QuantityAdjustedCartItem extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [productId, requestedQuantity, availableQuantity, finalQuantity];
+  List<Object?> get props => [
+    productId,
+    requestedQuantity,
+    availableQuantity,
+    finalQuantity,
+  ];
 }
 
 /// Entity representing the complete sync result
@@ -129,7 +130,7 @@ class CartSyncResultEntity extends Equatable {
   factory CartSyncResultEntity.fromJson(Map<String, dynamic> json) {
     // Parse cart using CartModel
     final cartData = json['cart'] as Map<String, dynamic>? ?? json;
-    final cartModel = CartModel.fromJson(cartData as Map<String, dynamic>);
+    final cartModel = CartModel.fromJson(cartData);
     final cart = cartModel.toEntity();
 
     // Parse removed items
@@ -141,16 +142,19 @@ class CartSyncResultEntity extends Equatable {
     // Parse price changed items
     final priceChangedItemsData = json['priceChangedItems'] as List? ?? [];
     final priceChangedItems = priceChangedItemsData
-        .map((item) =>
-            PriceChangedCartItem.fromJson(item as Map<String, dynamic>))
+        .map(
+          (item) => PriceChangedCartItem.fromJson(item as Map<String, dynamic>),
+        )
         .toList();
 
     // Parse quantity adjusted items
     final quantityAdjustedItemsData =
         json['quantityAdjustedItems'] as List? ?? [];
     final quantityAdjustedItems = quantityAdjustedItemsData
-        .map((item) => QuantityAdjustedCartItem.fromJson(
-            item as Map<String, dynamic>))
+        .map(
+          (item) =>
+              QuantityAdjustedCartItem.fromJson(item as Map<String, dynamic>),
+        )
         .toList();
 
     return CartSyncResultEntity(
@@ -163,10 +167,9 @@ class CartSyncResultEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        syncedCart,
-        removedItems,
-        priceChangedItems,
-        quantityAdjustedItems,
-      ];
+    syncedCart,
+    removedItems,
+    priceChangedItems,
+    quantityAdjustedItems,
+  ];
 }
-

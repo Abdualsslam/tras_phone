@@ -12,7 +12,6 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../promotions/presentation/widgets/coupon_input.dart';
 import '../../../promotions/data/models/coupon_validation_model.dart';
 import '../../domain/entities/cart_entity.dart';
-import '../../domain/enums/cart_enums.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/cart_state.dart';
 import '../../../orders/presentation/cubit/orders_cubit.dart';
