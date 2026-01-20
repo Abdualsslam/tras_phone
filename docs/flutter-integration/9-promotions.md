@@ -397,12 +397,12 @@ enum ValidationError {
 **Endpoint:** `GET /promotions/active` 🌐 (Public)
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": [
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439011",
       "name": "Summer Sale",
       "nameAr": "تخفيضات الصيف",
       "code": "SUMMER2024",
@@ -414,18 +414,28 @@ enum ValidationError {
       "startDate": "2024-06-01T00:00:00Z",
       "endDate": "2024-08-31T23:59:59Z",
       "minOrderAmount": 200,
+      "minQuantity": null,
       "scope": "all",
-      "image": "https://...",
+      "usageLimit": 10000,
+      "usageLimitPerCustomer": 5,
+      "usedCount": 1523,
+      "image": "https://example.com/summer-sale.jpg",
       "badgeText": "HOT",
       "badgeColor": "#FF5722",
       "isActive": true,
-      "isAutoApply": true
+      "isAutoApply": true,
+      "priority": 10,
+      "isStackable": false,
+      "createdAt": "2024-05-01T00:00:00Z",
+      "updatedAt": "2024-06-01T00:00:00Z"
     },
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439012",
       "name": "Buy 2 Get 1 Free",
       "nameAr": "اشتر 2 واحصل على 1 مجاناً",
       "code": "BUY2GET1",
+      "description": "Buy 2 items and get 1 free",
+      "descriptionAr": "اشتر 2 واحصل على 1 مجاناً",
       "discountType": "buy_x_get_y",
       "buyQuantity": 2,
       "getQuantity": 1,
@@ -433,12 +443,17 @@ enum ValidationError {
       "startDate": "2024-01-01T00:00:00Z",
       "endDate": "2024-12-31T23:59:59Z",
       "scope": "specific_categories",
+      "usedCount": 456,
       "isActive": true,
-      "isAutoApply": false
+      "isAutoApply": false,
+      "priority": 5,
+      "isStackable": true,
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
     }
   ],
-  "message": "Active promotions retrieved",
-  "messageAr": "تم استرجاع العروض النشطة"
+  "message": "Promotions retrieved",
+  "messageAr": "تم استرجاع العروض"
 }
 ```
 
@@ -458,7 +473,7 @@ class PromotionsService {
           .map((p) => Promotion.fromJson(p))
           .toList();
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
 }
 ```
@@ -472,12 +487,12 @@ class PromotionsService {
 **Endpoint:** `GET /promotions/coupons/public` 🌐 (Public)
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": [
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439021",
       "code": "WELCOME10",
       "name": "Welcome Discount",
       "nameAr": "خصم الترحيب",
@@ -489,20 +504,31 @@ class PromotionsService {
       "expiryDate": "2024-12-31T23:59:59Z",
       "minOrderAmount": 100,
       "firstOrderOnly": true,
+      "usageLimit": 1000,
+      "usageLimitPerCustomer": 1,
+      "usedCount": 234,
       "isActive": true,
-      "isPublic": true
+      "isPublic": true,
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-15T10:30:00Z"
     },
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439022",
       "code": "FREESHIP",
       "name": "Free Shipping",
       "nameAr": "شحن مجاني",
+      "description": "Free shipping on orders above 300",
       "discountType": "free_shipping",
       "startDate": "2024-01-01T00:00:00Z",
       "expiryDate": "2024-12-31T23:59:59Z",
       "minOrderAmount": 300,
+      "firstOrderOnly": false,
+      "usageLimitPerCustomer": 10,
+      "usedCount": 567,
       "isActive": true,
-      "isPublic": true
+      "isPublic": true,
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
     }
   ],
   "message": "Coupons retrieved",
@@ -521,7 +547,7 @@ Future<List<Coupon>> getPublicCoupons() async {
         .map((c) => Coupon.fromJson(c))
         .toList();
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -531,105 +557,100 @@ Future<List<Coupon>> getPublicCoupons() async {
 
 **Endpoint:** `POST /promotions/coupons/validate`
 
-**Headers:** `Authorization: Bearer <accessToken>` 🔒 (اختياري للتحقق من استخدام العميل)
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
-```dart
+```json
 {
   "code": "WELCOME10",
-  "orderTotal": 500.00,
-  "items": [
-    {
-      "productId": "product_id_1",
-      "categoryId": "category_id_1",
-      "quantity": 2,
-      "price": 150.00
-    },
-    {
-      "productId": "product_id_2",
-      "categoryId": "category_id_2",
-      "quantity": 1,
-      "price": 200.00
-    }
-  ]
+  "orderAmount": 500.00
 }
 ```
 
+**Parameters:**
+- `code`: مطلوب، كود الكوبون (string)
+- `orderAmount`: مطلوب، المبلغ الإجمالي للطلب (number)
+
 **Success Response:**
-```dart
+```json
 {
   "success": true,
   "data": {
-    "isValid": true,
     "coupon": {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439011",
       "code": "WELCOME10",
       "name": "Welcome Discount",
       "nameAr": "خصم الترحيب",
+      "description": "10% off on your first order",
       "discountType": "percentage",
       "discountValue": 10,
-      "maxDiscountAmount": 100
+      "maxDiscountAmount": 100,
+      "startDate": "2024-01-01T00:00:00Z",
+      "expiryDate": "2024-12-31T23:59:59Z",
+      "minOrderAmount": 100,
+      "firstOrderOnly": true,
+      "usageLimit": 1000,
+      "usageLimitPerCustomer": 1,
+      "usedCount": 245,
+      "isActive": true,
+      "isPublic": true,
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-15T10:30:00Z"
     },
-    "discountAmount": 50.00,
-    "message": "Coupon applied successfully",
-    "messageAr": "تم تطبيق الكوبون بنجاح"
-  }
+    "discountAmount": 50.00
+  },
+  "message": "Coupon is valid",
+  "messageAr": "الكوبون صحيح"
 }
 ```
 
-**Error Response:**
-```dart
+**Error Response (Validation Failed):**
+```json
 {
-  "success": true,
-  "data": {
-    "isValid": false,
-    "error": "MIN_ORDER_NOT_MET",
-    "message": "Minimum order amount is 200 SAR",
-    "messageAr": "الحد الأدنى للطلب هو 200 ر.س"
-  }
+  "success": false,
+  "message": "Minimum order amount is 100",
+  "messageAr": "الحد الأدنى للطلب هو 100 ر.س",
+  "statusCode": 400
+}
+```
+
+**Error Response (Coupon Not Found):**
+```json
+{
+  "success": false,
+  "message": "Coupon not found",
+  "messageAr": "الكوبون غير موجود",
+  "statusCode": 404
 }
 ```
 
 **Flutter Code:**
 ```dart
 /// التحقق من صلاحية كوبون
-Future<CouponValidation> validateCoupon({
+Future<Map<String, dynamic>> validateCoupon({
   required String code,
-  required double orderTotal,
-  List<CartItemForValidation>? items,
+  required double orderAmount,
 }) async {
-  final response = await _dio.post('/promotions/coupons/validate', data: {
-    'code': code,
-    'orderTotal': orderTotal,
-    if (items != null) 'items': items.map((i) => i.toJson()).toList(),
-  });
-  
-  if (response.data['success']) {
-    return CouponValidation.fromJson(response.data['data']);
+  try {
+    final response = await _dio.post(
+      '/promotions/coupons/validate',
+      data: {
+        'code': code,
+        'orderAmount': orderAmount,
+      },
+    );
+    
+    if (response.data['success']) {
+      return response.data['data'];
+    }
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
+  } on DioException catch (e) {
+    if (e.response != null) {
+      final data = e.response!.data;
+      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل التحقق من الكوبون');
+    }
+    throw Exception('حدث خطأ في الاتصال');
   }
-  throw Exception(response.data['messageAr']);
-}
-
-/// عنصر سلة للتحقق من الكوبون
-class CartItemForValidation {
-  final String productId;
-  final String? categoryId;
-  final int quantity;
-  final double price;
-
-  CartItemForValidation({
-    required this.productId,
-    this.categoryId,
-    required this.quantity,
-    required this.price,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'productId': productId,
-    if (categoryId != null) 'categoryId': categoryId,
-    'quantity': quantity,
-    'price': price,
-  };
 }
 ```
 
@@ -672,46 +693,34 @@ class PromotionsService {
           .map((c) => Coupon.fromJson(c))
           .toList();
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
-  Future<CouponValidation> validateCoupon({
+  Future<Map<String, dynamic>> validateCoupon({
     required String code,
-    required double orderTotal,
-    List<CartItemForValidation>? items,
+    required double orderAmount,
   }) async {
-    final response = await _dio.post('/promotions/coupons/validate', data: {
-      'code': code,
-      'orderTotal': orderTotal,
-      if (items != null) 'items': items.map((i) => i.toJson()).toList(),
-    });
-    
-    if (response.data['success']) {
-      return CouponValidation.fromJson(response.data['data']);
+    try {
+      final response = await _dio.post(
+        '/promotions/coupons/validate',
+        data: {
+          'code': code,
+          'orderAmount': orderAmount,
+        },
+      );
+      
+      if (response.data['success']) {
+        return response.data['data'];
+      }
+      throw Exception(response.data['messageAr'] ?? response.data['message']);
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final data = e.response!.data;
+        throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل التحقق من الكوبون');
+      }
+      throw Exception('حدث خطأ في الاتصال');
     }
-    throw Exception(response.data['messageAr']);
   }
-}
-
-class CartItemForValidation {
-  final String productId;
-  final String? categoryId;
-  final int quantity;
-  final double price;
-
-  CartItemForValidation({
-    required this.productId,
-    this.categoryId,
-    required this.quantity,
-    required this.price,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'productId': productId,
-    if (categoryId != null) 'categoryId': categoryId,
-    'quantity': quantity,
-    'price': price,
-  };
 }
 ```
 
@@ -1117,29 +1126,99 @@ class BuyXGetYCard extends StatelessWidget {
 
 ## ⚠️ الأخطاء المحتملة
 
-| Error Code | Message | الوصف |
-|------------|---------|-------|
-| `COUPON_NOT_FOUND` | Coupon not found | الكوبون غير موجود |
-| `COUPON_EXPIRED` | Coupon has expired | الكوبون منتهي الصلاحية |
-| `COUPON_NOT_STARTED` | Coupon not yet active | الكوبون لم يبدأ بعد |
-| `COUPON_INACTIVE` | Coupon is inactive | الكوبون غير نشط |
-| `USAGE_LIMIT_REACHED` | Coupon usage limit reached | تم استنفاد الكوبون |
-| `CUSTOMER_USAGE_LIMIT_REACHED` | You have already used this coupon | استخدمت هذا الكوبون من قبل |
-| `MIN_ORDER_NOT_MET` | Minimum order amount not met | الحد الأدنى للطلب غير مستوفى |
-| `NOT_FIRST_ORDER` | Coupon is for first order only | الكوبون للطلب الأول فقط |
-| `NOT_APPLICABLE` | Coupon not applicable to cart items | الكوبون لا ينطبق على منتجات السلة |
+### Validation Errors
+
+| HTTP Code | Message | الوصف |
+|-----------|---------|-------|
+| `404` | Coupon not found | الكوبون غير موجود |
+| `400` | Coupon is not active | الكوبون غير نشط |
+| `400` | Coupon has expired or not yet valid | الكوبون منتهي الصلاحية أو لم يبدأ بعد |
+| `400` | Minimum order amount is X | الحد الأدنى للطلب غير مستوفى |
+| `400` | Coupon is for first orders only | الكوبون للطلب الأول فقط |
+| `400` | Coupon usage limit reached | تم استنفاد الكوبون |
+| `400` | You have already used this coupon | استخدمت هذا الكوبون من قبل |
+
+### معالجة الأخطاء
+
+```dart
+try {
+  final result = await promotionsService.validateCoupon(
+    code: couponCode,
+    orderAmount: cartTotal,
+  );
+  
+  // Success - apply discount
+  final coupon = Coupon.fromJson(result['coupon']);
+  final discountAmount = result['discountAmount'] as double;
+  
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('تم تطبيق الكوبون! خصم ${discountAmount.toStringAsFixed(2)} ر.س'),
+      backgroundColor: Colors.green,
+    ),
+  );
+  
+} on DioException catch (e) {
+  String errorMessage = 'حدث خطأ غير متوقع';
+  
+  if (e.response != null) {
+    final statusCode = e.response!.statusCode;
+    final data = e.response!.data;
+    
+    switch (statusCode) {
+      case 400:
+        errorMessage = data['messageAr'] ?? data['message'] ?? 'الكوبون غير صالح';
+        break;
+      case 404:
+        errorMessage = 'الكوبون غير موجود';
+        break;
+      default:
+        errorMessage = data['messageAr'] ?? data['message'] ?? 'حدث خطأ في السيرفر';
+    }
+  }
+  
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(errorMessage),
+      backgroundColor: Colors.red,
+    ),
+  );
+} catch (e) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('حدث خطأ: ${e.toString()}'),
+      backgroundColor: Colors.red,
+    ),
+  );
+}
+```
 
 ---
 
 ## 📝 ملخص الـ Endpoints
 
+### Customer Endpoints
+
 | Method | Endpoint | Auth | الوصف |
 |--------|----------|------|-------|
 | GET | `/promotions/active` | ❌ | العروض النشطة (Public) |
 | GET | `/promotions/coupons/public` | ❌ | الكوبونات العامة (Public) |
-| POST | `/promotions/coupons/validate` | ✅* | التحقق من صلاحية كوبون |
+| POST | `/promotions/coupons/validate` | ✅ | التحقق من صلاحية كوبون |
 
-> \* التحقق من الكوبون يعمل بدون Token لكن التحقق من استخدام العميل يحتاج Token
+### Admin Endpoints (للتوثيق فقط)
+
+| Method | Endpoint | Auth | الوصف |
+|--------|----------|------|-------|
+| GET | `/promotions` | Admin | جميع العروض |
+| GET | `/promotions/:id` | Admin | تفاصيل عرض |
+| POST | `/promotions` | Admin | إنشاء عرض |
+| PUT | `/promotions/:id` | Admin | تحديث عرض |
+| DELETE | `/promotions/:id` | Super Admin | حذف عرض |
+| GET | `/promotions/coupons` | Admin | جميع الكوبونات |
+| POST | `/promotions/coupons` | Admin | إنشاء كوبون |
+| PUT | `/promotions/coupons/:id` | Admin | تحديث كوبون |
+| DELETE | `/promotions/coupons/:id` | Super Admin | حذف كوبون |
+| GET | `/promotions/coupons/:id/statistics` | Admin | إحصائيات كوبون |
 
 ---
 

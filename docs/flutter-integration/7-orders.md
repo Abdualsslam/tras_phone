@@ -195,6 +195,11 @@ class Order {
   final DateTime? cancelledAt;
   final String? cancellationReason;
   
+  // التقييم
+  final int? customerRating; // 1-5
+  final String? customerRatingComment;
+  final DateTime? ratedAt;
+  
   // العناصر
   final List<OrderItem> items;
   
@@ -231,6 +236,9 @@ class Order {
     this.completedAt,
     this.cancelledAt,
     this.cancellationReason,
+    this.customerRating,
+    this.customerRatingComment,
+    this.ratedAt,
     required this.items,
     required this.createdAt,
     required this.updatedAt,
@@ -285,6 +293,11 @@ class Order {
           ? DateTime.parse(json['cancelledAt']) 
           : null,
       cancellationReason: json['cancellationReason'],
+      customerRating: json['customerRating'],
+      customerRatingComment: json['customerRatingComment'],
+      ratedAt: json['ratedAt'] != null 
+          ? DateTime.parse(json['ratedAt']) 
+          : null,
       items: (json['items'] as List? ?? [])
           .map((i) => OrderItem.fromJson(i))
           .toList(),
@@ -306,6 +319,14 @@ class Order {
   bool get canCancel => 
       status == OrderStatus.pending || 
       status == OrderStatus.confirmed;
+  
+  /// هل تم تقييم الطلب؟
+  bool get isRated => customerRating != null && customerRating! > 0;
+  
+  /// هل يمكن تقييم الطلب؟
+  bool get canRate => 
+      (status == OrderStatus.delivered || status == OrderStatus.completed) &&
+      !isRated;
 }
 ```
 
@@ -338,6 +359,21 @@ enum OrderStatus {
       case 'cancelled': return OrderStatus.cancelled;
       case 'refunded': return OrderStatus.refunded;
       default: return OrderStatus.pending;
+    }
+  }
+  
+  String get value {
+    switch (this) {
+      case OrderStatus.pending: return 'pending';
+      case OrderStatus.confirmed: return 'confirmed';
+      case OrderStatus.processing: return 'processing';
+      case OrderStatus.readyForPickup: return 'ready_for_pickup';
+      case OrderStatus.shipped: return 'shipped';
+      case OrderStatus.outForDelivery: return 'out_for_delivery';
+      case OrderStatus.delivered: return 'delivered';
+      case OrderStatus.completed: return 'completed';
+      case OrderStatus.cancelled: return 'cancelled';
+      case OrderStatus.refunded: return 'refunded';
     }
   }
   
@@ -461,6 +497,10 @@ enum OrderSource {
       (e) => e.name == value,
       orElse: () => OrderSource.mobile,
     );
+  }
+  
+  String get value {
+    return name;
   }
 }
 ```
@@ -741,7 +781,78 @@ Future<Cart> clearCart() async {
 
 ---
 
-> **⚠️ ملاحظة مهمة:** الكوبونات **لا تُطبق في السلة** بعد الآن. يتم التحقق من الكوبونات وتطبيقها فقط في **مرحلة الدفع (Checkout)**. راجع قسم إنشاء الطلب أدناه.
+---
+
+#### 6️⃣ تطبيق كوبون على السلة
+
+**Endpoint:** `POST /cart/coupon`
+
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**Request Body:**
+```dart
+{
+  "couponCode": "SUMMER2024",        // مطلوب
+  "couponId": "507f1f77bcf...",      // اختياري
+  "discountAmount": 50.00             // مطلوب - قيمة الخصم
+}
+```
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": { /* Cart object محدث */ },
+  "message": "Coupon applied",
+  "messageAr": "تم تطبيق الكوبون"
+}
+```
+
+**Flutter Code:**
+```dart
+/// تطبيق كوبون على السلة
+Future<Cart> applyCoupon({
+  required String couponCode,
+  String? couponId,
+  required double discountAmount,
+}) async {
+  final response = await _dio.post('/cart/coupon', data: {
+    'couponCode': couponCode,
+    if (couponId != null) 'couponId': couponId,
+    'discountAmount': discountAmount,
+  });
+  
+  if (response.data['success']) {
+    return Cart.fromJson(response.data['data']);
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
+#### 7️⃣ إزالة كوبون من السلة
+
+**Endpoint:** `DELETE /cart/coupon`
+
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**Flutter Code:**
+```dart
+/// إزالة كوبون من السلة
+Future<Cart> removeCoupon() async {
+  final response = await _dio.delete('/cart/coupon');
+  
+  if (response.data['success']) {
+    return Cart.fromJson(response.data['data']);
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
+> **⚠️ ملاحظة مهمة:** يمكن تطبيق الكوبونات في السلة باستخدام `/cart/coupon` (يتطلب `couponCode` و `discountAmount`)، أو يمكن إرسال `couponCode` مباشرة عند إنشاء الطلب في `/orders` (سيتم التحقق منه تلقائياً). راجع قسم إنشاء الطلب أدناه.
 
 ---
 
@@ -966,7 +1077,11 @@ class QuantityAdjustedCartItem {
 |-----------|------|----------|-------------|
 | `page` | number | ❌ | رقم الصفحة (default: 1) |
 | `limit` | number | ❌ | عدد النتائج (default: 20) |
-| `status` | string | ❌ | فلترة بالحالة |
+| `status` | string | ❌ | فلترة بالحالة (`pending`, `confirmed`, `processing`, `ready_for_pickup`, `shipped`, `out_for_delivery`, `delivered`, `completed`, `cancelled`, `refunded`) |
+| `paymentStatus` | string | ❌ | فلترة بحالة الدفع (`unpaid`, `partial`, `paid`, `refunded`) |
+| `orderNumber` | string | ❌ | البحث برقم الطلب |
+| `sortBy` | string | ❌ | ترتيب النتائج (`createdAt`, `orderNumber`, `total`, `status`) |
+| `sortOrder` | string | ❌ | اتجاه الترتيب (`asc`, `desc`) |
 
 **Response:**
 ```dart
@@ -1003,11 +1118,19 @@ class OrdersService {
     int page = 1,
     int limit = 20,
     OrderStatus? status,
+    PaymentStatus? paymentStatus,
+    String? orderNumber,
+    String? sortBy,
+    String? sortOrder,
   }) async {
     final response = await _dio.get('/orders/my', queryParameters: {
       'page': page,
       'limit': limit,
-      if (status != null) 'status': status.name,
+      if (status != null) 'status': status.value,
+      if (paymentStatus != null) 'paymentStatus': paymentStatus.name,
+      if (orderNumber != null) 'orderNumber': orderNumber,
+      if (sortBy != null) 'sortBy': sortBy,
+      if (sortOrder != null) 'sortOrder': sortOrder,
     });
     
     if (response.data['success']) {
@@ -1051,9 +1174,10 @@ class OrdersResponse {
     "postalCode": "12345",                 // اختياري
     "notes": "بجانب البنك"                 // اختياري
   },
-  "paymentMethod": "credit",               // اختياري
+  "paymentMethod": "credit",               // اختياري (`cash`, `card`, `bank_transfer`, `wallet`, `credit`)
   "customerNotes": "يرجى التوصيل صباحاً",  // اختياري
-  "couponCode": "SUMMER2024"               // اختياري - يتم التحقق منه وتطبيقه مباشرة على الطلب
+  "couponCode": "SUMMER2024",              // اختياري - يتم التحقق منه وتطبيقه مباشرة على الطلب
+  "source": "mobile"                       // اختياري (`web`, `mobile`, `admin`) - default: `mobile`
 }
 ```
 
@@ -1085,6 +1209,7 @@ Future<Order> createOrder({
   OrderPaymentMethod? paymentMethod,
   String? customerNotes,
   String? couponCode,
+  OrderSource? source,
 }) async {
   final response = await _dio.post('/orders', data: {
     if (shippingAddressId != null) 'shippingAddressId': shippingAddressId,
@@ -1092,6 +1217,7 @@ Future<Order> createOrder({
     if (paymentMethod != null) 'paymentMethod': paymentMethod.value,
     if (customerNotes != null) 'customerNotes': customerNotes,
     if (couponCode != null) 'couponCode': couponCode,
+    if (source != null) 'source': source.value,
   });
   
   if (response.data['success']) {
@@ -1114,35 +1240,39 @@ Future<Order> createOrder({
 {
   "success": true,
   "data": {
-    "_id": "...",
-    "orderNumber": "ORD-2024-001234",
-    "status": "shipped",
-    "items": [
-      {
-        "productId": "...",
-        "name": "شاشة iPhone 15 Pro",
-        "quantity": 2,
-        "unitPrice": 450,
-        "total": 900
-      }
-    ],
-    "subtotal": 900,
-    "shippingCost": 25,
-    "total": 925,
-    "shippingAddress": {
-      "fullName": "أحمد محمد",
-      "phone": "+966501234567",
-      "address": "شارع الملك فهد",
-      "city": "الرياض"
-    },
-    "confirmedAt": "2024-01-15T10:30:00Z",
-    "shippedAt": "2024-01-16T14:00:00Z",
-    ...
+    "order": {
+      "_id": "...",
+      "orderNumber": "ORD-2024-001234",
+      "status": "shipped",
+      "items": [
+        {
+          "productId": "...",
+          "name": "شاشة iPhone 15 Pro",
+          "quantity": 2,
+          "unitPrice": 450,
+          "total": 900
+        }
+      ],
+      "subtotal": 900,
+      "shippingCost": 25,
+      "total": 925,
+      "shippingAddress": {
+        "fullName": "أحمد محمد",
+        "phone": "+966501234567",
+        "address": "شارع الملك فهد",
+        "city": "الرياض"
+      },
+      "confirmedAt": "2024-01-15T10:30:00Z",
+      "shippedAt": "2024-01-16T14:00:00Z",
+      ...
+    }
   },
   "message": "Order retrieved",
   "messageAr": "تم استرجاع الطلب"
 }
 ```
+
+> **ملاحظة:** الاستجابة تحتوي على `order` ككائن داخل `data`. استخدم `response.data['data']['order']` للحصول على بيانات الطلب.
 
 **Flutter Code:**
 ```dart
@@ -1151,9 +1281,375 @@ Future<Order> getOrderDetails(String orderId) async {
   final response = await _dio.get('/orders/$orderId');
   
   if (response.data['success']) {
-    return Order.fromJson(response.data['data']);
+    // الاستجابة تحتوي على order داخل data
+    return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
   }
   throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
+#### 1️⃣2️⃣ جلب إحصائيات طلباتي
+
+**Endpoint:** `GET /orders/my/stats`
+
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": {
+    "total": 45,
+    "byStatus": {
+      "pending": 2,
+      "confirmed": 5,
+      "processing": 3,
+      "delivered": 30,
+      "completed": 5
+    },
+    "byPaymentStatus": {
+      "unpaid": 2,
+      "partial": 1,
+      "paid": 42
+    },
+    "totalRevenue": 125000.00,
+    "totalPaid": 120000.00,
+    "totalUnpaid": 5000.00,
+    "todayOrders": 3,
+    "todayRevenue": 5000.00,
+    "thisMonthOrders": 15,
+    "thisMonthRevenue": 45000.00
+  },
+  "message": "Order statistics retrieved",
+  "messageAr": "تم استرجاع إحصائيات الطلبات"
+}
+```
+
+**Flutter Code:**
+```dart
+/// جلب إحصائيات طلباتي
+Future<OrderStats> getMyStats() async {
+  final response = await _dio.get('/orders/my/stats');
+  
+  if (response.data['success']) {
+    return OrderStats.fromJson(response.data['data']);
+  }
+  throw Exception(response.data['messageAr']);
+}
+
+class OrderStats {
+  final int total;
+  final Map<String, int> byStatus;
+  final Map<String, int> byPaymentStatus;
+  final double totalRevenue;
+  final double totalPaid;
+  final double totalUnpaid;
+  final int todayOrders;
+  final double todayRevenue;
+  final int thisMonthOrders;
+  final double thisMonthRevenue;
+  
+  OrderStats({
+    required this.total,
+    required this.byStatus,
+    required this.byPaymentStatus,
+    required this.totalRevenue,
+    required this.totalPaid,
+    required this.totalUnpaid,
+    required this.todayOrders,
+    required this.todayRevenue,
+    required this.thisMonthOrders,
+    required this.thisMonthRevenue,
+  });
+  
+  factory OrderStats.fromJson(Map<String, dynamic> json) {
+    return OrderStats(
+      total: json['total'] ?? 0,
+      byStatus: Map<String, int>.from(json['byStatus'] ?? {}),
+      byPaymentStatus: Map<String, int>.from(json['byPaymentStatus'] ?? {}),
+      totalRevenue: (json['totalRevenue'] ?? 0).toDouble(),
+      totalPaid: (json['totalPaid'] ?? 0).toDouble(),
+      totalUnpaid: (json['totalUnpaid'] ?? 0).toDouble(),
+      todayOrders: json['todayOrders'] ?? 0,
+      todayRevenue: (json['todayRevenue'] ?? 0).toDouble(),
+      thisMonthOrders: json['thisMonthOrders'] ?? 0,
+      thisMonthRevenue: (json['thisMonthRevenue'] ?? 0).toDouble(),
+    );
+  }
+}
+```
+
+---
+
+#### 1️⃣3️⃣ رفع إيصال الدفع
+
+**Endpoint:** `POST /orders/:orderId/upload-receipt`
+
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**Request Body:**
+```dart
+{
+  "receiptImage": "base64_encoded_image_or_url",  // مطلوب
+  "transferReference": "REF123456",              // اختياري
+  "transferDate": "2024-01-15",                 // اختياري (string format: YYYY-MM-DD)
+  "notes": "Payment completed via bank transfer" // اختياري
+}
+```
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": {
+    "order": { /* Order object محدث */ }
+  },
+  "message": "Receipt uploaded successfully",
+  "messageAr": "تم رفع الإيصال بنجاح"
+}
+```
+
+**Flutter Code:**
+```dart
+/// رفع إيصال الدفع
+Future<Order> uploadReceipt({
+  required String orderId,
+  required String receiptImage, // base64 أو URL
+  String? transferReference,
+  String? transferDate, // YYYY-MM-DD format
+  String? notes,
+}) async {
+  final response = await _dio.post('/orders/$orderId/upload-receipt', data: {
+    'receiptImage': receiptImage,
+    if (transferReference != null) 'transferReference': transferReference,
+    if (transferDate != null) 'transferDate': transferDate,
+    if (notes != null) 'notes': notes,
+  });
+  
+  if (response.data['success']) {
+    return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
+#### 1️⃣4️⃣ تقييم الطلب
+
+**Endpoint:** `POST /orders/:orderId/rate`
+
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**Request Body:**
+```dart
+{
+  "rating": 5,                    // مطلوب (1-5)
+  "comment": "تجربة رائعة!"       // اختياري
+}
+```
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": {
+    "order": { /* Order object محدث */ }
+  },
+  "message": "Order rated successfully",
+  "messageAr": "تم تقييم الطلب بنجاح"
+}
+```
+
+**Flutter Code:**
+```dart
+/// تقييم الطلب
+Future<Order> rateOrder({
+  required String orderId,
+  required int rating, // 1-5
+  String? comment,
+}) async {
+  final response = await _dio.post('/orders/$orderId/rate', data: {
+    'rating': rating,
+    if (comment != null) 'comment': comment,
+  });
+  
+  if (response.data['success']) {
+    return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
+#### 1️⃣5️⃣ جلب الطلبات بانتظار الدفع
+
+**Endpoint:** `GET /orders/pending-payment`
+
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "...",
+      "orderNumber": "ORD-2024-001234",
+      "status": "pending",
+      "paymentStatus": "unpaid",
+      "paymentMethod": "bank_transfer",
+      "total": 1250,
+      "createdAt": "2024-01-15T..."
+    }
+  ],
+  "message": "Pending payment orders retrieved",
+  "messageAr": "تم استرجاع الطلبات بانتظار الدفع"
+}
+```
+
+**Flutter Code:**
+```dart
+/// جلب الطلبات بانتظار الدفع
+Future<List<Order>> getPendingPaymentOrders() async {
+  final response = await _dio.get('/orders/pending-payment');
+  
+  if (response.data['success']) {
+    return (response.data['data'] as List)
+        .map((o) => Order.fromJson(o))
+        .toList();
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
+#### 1️⃣6️⃣ جلب الحسابات البنكية (Public)
+
+**Endpoint:** `GET /bank-accounts`
+
+**Headers:** لا يحتاج Token (Public endpoint) 🌐
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "...",
+      "bankName": "البنك الأهلي",
+      "bankNameAr": "البنك الأهلي السعودي",
+      "bankCode": "NCB",
+      "accountName": "Tras Phone Company",
+      "accountNameAr": "شركة تراس فون",
+      "accountNumber": "1234567890",
+      "iban": "SA1234567890123456789012",
+      "displayName": "البنك الأهلي - حساب الشركة",
+      "displayNameAr": "البنك الأهلي - حساب الشركة",
+      "logo": "https://example.com/logo.png",
+      "instructions": "Please include order number in transfer notes",
+      "instructionsAr": "يرجى إضافة رقم الطلب في ملاحظات التحويل",
+      "currencyCode": "SAR",
+      "isActive": true,
+      "isDefault": true,
+      "sortOrder": 0,
+      "totalReceived": 0,
+      "createdAt": "2024-01-15T...",
+      "updatedAt": "2024-01-15T..."
+    }
+  ],
+  "message": "Bank accounts retrieved",
+  "messageAr": "تم استرجاع الحسابات البنكية"
+}
+```
+
+**Flutter Code:**
+```dart
+/// جلب الحسابات البنكية
+Future<List<BankAccount>> getBankAccounts() async {
+  final response = await _dio.get('/bank-accounts');
+  
+  if (response.data['success']) {
+    return (response.data['data'] as List)
+        .map((a) => BankAccount.fromJson(a))
+        .toList();
+  }
+  throw Exception(response.data['messageAr']);
+}
+
+class BankAccount {
+  final String id;
+  final String bankName;
+  final String? bankNameAr;
+  final String? bankCode;
+  final String accountName;
+  final String? accountNameAr;
+  final String accountNumber;
+  final String? iban;
+  final String displayName;
+  final String? displayNameAr;
+  final String? logo;
+  final String? instructions;
+  final String? instructionsAr;
+  final String currencyCode;
+  final bool isActive;
+  final bool isDefault;
+  final int sortOrder;
+  final double totalReceived;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  
+  BankAccount({
+    required this.id,
+    required this.bankName,
+    this.bankNameAr,
+    this.bankCode,
+    required this.accountName,
+    this.accountNameAr,
+    required this.accountNumber,
+    this.iban,
+    required this.displayName,
+    this.displayNameAr,
+    this.logo,
+    this.instructions,
+    this.instructionsAr,
+    required this.currencyCode,
+    required this.isActive,
+    required this.isDefault,
+    required this.sortOrder,
+    required this.totalReceived,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  
+  factory BankAccount.fromJson(Map<String, dynamic> json) {
+    return BankAccount(
+      id: json['_id'] ?? json['id'],
+      bankName: json['bankName'],
+      bankNameAr: json['bankNameAr'],
+      bankCode: json['bankCode'],
+      accountName: json['accountName'],
+      accountNameAr: json['accountNameAr'],
+      accountNumber: json['accountNumber'],
+      iban: json['iban'],
+      displayName: json['displayName'],
+      displayNameAr: json['displayNameAr'],
+      logo: json['logo'],
+      instructions: json['instructions'],
+      instructionsAr: json['instructionsAr'],
+      currencyCode: json['currencyCode'] ?? 'SAR',
+      isActive: json['isActive'] ?? true,
+      isDefault: json['isDefault'] ?? false,
+      sortOrder: json['sortOrder'] ?? 0,
+      totalReceived: (json['totalReceived'] ?? 0).toDouble(),
+      createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: DateTime.parse(json['updatedAt']),
+    );
+  }
 }
 ```
 
@@ -1346,11 +1842,19 @@ class OrdersService {
     int page = 1,
     int limit = 20,
     OrderStatus? status,
+    PaymentStatus? paymentStatus,
+    String? orderNumber,
+    String? sortBy,
+    String? sortOrder,
   }) async {
     final response = await _dio.get('/orders/my', queryParameters: {
       'page': page,
       'limit': limit,
-      if (status != null) 'status': status.name,
+      if (status != null) 'status': status.value,
+      if (paymentStatus != null) 'paymentStatus': paymentStatus.name,
+      if (orderNumber != null) 'orderNumber': orderNumber,
+      if (sortBy != null) 'sortBy': sortBy,
+      if (sortOrder != null) 'sortOrder': sortOrder,
     });
     
     if (response.data['success']) {
@@ -1370,6 +1874,7 @@ class OrdersService {
     OrderPaymentMethod? paymentMethod,
     String? customerNotes,
     String? couponCode,
+    OrderSource? source,
   }) async {
     final response = await _dio.post('/orders', data: {
       if (shippingAddressId != null) 'shippingAddressId': shippingAddressId,
@@ -1377,6 +1882,7 @@ class OrdersService {
       if (paymentMethod != null) 'paymentMethod': paymentMethod.value,
       if (customerNotes != null) 'customerNotes': customerNotes,
       if (couponCode != null) 'couponCode': couponCode,
+      if (source != null) 'source': source.value,
     });
     
     if (response.data['success']) {
@@ -1389,7 +1895,75 @@ class OrdersService {
     final response = await _dio.get('/orders/$orderId');
     
     if (response.data['success']) {
-      return Order.fromJson(response.data['data']);
+      // الاستجابة تحتوي على order داخل data
+      return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<OrderStats> getMyStats() async {
+    final response = await _dio.get('/orders/my/stats');
+    
+    if (response.data['success']) {
+      return OrderStats.fromJson(response.data['data']);
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<Order> uploadReceipt({
+    required String orderId,
+    required String receiptImage,
+    String? transferReference,
+    String? transferDate, // YYYY-MM-DD format
+    String? notes,
+  }) async {
+    final response = await _dio.post('/orders/$orderId/upload-receipt', data: {
+      'receiptImage': receiptImage,
+      if (transferReference != null) 'transferReference': transferReference,
+      if (transferDate != null) 'transferDate': transferDate,
+      if (notes != null) 'notes': notes,
+    });
+    
+    if (response.data['success']) {
+      return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<Order> rateOrder({
+    required String orderId,
+    required int rating,
+    String? comment,
+  }) async {
+    final response = await _dio.post('/orders/$orderId/rate', data: {
+      'rating': rating,
+      if (comment != null) 'comment': comment,
+    });
+    
+    if (response.data['success']) {
+      return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<List<Order>> getPendingPaymentOrders() async {
+    final response = await _dio.get('/orders/pending-payment');
+    
+    if (response.data['success']) {
+      return (response.data['data'] as List)
+          .map((o) => Order.fromJson(o))
+          .toList();
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<List<BankAccount>> getBankAccounts() async {
+    final response = await _dio.get('/bank-accounts');
+    
+    if (response.data['success']) {
+      return (response.data['data'] as List)
+          .map((a) => BankAccount.fromJson(a))
+          .toList();
     }
     throw Exception(response.data['messageAr']);
   }
@@ -1599,20 +2173,27 @@ class OrderTimelineWidget extends StatelessWidget {
 | PUT | `/cart/items/:productId` | تحديث كمية عنصر على السيرفر |
 | DELETE | `/cart/items/:productId` | حذف عنصر من السلة على السيرفر |
 | DELETE | `/cart` | تفريغ السلة على السيرفر |
+| POST | `/cart/coupon` | تطبيق كوبون على السلة |
+| DELETE | `/cart/coupon` | إزالة كوبون من السلة |
 | **POST** | **`/cart/sync`** | **مزامنة السلة المحلية مع السيرفر** |
 
 > **⚠️ ملاحظات مهمة:**
 > - في التطبيق، يتم استخدام العمليات المحلية (`addToCartLocal`, `updateQuantityLocal`, `removeFromCartLocal`) للعمليات اليومية.
 > - endpoint `/cart/sync` يُستخدم فقط قبل الدفع للتحقق من المخزون والأسعار.
-> - **الكوبونات لا تُطبق في السلة**. يتم إرسال `couponCode` مباشرة عند إنشاء الطلب في Checkout.
+> - **الكوبونات**: يمكن تطبيقها في السلة باستخدام `/cart/coupon` أو إرسال `couponCode` مباشرة عند إنشاء الطلب.
 
 ### 📦 Orders
 
 | Method | Endpoint | الوصف |
 |--------|----------|-------|
 | GET | `/orders/my` | طلباتي |
+| GET | `/orders/my/stats` | إحصائيات طلباتي |
 | POST | `/orders` | إنشاء طلب |
 | GET | `/orders/:id` | تفاصيل الطلب |
+| POST | `/orders/:id/upload-receipt` | رفع إيصال الدفع |
+| POST | `/orders/:id/rate` | تقييم الطلب |
+| GET | `/orders/pending-payment` | الطلبات بانتظار الدفع |
+| GET | `/bank-accounts` | الحسابات البنكية (Public) |
 
 ---
 

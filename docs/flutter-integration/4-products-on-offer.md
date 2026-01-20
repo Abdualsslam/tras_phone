@@ -55,6 +55,8 @@
 
 ## 📁 Flutter Models
 
+> **ملاحظة مهمة:** يمكنك استخدام `Product` model الموجود في `products.md` مباشرة. الباك إند يُرجع جميع حقول Product العادية بالإضافة إلى الحقول الإضافية (`hasDirectOffer`, `originalPrice`, `currentPrice`, `discountPercentage`, `appliedPromotion`). يمكنك استخدام extension أدناه أو معالجة الحقول مباشرة من JSON.
+
 ### Product with Offer Model Extension
 
 ```dart
@@ -90,11 +92,14 @@ extension ProductOfferExtension on Product {
 }
 ```
 
-### Product Response with Offer Fields
+### Product Response with Offer Fields (اختياري)
 
-عند جلب المنتجات من endpoint `/products/on-offer`، ستحصل على:
+> **ملاحظة:** الباك إند يُرجع `Product` objects عادية مع حقول إضافية. يمكنك استخدام `Product.fromJson()` مباشرة وقراءة الحقول الإضافية من JSON.
+
+عند جلب المنتجات من endpoint `/products/on-offer`، ستحصل على حقول إضافية في JSON:
 
 ```dart
+// يمكنك استخدام Product model مباشرة أو إنشاء extension
 class ProductWithOffer {
   // جميع حقول Product العادية
   final String id;
@@ -131,12 +136,22 @@ class ProductWithOffer {
       hasDirectOffer: json['hasDirectOffer'] ?? false,
       originalPrice: json['originalPrice']?.toDouble() ?? json['compareAtPrice']?.toDouble() ?? 0.0,
       currentPrice: json['currentPrice']?.toDouble() ?? json['basePrice']?.toDouble() ?? 0.0,
-      discountPercentage: json['discountPercentage']?.toDouble() ?? 0.0,
-      appliedPromotion: json['appliedPromotion'],
+      discountPercentage: json['discountPercentage'] != null
+          ? (json['discountPercentage'] is double
+              ? json['discountPercentage']
+              : json['discountPercentage'].toDouble())
+          : (json['compareAtPrice'] != null && json['basePrice'] != null
+              ? ((json['compareAtPrice'] - json['basePrice']) / json['compareAtPrice']) * 100
+              : 0.0),
+      appliedPromotion: json['appliedPromotion'], // دائماً null
     );
   }
 }
 ```
+
+**ملاحظة:** يوصى باستخدام `Product` model الموجود مع extension بدلاً من إنشاء class جديد. الباك إند يُرجع:
+- جميع حقول `Product` العادية
+- حقول إضافية: `hasDirectOffer` (دائماً true), `originalPrice`, `currentPrice`, `discountPercentage`, `appliedPromotion` (دائماً null)
 
 ---
 
@@ -145,7 +160,7 @@ class ProductWithOffer {
 ### 1. جلب المنتجات ذات العروض
 
 ```http
-GET /api/v1/products/on-offer
+GET /products/on-offer
 ```
 
 **Query Parameters:**
@@ -160,6 +175,13 @@ GET /api/v1/products/on-offer
 | `maxDiscount` | number | No | - | الحد الأقصى لنسبة الخصم (0-100) |
 | `categoryId` | string | No | - | تصفية حسب الفئة (MongoDB ID) |
 | `brandId` | string | No | - | تصفية حسب الماركة (MongoDB ID) |
+| `status` | string | No | 'active' | حالة المنتج (افتراضي: 'active') |
+
+**ملاحظات:**
+- جميع المنتجات المُرجعة لديها `compareAtPrice > basePrice` (عرض مباشر)
+- يتم حساب `discountPercentage` تلقائياً في الباك إند
+- البيانات تأتي مع populate للعلاقات (brandId, categoryId, qualityTypeId)
+- الحقل `appliedPromotion` دائماً `null` لأن هذه عروض مباشرة وليست من نظام العروض
 
 **Response:**
 
@@ -183,17 +205,26 @@ GET /api/v1/products/on-offer
       "brandId": {
         "_id": "...",
         "name": "Apple",
-        "nameAr": "أبل"
+        "nameAr": "أبل",
+        "slug": "apple"
       },
       "categoryId": {
         "_id": "...",
         "name": "Smartphones",
-        "nameAr": "الهواتف الذكية"
+        "nameAr": "الهواتف الذكية",
+        "slug": "smartphones"
+      },
+      "qualityTypeId": {
+        "_id": "...",
+        "name": "Original",
+        "nameAr": "أصلي",
+        "code": "original",
+        "color": "#22c55e"
       }
-      // ... باقي الحقول
+      // ... باقي الحقول (جميع حقول Product العادية)
     }
   ],
-  "pagination": {
+  "meta": {
     "page": 1,
     "limit": 20,
     "pages": 5,
@@ -212,7 +243,7 @@ GET /api/v1/products/on-offer
 // lib/features/products/data/datasources/products_remote_datasource.dart
 
 abstract class ProductsRemoteDataSource {
-  Future<List<ProductWithOffer>> getProductsOnOffer({
+  Future<Map<String, dynamic>> getProductsOnOffer({
     int page = 1,
     int limit = 20,
     String sortBy = 'discount',
@@ -230,7 +261,7 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
   ProductsRemoteDataSourceImpl({required this.dio});
 
   @override
-  Future<List<ProductWithOffer>> getProductsOnOffer({
+  Future<Map<String, dynamic>> getProductsOnOffer({
     int page = 1,
     int limit = 20,
     String sortBy = 'discount',
@@ -257,8 +288,15 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
       queryParameters: queryParams,
     );
 
-    final data = response.data['data'] as List;
-    return data.map((json) => ProductWithOffer.fromJson(json)).toList();
+    if (response.data['success']) {
+      final data = response.data['data'] as List;
+      final products = data.map((json) => Product.fromJson(json)).toList();
+      return {
+        'products': products,
+        'pagination': response.data['meta'],
+      };
+    }
+    throw Exception(response.data['messageAr'] ?? 'Failed to load products');
   }
 }
 ```
@@ -269,7 +307,7 @@ class ProductsRemoteDataSourceImpl implements ProductsRemoteDataSource {
 // lib/features/products/domain/repositories/products_repository.dart
 
 abstract class ProductsRepository {
-  Future<Either<Failure, PaginatedResponse<ProductWithOffer>>> getProductsOnOffer({
+  Future<Either<Failure, PaginatedResponse<Product>>> getProductsOnOffer({
     int page = 1,
     int limit = 20,
     String sortBy = 'discount',
@@ -289,7 +327,7 @@ class ProductsRepositoryImpl implements ProductsRepository {
   ProductsRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, PaginatedResponse<ProductWithOffer>>> getProductsOnOffer({
+  Future<Either<Failure, PaginatedResponse<Product>>> getProductsOnOffer({
     int page = 1,
     int limit = 20,
     String sortBy = 'discount',
@@ -300,7 +338,7 @@ class ProductsRepositoryImpl implements ProductsRepository {
     String? brandId,
   }) async {
     try {
-      final products = await remoteDataSource.getProductsOnOffer(
+      final result = await remoteDataSource.getProductsOnOffer(
         page: page,
         limit: limit,
         sortBy: sortBy,
@@ -311,11 +349,15 @@ class ProductsRepositoryImpl implements ProductsRepository {
         brandId: brandId,
       );
 
-      // يمكن إضافة pagination metadata هنا
+      final products = result['products'] as List<Product>;
+      final pagination = result['pagination'] as Map<String, dynamic>;
+      
       return Right(PaginatedResponse(
         data: products,
-        page: page,
-        limit: limit,
+        page: pagination['page'] ?? page,
+        limit: pagination['limit'] ?? limit,
+        total: pagination['total'] ?? 0,
+        pages: pagination['pages'] ?? 1,
       ));
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
@@ -371,7 +413,7 @@ class ProductsOnOfferCubit extends Cubit<ProductsOnOfferState> {
 
   int currentPage = 1;
   bool hasMore = true;
-  List<ProductWithOffer> products = [];
+  List<Product> products = [];
   
   String sortBy = 'discount';
   String sortOrder = 'desc';
@@ -406,8 +448,8 @@ class ProductsOnOfferCubit extends Cubit<ProductsOnOfferState> {
       (failure) => emit(ProductsOnOfferError(failure.message)),
       (response) {
         products.addAll(response.data);
+        hasMore = currentPage < response.pages;
         currentPage++;
-        hasMore = response.data.length >= 20;
         emit(ProductsOnOfferLoaded(products: products, hasMore: hasMore));
       },
     );
@@ -439,7 +481,7 @@ class ProductsOnOfferInitial extends ProductsOnOfferState {}
 class ProductsOnOfferLoading extends ProductsOnOfferState {}
 
 class ProductsOnOfferLoaded extends ProductsOnOfferState {
-  final List<ProductWithOffer> products;
+  final List<Product> products;
   final bool hasMore;
 
   ProductsOnOfferLoaded({required this.products, required this.hasMore});
@@ -462,7 +504,7 @@ class ProductsOnOfferError extends ProductsOnOfferState {
 // lib/features/products/presentation/widgets/product_offer_card.dart
 
 class ProductOfferCard extends StatelessWidget {
-  final ProductWithOffer product;
+  final Product product;
 
   const ProductOfferCard({Key? key, required this.product}) : super(key: key);
 
@@ -492,7 +534,7 @@ class ProductOfferCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    'خصم ${product.discountPercentage.round()}%',
+                    'خصم ${product.hasDiscount ? product.discountPercentage.round() : 0}%',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -526,18 +568,20 @@ class ProductOfferCard extends StatelessWidget {
                 Row(
                   children: [
                     // السعر القديم (مشطوب)
-                    Text(
-                      '${product.originalPrice.toStringAsFixed(0)} ر.س',
-                      style: TextStyle(
-                        decoration: TextDecoration.lineThrough,
-                        color: Colors.grey,
-                        fontSize: 14,
+                    if (product.hasDiscount && product.compareAtPrice != null)
+                      Text(
+                        '${product.compareAtPrice!.toStringAsFixed(0)} ر.س',
+                        style: TextStyle(
+                          decoration: TextDecoration.lineThrough,
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 8),
+                    if (product.hasDiscount && product.compareAtPrice != null)
+                      SizedBox(width: 8),
                     // السعر الجديد
                     Text(
-                      '${product.currentPrice.toStringAsFixed(0)} ر.س',
+                      '${product.basePrice.toStringAsFixed(0)} ر.س',
                       style: TextStyle(
                         color: Colors.red,
                         fontSize: 18,
@@ -550,8 +594,9 @@ class ProductOfferCard extends StatelessWidget {
                 SizedBox(height: 4),
                 
                 // نسبة الخصم
-                Text(
-                  'وفر ${(product.originalPrice - product.currentPrice).toStringAsFixed(0)} ر.س',
+                if (product.hasDiscount && product.compareAtPrice != null)
+                  Text(
+                    'وفر ${(product.compareAtPrice! - product.basePrice).toStringAsFixed(0)} ر.س',
                   style: TextStyle(
                     color: Colors.green,
                     fontSize: 12,

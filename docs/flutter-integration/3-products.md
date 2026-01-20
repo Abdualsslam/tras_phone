@@ -33,6 +33,7 @@ class Product {
   final List<String> additionalCategories;
   final String qualityTypeId;
   final List<String> compatibleDevices;
+  final List<String>? relatedProducts;  // منتجات ذات صلة
   
   // الصور
   final String? mainImage;
@@ -73,7 +74,8 @@ class Product {
   
   // الإحصائيات
   final int viewsCount;
-  final int ordersCount;
+  final int ordersCount;  // عدد الطلبات
+  final int salesCount;   // عدد المبيعات (قد يختلف عن ordersCount)
   final int reviewsCount;
   final double averageRating;
   final int wishlistCount;
@@ -163,7 +165,18 @@ class Product {
       qualityTypeId: json['qualityTypeId'] is String 
           ? json['qualityTypeId'] 
           : json['qualityTypeId']['_id'],
-      compatibleDevices: List<String>.from(json['compatibleDevices'] ?? []),
+      compatibleDevices: json['compatibleDevices'] != null
+          ? (json['compatibleDevices'] is List
+              ? (json['compatibleDevices'] as List).map((d) => 
+                  d is String ? d : d['_id'] ?? d['id']
+                ).toList().cast<String>()
+              : [])
+          : [],
+      relatedProducts: json['relatedProducts'] != null
+          ? (json['relatedProducts'] as List).map((p) => 
+              p is String ? p : p['_id'] ?? p['id']
+            ).toList().cast<String>()
+          : null,
       mainImage: json['mainImage'],
       images: List<String>.from(json['images'] ?? []),
       video: json['video'],
@@ -189,6 +202,7 @@ class Product {
       warrantyDescription: json['warrantyDescription'],
       viewsCount: json['viewsCount'] ?? 0,
       ordersCount: json['ordersCount'] ?? 0,
+      salesCount: json['salesCount'] ?? json['ordersCount'] ?? 0,
       reviewsCount: json['reviewsCount'] ?? 0,
       averageRating: (json['averageRating'] ?? 0).toDouble(),
       wishlistCount: json['wishlistCount'] ?? 0,
@@ -271,7 +285,7 @@ enum ProductSortBy {
   name,
   createdAt,
   viewsCount,
-  ordersCount,
+  salesCount,  // Note: backend uses 'salesCount' not 'ordersCount'
   averageRating;
   
   String get value => name;
@@ -294,11 +308,12 @@ class ProductReview {
   final int rating;
   final String? title;
   final String? comment;
-  final List<String> images;
+  final List<String>? images;
   final ReviewStatus status;
   final int helpfulCount;
   final bool isVerifiedPurchase;
   final DateTime createdAt;
+  final DateTime? updatedAt;
   
   // يمكن تعبئتها
   Customer? customer;
@@ -308,15 +323,16 @@ class ProductReview {
     required this.productId,
     required this.customerId,
     this.orderId,
-    required this.rating,
-    this.title,
-    this.comment,
-    required this.images,
-    required this.status,
-    required this.helpfulCount,
-    required this.isVerifiedPurchase,
-    required this.createdAt,
-    this.customer,
+      required this.rating,
+      this.title,
+      this.comment,
+      this.images,
+      required this.status,
+      required this.helpfulCount,
+      required this.isVerifiedPurchase,
+      required this.createdAt,
+      this.updatedAt,
+      this.customer,
   });
 
   factory ProductReview.fromJson(Map<String, dynamic> json) {
@@ -332,11 +348,16 @@ class ProductReview {
       rating: json['rating'],
       title: json['title'],
       comment: json['comment'],
-      images: List<String>.from(json['images'] ?? []),
+      images: json['images'] != null 
+          ? List<String>.from(json['images']) 
+          : null,
       status: ReviewStatus.fromString(json['status']),
       helpfulCount: json['helpfulCount'] ?? 0,
       isVerifiedPurchase: json['isVerifiedPurchase'] ?? false,
       createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: json['updatedAt'] != null 
+          ? DateTime.parse(json['updatedAt']) 
+          : null,
       customer: json['customerId'] is Map 
           ? Customer.fromJson(json['customerId']) 
           : null,
@@ -463,7 +484,7 @@ class ProductsResponse {
 | `status` | string | ❌ | حالة المنتج |
 | `isActive` | boolean | ❌ | المنتجات النشطة فقط |
 | `isFeatured` | boolean | ❌ | المنتجات المميزة فقط |
-| `sortBy` | string | ❌ | ترتيب حسب (price, name, createdAt, averageRating) |
+| `sortBy` | string | ❌ | ترتيب حسب (price, name, createdAt, viewsCount, salesCount, averageRating) |
 | `sortOrder` | string | ❌ | اتجاه الترتيب (asc, desc) |
 | `page` | number | ❌ | رقم الصفحة |
 | `limit` | number | ❌ | عدد النتائج |
@@ -485,8 +506,9 @@ class ProductsResponse {
       "stockQuantity": 25,
       "averageRating": 4.5,
       "reviewsCount": 12,
-      "brandId": { "_id": "...", "name": "Apple", "nameAr": "آبل" },
-      "categoryId": { "_id": "...", "name": "Screens", "nameAr": "شاشات" },
+      "brandId": { "_id": "...", "name": "Apple", "nameAr": "آبل", "slug": "apple" },
+      "categoryId": { "_id": "...", "name": "Screens", "nameAr": "شاشات", "slug": "screens" },
+      "qualityTypeId": { "_id": "...", "name": "Original", "nameAr": "أصلي", "code": "original", "color": "#22c55e" },
       ...
     }
   ],
@@ -537,6 +559,14 @@ class ProductsService {
 **Endpoint:** `GET /products/:identifier` 🌐 (Public)
 
 > **ملاحظة:** يمكن استخدام الـ ID أو الـ slug
+
+**ملاحظات:**
+- البيانات تأتي مع populate كامل للعلاقات:
+  - `brandId`: معلومات البراند كاملة
+  - `categoryId`: معلومات القسم كاملة
+  - `qualityTypeId`: معلومات نوع الجودة كاملة
+  - `compatibleDevices`: قائمة الأجهزة المتوافقة مع معلوماتها
+  - `relatedProducts`: منتجات ذات صلة (فقط المنتجات النشطة)
 
 **Response:**
 ```dart
@@ -593,6 +623,11 @@ Future<Product> getProduct(String identifier) async {
 
 **Endpoint:** `GET /products/:id/reviews` 🌐 (Public)
 
+**ملاحظات:**
+- يتم إرجاع التقييمات المعتمدة فقط (`status: 'approved'`)
+- يتم ترتيبها حسب تاريخ الإنشاء (الأحدث أولاً)
+- البيانات تأتي مع populate للـ `customerId` (responsiblePersonName, shopName)
+
 **Response:**
 ```dart
 {
@@ -602,6 +637,7 @@ Future<Product> getProduct(String identifier) async {
       "_id": "...",
       "customerId": { 
         "_id": "...", 
+        "responsiblePersonName": "أحمد محمد",
         "shopName": "Tech Mobile" 
       },
       "rating": 5,
@@ -635,9 +671,211 @@ Future<List<ProductReview>> getProductReviews(String productId) async {
 
 ---
 
+#### 4️⃣ جلب المنتجات المميزة
+
+**Endpoint:** `GET /products/featured` 🌐 (Public)
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | number | ❌ | عدد المنتجات (افتراضي: 10) |
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": [
+    { /* Product objects */ }
+  ],
+  "message": "Featured products retrieved",
+  "messageAr": "تم استرجاع المنتجات المميزة"
+}
+```
+
+**Flutter Code:**
+```dart
+/// جلب المنتجات المميزة
+Future<List<Product>> getFeaturedProducts({int? limit}) async {
+  final response = await _dio.get('/products/featured', queryParameters: {
+    if (limit != null) 'limit': limit,
+  });
+  
+  if (response.data['success']) {
+    return (response.data['data'] as List)
+        .map((p) => Product.fromJson(p))
+        .toList();
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
+#### 5️⃣ جلب المنتجات الجديدة
+
+**Endpoint:** `GET /products/new-arrivals` 🌐 (Public)
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | number | ❌ | عدد المنتجات (افتراضي: 10) |
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": [
+    { /* Product objects */ }
+  ],
+  "message": "New arrivals retrieved",
+  "messageAr": "تم استرجاع المنتجات الجديدة"
+}
+```
+
+**Flutter Code:**
+```dart
+/// جلب المنتجات الجديدة
+Future<List<Product>> getNewArrivals({int? limit}) async {
+  final response = await _dio.get('/products/new-arrivals', queryParameters: {
+    if (limit != null) 'limit': limit,
+  });
+  
+  if (response.data['success']) {
+    return (response.data['data'] as List)
+        .map((p) => Product.fromJson(p))
+        .toList();
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
+#### 6️⃣ جلب الأكثر مبيعاً
+
+**Endpoint:** `GET /products/best-sellers` 🌐 (Public)
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | number | ❌ | عدد المنتجات (افتراضي: 10) |
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": [
+    { /* Product objects */ }
+  ],
+  "message": "Best sellers retrieved",
+  "messageAr": "تم استرجاع الأكثر مبيعاً"
+}
+```
+
+**Flutter Code:**
+```dart
+/// جلب الأكثر مبيعاً
+Future<List<Product>> getBestSellers({int? limit}) async {
+  final response = await _dio.get('/products/best-sellers', queryParameters: {
+    if (limit != null) 'limit': limit,
+  });
+  
+  if (response.data['success']) {
+    return (response.data['data'] as List)
+        .map((p) => Product.fromJson(p))
+        .toList();
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
+#### 7️⃣ جلب المنتجات ذات العروض
+
+**Endpoint:** `GET /products/on-offer` 🌐 (Public)
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | number | ❌ | رقم الصفحة (افتراضي: 1) |
+| `limit` | number | ❌ | عدد المنتجات (افتراضي: 20) |
+| `sortBy` | string | ❌ | ترتيب حسب (discount, price, createdAt) |
+| `sortOrder` | string | ❌ | اتجاه الترتيب (asc, desc) |
+| `minDiscount` | number | ❌ | الحد الأدنى لنسبة الخصم (%) |
+| `maxDiscount` | number | ❌ | الحد الأعلى لنسبة الخصم (%) |
+| `categoryId` | string | ❌ | فلترة بالقسم |
+| `brandId` | string | ❌ | فلترة بالماركة |
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "...",
+      "name": "iPhone 15 Pro Screen",
+      "nameAr": "شاشة ايفون 15 برو",
+      "basePrice": 450,
+      "compareAtPrice": 550,
+      "hasDirectOffer": true,
+      "originalPrice": 550,
+      "currentPrice": 450,
+      "discountPercentage": 18.18,
+      "appliedPromotion": null,
+      ...
+    }
+  ],
+  "message": "Products on offer retrieved",
+  "messageAr": "تم استرجاع المنتجات ذات العروض",
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "pages": 3
+  }
+}
+```
+
+**Flutter Code:**
+```dart
+/// جلب المنتجات ذات العروض
+Future<ProductsResponse> getProductsOnOffer({
+  int page = 1,
+  int limit = 20,
+  String? sortBy,
+  String? sortOrder,
+  double? minDiscount,
+  double? maxDiscount,
+  String? categoryId,
+  String? brandId,
+}) async {
+  final queryParams = <String, dynamic>{
+    'page': page,
+    'limit': limit,
+  };
+  
+  if (sortBy != null) queryParams['sortBy'] = sortBy;
+  if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+  if (minDiscount != null) queryParams['minDiscount'] = minDiscount;
+  if (maxDiscount != null) queryParams['maxDiscount'] = maxDiscount;
+  if (categoryId != null) queryParams['categoryId'] = categoryId;
+  if (brandId != null) queryParams['brandId'] = brandId;
+  
+  final response = await _dio.get('/products/on-offer', queryParameters: queryParams);
+  
+  if (response.data['success']) {
+    return ProductsResponse.fromJson(response.data);
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+---
+
 ### 🔐 Customer Endpoints (تحتاج Token)
 
-#### 4️⃣ جلب المفضلة
+#### 8️⃣ جلب المفضلة
 
 **Endpoint:** `GET /products/wishlist/my`
 
@@ -672,7 +910,7 @@ Future<List<Product>> getWishlist() async {
 
 ---
 
-#### 5️⃣ إضافة للمفضلة
+#### 9️⃣ إضافة للمفضلة
 
 **Endpoint:** `POST /products/:id/wishlist`
 
@@ -692,7 +930,7 @@ Future<void> addToWishlist(String productId) async {
 
 ---
 
-#### 6️⃣ إزالة من المفضلة
+#### 🔟 إزالة من المفضلة
 
 **Endpoint:** `DELETE /products/:id/wishlist`
 
@@ -712,7 +950,7 @@ Future<void> removeFromWishlist(String productId) async {
 
 ---
 
-#### 7️⃣ إضافة تقييم
+#### 1️⃣1️⃣ إضافة تقييم
 
 **Endpoint:** `POST /products/:id/reviews`
 
@@ -813,6 +1051,75 @@ class ProductsService {
       return (response.data['data'] as List)
           .map((r) => ProductReview.fromJson(r))
           .toList();
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<List<Product>> getFeaturedProducts({int? limit}) async {
+    final response = await _dio.get('/products/featured', queryParameters: {
+      if (limit != null) 'limit': limit,
+    });
+    
+    if (response.data['success']) {
+      return (response.data['data'] as List)
+          .map((p) => Product.fromJson(p))
+          .toList();
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<List<Product>> getNewArrivals({int? limit}) async {
+    final response = await _dio.get('/products/new-arrivals', queryParameters: {
+      if (limit != null) 'limit': limit,
+    });
+    
+    if (response.data['success']) {
+      return (response.data['data'] as List)
+          .map((p) => Product.fromJson(p))
+          .toList();
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<List<Product>> getBestSellers({int? limit}) async {
+    final response = await _dio.get('/products/best-sellers', queryParameters: {
+      if (limit != null) 'limit': limit,
+    });
+    
+    if (response.data['success']) {
+      return (response.data['data'] as List)
+          .map((p) => Product.fromJson(p))
+          .toList();
+    }
+    throw Exception(response.data['messageAr']);
+  }
+  
+  Future<ProductsResponse> getProductsOnOffer({
+    int page = 1,
+    int limit = 20,
+    String? sortBy,
+    String? sortOrder,
+    double? minDiscount,
+    double? maxDiscount,
+    String? categoryId,
+    String? brandId,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+    
+    if (sortBy != null) queryParams['sortBy'] = sortBy;
+    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+    if (minDiscount != null) queryParams['minDiscount'] = minDiscount;
+    if (maxDiscount != null) queryParams['maxDiscount'] = maxDiscount;
+    if (categoryId != null) queryParams['categoryId'] = categoryId;
+    if (brandId != null) queryParams['brandId'] = brandId;
+    
+    final response = await _dio.get('/products/on-offer', queryParameters: queryParams);
+    
+    if (response.data['success']) {
+      return ProductsResponse.fromJson(response.data);
     }
     throw Exception(response.data['messageAr']);
   }
@@ -953,7 +1260,7 @@ class _ProductsGridScreenState extends State<ProductsGridScreen> {
               PopupMenuItem(value: ProductSortBy.createdAt, child: Text('الأحدث')),
               PopupMenuItem(value: ProductSortBy.price, child: Text('السعر')),
               PopupMenuItem(value: ProductSortBy.averageRating, child: Text('التقييم')),
-              PopupMenuItem(value: ProductSortBy.ordersCount, child: Text('الأكثر مبيعاً')),
+              PopupMenuItem(value: ProductSortBy.salesCount, child: Text('الأكثر مبيعاً')),
             ],
           ),
         ],
@@ -1121,6 +1428,10 @@ class _ProductCardState extends State<ProductCard> {
 | GET | `/products` | ❌ | جلب المنتجات مع الفلترة |
 | GET | `/products/:identifier` | ❌ | تفاصيل منتج |
 | GET | `/products/:id/reviews` | ❌ | تقييمات منتج |
+| GET | `/products/featured` | ❌ | المنتجات المميزة |
+| GET | `/products/new-arrivals` | ❌ | المنتجات الجديدة |
+| GET | `/products/best-sellers` | ❌ | الأكثر مبيعاً |
+| GET | `/products/on-offer` | ❌ | المنتجات ذات العروض |
 | GET | `/products/wishlist/my` | ✅ | جلب المفضلة |
 | POST | `/products/:id/wishlist` | ✅ | إضافة للمفضلة |
 | DELETE | `/products/:id/wishlist` | ✅ | إزالة من المفضلة |

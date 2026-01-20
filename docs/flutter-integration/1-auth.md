@@ -6,8 +6,7 @@
 - ✅ تسجيل مستخدم جديد
 - ✅ تسجيل الدخول
 - ✅ تحديث الـ Token
-- ✅ إرسال OTP والتحقق منه
-- ✅ نسيت كلمة المرور
+- ✅ طلب إعادة تعيين كلمة المرور
 - ✅ تغيير كلمة المرور
 - ✅ جلب الملف الشخصي
 - ✅ تسجيل الخروج
@@ -560,113 +559,79 @@ Future<TokenResponse> refreshToken(String refreshToken) async {
 
 ---
 
-### 4️⃣ إرسال OTP (Send OTP)
+### 4️⃣ طلب إعادة تعيين كلمة المرور (Request Password Reset)
 
-**Endpoint:** `POST /auth/send-otp`
+> 📝 **ملاحظة مهمة:** النظام الحالي يستخدم آلية طلبات يدوية تتم معالجتها من قبل المشرف. بعد تقديم الطلب، سيتم التواصل معك من قبل المشرف لإرسال كلمة مرور مؤقتة.
+
+**الخطوات:**
+1. `POST /auth/request-password-reset` - تقديم طلب إعادة تعيين كلمة المرور
+2. انتظار معالجة الطلب من قبل المشرف (سيتم التواصل معك)
+3. تسجيل الدخول بالكلمة المرور المؤقتة المرسلة من المشرف
+4. `PATCH /auth/change-password` - تغيير كلمة المرور إلى كلمة جديدة
+
+#### Step 1: تقديم طلب إعادة تعيين كلمة المرور
+
+**Endpoint:** `POST /auth/request-password-reset`
 
 **Request Body:**
 ```dart
 {
   "phone": "+966501234567",
-  "purpose": "registration"  // 'registration' | 'login' | 'password_reset' | 'phone_change'
+  "customerNotes": "نسيت كلمة المرور ولا أستطيع الوصول إلى حسابي"  // اختياري
 }
 ```
 
-**Response (200 OK):**
+**Response (201 Created):**
 ```dart
 {
   "success": true,
   "data": {
-    "otpId": "507f1f77bcf86cd799439011",  // معرف OTP (للاستخدام الداخلي)
-    "expiresIn": 300  // ثواني (5 دقائق) - مدة صلاحية OTP
+    "requestNumber": "PWR24120001",  // رقم الطلب الفريد
+    "status": "pending"  // حالة الطلب: 'pending' | 'completed' | 'rejected'
   },
-  "message": "OTP sent successfully",
-  "messageAr": "تم إرسال رمز التحقق بنجاح"
+  "message": "Password reset request submitted successfully. An admin will contact you soon.",
+  "messageAr": "تم تقديم طلب إعادة تعيين كلمة المرور بنجاح. سيتم التواصل معك قريباً."
 }
 ```
 
 > ⚠️ **ملاحظات مهمة:**
-> - OTP صالح لمدة 5 دقائق (300 ثانية)
-> - لا يمكن إعادة إرسال OTP قبل مرور 60 ثانية من الإرسال السابق
-> - الحد الأقصى لمحاولات التحقق من OTP هو 3 محاولات
+> - لا يمكن تقديم طلب جديد إذا كان هناك طلب `pending` موجود مسبقاً
+> - سيتم التواصل معك من قبل المشرف لإرسال كلمة المرور المؤقتة
+> - احفظ رقم الطلب (`requestNumber`) للمتابعة
 
 **Flutter Code:**
 ```dart
-enum OtpPurpose {
-  registration,
-  login,
-  passwordReset,
-  phoneChange;
+class PasswordResetRequest {
+  final String requestNumber;
+  final String status;
   
-  String get value {
-    switch (this) {
-      case OtpPurpose.registration: return 'registration';
-      case OtpPurpose.login: return 'login';
-      case OtpPurpose.passwordReset: return 'password_reset';
-      case OtpPurpose.phoneChange: return 'phone_change';
-    }
+  PasswordResetRequest({
+    required this.requestNumber,
+    required this.status,
+  });
+  
+  factory PasswordResetRequest.fromJson(Map<String, dynamic> json) {
+    return PasswordResetRequest(
+      requestNumber: json['requestNumber'],
+      status: json['status'],
+    );
   }
 }
 
-Future<void> sendOtp({
+Future<PasswordResetRequest> requestPasswordReset({
   required String phone,
-  required OtpPurpose purpose,
+  String? customerNotes,
 }) async {
   try {
-    final response = await _dio.post('/auth/send-otp', data: {
+    final response = await _dio.post('/auth/request-password-reset', data: {
       'phone': phone,
-      'purpose': purpose.value,
+      if (customerNotes != null) 'customerNotes': customerNotes,
     });
     
-    if (!response.data['success']) {
-      throw Exception(response.data['messageAr'] ?? response.data['message']);
+    if (response.data['success']) {
+      return PasswordResetRequest.fromJson(response.data['data']);
     }
-  } on DioException catch (e) {
-    throw _handleError(e);
-  }
-}
-```
-
----
-
-### 5️⃣ التحقق من OTP (Verify OTP)
-
-**Endpoint:** `POST /auth/verify-otp`
-
-**Request Body:**
-```dart
-{
-  "phone": "+966501234567",
-  "otp": "123456",  // 6 أرقام بالضبط
-  "purpose": "registration"
-}
-```
-
-**Response (200 OK):**
-```dart
-{
-  "success": true,
-  "data": null,
-  "message": "OTP verified successfully",
-  "messageAr": "تم التحقق من الرمز بنجاح"
-}
-```
-
-**Flutter Code:**
-```dart
-Future<bool> verifyOtp({
-  required String phone,
-  required String otp,
-  required OtpPurpose purpose,
-}) async {
-  try {
-    final response = await _dio.post('/auth/verify-otp', data: {
-      'phone': phone,
-      'otp': otp,
-      'purpose': purpose.value,
-    });
-    
-    return response.data['success'] == true;
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   } on DioException catch (e) {
     throw _handleError(e);
   }
@@ -676,147 +641,24 @@ Future<bool> verifyOtp({
 **Errors المحتملة:**
 | Status | Message | السبب |
 |--------|---------|-------|
-| 400 | Invalid or expired OTP | OTP غير صحيح أو منتهي الصلاحية |
-| 400 | Maximum OTP verification attempts exceeded | تم تجاوز الحد الأقصى لمحاولات التحقق (3 محاولات) |
-| 400 | Invalid OTP. X attempts remaining | OTP خاطئ (X = عدد المحاولات المتبقية) |
+| 400 | User not found | المستخدم غير موجود (رقم الهاتف غير مسجل) |
+| 409 | A password reset request is already pending. Please wait for admin to process it. | يوجد طلب قيد الانتظار مسبقاً |
+
+#### Step 2 & 3: تسجيل الدخول وتغيير كلمة المرور
+
+بعد أن يستلم العميل كلمة المرور المؤقتة من المشرف:
+
+1. **تسجيل الدخول بالكلمة المؤقتة:**
+   - استخدم `POST /auth/login` مع رقم الهاتف وكلمة المرور المؤقتة
+
+2. **تغيير كلمة المرور:**
+   - استخدم `PATCH /auth/change-password` (راجع القسم 5️⃣ أدناه)
+   - `oldPassword`: كلمة المرور المؤقتة
+   - `newPassword`: كلمة المرور الجديدة المطلوبة
 
 ---
 
-### 6️⃣ نسيت كلمة المرور (Forgot Password)
-
-**الخطوات:**
-1. `POST /auth/forgot-password` - إرسال OTP
-2. `POST /auth/verify-reset-otp` - التحقق من OTP والحصول على resetToken
-3. `POST /auth/reset-password` - تعيين كلمة مرور جديدة
-
-#### Step 1: إرسال OTP
-
-**Endpoint:** `POST /auth/forgot-password`
-
-**Request Body:**
-```dart
-{
-  "phone": "+966501234567"
-}
-```
-
-**Response:**
-```dart
-{
-  "success": true,
-  "data": {
-    "message": "Password reset OTP sent successfully",
-    "expiresIn": 300  // ثواني (5 دقائق) - مدة صلاحية OTP
-  },
-  "message": "Password reset OTP sent",
-  "messageAr": "تم إرسال رمز إعادة تعيين كلمة المرور"
-}
-```
-
-#### Step 2: التحقق من OTP
-
-**Endpoint:** `POST /auth/verify-reset-otp`
-
-**Request Body:**
-```dart
-{
-  "phone": "+966501234567",
-  "otp": "123456",
-  "purpose": "password_reset"  // ⚠️ مطلوب
-}
-```
-
-**Response:**
-```dart
-{
-  "success": true,
-  "data": {
-    "resetToken": "a1b2c3d4e5f6..."  // ⚠️ استخدمه في الخطوة التالية
-  },
-  "message": "OTP verified. Use the reset token to set new password.",
-  "messageAr": "تم التحقق. استخدم الرمز لتعيين كلمة مرور جديدة."
-}
-```
-
-#### Step 3: تعيين كلمة مرور جديدة
-
-**Endpoint:** `POST /auth/reset-password`
-
-**Request Body:**
-```dart
-{
-  "resetToken": "a1b2c3d4e5f6...",
-  "newPassword": "NewStrongP@ss123"
-}
-```
-
-**Response:**
-```dart
-{
-  "success": true,
-  "data": null,
-  "message": "Password reset successfully",
-  "messageAr": "تم إعادة تعيين كلمة المرور بنجاح"
-}
-```
-
-**Flutter Code (كامل):**
-```dart
-class PasswordResetFlow {
-  final Dio _dio;
-  String? _resetToken;
-  
-  PasswordResetFlow(this._dio);
-  
-  /// الخطوة 1: طلب OTP
-  Future<void> requestReset(String phone) async {
-    final response = await _dio.post('/auth/forgot-password', data: {
-      'phone': phone,
-    });
-    
-    if (!response.data['success']) {
-      throw Exception(response.data['messageAr']);
-    }
-  }
-  
-  /// الخطوة 2: التحقق من OTP
-  Future<void> verifyOtp(String phone, String otp) async {
-    final response = await _dio.post('/auth/verify-reset-otp', data: {
-      'phone': phone,
-      'otp': otp,
-      'purpose': 'password_reset',  // ⚠️ مطلوب
-    });
-    
-    if (response.data['success']) {
-      _resetToken = response.data['data']['resetToken'];
-    } else {
-      throw Exception(response.data['messageAr'] ?? response.data['message']);
-    }
-  }
-  
-  /// الخطوة 3: تعيين كلمة مرور جديدة
-  Future<void> setNewPassword(String newPassword) async {
-    if (_resetToken == null) {
-      throw Exception('يجب التحقق من OTP أولاً');
-    }
-    
-    final response = await _dio.post('/auth/reset-password', data: {
-      'resetToken': _resetToken,
-      'newPassword': newPassword,
-    });
-    
-    if (!response.data['success']) {
-      throw Exception(response.data['messageAr']);
-    }
-    
-    _resetToken = null; // تنظيف
-  }
-}
-```
-
----
-
-### 7️⃣ تغيير كلمة المرور (Change Password)
+### 5️⃣ تغيير كلمة المرور (Change Password)
 
 **Endpoint:** `PATCH /auth/change-password`
 
@@ -870,7 +712,7 @@ Future<void> changePassword({
 
 ---
 
-### 8️⃣ جلب الملف الشخصي (Get Profile)
+### 6️⃣ جلب الملف الشخصي (Get Profile)
 
 **Endpoint:** `GET /auth/me`
 
@@ -909,7 +751,7 @@ Future<User> getProfile() async {
 
 ---
 
-### 9️⃣ تسجيل الخروج (Logout)
+### 7️⃣ تسجيل الخروج (Logout)
 
 **Endpoint:** `POST /auth/logout`
 
@@ -1031,11 +873,7 @@ class AuthProvider extends ChangeNotifier {
 | POST | `/auth/register` | ❌ | تسجيل جديد |
 | POST | `/auth/login` | ❌ | تسجيل دخول |
 | POST | `/auth/refresh` | ❌ | تحديث Token |
-| POST | `/auth/send-otp` | ❌ | إرسال OTP |
-| POST | `/auth/verify-otp` | ❌ | التحقق من OTP |
-| POST | `/auth/forgot-password` | ❌ | طلب استعادة كلمة المرور |
-| POST | `/auth/verify-reset-otp` | ❌ | التحقق من OTP للاستعادة |
-| POST | `/auth/reset-password` | ❌ | تعيين كلمة مرور جديدة |
+| POST | `/auth/request-password-reset` | ❌ | طلب إعادة تعيين كلمة المرور |
 | PATCH | `/auth/change-password` | ✅ | تغيير كلمة المرور |
 | GET | `/auth/me` | ✅ | جلب الملف الشخصي |
 | POST | `/auth/logout` | ✅ | تسجيل خروج |
@@ -1149,11 +987,12 @@ class AuthProvider extends ChangeNotifier {
 - **Access Token**: افتراضياً `15m` (15 دقيقة) أو `7d` (7 أيام) حسب إعدادات `JWT_EXPIRATION`
 - **Refresh Token**: افتراضياً `30d` (30 يوم) حسب إعدادات `JWT_REFRESH_EXPIRATION`
 
-### OTP
+### إعادة تعيين كلمة المرور
 
-- مدة صلاحية OTP: 5 دقائق (300 ثانية)
-- الحد الأقصى لمحاولات التحقق: 3 محاولات
-- لا يمكن إعادة إرسال OTP قبل مرور 60 ثانية من الإرسال السابق
+- النظام يستخدم آلية طلبات يدوية تتم معالجتها من قبل المشرف
+- لا يمكن تقديم طلب جديد إذا كان هناك طلب `pending` موجود مسبقاً
+- بعد معالجة الطلب، سيتم التواصل معك لإرسال كلمة المرور المؤقتة
+- يجب تغيير كلمة المرور المؤقتة بعد تسجيل الدخول
 
 ---
 

@@ -38,6 +38,14 @@ class AppNotification {
   final String? referenceType;
   final String? referenceId;
   
+  // القنوات والحالة
+  final List<String> channels; // ['push', 'sms', 'email']
+  final Map<String, dynamic>? channelStatus;
+  final String? templateId;
+  final String? templateCode;
+  final String? campaignId;
+  final DateTime? scheduledAt;
+  
   // الحالة
   final bool isRead;
   final DateTime? readAt;
@@ -61,6 +69,12 @@ class AppNotification {
     this.actionUrl,
     this.referenceType,
     this.referenceId,
+    required this.channels,
+    this.channelStatus,
+    this.templateId,
+    this.templateCode,
+    this.campaignId,
+    this.scheduledAt,
     required this.isRead,
     this.readAt,
     required this.isSent,
@@ -85,7 +99,23 @@ class AppNotification {
       actionId: json['actionId'],
       actionUrl: json['actionUrl'],
       referenceType: json['referenceType'],
-      referenceId: json['referenceId'],
+      referenceId: json['referenceId'] is String 
+          ? json['referenceId'] 
+          : json['referenceId']?['_id']?.toString(),
+      channels: json['channels'] != null 
+          ? List<String>.from(json['channels']) 
+          : ['push'],
+      channelStatus: json['channelStatus'] as Map<String, dynamic>?,
+      templateId: json['templateId'] is String 
+          ? json['templateId'] 
+          : json['templateId']?['_id']?.toString(),
+      templateCode: json['templateCode'],
+      campaignId: json['campaignId'] is String 
+          ? json['campaignId'] 
+          : json['campaignId']?['_id']?.toString(),
+      scheduledAt: json['scheduledAt'] != null 
+          ? DateTime.parse(json['scheduledAt']) 
+          : null,
       isRead: json['isRead'] ?? false,
       readAt: json['readAt'] != null ? DateTime.parse(json['readAt']) : null,
       isSent: json['isSent'] ?? false,
@@ -302,28 +332,46 @@ class PushToken {
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `page` | number | ❌ | رقم الصفحة (default: 1) |
-| `limit` | number | ❌ | عدد النتائج (default: 20) |
+| `limit` | number | ❌ | عدد النتائج (default: 50) |
 | `category` | string | ❌ | فلترة حسب الفئة |
 | `isRead` | boolean | ❌ | فلترة المقروء/غير المقروء |
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": [
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439011",
+      "customerId": "507f1f77bcf86cd799439010",
       "category": "order",
       "title": "Order Confirmed",
       "titleAr": "تم تأكيد الطلب",
       "body": "Your order #ORD-001234 has been confirmed",
       "bodyAr": "تم تأكيد طلبك رقم #ORD-001234",
+      "image": null,
       "actionType": "order",
-      "actionId": "order_id_here",
+      "actionId": "507f1f77bcf86cd799439001",
+      "actionUrl": null,
+      "referenceType": "order",
+      "referenceId": "507f1f77bcf86cd799439001",
+      "channels": ["push"],
+      "channelStatus": {
+        "push": {
+          "sent": true,
+          "sentAt": "2024-01-15T10:30:00Z"
+        }
+      },
+      "templateId": null,
+      "templateCode": null,
+      "campaignId": null,
+      "scheduledAt": null,
       "isRead": false,
+      "readAt": null,
+      "isSent": true,
+      "sentAt": "2024-01-15T10:30:00Z",
       "createdAt": "2024-01-15T10:30:00Z",
-      ...
+      "updatedAt": "2024-01-15T10:30:00Z"
     }
   ],
   "message": "Notifications retrieved",
@@ -350,7 +398,6 @@ class NotificationsService {
     bool? isRead,
   }) async {
     final response = await _dio.get('/notifications/my', queryParameters: {
-      'page': page,
       'limit': limit,
       if (category != null) 'category': category.name,
       if (isRead != null) 'isRead': isRead,
@@ -365,7 +412,7 @@ class NotificationsService {
         unreadCount: response.data['meta']?['unreadCount'] ?? 0,
       );
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
 }
 ```
@@ -379,7 +426,7 @@ class NotificationsService {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": null,
@@ -395,7 +442,7 @@ Future<void> markAsRead(String notificationId) async {
   final response = await _dio.put('/notifications/$notificationId/read');
   
   if (!response.data['success']) {
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
 }
 ```
@@ -409,7 +456,7 @@ Future<void> markAsRead(String notificationId) async {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": null,
@@ -425,7 +472,7 @@ Future<void> markAllAsRead() async {
   final response = await _dio.put('/notifications/read-all');
   
   if (!response.data['success']) {
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
 }
 ```
@@ -439,30 +486,44 @@ Future<void> markAllAsRead() async {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
-```dart
+```json
 {
-  "token": "fMIGGdzaQ...",           // مطلوب - FCM/APNS token
-  "provider": "fcm",                   // مطلوب - 'fcm' | 'apns' | 'web'
-  "platform": "android",               // مطلوب - 'ios' | 'android' | 'web'
-  "deviceId": "unique_device_id",      // اختياري
-  "deviceName": "Samsung Galaxy S23",  // اختياري
-  "deviceModel": "SM-S911B",           // اختياري
-  "appVersion": "1.2.0",               // اختياري
-  "osVersion": "14"                    // اختياري
+  "token": "fMIGGdzaQ...",
+  "provider": "fcm",
+  "platform": "android",
+  "deviceId": "unique_device_id",
+  "deviceName": "Samsung Galaxy S23",
+  "appVersion": "1.2.0"
 }
 ```
 
+**Parameters:**
+- `token`: مطلوب، FCM/APNS token (string)
+- `provider`: مطلوب، 'fcm' | 'apns' | 'web' (string)
+- `platform`: مطلوب، 'ios' | 'android' | 'web' (string)
+- `deviceId`: اختياري، معرف الجهاز الفريد (string)
+- `deviceName`: اختياري، اسم الجهاز (string)
+- `appVersion`: اختياري، إصدار التطبيق (string)
+
 **Response (201 Created):**
-```dart
+```json
 {
   "success": true,
   "data": {
-    "_id": "...",
+    "_id": "507f1f77bcf86cd799439011",
+    "customerId": "507f1f77bcf86cd799439010",
     "token": "fMIGGdzaQ...",
     "provider": "fcm",
     "platform": "android",
+    "deviceId": "unique_device_id",
+    "deviceName": "Samsung Galaxy S23",
+    "deviceModel": null,
+    "appVersion": "1.2.0",
+    "osVersion": null,
     "isActive": true,
-    ...
+    "lastUsedAt": "2024-01-15T10:30:00Z",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": "2024-01-15T10:30:00Z"
   },
   "message": "Token registered",
   "messageAr": "تم تسجيل التوكن"
@@ -514,17 +575,15 @@ Future<PushToken> registerPushToken() async {
     'token': fcmToken,
     'provider': Platform.isIOS ? 'apns' : 'fcm',
     'platform': platform,
-    'deviceId': deviceId,
-    'deviceName': deviceName,
-    'deviceModel': deviceModel,
-    'appVersion': packageInfo.version,
-    'osVersion': osVersion,
+    if (deviceId != null) 'deviceId': deviceId,
+    if (deviceName != null) 'deviceName': deviceName,
+    if (packageInfo.version != null) 'appVersion': packageInfo.version,
   });
   
   if (response.data['success']) {
     return PushToken.fromJson(response.data['data']);
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -546,13 +605,11 @@ class NotificationsService {
   
   /// جلب إشعاراتي
   Future<NotificationsResponse> getMyNotifications({
-    int page = 1,
-    int limit = 20,
+    int limit = 50,
     NotificationCategory? category,
     bool? isRead,
   }) async {
     final response = await _dio.get('/notifications/my', queryParameters: {
-      'page': page,
       'limit': limit,
       if (category != null) 'category': category.name,
       if (isRead != null) 'isRead': isRead,
@@ -567,7 +624,7 @@ class NotificationsService {
         unreadCount: response.data['meta']?['unreadCount'] ?? 0,
       );
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
   /// تعليم إشعار كمقروء
@@ -575,7 +632,7 @@ class NotificationsService {
     final response = await _dio.put('/notifications/$notificationId/read');
     
     if (!response.data['success']) {
-      throw Exception(response.data['messageAr']);
+      throw Exception(response.data['messageAr'] ?? response.data['message']);
     }
   }
   
@@ -584,7 +641,7 @@ class NotificationsService {
     final response = await _dio.put('/notifications/read-all');
     
     if (!response.data['success']) {
-      throw Exception(response.data['messageAr']);
+      throw Exception(response.data['messageAr'] ?? response.data['message']);
     }
   }
   
@@ -624,17 +681,15 @@ class NotificationsService {
       'token': fcmToken,
       'provider': Platform.isIOS ? 'apns' : 'fcm',
       'platform': platform,
-      'deviceId': deviceId,
-      'deviceName': deviceName,
-      'deviceModel': deviceModel,
-      'appVersion': packageInfo.version,
-      'osVersion': osVersion,
+      if (deviceId != null) 'deviceId': deviceId,
+      if (deviceName != null) 'deviceName': deviceName,
+      if (packageInfo.version != null) 'appVersion': packageInfo.version,
     });
     
     if (response.data['success']) {
       return PushToken.fromJson(response.data['data']);
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
   /// جلب عدد الإشعارات غير المقروءة فقط
@@ -869,12 +924,26 @@ AppBar(
 
 ## 📝 ملخص الـ Endpoints
 
-| Method | Endpoint | الوصف |
-|--------|----------|-------|
-| GET | `/notifications/my` | جلب إشعاراتي |
-| PUT | `/notifications/:id/read` | تعليم كمقروء |
-| PUT | `/notifications/read-all` | تعليم الكل كمقروء |
-| POST | `/notifications/token` | تسجيل Push Token |
+### Customer Endpoints
+
+| Method | Endpoint | Auth | الوصف |
+|--------|----------|------|-------|
+| GET | `/notifications/my` | ✅ | جلب إشعاراتي |
+| PUT | `/notifications/:id/read` | ✅ | تعليم كمقروء |
+| PUT | `/notifications/read-all` | ✅ | تعليم الكل كمقروء |
+| POST | `/notifications/token` | ✅ | تسجيل Push Token |
+
+### Admin Endpoints (للتوثيق فقط)
+
+| Method | Endpoint | Auth | الوصف |
+|--------|----------|------|-------|
+| POST | `/notifications/send` | Admin | إرسال إشعار مخصص |
+| GET | `/notifications/templates` | Admin | جلب قوالب الإشعارات |
+| POST | `/notifications/templates` | Super Admin | إنشاء قالب إشعار |
+| PUT | `/notifications/templates/:id` | Super Admin | تحديث قالب إشعار |
+| GET | `/notifications/campaigns` | Admin | جلب حملات الإشعارات |
+| POST | `/notifications/campaigns` | Admin | إنشاء حملة إشعارات |
+| POST | `/notifications/campaigns/:id/launch` | Admin | إطلاق حملة إشعارات |
 
 ---
 

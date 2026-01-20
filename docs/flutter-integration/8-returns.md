@@ -13,7 +13,7 @@
 
 > **ملاحظة**: جميع الـ endpoints تحتاج **Token** 🔒 باستثناء `GET /returns/reasons`
 
-> **💡 مهم**: النظام يدعم الآن إرجاع منتجات من عدة فواتير في طلب إرجاع واحد. الأسعار تُجلب تلقائياً من الفواتير الأصلية لضمان الدقة.
+> **💡 مهم**: النظام يستخرج معرفات الفواتير (`orderIds`) تلقائياً من عناصر الطلبات (`orderItemIds`) المُرسلة. الأسعار تُجلب تلقائياً من الفواتير الأصلية لضمان الدقة والأمان.
 
 ---
 
@@ -468,42 +468,51 @@ enum ItemCondition {
 **Endpoint:** `GET /returns/reasons` 🌐 (Public)
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": [
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439011",
       "name": "Defective Product",
       "nameAr": "عيب في المنتج",
+      "description": "Product has manufacturing defects",
       "category": "defective",
       "requiresPhoto": true,
       "eligibleForRefund": true,
       "eligibleForExchange": true,
       "displayOrder": 1,
-      "isActive": true
+      "isActive": true,
+      "createdAt": "2024-01-01T10:00:00Z",
+      "updatedAt": "2024-01-01T10:00:00Z"
     },
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439012",
       "name": "Wrong Item Received",
       "nameAr": "استلمت منتج خاطئ",
+      "description": "Received different item than ordered",
       "category": "wrong_item",
       "requiresPhoto": true,
       "eligibleForRefund": true,
       "eligibleForExchange": true,
       "displayOrder": 2,
-      "isActive": true
+      "isActive": true,
+      "createdAt": "2024-01-01T10:00:00Z",
+      "updatedAt": "2024-01-01T10:00:00Z"
     },
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439013",
       "name": "Changed My Mind",
       "nameAr": "غيرت رأيي",
+      "description": "Customer changed their mind",
       "category": "changed_mind",
       "requiresPhoto": false,
       "eligibleForRefund": true,
       "eligibleForExchange": true,
       "displayOrder": 5,
-      "isActive": true
+      "isActive": true,
+      "createdAt": "2024-01-01T10:00:00Z",
+      "updatedAt": "2024-01-01T10:00:00Z"
     }
   ],
   "message": "Reasons retrieved",
@@ -550,38 +559,45 @@ class ReturnsService {
 | `status` | string | ❌ | فلترة بحالة الطلب |
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": [
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439014",
       "returnNumber": "RET-2024-001234",
-      "orderId": {
-        "_id": "...",
-        "orderNumber": "ORD-2024-001234"
+      "orderIds": [
+        {
+          "_id": "507f1f77bcf86cd799439001",
+          "orderNumber": "ORD-2024-001234"
+        }
+      ],
+      "customerId": {
+        "_id": "507f1f77bcf86cd799439010",
+        "shopName": "محل الإلكترونيات",
+        "responsiblePersonName": "أحمد محمد",
+        "phone": "+966501234567"
       },
       "status": "approved",
       "returnType": "refund",
       "reasonId": {
-        "_id": "...",
+        "_id": "507f1f77bcf86cd799439011",
         "name": "Defective Product",
         "nameAr": "عيب في المنتج"
       },
       "totalItemsValue": 500.00,
       "refundAmount": 480.00,
       "restockingFee": 20.00,
+      "shippingDeduction": 0,
       "createdAt": "2024-01-15T10:30:00Z",
-      ...
+      "updatedAt": "2024-01-16T14:30:00Z"
     }
   ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
+  "meta": {
     "total": 5
   },
   "message": "Returns retrieved",
-  "messageAr": "تم استرجاع طلبات الإرجاع"
+  "messageAr": "تم استرجاع المرتجعات"
 }
 ```
 
@@ -617,22 +633,24 @@ Future<List<ReturnRequest>> getMyReturns({
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
-```dart
+```json
 {
-  // ملاحظة: لا يوجد orderId - يتم استخراج الفواتير تلقائياً من orderItemIds
-  "returnType": "refund",  // refund | exchange | store_credit
-  "reasonId": "reason_id_here",
-  "customerNotes": "ملاحظات العميل (اختياري)",
-  "customerImages": ["url1", "url2"],  // صور المنتج
+  "returnType": "refund",
+  "reasonId": "507f1f77bcf86cd799439011",
   "items": [
     {
-      "orderItemId": "order_item_id_1",  // من أي فاتورة
+      "orderItemId": "507f1f77bcf86cd799439012",
       "quantity": 1
     },
     {
-      "orderItemId": "order_item_id_2",  // يمكن أن تكون من فاتورة أخرى
+      "orderItemId": "507f1f77bcf86cd799439013",
       "quantity": 2
     }
+  ],
+  "customerNotes": "الشاشة بها خدوش",
+  "customerImages": [
+    "https://example.com/image1.jpg",
+    "https://example.com/image2.jpg"
   ],
   "pickupAddress": {
     "fullName": "أحمد محمد",
@@ -644,30 +662,69 @@ Future<List<ReturnRequest>> getMyReturns({
 }
 ```
 
-> **💡 الأسعار تُجلب تلقائياً**: لا حاجة لإرسال أسعار المنتجات - يتم جلبها من الفواتير الأصلية تلقائياً لضمان الدقة.
+**Validation Rules:**
+- `returnType`: مطلوب، يجب أن يكون أحد: `refund`, `exchange`, `store_credit`
+- `reasonId`: مطلوب، MongoDB ObjectId صحيح
+- `items`: مطلوب، مصفوفة غير فارغة
+  - `orderItemId`: مطلوب، MongoDB ObjectId صحيح
+  - `quantity`: مطلوب، رقم >= 1
+- `customerNotes`: اختياري، نص
+- `customerImages`: اختياري، مصفوفة من URLs
+- `pickupAddress`: اختياري، كائن يحتوي على:
+  - `fullName`: مطلوب، نص
+  - `phone`: مطلوب، نص
+  - `address`: مطلوب، نص
+  - `city`: مطلوب، نص
+  - `notes`: اختياري، نص
+
+> **💡 الأسعار والفواتير تُجلب تلقائياً**: 
+> - لا حاجة لإرسال أسعار المنتجات - يتم جلبها من الفواتير الأصلية
+> - معرفات الفواتير (`orderIds`) تُستخرج تلقائياً من `orderItemIds`
+> - يتم التحقق من صحة الكميات والملكية تلقائياً
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": {
-    "_id": "...",
+    "_id": "507f1f77bcf86cd799439014",
     "returnNumber": "RET-2024-001235",
+    "orderIds": [
+      "507f1f77bcf86cd799439001",
+      "507f1f77bcf86cd799439002"
+    ],
+    "customerId": "507f1f77bcf86cd799439010",
     "status": "pending",
     "returnType": "refund",
+    "reasonId": "507f1f77bcf86cd799439011",
+    "customerNotes": "الشاشة بها خدوش",
+    "customerImages": [
+      "https://example.com/image1.jpg",
+      "https://example.com/image2.jpg"
+    ],
     "totalItemsValue": 750.00,
+    "restockingFee": 0,
+    "shippingDeduction": 0,
+    "refundAmount": 0,
+    "pickupAddress": {
+      "fullName": "أحمد محمد",
+      "phone": "+966501234567",
+      "address": "شارع الملك فهد، حي العليا",
+      "city": "الرياض",
+      "notes": "بجانب مسجد الراجحي"
+    },
     "createdAt": "2024-01-16T14:00:00Z",
-    ...
+    "updatedAt": "2024-01-16T14:00:00Z"
   },
-  "message": "Return request created successfully",
-  "messageAr": "تم إنشاء طلب الإرجاع بنجاح"
+  "message": "Return request created",
+  "messageAr": "تم إنشاء طلب الإرجاع"
 }
 ```
 
 **Flutter Code:**
 ```dart
 /// إنشاء طلب إرجاع جديد
-/// ملاحظة: تم إزالة orderId - يُستخرج تلقائياً من orderItemIds
+/// ملاحظة: orderIds يُستخرج تلقائياً من orderItemIds
 Future<ReturnRequest> createReturn({
   required ReturnType returnType,
   required String reasonId,
@@ -677,7 +734,6 @@ Future<ReturnRequest> createReturn({
   PickupAddress? pickupAddress,
 }) async {
   final response = await _dio.post('/returns', data: {
-    // لا يوجد orderId - يُحدد تلقائياً من items
     'returnType': returnType.toApiString(),
     'reasonId': reasonId,
     'items': items.map((i) => i.toJson()).toList(),
@@ -689,7 +745,7 @@ Future<ReturnRequest> createReturn({
   if (response.data['success']) {
     return ReturnRequest.fromJson(response.data['data']);
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 
 /// طلب عنصر للإرجاع
@@ -697,7 +753,7 @@ class ReturnItemRequest {
   final String orderItemId;
   final int quantity;
 
-  ReturnItemRequest({
+  const ReturnItemRequest({
     required this.orderItemId,
     required this.quantity,
   });
@@ -718,53 +774,68 @@ class ReturnItemRequest {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": {
-    "_id": "...",
-    "returnNumber": "RET-2024-001234",
-    "orderId": {
-      "_id": "...",
-      "orderNumber": "ORD-2024-001234",
-      "orderDate": "2024-01-10T10:00:00Z"
+    "returnRequest": {
+      "_id": "507f1f77bcf86cd799439014",
+      "returnNumber": "RET-2024-001234",
+      "orderIds": [
+        {
+          "_id": "507f1f77bcf86cd799439001",
+          "orderNumber": "ORD-2024-001234"
+        }
+      ],
+      "customerId": {
+        "_id": "507f1f77bcf86cd799439010",
+        "shopName": "محل الإلكترونيات",
+        "responsiblePersonName": "أحمد محمد",
+        "phone": "+966501234567"
+      },
+      "status": "approved",
+      "returnType": "refund",
+      "reasonId": {
+        "_id": "507f1f77bcf86cd799439011",
+        "name": "Defective Product",
+        "nameAr": "عيب في المنتج",
+        "category": "defective"
+      },
+      "customerNotes": "الشاشة بها خدوش",
+      "customerImages": ["https://example.com/image1.jpg"],
+      "totalItemsValue": 500.00,
+      "restockingFee": 20.00,
+      "shippingDeduction": 0,
+      "refundAmount": 480.00,
+      "pickupAddress": {
+        "fullName": "أحمد محمد",
+        "phone": "+966501234567",
+        "address": "شارع الملك فهد، حي العليا",
+        "city": "الرياض",
+        "notes": "بجانب مسجد الراجحي"
+      },
+      "scheduledPickupDate": "2024-01-18T10:00:00Z",
+      "approvedAt": "2024-01-16T14:30:00Z",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "updatedAt": "2024-01-16T14:30:00Z"
     },
-    "status": "approved",
-    "returnType": "refund",
-    "reasonId": {
-      "_id": "...",
-      "name": "Defective Product",
-      "nameAr": "عيب في المنتج",
-      "category": "defective"
-    },
-    "customerNotes": "الشاشة بها خدوش",
-    "customerImages": ["https://..."],
-    "totalItemsValue": 500.00,
-    "restockingFee": 20.00,
-    "shippingDeduction": 0,
-    "refundAmount": 480.00,
-    "pickupAddress": {
-      "fullName": "أحمد محمد",
-      "phone": "+966501234567",
-      "address": "شارع الملك فهد",
-      "city": "الرياض"
-    },
-    "scheduledPickupDate": "2024-01-18T10:00:00Z",
-    "approvedAt": "2024-01-16T14:30:00Z",
     "items": [
       {
-        "_id": "...",
-        "productName": "iPhone 15 Pro",
+        "_id": "507f1f77bcf86cd799439015",
+        "returnRequestId": "507f1f77bcf86cd799439014",
+        "orderItemId": "507f1f77bcf86cd799439012",
+        "productId": "507f1f77bcf86cd799439003",
         "productSku": "IPH15PRO-256",
-        "productImage": "https://...",
+        "productName": "iPhone 15 Pro",
+        "productImage": "https://example.com/iphone15pro.jpg",
         "quantity": 1,
         "unitPrice": 500.00,
         "totalValue": 500.00,
-        "inspectionStatus": "pending"
+        "inspectionStatus": "pending",
+        "approvedQuantity": 0,
+        "rejectedQuantity": 0
       }
-    ],
-    "createdAt": "2024-01-15T10:30:00Z",
-    "updatedAt": "2024-01-16T14:30:00Z"
+    ]
   },
   "message": "Return retrieved",
   "messageAr": "تم استرجاع طلب الإرجاع"
@@ -778,9 +849,17 @@ Future<ReturnRequest> getReturnById(String returnId) async {
   final response = await _dio.get('/returns/$returnId');
   
   if (response.data['success']) {
-    return ReturnRequest.fromJson(response.data['data']);
+    final data = response.data['data'];
+    // Response includes both returnRequest and items
+    final returnRequest = ReturnRequest.fromJson(data['returnRequest']);
+    final items = (data['items'] as List?)
+        ?.map((i) => ReturnItem.fromJson(i))
+        .toList();
+    
+    // You can either return returnRequest with items or handle separately
+    return returnRequest.copyWith(items: items);
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -843,7 +922,6 @@ class ReturnsService {
     PickupAddress? pickupAddress,
   }) async {
     final response = await _dio.post('/returns', data: {
-      // لا يوجد orderId - يُستخرج تلقائياً من orderItemIds
       'returnType': returnType.toApiString(),
       'reasonId': reasonId,
       'items': items.map((i) => i.toJson()).toList(),
@@ -855,16 +933,22 @@ class ReturnsService {
     if (response.data['success']) {
       return ReturnRequest.fromJson(response.data['data']);
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
   Future<ReturnRequest> getReturnById(String returnId) async {
     final response = await _dio.get('/returns/$returnId');
     
     if (response.data['success']) {
-      return ReturnRequest.fromJson(response.data['data']);
+      final data = response.data['data'];
+      final returnRequest = ReturnRequest.fromJson(data['returnRequest']);
+      final items = (data['items'] as List?)
+          ?.map((i) => ReturnItem.fromJson(i))
+          .toList();
+      
+      return returnRequest.copyWith(items: items);
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
 }
 
@@ -1351,53 +1435,154 @@ final transactions = await walletService.getTransactions();
 
 ---
 
-## 🔢 حساب الأسعار التلقائي
+## 🔢 حساب الأسعار والفواتير التلقائي
 
 ### المزايا:
 - ✅ **الأمان**: لا يمكن للعميل التلاعب بالأسعار
 - ✅ **الدقة**: الأسعار من الفواتير الأصلية دائماً
-- ✅ **التبسيط**: لا حاجة لإرسال أسعار من Flutter
+- ✅ **التبسيط**: لا حاجة لإرسال أسعار أو معرفات فواتير
+- ✅ **المرونة**: دعم الإرجاع من عدة فواتير في طلب واحد
 
 ### كيف يعمل؟
 
-```dart
-// العميل يرسل فقط orderItemId و quantity
+```javascript
+// 1. العميل يرسل فقط orderItemId و quantity
 {
   "items": [
     {
-      "orderItemId": "item_id_here",
+      "orderItemId": "507f1f77bcf86cd799439012",
       "quantity": 1
+    },
+    {
+      "orderItemId": "507f1f77bcf86cd799439013",  // من فاتورة أخرى
+      "quantity": 2
     }
   ]
 }
 
-// Backend يجلب OrderItem ويستخرج:
-// - unitPrice من الفاتورة
-// - productSku, productName, productImage
-// - orderId (للربط بالفاتورة)
+// 2. Backend يجلب OrderItems من قاعدة البيانات
+const orderItems = await OrderItem.find({
+  _id: { $in: orderItemIds }
+}).populate('orderId');
 
-// ثم يحسب:
-totalItemsValue = quantity × unitPrice (من الفاتورة)
+// 3. يستخرج معرفات الفواتير تلقائياً
+const orderIds = [...new Set(orderItems.map(i => i.orderId._id))];
+// Result: ["507f1f77bcf86cd799439001", "507f1f77bcf86cd799439002"]
+
+// 4. يحسب القيمة الإجمالية من الأسعار الفعلية
+const totalItemsValue = items.reduce((sum, item) => {
+  const orderItem = orderItems.find(oi => oi._id === item.orderItemId);
+  return sum + (item.quantity * orderItem.unitPrice);
+}, 0);
+
+// 5. ينشئ ReturnItems بالبيانات من الفواتير
+const returnItems = items.map(item => {
+  const orderItem = orderItems.find(oi => oi._id === item.orderItemId);
+  return {
+    orderItemId: item.orderItemId,
+    productId: orderItem.productId,
+    productSku: orderItem.productSku,
+    productName: orderItem.productName,
+    productImage: orderItem.productImage,
+    quantity: item.quantity,
+    unitPrice: orderItem.unitPrice,  // من الفاتورة
+    totalValue: item.quantity * orderItem.unitPrice
+  };
+});
+
+// 6. ينشئ ReturnRequest مع orderIds المستخرجة
+const returnRequest = {
+  returnNumber: "RET-2024-001234",
+  orderIds: ["507f1f77bcf86cd799439001", "507f1f77bcf86cd799439002"],
+  customerId: "507f1f77bcf86cd799439010",
+  totalItemsValue: 750.00,
+  // ... بقية البيانات
+};
 ```
+
+### Validations تتم تلقائياً:
+- ✅ التحقق من وجود OrderItems
+- ✅ التحقق من أن الكمية المطلوب إرجاعها <= الكمية المطلوبة
+- ✅ التحقق من ملكية العميل للفواتير
+- ✅ حساب القيمة الإجمالية بدقة
 
 ---
 
 ## ⚠️ الأخطاء المحتملة
 
-| Error Code | Message | الوصف |
-|------------|---------|-------|
-| `RETURN_NOT_FOUND` | Return request not found | طلب الإرجاع غير موجود |
-| `ORDER_NOT_FOUND` | Order not found | الطلب غير موجود |
-| `ORDER_ITEM_NOT_FOUND` | Order item not found | عنصر الطلب غير موجود |
-| `ORDER_NOT_ELIGIBLE` | Order not eligible for return | الطلب غير مؤهل للإرجاع |
-| `RETURN_WINDOW_EXPIRED` | Return window has expired | انتهت فترة الإرجاع |
-| `ITEM_ALREADY_RETURNED` | Item already returned | العنصر تم إرجاعه مسبقاً |
-| `INVALID_QUANTITY` | Invalid return quantity | كمية غير صالحة |
-| `PHOTOS_REQUIRED` | Photos are required for this reason | الصور مطلوبة لهذا السبب |
+| HTTP Code | Message | الوصف |
+|-----------|---------|-------|
+| `400` | Some order items not found | بعض عناصر الطلب غير موجودة |
+| `400` | Return quantity exceeds ordered quantity | الكمية المطلوب إرجاعها تتجاوز الكمية المطلوبة |
+| `400` | Invalid return quantity | كمية غير صالحة |
+| `400` | Photos are required for this reason | الصور مطلوبة لهذا السبب |
+| `404` | Return request not found | طلب الإرجاع غير موجود |
+| `404` | Order item not found | عنصر الطلب غير موجود |
+| `401` | Unauthorized | غير مصرح - تحتاج لتسجيل الدخول |
+| `403` | Forbidden | ممنوع - ليس لديك صلاحية |
+
+### مثال على معالجة الأخطاء:
+
+```dart
+try {
+  final returnRequest = await returnsService.createReturn(
+    returnType: ReturnType.refund,
+    reasonId: selectedReason.id,
+    items: selectedItems,
+  );
+  
+  // نجح الطلب
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ReturnSuccessScreen(returnRequest: returnRequest),
+    ),
+  );
+} on DioException catch (e) {
+  String errorMessage = 'حدث خطأ غير متوقع';
+  
+  if (e.response != null) {
+    final statusCode = e.response!.statusCode;
+    final data = e.response!.data;
+    
+    switch (statusCode) {
+      case 400:
+        errorMessage = data['messageAr'] ?? data['message'] ?? 'بيانات غير صحيحة';
+        break;
+      case 401:
+        errorMessage = 'يرجى تسجيل الدخول أولاً';
+        // Redirect to login
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        return;
+      case 404:
+        errorMessage = 'العنصر المطلوب غير موجود';
+        break;
+      default:
+        errorMessage = data['messageAr'] ?? data['message'] ?? 'حدث خطأ في السيرفر';
+    }
+  }
+  
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(errorMessage),
+      backgroundColor: Colors.red,
+    ),
+  );
+} catch (e) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('حدث خطأ: ${e.toString()}'),
+      backgroundColor: Colors.red,
+    ),
+  );
+}
+```
 
 ---
 
 ## 📝 ملخص الـ Endpoints
+
+### Customer Endpoints
 
 | Method | Endpoint | Auth | الوصف |
 |--------|----------|------|-------|
@@ -1405,6 +1590,16 @@ totalItemsValue = quantity × unitPrice (من الفاتورة)
 | GET | `/returns/my` | ✅ | طلبات الإرجاع الخاصة بي |
 | POST | `/returns` | ✅ | إنشاء طلب إرجاع جديد |
 | GET | `/returns/:id` | ✅ | تفاصيل طلب إرجاع |
+
+### Admin Endpoints (للتوثيق فقط)
+
+| Method | Endpoint | Auth | الوصف |
+|--------|----------|------|-------|
+| GET | `/returns` | Admin | جميع طلبات الإرجاع |
+| PUT | `/returns/:id/status` | Admin | تحديث حالة طلب الإرجاع |
+| PUT | `/returns/items/:itemId/inspect` | Admin | فحص عنصر مرتجع |
+| POST | `/returns/:id/refund` | Admin | معالجة الاسترداد |
+| PUT | `/returns/refunds/:refundId/complete` | Admin | إكمال الاسترداد |
 
 ---
 

@@ -496,7 +496,7 @@ enum PointsDirection {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": {
@@ -521,7 +521,7 @@ class WalletService {
     if (response.data['success']) {
       return (response.data['data']['balance'] ?? 0).toDouble();
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
 }
 ```
@@ -537,30 +537,32 @@ class WalletService {
 **Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `page` | number | ❌ | رقم الصفحة |
-| `limit` | number | ❌ | عدد النتائج |
-| `transactionType` | string | ❌ | فلترة بنوع المعاملة |
+| `limit` | number | ❌ | عدد النتائج (افتراضي: 50) |
+| `type` | string | ❌ | فلترة بنوع المعاملة |
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": [
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439011",
       "transactionNumber": "WLT-2024-001234",
+      "customerId": "507f1f77bcf86cd799439010",
       "transactionType": "order_refund",
       "amount": 150.00,
       "direction": "credit",
       "balanceBefore": 2350.00,
       "balanceAfter": 2500.00,
       "referenceType": "order",
+      "referenceId": "507f1f77bcf86cd799439001",
       "referenceNumber": "ORD-2024-001234",
       "status": "completed",
       "description": "Refund for order #ORD-2024-001234",
       "descriptionAr": "استرداد للطلب #ORD-2024-001234",
+      "isExpired": false,
       "createdAt": "2024-01-15T10:30:00Z",
-      ...
+      "updatedAt": "2024-01-15T10:30:00Z"
     }
   ],
   "message": "Transactions retrieved",
@@ -572,14 +574,12 @@ class WalletService {
 ```dart
 /// جلب معاملات المحفظة
 Future<List<WalletTransaction>> getTransactions({
-  int page = 1,
-  int limit = 20,
-  WalletTransactionType? transactionType,
+  int limit = 50,
+  WalletTransactionType? type,
 }) async {
   final response = await _dio.get('/wallet/transactions', queryParameters: {
-    'page': page,
     'limit': limit,
-    if (transactionType != null) 'transactionType': transactionType.name,
+    if (type != null) 'type': type.name,
   });
   
   if (response.data['success']) {
@@ -587,7 +587,7 @@ Future<List<WalletTransaction>> getTransactions({
         .map((t) => WalletTransaction.fromJson(t))
         .toList();
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -602,22 +602,34 @@ Future<List<WalletTransaction>> getTransactions({
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": {
     "points": 1250,
     "tier": {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439021",
       "name": "Gold",
       "nameAr": "ذهبي",
       "code": "gold",
+      "description": "Gold tier benefits",
+      "descriptionAr": "مميزات المستوى الذهبي",
       "minPoints": 1000,
+      "minSpend": null,
+      "minOrders": null,
       "pointsMultiplier": 1.5,
       "discountPercentage": 5,
       "freeShipping": true,
+      "prioritySupport": false,
+      "earlyAccess": false,
+      "customBenefits": null,
+      "icon": null,
       "color": "#FFD700",
-      ...
+      "badgeImage": null,
+      "displayOrder": 3,
+      "isActive": true,
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
     },
     "expiringPoints": [
       {
@@ -641,7 +653,7 @@ Future<LoyaltyPoints> getPoints() async {
   if (response.data['success']) {
     return LoyaltyPoints.fromJson(response.data['data']);
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -654,26 +666,28 @@ Future<LoyaltyPoints> getPoints() async {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": [
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439031",
       "transactionNumber": "LYL-2024-001234",
+      "customerId": "507f1f77bcf86cd799439010",
       "transactionType": "order_earn",
       "points": 125,
       "direction": "earn",
       "pointsBefore": 1125,
       "pointsAfter": 1250,
       "referenceType": "order",
+      "referenceId": "507f1f77bcf86cd799439001",
       "referenceNumber": "ORD-2024-001234",
       "orderAmount": 1250.00,
       "multiplier": 1.5,
       "description": "Points earned from order #ORD-2024-001234",
-      "descriptionAr": "نقاط مكتسبة من الطلب #ORD-2024-001234",
+      "expiresAt": null,
       "createdAt": "2024-01-15T10:30:00Z",
-      ...
+      "updatedAt": "2024-01-15T10:30:00Z"
     }
   ],
   "message": "Transactions retrieved",
@@ -692,7 +706,7 @@ Future<List<LoyaltyTransaction>> getPointsTransactions() async {
         .map((t) => LoyaltyTransaction.fromJson(t))
         .toList();
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -703,25 +717,36 @@ Future<List<LoyaltyTransaction>> getPointsTransactions() async {
 **Endpoint:** `GET /wallet/tiers` 🌐 (Public)
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": [
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439018",
       "name": "Bronze",
       "nameAr": "برونزي",
       "code": "bronze",
+      "description": "Bronze tier",
+      "descriptionAr": "المستوى البرونزي",
       "minPoints": 0,
+      "minSpend": null,
+      "minOrders": null,
       "pointsMultiplier": 1,
       "discountPercentage": 0,
       "freeShipping": false,
       "prioritySupport": false,
+      "earlyAccess": false,
+      "customBenefits": null,
+      "icon": null,
       "color": "#CD7F32",
-      ...
+      "badgeImage": null,
+      "displayOrder": 1,
+      "isActive": true,
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
     },
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439019",
       "name": "Silver",
       "nameAr": "فضي",
       "code": "silver",
@@ -730,10 +755,11 @@ Future<List<LoyaltyTransaction>> getPointsTransactions() async {
       "discountPercentage": 2,
       "freeShipping": false,
       "color": "#C0C0C0",
-      ...
+      "displayOrder": 2,
+      "isActive": true
     },
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439020",
       "name": "Gold",
       "nameAr": "ذهبي",
       "code": "gold",
@@ -742,10 +768,11 @@ Future<List<LoyaltyTransaction>> getPointsTransactions() async {
       "discountPercentage": 5,
       "freeShipping": true,
       "color": "#FFD700",
-      ...
+      "displayOrder": 3,
+      "isActive": true
     },
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439021",
       "name": "Platinum",
       "nameAr": "بلاتيني",
       "code": "platinum",
@@ -756,7 +783,8 @@ Future<List<LoyaltyTransaction>> getPointsTransactions() async {
       "prioritySupport": true,
       "earlyAccess": true,
       "color": "#E5E4E2",
-      ...
+      "displayOrder": 4,
+      "isActive": true
     }
   ],
   "message": "Tiers retrieved",
@@ -775,7 +803,7 @@ Future<List<LoyaltyTier>> getTiers() async {
         .map((t) => LoyaltyTier.fromJson(t))
         .toList();
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -801,18 +829,16 @@ class WalletService {
     if (response.data['success']) {
       return (response.data['data']['balance'] ?? 0).toDouble();
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
   Future<List<WalletTransaction>> getTransactions({
-    int page = 1,
-    int limit = 20,
-    WalletTransactionType? transactionType,
+    int limit = 50,
+    WalletTransactionType? type,
   }) async {
     final response = await _dio.get('/wallet/transactions', queryParameters: {
-      'page': page,
       'limit': limit,
-      if (transactionType != null) 'transactionType': transactionType.name,
+      if (type != null) 'type': type.name,
     });
     
     if (response.data['success']) {
@@ -820,7 +846,7 @@ class WalletService {
           .map((t) => WalletTransaction.fromJson(t))
           .toList();
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
   // ═════════════════════════════════════
@@ -833,7 +859,7 @@ class WalletService {
     if (response.data['success']) {
       return LoyaltyPoints.fromJson(response.data['data']);
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
   Future<List<LoyaltyTransaction>> getPointsTransactions() async {
@@ -844,7 +870,7 @@ class WalletService {
           .map((t) => LoyaltyTransaction.fromJson(t))
           .toList();
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
   Future<List<LoyaltyTier>> getTiers() async {
@@ -855,7 +881,7 @@ class WalletService {
           .map((t) => LoyaltyTier.fromJson(t))
           .toList();
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
 }
 ```
@@ -1032,6 +1058,8 @@ class LoyaltyTiersScreen extends StatelessWidget {
 
 ## 📝 ملخص الـ Endpoints
 
+### Customer Endpoints
+
 | Method | Endpoint | Auth | الوصف |
 |--------|----------|------|-------|
 | GET | `/wallet/balance` | ✅ | رصيد المحفظة |
@@ -1039,6 +1067,18 @@ class LoyaltyTiersScreen extends StatelessWidget {
 | GET | `/wallet/points` | ✅ | نقاط الولاء والمستوى |
 | GET | `/wallet/points/transactions` | ✅ | معاملات النقاط |
 | GET | `/wallet/tiers` | ❌ | مستويات الولاء (Public) |
+
+### Admin Endpoints (للتوثيق فقط)
+
+| Method | Endpoint | Auth | الوصف |
+|--------|----------|------|-------|
+| POST | `/wallet/credit` | Admin | إضافة رصيد للمحفظة |
+| POST | `/wallet/debit` | Admin | خصم من المحفظة |
+| POST | `/wallet/points/grant` | Admin | منح نقاط ولاء |
+| GET | `/wallet/admin/tiers` | Admin | جميع المستويات (بما فيها غير النشطة) |
+| POST | `/wallet/admin/tiers` | Admin | إنشاء مستوى ولاء |
+| PUT | `/wallet/admin/tiers/:id` | Admin | تحديث مستوى ولاء |
+| DELETE | `/wallet/admin/tiers/:id` | Admin | حذف مستوى ولاء |
 
 ---
 

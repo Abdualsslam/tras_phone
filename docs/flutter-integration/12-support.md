@@ -78,7 +78,7 @@ class Ticket {
       customer: TicketCustomerInfo.fromJson(json['customer']),
       categoryId: json['category'] is String 
           ? json['category'] 
-          : json['category']?['_id'] ?? '',
+          : json['category']?['_id']?.toString() ?? '',
       category: json['category'] is Map 
           ? TicketCategory.fromJson(json['category']) 
           : null,
@@ -87,9 +87,15 @@ class Ticket {
       status: TicketStatus.fromString(json['status']),
       priority: TicketPriority.fromString(json['priority']),
       source: TicketSource.fromString(json['source']),
-      assignedTo: json['assignedTo'],
-      orderId: json['orderId'],
-      productId: json['productId'],
+      assignedTo: json['assignedTo'] is String 
+          ? json['assignedTo'] 
+          : json['assignedTo']?['_id']?.toString(),
+      orderId: json['orderId'] is String 
+          ? json['orderId'] 
+          : json['orderId']?['_id']?.toString(),
+      productId: json['productId'] is String 
+          ? json['productId'] 
+          : json['productId']?['_id']?.toString(),
       attachments: List<String>.from(json['attachments'] ?? []),
       tags: List<String>.from(json['tags'] ?? []),
       sla: TicketSLA.fromJson(json['sla'] ?? {}),
@@ -145,7 +151,9 @@ class TicketCustomerInfo {
 
   factory TicketCustomerInfo.fromJson(Map<String, dynamic> json) {
     return TicketCustomerInfo(
-      customerId: json['customerId'],
+      customerId: json['customerId'] is String 
+          ? json['customerId'] 
+          : json['customerId']?['_id']?.toString(),
       name: json['name'],
       email: json['email'],
       phone: json['phone'],
@@ -217,7 +225,9 @@ class TicketResolution {
       type: json['type'] != null 
           ? ResolutionType.fromString(json['type']) 
           : null,
-      resolvedBy: json['resolvedBy'],
+      resolvedBy: json['resolvedBy'] is String 
+          ? json['resolvedBy'] 
+          : json['resolvedBy']?['_id']?.toString(),
       resolvedAt: json['resolvedAt'] != null 
           ? DateTime.parse(json['resolvedAt']) 
           : null,
@@ -265,7 +275,7 @@ class TicketMessage {
       id: json['_id'] ?? json['id'],
       ticketId: json['ticket'] is String 
           ? json['ticket'] 
-          : json['ticket']?['_id'] ?? '',
+          : json['ticket']?['_id']?.toString() ?? '',
       senderType: MessageSenderType.fromString(json['senderType']),
       senderId: json['senderId'],
       senderName: json['senderName'] ?? '',
@@ -328,7 +338,9 @@ class TicketCategory {
       descriptionAr: json['descriptionAr'],
       descriptionEn: json['descriptionEn'],
       icon: json['icon'],
-      parentId: json['parent'],
+      parentId: json['parent'] is String 
+          ? json['parent'] 
+          : json['parent']?['_id']?.toString(),
       sortOrder: json['sortOrder'] ?? 0,
       isActive: json['isActive'] ?? true,
       requiresOrderId: json['requiresOrderId'] ?? false,
@@ -391,7 +403,9 @@ class ChatSession {
       sessionId: json['sessionId'],
       visitor: ChatVisitorInfo.fromJson(json['visitor']),
       status: ChatSessionStatus.fromString(json['status']),
-      assignedAgentId: json['assignedAgent'],
+      assignedAgentId: json['assignedAgent'] is String 
+          ? json['assignedAgent'] 
+          : json['assignedAgent']?['_id']?.toString(),
       assignedAt: json['assignedAt'] != null 
           ? DateTime.parse(json['assignedAt']) 
           : null,
@@ -443,7 +457,9 @@ class ChatVisitorInfo {
 
   factory ChatVisitorInfo.fromJson(Map<String, dynamic> json) {
     return ChatVisitorInfo(
-      customerId: json['customerId'],
+      customerId: json['customerId'] is String 
+          ? json['customerId'] 
+          : json['customerId']?['_id']?.toString(),
       name: json['name'],
       email: json['email'],
       phone: json['phone'],
@@ -536,7 +552,7 @@ class ChatMessage {
       id: json['_id'] ?? json['id'],
       sessionId: json['session'] is String 
           ? json['session'] 
-          : json['session']?['_id'] ?? '',
+          : json['session']?['_id']?.toString() ?? '',
       senderType: ChatSenderType.fromString(json['senderType']),
       senderId: json['senderId'],
       senderName: json['senderName'],
@@ -817,36 +833,61 @@ enum ChatMessageType {
 
 **Endpoint:** `GET /tickets/categories` 🌐 (Public)
 
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `activeOnly` | boolean | ❌ | جلب الفئات النشطة فقط (default: true) |
+
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": [
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439011",
       "nameAr": "مشاكل الطلبات",
       "nameEn": "Order Issues",
       "descriptionAr": "مشاكل متعلقة بالطلبات والتوصيل",
+      "descriptionEn": "Issues related to orders and delivery",
       "icon": "shopping_cart",
+      "parent": null,
       "sortOrder": 1,
+      "responseTimeHours": 24,
+      "resolutionTimeHours": 72,
+      "defaultPriority": "medium",
+      "defaultAssignee": null,
+      "assignmentPool": [],
       "isActive": true,
-      "requiresOrderId": true
+      "requiresOrderId": true,
+      "requiresProductId": false,
+      "quickReplies": [],
+      "totalTickets": 150,
+      "openTickets": 12,
+      "avgResolutionTime": 45,
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-15T10:30:00Z"
     },
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439012",
       "nameAr": "الدفع والفواتير",
       "nameEn": "Payment & Billing",
+      "descriptionAr": "مشاكل متعلقة بالدفع والفواتير",
+      "descriptionEn": "Issues related to payment and billing",
       "icon": "credit_card",
       "sortOrder": 2,
-      "isActive": true
+      "isActive": true,
+      "requiresOrderId": false,
+      "requiresProductId": false
     },
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439013",
       "nameAr": "استفسارات عامة",
       "nameEn": "General Inquiries",
       "icon": "help",
       "sortOrder": 3,
-      "isActive": true
+      "isActive": true,
+      "requiresOrderId": false,
+      "requiresProductId": false
     }
   ],
   "message": "Categories retrieved",
@@ -862,15 +903,17 @@ class SupportService {
   SupportService(this._dio);
   
   /// جلب فئات التذاكر
-  Future<List<TicketCategory>> getCategories() async {
-    final response = await _dio.get('/tickets/categories');
+  Future<List<TicketCategory>> getCategories({bool activeOnly = true}) async {
+    final response = await _dio.get('/tickets/categories', queryParameters: {
+      'activeOnly': activeOnly.toString(),
+    });
     
     if (response.data['success']) {
       return (response.data['data'] as List)
           .map((c) => TicketCategory.fromJson(c))
           .toList();
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
 }
 ```
@@ -884,22 +927,24 @@ class SupportService {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Query Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `page` | number | ❌ | رقم الصفحة |
-| `limit` | number | ❌ | عدد النتائج |
-| `status` | string | ❌ | فلترة بالحالة |
+لا يوجد query parameters - يتم جلب جميع تذاكر العميل
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": [
     {
-      "_id": "...",
+      "_id": "507f1f77bcf86cd799439011",
       "ticketNumber": "TKT-2024-001234",
+      "customer": {
+        "customerId": "507f1f77bcf86cd799439010",
+        "name": "أحمد محمد",
+        "email": "ahmed@example.com",
+        "phone": "+966501234567"
+      },
       "category": {
-        "_id": "...",
+        "_id": "507f1f77bcf86cd799439001",
         "nameAr": "مشاكل الطلبات",
         "nameEn": "Order Issues"
       },
@@ -908,17 +953,46 @@ class SupportService {
       "status": "in_progress",
       "priority": "high",
       "source": "mobile_app",
+      "assignedTo": {
+        "_id": "507f1f77bcf86cd799439020",
+        "name": "محمد الدعم",
+        "email": "support@example.com"
+      },
+      "assignedAt": "2024-01-15T11:00:00Z",
+      "orderId": {
+        "_id": "507f1f77bcf86cd799439005",
+        "orderNumber": "ORD-2024-001234"
+      },
+      "productId": null,
+      "attachments": ["https://example.com/file1.jpg"],
+      "tags": [],
+      "sla": {
+        "firstResponseDue": "2024-01-16T10:00:00Z",
+        "resolutionDue": "2024-01-18T10:00:00Z",
+        "firstRespondedAt": "2024-01-15T11:00:00Z",
+        "resolvedAt": null,
+        "firstResponseBreached": false,
+        "resolutionBreached": false
+      },
+      "resolution": null,
+      "escalationLevel": 0,
+      "escalatedAt": null,
+      "escalatedBy": null,
+      "escalationReason": null,
       "messageCount": 5,
+      "internalNoteCount": 0,
+      "lastCustomerReplyAt": "2024-01-16T14:00:00Z",
       "lastAgentReplyAt": "2024-01-16T14:30:00Z",
+      "satisfactionRating": null,
+      "satisfactionFeedback": null,
+      "satisfactionRatedAt": null,
+      "mergedInto": null,
+      "mergedTickets": [],
+      "metadata": {},
       "createdAt": "2024-01-15T10:00:00Z",
-      ...
+      "updatedAt": "2024-01-16T14:30:00Z"
     }
   ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 3
-  },
   "message": "Tickets retrieved",
   "messageAr": "تم استرجاع التذاكر"
 }
@@ -927,23 +1001,15 @@ class SupportService {
 **Flutter Code:**
 ```dart
 /// جلب تذاكري
-Future<List<Ticket>> getMyTickets({
-  int page = 1,
-  int limit = 10,
-  TicketStatus? status,
-}) async {
-  final response = await _dio.get('/tickets/my', queryParameters: {
-    'page': page,
-    'limit': limit,
-    if (status != null) 'status': status.name,
-  });
+Future<List<Ticket>> getMyTickets() async {
+  final response = await _dio.get('/tickets/my');
   
   if (response.data['success']) {
     return (response.data['data'] as List)
         .map((t) => Ticket.fromJson(t))
         .toList();
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -956,29 +1022,64 @@ Future<List<Ticket>> getMyTickets({
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
-```dart
+```json
 {
-  "category": "category_id",
-  "subject": "موضوع التذكرة",
-  "description": "وصف المشكلة بالتفصيل...",
-  "priority": "medium",  // اختياري (low, medium, high, urgent)
-  "orderId": "order_id",  // اختياري
-  "productId": "product_id",  // اختياري
-  "attachments": ["url1", "url2"]  // اختياري
+  "categoryId": "507f1f77bcf86cd799439001",
+  "subject": "لم يصل طلبي",
+  "description": "طلبت منذ أسبوع ولم يصل حتى الآن",
+  "priority": "medium",
+  "orderId": "507f1f77bcf86cd799439005",
+  "productId": null,
+  "attachments": ["https://example.com/file1.jpg"]
 }
 ```
 
+**Parameters:**
+- `categoryId`: مطلوب، معرف الفئة (string)
+- `subject`: مطلوب، موضوع التذكرة (string)
+- `description`: مطلوب، وصف المشكلة (string)
+- `priority`: اختياري، الأولوية: 'low', 'medium', 'high', 'urgent' (string)
+- `orderId`: اختياري، معرف الطلب المرتبط (string)
+- `productId`: اختياري، معرف المنتج المرتبط (string)
+- `attachments`: اختياري، مصفوفة من URLs للمرفقات (string[])
+- `source`: اختياري، مصدر التذكرة (default: 'web')
+
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": {
-    "_id": "...",
+    "_id": "507f1f77bcf86cd799439012",
     "ticketNumber": "TKT-2024-001235",
+    "customer": {
+      "customerId": "507f1f77bcf86cd799439010",
+      "name": "أحمد محمد",
+      "email": "ahmed@example.com",
+      "phone": "+966501234567"
+    },
+    "category": "507f1f77bcf86cd799439001",
+    "subject": "لم يصل طلبي",
+    "description": "طلبت منذ أسبوع ولم يصل حتى الآن",
     "status": "open",
     "priority": "medium",
+    "source": "mobile_app",
+    "assignedTo": null,
+    "assignedAt": null,
+    "orderId": "507f1f77bcf86cd799439005",
+    "productId": null,
+    "attachments": ["https://example.com/file1.jpg"],
+    "tags": [],
+    "sla": {
+      "firstResponseDue": "2024-01-17T15:00:00Z",
+      "resolutionDue": "2024-01-19T15:00:00Z",
+      "firstResponseBreached": false,
+      "resolutionBreached": false
+    },
+    "messageCount": 1,
+    "internalNoteCount": 0,
+    "escalationLevel": 0,
     "createdAt": "2024-01-16T15:00:00Z",
-    ...
+    "updatedAt": "2024-01-16T15:00:00Z"
   },
   "message": "Ticket created successfully",
   "messageAr": "تم إنشاء التذكرة بنجاح"
@@ -996,21 +1097,23 @@ Future<Ticket> createTicket({
   String? orderId,
   String? productId,
   List<String>? attachments,
+  String? source,
 }) async {
   final response = await _dio.post('/tickets', data: {
-    'category': categoryId,
+    'categoryId': categoryId,
     'subject': subject,
     'description': description,
     if (priority != null) 'priority': priority.name,
     if (orderId != null) 'orderId': orderId,
     if (productId != null) 'productId': productId,
-    if (attachments != null) 'attachments': attachments,
+    if (attachments != null && attachments.isNotEmpty) 'attachments': attachments,
+    if (source != null) 'source': source,
   });
   
   if (response.data['success']) {
     return Ticket.fromJson(response.data['data']);
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -1023,53 +1126,85 @@ Future<Ticket> createTicket({
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": {
-    "_id": "...",
-    "ticketNumber": "TKT-2024-001234",
-    "customer": {
-      "customerId": "...",
-      "name": "أحمد محمد",
-      "email": "ahmed@example.com"
-    },
-    "category": {
-      "_id": "...",
-      "nameAr": "مشاكل الطلبات"
-    },
-    "subject": "لم يصل طلبي",
-    "description": "طلبت منذ أسبوع...",
-    "status": "in_progress",
-    "priority": "high",
-    "orderId": {
-      "_id": "...",
-      "orderNumber": "ORD-2024-001234"
-    },
-    "messageCount": 5,
-    "sla": {
-      "firstResponseDue": "2024-01-15T22:00:00Z",
-      "firstRespondedAt": "2024-01-15T14:00:00Z",
-      "firstResponseBreached": false
+    "ticket": {
+      "_id": "507f1f77bcf86cd799439011",
+      "ticketNumber": "TKT-2024-001234",
+      "customer": {
+        "customerId": "507f1f77bcf86cd799439010",
+        "name": "أحمد محمد",
+        "email": "ahmed@example.com",
+        "phone": "+966501234567"
+      },
+      "category": {
+        "_id": "507f1f77bcf86cd799439001",
+        "nameAr": "مشاكل الطلبات",
+        "nameEn": "Order Issues"
+      },
+      "subject": "لم يصل طلبي",
+      "description": "طلبت منذ أسبوع ولم يصل حتى الآن",
+      "status": "in_progress",
+      "priority": "high",
+      "source": "mobile_app",
+      "assignedTo": {
+        "_id": "507f1f77bcf86cd799439020",
+        "name": "محمد الدعم",
+        "email": "support@example.com"
+      },
+      "orderId": {
+        "_id": "507f1f77bcf86cd799439005",
+        "orderNumber": "ORD-2024-001234"
+      },
+      "attachments": ["https://example.com/file1.jpg"],
+      "tags": [],
+      "sla": {
+        "firstResponseDue": "2024-01-16T10:00:00Z",
+        "resolutionDue": "2024-01-18T10:00:00Z",
+        "firstRespondedAt": "2024-01-15T11:00:00Z",
+        "resolvedAt": null,
+        "firstResponseBreached": false,
+        "resolutionBreached": false
+      },
+      "messageCount": 5,
+      "internalNoteCount": 0,
+      "lastCustomerReplyAt": "2024-01-16T14:00:00Z",
+      "lastAgentReplyAt": "2024-01-16T14:30:00Z",
+      "createdAt": "2024-01-15T10:00:00Z",
+      "updatedAt": "2024-01-16T14:30:00Z"
     },
     "messages": [
       {
-        "_id": "...",
+        "_id": "507f1f77bcf86cd799439031",
+        "ticket": "507f1f77bcf86cd799439011",
         "senderType": "customer",
+        "senderId": "507f1f77bcf86cd799439010",
         "senderName": "أحمد محمد",
+        "messageType": "text",
         "content": "طلبت منذ أسبوع ولم يصل حتى الآن",
+        "htmlContent": null,
+        "attachments": [],
+        "isInternal": false,
+        "isRead": true,
+        "readAt": "2024-01-15T11:00:00Z",
         "createdAt": "2024-01-15T10:00:00Z"
       },
       {
-        "_id": "...",
+        "_id": "507f1f77bcf86cd799439032",
+        "ticket": "507f1f77bcf86cd799439011",
         "senderType": "agent",
+        "senderId": "507f1f77bcf86cd799439020",
         "senderName": "محمد - فريق الدعم",
+        "messageType": "text",
         "content": "شكراً لتواصلك، سنتحقق من حالة طلبك",
+        "attachments": [],
+        "isInternal": false,
+        "isRead": true,
         "createdAt": "2024-01-15T14:00:00Z"
       }
-    ],
-    "createdAt": "2024-01-15T10:00:00Z",
-    ...
+    ]
   },
   "message": "Ticket retrieved",
   "messageAr": "تم استرجاع التذكرة"
@@ -1079,13 +1214,22 @@ Future<Ticket> createTicket({
 **Flutter Code:**
 ```dart
 /// جلب تفاصيل تذكرة مع الرسائل
-Future<Ticket> getMyTicketById(String ticketId) async {
+Future<Map<String, dynamic>> getMyTicketById(String ticketId) async {
   final response = await _dio.get('/tickets/my/$ticketId');
   
   if (response.data['success']) {
-    return Ticket.fromJson(response.data['data']);
+    final data = response.data['data'];
+    final ticket = Ticket.fromJson(data['ticket']);
+    final messages = (data['messages'] as List?)
+        ?.map((m) => TicketMessage.fromJson(m))
+        .toList() ?? [];
+    
+    return {
+      'ticket': ticket,
+      'messages': messages,
+    };
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -1098,26 +1242,39 @@ Future<Ticket> getMyTicketById(String ticketId) async {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
-```dart
+```json
 {
   "content": "نص الرسالة",
-  "attachments": ["url1"]  // اختياري
+  "attachments": ["https://example.com/file1.jpg"]
 }
 ```
 
+**Parameters:**
+- `content`: مطلوب، نص الرسالة (string)
+- `attachments`: اختياري، مصفوفة من URLs للمرفقات (string[])
+
 **Response:**
-```dart
+```json
 {
   "success": true,
   "data": {
-    "_id": "...",
+    "_id": "507f1f77bcf86cd799439033",
+    "ticket": "507f1f77bcf86cd799439011",
     "senderType": "customer",
+    "senderId": "507f1f77bcf86cd799439010",
     "senderName": "أحمد محمد",
+    "messageType": "text",
     "content": "نص الرسالة",
-    "attachments": [],
-    "createdAt": "2024-01-16T16:00:00Z"
+    "htmlContent": null,
+    "attachments": ["https://example.com/file1.jpg"],
+    "isInternal": false,
+    "isRead": false,
+    "readAt": null,
+    "isEdited": false,
+    "createdAt": "2024-01-16T16:00:00Z",
+    "updatedAt": "2024-01-16T16:00:00Z"
   },
-  "message": "Message sent",
+  "message": "Message added successfully",
   "messageAr": "تم إرسال الرسالة"
 }
 ```
@@ -1138,7 +1295,7 @@ Future<TicketMessage> addMessageToTicket({
   if (response.data['success']) {
     return TicketMessage.fromJson(response.data['data']);
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -1151,18 +1308,30 @@ Future<TicketMessage> addMessageToTicket({
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
-```dart
+```json
 {
-  "rating": 5,  // من 1 إلى 5
-  "feedback": "خدمة ممتازة!"  // اختياري
+  "rating": 5,
+  "feedback": "خدمة ممتازة!"
 }
 ```
 
+**Parameters:**
+- `rating`: مطلوب، التقييم من 1 إلى 5 (number)
+- `feedback`: اختياري، تعليق إضافي (string)
+
 **Response:**
-```dart
+```json
 {
   "success": true,
-  "message": "Thank you for your feedback",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "ticketNumber": "TKT-2024-001234",
+    "satisfactionRating": 5,
+    "satisfactionFeedback": "خدمة ممتازة!",
+    "satisfactionRatedAt": "2024-01-16T17:00:00Z",
+    ...
+  },
+  "message": "Rating submitted successfully",
   "messageAr": "شكراً لتقييمك"
 }
 ```
@@ -1170,7 +1339,7 @@ Future<TicketMessage> addMessageToTicket({
 **Flutter Code:**
 ```dart
 /// تقييم التذكرة
-Future<void> rateTicket({
+Future<Ticket> rateTicket({
   required String ticketId,
   required int rating,
   String? feedback,
@@ -1180,9 +1349,85 @@ Future<void> rateTicket({
     if (feedback != null) 'feedback': feedback,
   });
   
-  if (!response.data['success']) {
-    throw Exception(response.data['messageAr']);
+  if (response.data['success']) {
+    return Ticket.fromJson(response.data['data']);
   }
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
+}
+```
+
+---
+
+#### 7️⃣ رفع مرفقات التذكرة
+
+**Endpoint:** `POST /tickets/upload`
+
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**Request Body (multipart/form-data):**
+```json
+{
+  "files": [
+    {
+      "base64": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+      "filename": "image1.jpg"
+    },
+    {
+      "base64": "data:image/png;base64,iVBORw0KGgo...",
+      "filename": "screenshot.png"
+    }
+  ]
+}
+```
+
+**Parameters:**
+- `files`: مطلوب، مصفوفة من الملفات (array)
+  - `base64`: مطلوب، الملف بصيغة base64 (string)
+  - `filename`: مطلوب، اسم الملف (string)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "urls": [
+      "https://example.com/uploads/support/tickets/image1.jpg",
+      "https://example.com/uploads/support/tickets/screenshot.png"
+    ]
+  },
+  "message": "Files uploaded successfully",
+  "messageAr": "تم رفع الملفات بنجاح"
+}
+```
+
+**Flutter Code:**
+```dart
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
+
+/// رفع مرفقات التذكرة
+Future<List<String>> uploadTicketAttachments(List<XFile> files) async {
+  final List<Map<String, String>> filesData = [];
+  
+  for (final file in files) {
+    final bytes = await file.readAsBytes();
+    final base64String = base64Encode(bytes);
+    final mimeType = file.mimeType ?? 'application/octet-stream';
+    
+    filesData.add({
+      'base64': 'data:$mimeType;base64,$base64String',
+      'filename': file.name,
+    });
+  }
+  
+  final response = await _dio.post('/tickets/upload', data: {
+    'files': filesData,
+  });
+  
+  if (response.data['success']) {
+    return List<String>.from(response.data['data']['urls']);
+  }
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
@@ -1190,7 +1435,7 @@ Future<void> rateTicket({
 
 ### 💬 Live Chat
 
-#### 7️⃣ بدء محادثة جديدة
+#### 8️⃣ بدء محادثة جديدة
 
 **Endpoint:** `POST /chat/start`
 
@@ -1244,13 +1489,13 @@ Future<ChatSession> startChat({
   if (response.data['success']) {
     return ChatSession.fromJson(response.data['data']);
   }
-  throw Exception(response.data['messageAr']);
+  throw Exception(response.data['messageAr'] ?? response.data['message']);
 }
 ```
 
 ---
 
-#### 8️⃣ جلب جلستي النشطة
+#### 9️⃣ جلب جلستي النشطة
 
 **Endpoint:** `GET /chat/my-session`
 
@@ -1416,38 +1661,32 @@ class SupportService {
   // Ticket Categories (Public)
   // ═════════════════════════════════════
   
-  Future<List<TicketCategory>> getCategories() async {
-    final response = await _dio.get('/tickets/categories');
+  Future<List<TicketCategory>> getCategories({bool activeOnly = true}) async {
+    final response = await _dio.get('/tickets/categories', queryParameters: {
+      'activeOnly': activeOnly.toString(),
+    });
     
     if (response.data['success']) {
       return (response.data['data'] as List)
           .map((c) => TicketCategory.fromJson(c))
           .toList();
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
   // ═════════════════════════════════════
   // My Tickets
   // ═════════════════════════════════════
   
-  Future<List<Ticket>> getMyTickets({
-    int page = 1,
-    int limit = 10,
-    TicketStatus? status,
-  }) async {
-    final response = await _dio.get('/tickets/my', queryParameters: {
-      'page': page,
-      'limit': limit,
-      if (status != null) 'status': status.name,
-    });
+  Future<List<Ticket>> getMyTickets() async {
+    final response = await _dio.get('/tickets/my');
     
     if (response.data['success']) {
       return (response.data['data'] as List)
           .map((t) => Ticket.fromJson(t))
           .toList();
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
   Future<Ticket> createTicket({
@@ -1458,30 +1697,41 @@ class SupportService {
     String? orderId,
     String? productId,
     List<String>? attachments,
+    String? source,
   }) async {
     final response = await _dio.post('/tickets', data: {
-      'category': categoryId,
+      'categoryId': categoryId,
       'subject': subject,
       'description': description,
       if (priority != null) 'priority': priority.name,
       if (orderId != null) 'orderId': orderId,
       if (productId != null) 'productId': productId,
-      if (attachments != null) 'attachments': attachments,
+      if (attachments != null && attachments.isNotEmpty) 'attachments': attachments,
+      if (source != null) 'source': source,
     });
     
     if (response.data['success']) {
       return Ticket.fromJson(response.data['data']);
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
-  Future<Ticket> getMyTicketById(String ticketId) async {
+  Future<Map<String, dynamic>> getMyTicketById(String ticketId) async {
     final response = await _dio.get('/tickets/my/$ticketId');
     
     if (response.data['success']) {
-      return Ticket.fromJson(response.data['data']);
+      final data = response.data['data'];
+      final ticket = Ticket.fromJson(data['ticket']);
+      final messages = (data['messages'] as List?)
+          ?.map((m) => TicketMessage.fromJson(m))
+          .toList() ?? [];
+      
+      return {
+        'ticket': ticket,
+        'messages': messages,
+      };
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
   Future<TicketMessage> addMessageToTicket({
@@ -1491,16 +1741,16 @@ class SupportService {
   }) async {
     final response = await _dio.post('/tickets/my/$ticketId/messages', data: {
       'content': content,
-      if (attachments != null) 'attachments': attachments,
+      if (attachments != null && attachments.isNotEmpty) 'attachments': attachments,
     });
     
     if (response.data['success']) {
       return TicketMessage.fromJson(response.data['data']);
     }
-    throw Exception(response.data['messageAr']);
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
-  Future<void> rateTicket({
+  Future<Ticket> rateTicket({
     required String ticketId,
     required int rating,
     String? feedback,
@@ -1510,9 +1760,10 @@ class SupportService {
       if (feedback != null) 'feedback': feedback,
     });
     
-    if (!response.data['success']) {
-      throw Exception(response.data['messageAr']);
+    if (response.data['success']) {
+      return Ticket.fromJson(response.data['data']);
     }
+    throw Exception(response.data['messageAr'] ?? response.data['message']);
   }
   
   // ═════════════════════════════════════
@@ -2058,21 +2309,78 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
 
 ## ⚠️ الأخطاء المحتملة
 
-| Error Code | Message | الوصف |
-|------------|---------|-------|
-| `TICKET_NOT_FOUND` | Ticket not found | التذكرة غير موجودة |
-| `TICKET_CLOSED` | Ticket is closed | التذكرة مغلقة |
-| `CATEGORY_NOT_FOUND` | Category not found | الفئة غير موجودة |
-| `ORDER_REQUIRED` | Order ID is required | معرف الطلب مطلوب |
-| `CHAT_SESSION_NOT_FOUND` | No active chat session | لا توجد جلسة محادثة نشطة |
-| `CHAT_SESSION_ENDED` | Chat session has ended | انتهت جلسة المحادثة |
-| `ALREADY_RATED` | Already rated | تم التقييم مسبقاً |
+| HTTP Code | Message | الوصف |
+|-----------|---------|-------|
+| `404` | Ticket not found | التذكرة غير موجودة |
+| `400` | Category not found | الفئة غير موجودة |
+| `400` | Order ID is required | معرف الطلب مطلوب |
+| `400` | Failed to upload files | فشل رفع الملفات |
+| `400` | Already rated | تم التقييم مسبقاً |
+| `401` | Unauthorized | غير مصرح - تحتاج لتسجيل الدخول |
+| `403` | Forbidden | ممنوع - ليس لديك صلاحية |
+
+### معالجة الأخطاء
+
+```dart
+try {
+  final ticket = await supportService.createTicket(
+    categoryId: selectedCategoryId,
+    subject: subjectController.text,
+    description: descriptionController.text,
+  );
+  
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => TicketDetailsScreen(ticketId: ticket.id),
+    ),
+  );
+} on DioException catch (e) {
+  String errorMessage = 'حدث خطأ غير متوقع';
+  
+  if (e.response != null) {
+    final statusCode = e.response!.statusCode;
+    final data = e.response!.data;
+    
+    switch (statusCode) {
+      case 400:
+        errorMessage = data['messageAr'] ?? data['message'] ?? 'بيانات غير صحيحة';
+        break;
+      case 401:
+        errorMessage = 'يرجى تسجيل الدخول أولاً';
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+        return;
+      case 404:
+        errorMessage = 'التذكرة غير موجودة';
+        break;
+      default:
+        errorMessage = data['messageAr'] ?? data['message'] ?? 'حدث خطأ في السيرفر';
+    }
+  }
+  
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(errorMessage),
+      backgroundColor: Colors.red,
+    ),
+  );
+} catch (e) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('حدث خطأ: ${e.toString()}'),
+      backgroundColor: Colors.red,
+    ),
+  );
+}
+```
 
 ---
 
 ## 📝 ملخص الـ Endpoints
 
-### Tickets
+### Customer Endpoints
+
+#### Tickets
 
 | Method | Endpoint | Auth | الوصف |
 |--------|----------|------|-------|
@@ -2082,8 +2390,9 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
 | GET | `/tickets/my/:id` | ✅ | تفاصيل تذكرتي |
 | POST | `/tickets/my/:id/messages` | ✅ | إضافة رسالة لتذكرتي |
 | POST | `/tickets/my/:id/rate` | ✅ | تقييم التذكرة |
+| POST | `/tickets/upload` | ✅ | رفع مرفقات التذكرة |
 
-### Live Chat
+#### Live Chat
 
 | Method | Endpoint | Auth | الوصف |
 |--------|----------|------|-------|
@@ -2091,6 +2400,26 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
 | GET | `/chat/my-session` | ✅ | جلستي النشطة |
 | POST | `/chat/my-session/messages` | ✅ | إرسال رسالة |
 | POST | `/chat/my-session/end` | ✅ | إنهاء المحادثة |
+
+### Admin Endpoints (للتوثيق فقط)
+
+| Method | Endpoint | Auth | الوصف |
+|--------|----------|------|-------|
+| GET | `/tickets/admin` | Admin | جميع التذاكر |
+| POST | `/tickets/admin/search` | Admin | بحث متقدم |
+| GET | `/tickets/admin/stats` | Admin | إحصائيات التذاكر |
+| GET | `/tickets/admin/my-stats` | Admin | إحصائياتي كوكيل |
+| GET | `/tickets/admin/:id` | Admin | تفاصيل تذكرة |
+| PUT | `/tickets/admin/:id/status` | Admin | تحديث حالة التذكرة |
+| PUT | `/tickets/admin/:id/assign` | Admin | تعيين تذكرة لوكيل |
+| PUT | `/tickets/admin/:id/escalate` | Admin | تصعيد تذكرة |
+| POST | `/tickets/admin/:id/messages` | Admin | إضافة رسالة (وكيل) |
+| POST | `/tickets/admin/merge` | Admin | دمج تذاكر |
+| GET | `/tickets/canned-responses` | Admin | الردود الجاهزة |
+| POST | `/tickets/canned-responses` | Admin | إنشاء رد جاهز |
+| POST | `/tickets/canned-responses/:id/use` | Admin | استخدام رد جاهز |
+| POST | `/tickets/categories` | Admin | إنشاء فئة |
+| PUT | `/tickets/categories/:id` | Admin | تحديث فئة |
 
 ---
 
