@@ -910,21 +910,6 @@ class StartChatRequest {
 Object? _readId(Map<dynamic, dynamic> json, String key) =>
     json['_id'] ?? json['id'];
 
-/// قراءة category ID
-Object? _readCategoryId(Map<dynamic, dynamic> json, String key) {
-  final category = json['category'];
-  if (category is String) return category;
-  if (category is Map) return category['_id'] ?? category['id'] ?? '';
-  return '';
-}
-
-/// قراءة category object
-Object? _readCategoryObject(Map<dynamic, dynamic> json, String key) {
-  final category = json['category'];
-  if (category is Map) return category;
-  return null;
-}
-
 /// قراءة ticket ID
 Object? _readTicketId(Map<dynamic, dynamic> json, String key) {
   final ticket = json['ticket'];

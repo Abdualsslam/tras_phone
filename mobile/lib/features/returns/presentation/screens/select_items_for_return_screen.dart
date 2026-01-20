@@ -2,10 +2,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/loading_widget.dart';
-import '../../../../core/widgets/error_widget.dart';
+import '../../../../core/widgets/loading/app_loading.dart';
+import '../../../../core/widgets/feedback/app_error.dart';
 import '../../../orders/data/models/order_model.dart';
-import '../../../orders/data/datasources/orders_remote_datasource.dart';
 import '../../data/models/return_model.dart';
 import 'create_return_screen.dart';
 
@@ -22,13 +21,13 @@ class _SelectItemsForReturnScreenState
     extends State<SelectItemsForReturnScreen> {
   /// Map of orderItemId -> quantity
   final Map<String, int> _selectedItems = {};
-  
+
   /// List of eligible orders
   List<OrderModel> _eligibleOrders = [];
-  
+
   /// Loading state
   bool _isLoading = true;
-  
+
   /// Error message
   String? _errorMessage;
 
@@ -52,10 +51,10 @@ class _SelectItemsForReturnScreenState
       // - status = 'delivered'
       // - deliveredAt within return window (e.g., last 30 days)
       // final orders = await ordersDataSource.getMyOrders(status: 'delivered');
-      
+
       // Placeholder: Empty list for now
       _eligibleOrders = [];
-      
+
       setState(() {
         _isLoading = false;
       });
@@ -68,6 +67,7 @@ class _SelectItemsForReturnScreenState
   }
 
   /// تبديل اختيار المنتج
+  /// orderItemId هو معرف فريد يتكون من orderId + productId + variantId
   void _toggleItem(String orderItemId, int maxQuantity) {
     setState(() {
       if (_selectedItems.containsKey(orderItemId)) {
@@ -84,18 +84,15 @@ class _SelectItemsForReturnScreenState
 
     // تحويل selectedItems إلى List<CreateReturnItemRequest>
     final items = _selectedItems.entries
-        .map((e) => CreateReturnItemRequest(
-              orderItemId: e.key,
-              quantity: e.value,
-            ))
+        .map(
+          (e) => CreateReturnItemRequest(orderItemId: e.key, quantity: e.value),
+        )
         .toList();
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CreateReturnScreen(
-          preSelectedItems: items,
-        ),
+        builder: (_) => CreateReturnScreen(preSelectedItems: items),
       ),
     );
   }
@@ -108,45 +105,39 @@ class _SelectItemsForReturnScreenState
         centerTitle: true,
       ),
       body: _isLoading
-          ? const LoadingWidget()
+          ? const AppLoading()
           : _errorMessage != null
-              ? ErrorWidgetCustom(
-                  message: _errorMessage!,
-                  onRetry: _loadEligibleOrders,
-                )
-              : _eligibleOrders.isEmpty
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.shopping_bag_outlined,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'لا توجد طلبات مؤهلة للإرجاع',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _eligibleOrders.length,
-                      itemBuilder: (context, index) {
-                        final order = _eligibleOrders[index];
-                        return _OrderCard(
-                          order: order,
-                          selectedItems: _selectedItems,
-                          onItemToggle: _toggleItem,
-                        );
-                      },
-                    ),
+          ? AppError(message: _errorMessage!, onRetry: _loadEligibleOrders)
+          : _eligibleOrders.isEmpty
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.shopping_bag_outlined,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'لا توجد طلبات مؤهلة للإرجاع',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _eligibleOrders.length,
+              itemBuilder: (context, index) {
+                final order = _eligibleOrders[index];
+                return _OrderCard(
+                  order: order,
+                  selectedItems: _selectedItems,
+                  onItemToggle: _toggleItem,
+                );
+              },
+            ),
       bottomNavigationBar: _selectedItems.isNotEmpty
           ? SafeArea(
               child: Padding(
@@ -190,15 +181,20 @@ class _OrderCard extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text('${order.items.length} منتج'),
-        children: order.items.map((item) {
-          final isSelected = selectedItems.containsKey(item.id);
-          
+        children: order.items.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          // إنشاء معرف فريد من order.id + productId + variantId + index
+          final orderItemId =
+              '${order.id}_${item.productId}_${item.variantId ?? ''}_$index';
+          final isSelected = selectedItems.containsKey(orderItemId);
+
           return CheckboxListTile(
             value: isSelected,
             onChanged: (checked) {
-              onItemToggle(item.id, item.quantity);
+              onItemToggle(orderItemId, item.quantity);
             },
-            title: Text(item.productName),
+            title: Text(item.nameAr ?? item.name),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -206,11 +202,11 @@ class _OrderCard extends StatelessWidget {
                 Text('الكمية: ${item.quantity}'),
               ],
             ),
-            secondary: item.productImage != null
+            secondary: item.image != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      item.productImage!,
+                      item.image!,
                       width: 50,
                       height: 50,
                       fit: BoxFit.cover,

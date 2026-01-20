@@ -39,6 +39,7 @@ import '../features/reviews/presentation/screens/my_reviews_screen.dart';
 import '../features/returns/presentation/screens/returns_list_screen.dart';
 import '../features/returns/presentation/screens/create_return_screen.dart';
 import '../features/returns/presentation/screens/return_details_screen.dart';
+import '../features/returns/data/models/return_model.dart';
 import '../features/support/presentation/screens/support_tickets_screen.dart';
 import '../features/support/presentation/screens/ticket_chat_screen.dart';
 import '../features/support/presentation/screens/create_ticket_screen.dart';
@@ -208,10 +209,10 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const ReturnsListScreen(),
     ),
     GoRoute(
-      path: '/returns/create/:orderId',
+      path: '/returns/create',
       builder: (context, state) {
-        final id = int.tryParse(state.pathParameters['orderId'] ?? '') ?? 0;
-        return CreateReturnScreen(orderId: id);
+        final preSelectedItems = state.extra as List<CreateReturnItemRequest>?;
+        return CreateReturnScreen(preSelectedItems: preSelectedItems);
       },
     ),
 

@@ -65,35 +65,6 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _onSearchChanged(String query) {
-    _debounceTimer?.cancel();
-
-    if (query.isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _hasSearched = false;
-        _showSuggestions = false;
-        _autocompleteSuggestions = [];
-      });
-      return;
-    }
-
-    if (query.length >= 2) {
-      // Show autocomplete suggestions with debounce
-      setState(() {
-        _showSuggestions = true;
-      });
-
-      _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-        _loadAutocompleteSuggestions(query);
-      });
-    } else {
-      setState(() {
-        _showSuggestions = false;
-        _autocompleteSuggestions = [];
-      });
-    }
-  }
 
   Future<void> _loadAutocompleteSuggestions(String query) async {
     try {
@@ -108,7 +79,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  Future<void> _performSearchAsync(String query, {bool fromAutocomplete = false}) async {
+  Future<void> _performSearchAsync(String query) async {
     if (query.isEmpty) {
       setState(() {
         _searchResults = [];
@@ -159,7 +130,41 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _performSearch(String query) {
+  void _performSearch(String query, {bool fromAutocomplete = false}) {
+    if (!fromAutocomplete) {
+      // Handle autocomplete suggestions for onChanged
+      _debounceTimer?.cancel();
+
+      if (query.isEmpty) {
+        setState(() {
+          _searchResults = [];
+          _hasSearched = false;
+          _showSuggestions = false;
+          _autocompleteSuggestions = [];
+        });
+        return;
+      }
+
+      if (query.length >= 2) {
+        // Show autocomplete suggestions with debounce
+        setState(() {
+          _showSuggestions = true;
+        });
+
+        _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+          _loadAutocompleteSuggestions(query);
+        });
+        return;
+      } else {
+        setState(() {
+          _showSuggestions = false;
+          _autocompleteSuggestions = [];
+        });
+        return;
+      }
+    }
+
+    // Perform actual search
     _performSearchAsync(query);
   }
 
@@ -195,8 +200,8 @@ class _SearchScreenState extends State<SearchScreen> {
       child: TextField(
         controller: _searchController,
         focusNode: _focusNode,
-        onChanged: _performSearch,
-        onSubmitted: _performSearch,
+        onChanged: (query) => _performSearch(query),
+        onSubmitted: (query) => _performSearch(query, fromAutocomplete: true),
         style: theme.textTheme.bodyLarge,
         decoration: InputDecoration(
           hintText: AppLocalizations.of(context)!.search,

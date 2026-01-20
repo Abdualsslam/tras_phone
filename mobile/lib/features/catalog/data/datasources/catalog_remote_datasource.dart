@@ -280,6 +280,100 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   // PRODUCTS
   // ═══════════════════════════════════════════════════════════════════════════
 
+  /// Helper method to print product data to terminal
+  void _printProductData(ProductEntity product, {String? context}) {
+    print('\n${'=' * 80}');
+    if (context != null) {
+      print('📦 $context');
+      print('${'=' * 80}');
+    }
+    print('🆔 ID: ${product.id}');
+    print('📋 SKU: ${product.sku}');
+    print('📝 Name (EN): ${product.name}');
+    print('📝 Name (AR): ${product.nameAr}');
+    print('🔗 Slug: ${product.slug}');
+    if (product.shortDescription != null) {
+      print('📄 Short Description: ${product.shortDescription}');
+    }
+    if (product.description != null) {
+      print('📄 Description: ${product.description?.substring(0, product.description!.length > 100 ? 100 : product.description!.length)}...');
+    }
+    print('🏷️  Brand ID: ${product.brandId}');
+    if (product.brandName != null) {
+      print('   Brand Name: ${product.brandName}');
+    }
+    print('📂 Category ID: ${product.categoryId}');
+    if (product.categoryName != null) {
+      print('   Category Name: ${product.categoryName}');
+    }
+    print('⭐ Quality Type ID: ${product.qualityTypeId}');
+    if (product.qualityTypeName != null) {
+      print('   Quality Type: ${product.qualityTypeName}');
+    }
+    print('💰 Base Price: ${product.basePrice}');
+    if (product.compareAtPrice != null) {
+      print('💰 Compare At Price: ${product.compareAtPrice}');
+      print('🎯 Discount: ${product.discountPercentage}%');
+    }
+    print('📦 Stock Quantity: ${product.stockQuantity}');
+    print('⚠️  Low Stock Threshold: ${product.lowStockThreshold}');
+    print('📊 Status: ${product.status}');
+    print('✅ Is Active: ${product.isActive}');
+    print('⭐ Is Featured: ${product.isFeatured}');
+    print('🆕 Is New Arrival: ${product.isNewArrival}');
+    print('🔥 Is Best Seller: ${product.isBestSeller}');
+    if (product.mainImage != null) {
+      print('🖼️  Main Image: ${product.mainImage}');
+    }
+    if (product.images.isNotEmpty) {
+      print('🖼️  Images (${product.images.length}): ${product.images.join(", ")}');
+    }
+    if (product.compatibleDevices.isNotEmpty) {
+      print('📱 Compatible Devices: ${product.compatibleDevices.join(", ")}');
+    }
+    print('👁️  Views: ${product.viewsCount}');
+    print('🛒 Orders: ${product.ordersCount}');
+    print('⭐ Reviews: ${product.reviewsCount}');
+    print('⭐ Average Rating: ${product.averageRating}');
+    print('❤️  Wishlist Count: ${product.wishlistCount}');
+    if (product.tags.isNotEmpty) {
+      print('🏷️  Tags: ${product.tags.join(", ")}');
+    }
+    if (product.specifications != null && product.specifications!.isNotEmpty) {
+      print('⚙️  Specifications: ${product.specifications}');
+    }
+    if (product.weight != null) {
+      print('⚖️  Weight: ${product.weight}');
+    }
+    if (product.dimensions != null) {
+      print('📏 Dimensions: ${product.dimensions}');
+    }
+    if (product.color != null) {
+      print('🎨 Color: ${product.color}');
+    }
+    if (product.warrantyDays != null) {
+      print('🛡️  Warranty: ${product.warrantyDays} days');
+    }
+    print('📅 Created At: ${product.createdAt}');
+    print('📅 Updated At: ${product.updatedAt}');
+    print('${'=' * 80}\n');
+  }
+
+  /// Helper method to print list of products
+  void _printProductsList(List<ProductEntity> products, {String? context}) {
+    print('\n${'=' * 80}');
+    if (context != null) {
+      print('📦 $context');
+    }
+    print('📊 Total Products: ${products.length}');
+    print('${'=' * 80}');
+    for (var i = 0; i < products.length; i++) {
+      print('\n[${i + 1}/${products.length}]');
+      _printProductData(products[i]);
+    }
+    print('${'=' * 80}\n');
+  }
+
   @override
   Future<List<ProductEntity>> getProducts({
     String? categoryId,
@@ -312,7 +406,12 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    
+    // Print products to terminal
+    _printProductsList(products, context: 'Products List (Page: $page)');
+    
+    return products;
   }
 
   @override
@@ -322,7 +421,12 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     try {
       final response = await _apiClient.get('${ApiEndpoints.products}/$id');
       final data = response.data['data'] ?? response.data;
-      return ProductModel.fromJson(data).toEntity();
+      final product = ProductModel.fromJson(data).toEntity();
+      
+      // Print product to terminal
+      _printProductData(product, context: 'Product by ID: $id');
+      
+      return product;
     } catch (e) {
       developer.log('Product not found: $id', name: 'CatalogDataSource');
       return null;
@@ -340,7 +444,12 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       );
       final data = response.data['data'] ?? response.data;
       if (data is List && data.isNotEmpty) {
-        return ProductModel.fromJson(data.first).toEntity();
+        final product = ProductModel.fromJson(data.first).toEntity();
+        
+        // Print product to terminal
+        _printProductData(product, context: 'Product by SKU: $sku');
+        
+        return product;
       }
       return null;
     } catch (e) {
@@ -360,7 +469,12 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    
+    // Print products to terminal
+    _printProductsList(products, context: 'Featured Products');
+    
+    return products;
   }
 
   @override
@@ -371,7 +485,12 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    
+    // Print products to terminal
+    _printProductsList(products, context: 'New Arrivals');
+    
+    return products;
   }
 
   @override
@@ -382,7 +501,12 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    
+    // Print products to terminal
+    _printProductsList(products, context: 'Best Sellers');
+    
+    return products;
   }
 
   @override
@@ -396,7 +520,12 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    
+    // Print products to terminal
+    _printProductsList(products, context: 'Products on Offer');
+    
+    return products;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -419,7 +548,12 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    
+    // Print products to terminal
+    _printProductsList(products, context: 'Search Results for: "$query"');
+    
+    return products;
   }
 
   @override

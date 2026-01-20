@@ -29,6 +29,138 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    // Print product details to terminal
+    _printProductDetails(widget.product);
+  }
+
+  /// Print complete product details to terminal
+  void _printProductDetails(ProductEntity product) {
+    print('\n${'=' * 80}');
+    print('📦 Product Details Screen - Complete Product Information');
+    print('${'=' * 80}');
+    print('🆔 ID: ${product.id}');
+    print('📋 SKU: ${product.sku}');
+    print('📝 Name (EN): ${product.name}');
+    print('📝 Name (AR): ${product.nameAr}');
+    print('🔗 Slug: ${product.slug}');
+    if (product.shortDescription != null) {
+      print('📄 Short Description: ${product.shortDescription}');
+    }
+    if (product.shortDescriptionAr != null) {
+      print('📄 Short Description (AR): ${product.shortDescriptionAr}');
+    }
+    if (product.description != null) {
+      print('📄 Description: ${product.description}');
+    }
+    if (product.descriptionAr != null) {
+      print('📄 Description (AR): ${product.descriptionAr}');
+    }
+    print('🏷️  Brand ID: ${product.brandId}');
+    if (product.brandName != null) {
+      print('   Brand Name: ${product.brandName}');
+    }
+    if (product.brandNameAr != null) {
+      print('   Brand Name (AR): ${product.brandNameAr}');
+    }
+    print('📂 Category ID: ${product.categoryId}');
+    if (product.categoryName != null) {
+      print('   Category Name: ${product.categoryName}');
+    }
+    if (product.categoryNameAr != null) {
+      print('   Category Name (AR): ${product.categoryNameAr}');
+    }
+    if (product.additionalCategories.isNotEmpty) {
+      print('📂 Additional Categories: ${product.additionalCategories.join(", ")}');
+    }
+    print('⭐ Quality Type ID: ${product.qualityTypeId}');
+    if (product.qualityTypeName != null) {
+      print('   Quality Type: ${product.qualityTypeName}');
+    }
+    if (product.qualityTypeNameAr != null) {
+      print('   Quality Type (AR): ${product.qualityTypeNameAr}');
+    }
+    print('💰 Base Price: ${product.basePrice}');
+    if (product.compareAtPrice != null) {
+      print('💰 Compare At Price: ${product.compareAtPrice}');
+      print('🎯 Discount: ${product.discountPercentage}%');
+      print('💵 Savings: ${product.compareAtPrice! - product.basePrice}');
+    }
+    print('📦 Stock Quantity: ${product.stockQuantity}');
+    print('⚠️  Low Stock Threshold: ${product.lowStockThreshold}');
+    print('📊 Track Inventory: ${product.trackInventory}');
+    print('📊 Allow Backorder: ${product.allowBackorder}');
+    print('📊 Status: ${product.status}');
+    print('✅ Is Active: ${product.isActive}');
+    print('⭐ Is Featured: ${product.isFeatured}');
+    print('🆕 Is New Arrival: ${product.isNewArrival}');
+    print('🔥 Is Best Seller: ${product.isBestSeller}');
+    print('📦 Min Order Quantity: ${product.minOrderQuantity}');
+    if (product.maxOrderQuantity != null) {
+      print('📦 Max Order Quantity: ${product.maxOrderQuantity}');
+    }
+    print('📦 Quantity Step: ${product.quantityStep}');
+    if (product.mainImage != null) {
+      print('🖼️  Main Image: ${product.mainImage}');
+    }
+    if (product.images.isNotEmpty) {
+      print('🖼️  Images (${product.images.length}):');
+      for (var i = 0; i < product.images.length; i++) {
+        print('   [${i + 1}] ${product.images[i]}');
+      }
+    }
+    if (product.video != null) {
+      print('🎥 Video: ${product.video}');
+    }
+    if (product.compatibleDevices.isNotEmpty) {
+      print('📱 Compatible Devices (${product.compatibleDevices.length}):');
+      for (var i = 0; i < product.compatibleDevices.length; i++) {
+        print('   [${i + 1}] ${product.compatibleDevices[i]}');
+      }
+    }
+    print('👁️  Views Count: ${product.viewsCount}');
+    print('🛒 Orders Count: ${product.ordersCount}');
+    print('⭐ Reviews Count: ${product.reviewsCount}');
+    print('⭐ Average Rating: ${product.averageRating}');
+    print('❤️  Wishlist Count: ${product.wishlistCount}');
+    if (product.tags.isNotEmpty) {
+      print('🏷️  Tags (${product.tags.length}):');
+      for (var i = 0; i < product.tags.length; i++) {
+        print('   [${i + 1}] ${product.tags[i]}');
+      }
+    }
+    if (product.specifications != null && product.specifications!.isNotEmpty) {
+      print('⚙️  Specifications:');
+      product.specifications!.forEach((key, value) {
+        print('   • $key: $value');
+      });
+    }
+    if (product.weight != null) {
+      print('⚖️  Weight: ${product.weight}');
+    }
+    if (product.dimensions != null) {
+      print('📏 Dimensions: ${product.dimensions}');
+    }
+    if (product.color != null) {
+      print('🎨 Color: ${product.color}');
+    }
+    if (product.warrantyDays != null) {
+      print('🛡️  Warranty: ${product.warrantyDays} days');
+    }
+    if (product.warrantyDescription != null) {
+      print('🛡️  Warranty Description: ${product.warrantyDescription}');
+    }
+    if (product.publishedAt != null) {
+      print('📅 Published At: ${product.publishedAt}');
+    }
+    print('📅 Created At: ${product.createdAt}');
+    print('📅 Updated At: ${product.updatedAt}');
+    print('\n📊 Product Status Summary:');
+    print('   • In Stock: ${product.isInStock}');
+    print('   • Low Stock: ${product.isLowStock}');
+    print('   • Out of Stock: ${product.isOutOfStock}');
+    print('   • Can Order: ${product.canOrder}');
+    print('   • Has Discount: ${product.hasDiscount}');
+    print('${'=' * 80}\n');
   }
 
   @override

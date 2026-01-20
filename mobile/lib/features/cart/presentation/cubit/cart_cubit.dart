@@ -18,9 +18,9 @@ class CartCubit extends Cubit<CartState> {
   CartCubit({
     required CartRemoteDataSource remoteDataSource,
     required CartLocalDataSource localDataSource,
-  })  : _remoteDataSource = remoteDataSource,
-        _localDataSource = localDataSource,
-        super(const CartInitial()) {
+  }) : _remoteDataSource = remoteDataSource,
+       _localDataSource = localDataSource,
+       super(const CartInitial()) {
     // Load local cart on initialization
     _loadLocalCart();
   }
@@ -30,7 +30,7 @@ class CartCubit extends Cubit<CartState> {
     emit(const CartLoading());
 
     try {
-      final cart = await _dataSource.getCart();
+      final cart = await _remoteDataSource.getCart();
       emit(CartLoaded(cart));
     } catch (e) {
       emit(CartError(e.toString()));
@@ -49,7 +49,7 @@ class CartCubit extends Cubit<CartState> {
     }
 
     try {
-      final cart = await _dataSource.addToCart(
+      final cart = await _remoteDataSource.addToCart(
         productId: productId,
         quantity: quantity,
         unitPrice: unitPrice,
@@ -68,7 +68,7 @@ class CartCubit extends Cubit<CartState> {
     }
 
     try {
-      final cart = await _dataSource.updateQuantity(
+      final cart = await _remoteDataSource.updateQuantity(
         productId: productId,
         quantity: quantity,
       );
@@ -86,7 +86,7 @@ class CartCubit extends Cubit<CartState> {
     }
 
     try {
-      final cart = await _dataSource.removeFromCart(productId: productId);
+      final cart = await _remoteDataSource.removeFromCart(productId: productId);
       emit(CartLoaded(cart));
     } catch (e) {
       emit(CartError(e.toString(), previousCart: currentCart));
@@ -98,7 +98,7 @@ class CartCubit extends Cubit<CartState> {
     emit(const CartLoading());
 
     try {
-      final cart = await _dataSource.clearCart();
+      final cart = await _remoteDataSource.clearCart();
       emit(CartLoaded(cart));
     } catch (e) {
       emit(CartError(e.toString()));
@@ -117,7 +117,7 @@ class CartCubit extends Cubit<CartState> {
     }
 
     try {
-      final cart = await _dataSource.applyCoupon(
+      final cart = await _remoteDataSource.applyCoupon(
         couponId: couponId,
         couponCode: couponCode,
         discountAmount: discountAmount,
@@ -136,7 +136,7 @@ class CartCubit extends Cubit<CartState> {
     }
 
     try {
-      final cart = await _dataSource.removeCoupon();
+      final cart = await _remoteDataSource.removeCoupon();
       emit(CartLoaded(cart));
     } catch (e) {
       emit(CartError(e.toString(), previousCart: currentCart));
@@ -166,13 +166,17 @@ class CartCubit extends Cubit<CartState> {
           // Keep initial state if cart is empty
           return;
         }
-        emit(const CartLoaded(CartEntity(
-          id: 'local',
-          customerId: '',
-          items: [],
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        )));
+        emit(
+          CartLoaded(
+            CartEntity(
+              id: 'local',
+              customerId: '',
+              items: [],
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+          ),
+        );
         return;
       }
 
@@ -252,13 +256,17 @@ class CartCubit extends Cubit<CartState> {
   Future<void> clearCartLocal() async {
     try {
       await _localDataSource.clearCartLocal();
-      emit(const CartLoaded(CartEntity(
-        id: 'local',
-        customerId: '',
-        items: [],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      )));
+      emit(
+        CartLoaded(
+          CartEntity(
+            id: 'local',
+            customerId: '',
+            items: [],
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        ),
+      );
     } catch (e) {
       emit(CartError('Failed to clear cart: ${e.toString()}'));
     }
@@ -280,7 +288,7 @@ class CartCubit extends Cubit<CartState> {
     try {
       // Get local cart items
       final localItems = await _localDataSource.getLocalCart();
-      
+
       if (localItems.isEmpty) {
         // If local cart is empty, just load server cart
         if (!silent) {
@@ -290,11 +298,15 @@ class CartCubit extends Cubit<CartState> {
       }
 
       // Convert to format expected by server
-      final itemsForSync = localItems.map((item) => {
-        'productId': item.productId,
-        'quantity': item.quantity,
-        'unitPrice': item.unitPrice,
-      }).toList();
+      final itemsForSync = localItems
+          .map(
+            (item) => {
+              'productId': item.productId,
+              'quantity': item.quantity,
+              'unitPrice': item.unitPrice,
+            },
+          )
+          .toList();
 
       // Sync with server
       final syncResult = await _remoteDataSource.syncCartWithResults(
@@ -363,8 +375,14 @@ class CartCubit extends Cubit<CartState> {
       );
     }).toList();
 
-    final itemsCount = cartItems.fold<int>(0, (sum, item) => sum + item.quantity);
-    final subtotal = cartItems.fold<double>(0, (sum, item) => sum + item.totalPrice);
+    final itemsCount = cartItems.fold<int>(
+      0,
+      (sum, item) => sum + item.quantity,
+    );
+    final subtotal = cartItems.fold<double>(
+      0,
+      (sum, item) => sum + item.totalPrice,
+    );
 
     return CartEntity(
       id: 'local',

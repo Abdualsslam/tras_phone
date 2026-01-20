@@ -111,8 +111,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }) async {
     developer.log('Attempting login for phone: $phone', name: 'AuthDataSource');
 
-    // Format phone to international format
+    // Format phone to international format (+966)
     final formattedPhone = Formatters.phoneToInternational(phone);
+    developer.log('Formatted phone for API: $formattedPhone', name: 'AuthDataSource');
 
     final response = await _apiClient.post(
       ApiEndpoints.login,

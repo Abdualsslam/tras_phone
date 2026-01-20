@@ -38,7 +38,6 @@ class _EducationListView extends StatefulWidget {
 
 class _EducationListViewState extends State<_EducationListView> {
   final ScrollController _scrollController = ScrollController();
-  ContentType? _selectedType;
 
   @override
   void initState() {
@@ -70,7 +69,6 @@ class _EducationListViewState extends State<_EducationListView> {
           PopupMenuButton<ContentType?>(
             icon: const Icon(Iconsax.filter),
             onSelected: (type) {
-              setState(() => _selectedType = type);
               context.read<EducationContentCubit>().filterByType(type);
             },
             itemBuilder: (context) => [

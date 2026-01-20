@@ -15,14 +15,14 @@ class EducationFavoritesScreen extends StatefulWidget {
   const EducationFavoritesScreen({super.key});
 
   @override
-  State<EducationFavoritesScreen> createState() => _EducationFavoritesScreenState();
+  State<EducationFavoritesScreen> createState() =>
+      _EducationFavoritesScreenState();
 }
 
 class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
   final FavoritesService _favoritesService = getIt<FavoritesService>();
   final EducationRepository _repository = getIt<EducationRepository>();
-  
-  List<String> _favoriteIds = [];
+
   List<EducationalContentEntity> _favoriteContent = [];
   bool _isLoading = true;
   String? _error;
@@ -41,7 +41,6 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
 
     try {
       final favoriteIds = await _favoritesService.getFavorites();
-      setState(() => _favoriteIds = favoriteIds);
 
       // Load content for each favorite ID
       final List<EducationalContentEntity> content = [];
@@ -72,7 +71,7 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
   Future<void> _removeFavorite(String contentId) async {
     await _favoritesService.removeFavorite(contentId);
     await _loadFavorites();
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -106,7 +105,7 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
     if (confirmed == true) {
       await _favoritesService.clearFavorites();
       await _loadFavorites();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -157,7 +156,10 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
             SizedBox(height: 8.h),
             Text(
               _error!,
-              style: TextStyle(fontSize: 14.sp, color: AppColors.textSecondaryLight),
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: AppColors.textSecondaryLight,
+              ),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 24.h),
@@ -186,10 +188,7 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
               SizedBox(height: 16.h),
               Text(
                 'لا توجد مفضلة',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
               ),
               SizedBox(height: 8.h),
               Text(
@@ -265,11 +264,7 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
           color: Colors.red,
           borderRadius: BorderRadius.circular(12.r),
         ),
-        child: Icon(
-          Iconsax.trash,
-          color: Colors.white,
-          size: 24.sp,
-        ),
+        child: Icon(Iconsax.trash, color: Colors.white, size: 24.sp),
       ),
       onDismissed: (_) => _removeFavorite(content.id),
       child: GestureDetector(
@@ -298,7 +293,9 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
                 ),
                 child: content.featuredImage == null
                     ? Icon(
-                        content.type == ContentType.video ? Iconsax.video : Iconsax.document_text,
+                        content.type == ContentType.video
+                            ? Iconsax.video
+                            : Iconsax.document_text,
                         size: 32.sp,
                         color: getTypeColor(content.type),
                       )
@@ -311,9 +308,14 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
                   children: [
                     // Type Badge
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 2.h,
+                      ),
                       decoration: BoxDecoration(
-                        color: getTypeColor(content.type).withValues(alpha: 0.1),
+                        color: getTypeColor(
+                          content.type,
+                        ).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4.r),
                       ),
                       child: Text(
@@ -340,7 +342,11 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
                     // Meta
                     Row(
                       children: [
-                        Icon(Iconsax.eye, size: 12.sp, color: AppColors.textSecondaryLight),
+                        Icon(
+                          Iconsax.eye,
+                          size: 12.sp,
+                          color: AppColors.textSecondaryLight,
+                        ),
                         SizedBox(width: 4.w),
                         Text(
                           '${content.viewCount}',
@@ -350,7 +356,11 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
                           ),
                         ),
                         SizedBox(width: 12.w),
-                        Icon(Iconsax.heart, size: 12.sp, color: AppColors.textSecondaryLight),
+                        Icon(
+                          Iconsax.heart,
+                          size: 12.sp,
+                          color: AppColors.textSecondaryLight,
+                        ),
                         SizedBox(width: 4.w),
                         Text(
                           '${content.likeCount}',

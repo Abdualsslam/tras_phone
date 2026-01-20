@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
-import '../../domain/entities/educational_category_entity.dart';
 import '../../domain/entities/educational_content_entity.dart';
 import '../cubit/education_categories_cubit.dart';
 import '../cubit/education_categories_state.dart';

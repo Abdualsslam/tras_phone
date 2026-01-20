@@ -1,7 +1,4 @@
 /// Local Cart Item Model - Model for local cart items stored on device
-library;
-
-import 'dart:convert';
 
 class LocalCartItemModel {
   final String productId;

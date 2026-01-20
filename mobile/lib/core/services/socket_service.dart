@@ -1,9 +1,9 @@
+/// Socket Service - WebSocket service for real-time communication
+library;
+
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'dart:developer' as developer;
 
-/// ═══════════════════════════════════════════════════════════════
-/// 🔌 WebSocket Service for Flutter App
-/// ═══════════════════════════════════════════════════════════════
 class SocketService {
   static final SocketService _instance = SocketService._internal();
   factory SocketService() => _instance;
@@ -66,9 +66,18 @@ class SocketService {
 
     // Chat events
     _socket!.on('chat:message', (data) => _emit('chat:message', data));
-    _socket!.on('chat:session:updated', (data) => _emit('chat:session:updated', data));
-    _socket!.on('chat:session:waiting', (data) => _emit('chat:session:waiting', data));
-    _socket!.on('chat:session:accepted', (data) => _emit('chat:session:accepted', data));
+    _socket!.on(
+      'chat:session:updated',
+      (data) => _emit('chat:session:updated', data),
+    );
+    _socket!.on(
+      'chat:session:waiting',
+      (data) => _emit('chat:session:waiting', data),
+    );
+    _socket!.on(
+      'chat:session:accepted',
+      (data) => _emit('chat:session:accepted', data),
+    );
     _socket!.on('typing:start', (data) => _emit('typing:start', data));
     _socket!.on('typing:stop', (data) => _emit('typing:stop', data));
   }
