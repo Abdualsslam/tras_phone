@@ -50,6 +50,19 @@ abstract class CatalogRepository {
     String parentId,
   );
 
+  /// Get products for a category by identifier (id or slug) with pagination and filters
+  Future<Either<Failure, Map<String, dynamic>>> getCategoryProducts(
+    String categoryIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  });
+
   // ═══════════════════════════════════════════════════════════════════════════
   // DEVICES
   // ═══════════════════════════════════════════════════════════════════════════

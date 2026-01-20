@@ -122,6 +122,36 @@ class CatalogRepositoryImpl implements CatalogRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> getCategoryProducts(
+    String categoryIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  }) async {
+    try {
+      final result = await _remoteDataSource.getCategoryProducts(
+        categoryIdentifier,
+        page: page,
+        limit: limit,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        brandId: brandId,
+        qualityTypeId: qualityTypeId,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // DEVICES
   // ═══════════════════════════════════════════════════════════════════════════

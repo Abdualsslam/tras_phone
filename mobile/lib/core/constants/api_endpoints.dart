@@ -40,6 +40,7 @@ class ApiEndpoints {
   static String brandProducts(String brandId) => '/catalog/brands/$brandId/products';
   static const String categories = '/catalog/categories';
   static const String categoriesTree = '/catalog/categories/tree';
+  static String categoryProducts(String identifier) => '/catalog/categories/$identifier/products';
   static const String devices = '/catalog/devices';
   static const String qualityTypes = '/catalog/quality-types';
   static const String products = '/products';

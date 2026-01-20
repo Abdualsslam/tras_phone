@@ -26,6 +26,17 @@ abstract class CatalogRemoteDataSource {
   Future<CategoryWithBreadcrumb?> getCategoryById(String id);
   Future<List<CategoryEntity>> getCategoryChildren(String parentId);
   Future<List<CategoryEntity>> getCategoriesTree();
+  Future<Map<String, dynamic>> getCategoryProducts(
+    String categoryIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  });
 
   // Brands
   Future<List<BrandEntity>> getBrands({bool? featured});
@@ -202,6 +213,78 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final List<dynamic> list = data is List ? data : [];
 
     return list.map((json) => CategoryModel.fromJson(json).toEntity()).toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>> getCategoryProducts(
+    String categoryIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  }) async {
+    developer.log(
+      'Fetching products for category: $categoryIdentifier (page: $page)',
+      name: 'CatalogDataSource',
+    );
+
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+
+    if (minPrice != null) queryParams['minPrice'] = minPrice;
+    if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
+    if (sortBy != null) queryParams['sortBy'] = sortBy;
+    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+    if (brandId != null) queryParams['brandId'] = brandId;
+    if (qualityTypeId != null) queryParams['qualityTypeId'] = qualityTypeId;
+
+    final endpoint = ApiEndpoints.categoryProducts(categoryIdentifier);
+    _printApiUrl(endpoint, queryParams: queryParams);
+
+    final response = await _apiClient.get(
+      endpoint,
+      queryParameters: queryParams,
+    );
+
+    // Print full response
+    print('\n${'=' * 80}');
+    print('📦 API Response - Category Products:');
+    print('${'=' * 80}');
+    print('Status Code: ${response.statusCode}');
+    print('Status Message: ${response.statusMessage}');
+    print('\nResponse Data:');
+    print(response.data);
+    print('${'=' * 80}\n');
+
+    developer.log(
+      'Response: ${response.data}',
+      name: 'CatalogDataSource',
+    );
+
+    final data = response.data['data'] ?? [];
+    final meta = response.data['meta'] ?? {};
+
+    // Print parsed data summary
+    final dataList = data is List ? data : [];
+    print('\n${'=' * 80}');
+    print('📊 Parsed Data Summary:');
+    print('${'=' * 80}');
+    print('Products Count: ${dataList.length}');
+    print('Pagination Meta: $meta');
+    print('${'=' * 80}\n');
+
+    return {
+      'products': List<ProductEntity>.from(
+        dataList.map((p) => ProductModel.fromJson(p).toEntity()),
+      ),
+      'pagination': meta,
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

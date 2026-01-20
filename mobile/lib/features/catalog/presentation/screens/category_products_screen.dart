@@ -9,7 +9,7 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
-import '../../data/datasources/catalog_remote_datasource.dart';
+import '../../domain/repositories/catalog_repository.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class CategoryProductsScreen extends StatefulWidget {
@@ -27,30 +27,123 @@ class CategoryProductsScreen extends StatefulWidget {
 }
 
 class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
-  final _dataSource = getIt<CatalogRemoteDataSource>();
+  final _repository = getIt<CatalogRepository>();
+  final ScrollController _scrollController = ScrollController();
+  
   List<ProductEntity> _products = [];
   bool _isLoading = true;
-  String _sortBy = 'newest';
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _currentPage = 1;
+  final int _limit = 20;
+  Map<String, dynamic>? _pagination;
+  String _sortBy = 'createdAt';
+  String _sortOrder = 'desc';
   bool _isGridView = true;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _loadProducts();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreProducts();
+    }
+  }
+
   Future<void> _loadProducts() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _currentPage = 1;
+      _products.clear();
+      _hasMore = true;
+    });
+
     try {
-      final products = await _dataSource.getProducts(
-        categoryId: widget.categoryId,
+      final result = await _repository.getCategoryProducts(
+        widget.categoryId,
+        page: _currentPage,
+        limit: _limit,
+        sortBy: _sortBy,
+        sortOrder: _sortOrder,
       );
-      setState(() {
-        _products = products;
-        _isLoading = false;
-      });
+
+      result.fold(
+        (failure) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(failure.message)),
+          );
+        },
+        (data) {
+          final products = data['products'] as List<ProductEntity>;
+          final pagination = data['pagination'] as Map<String, dynamic>?;
+
+          setState(() {
+            _products = products;
+            _pagination = pagination;
+            _hasMore = _currentPage < (pagination?['pages'] ?? 1);
+            _isLoading = false;
+          });
+        },
+      );
     } catch (e) {
       setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('حدث خطأ: $e')),
+      );
+    }
+  }
+
+  Future<void> _loadMoreProducts() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    setState(() => _isLoadingMore = true);
+    _currentPage++;
+
+    try {
+      final result = await _repository.getCategoryProducts(
+        widget.categoryId,
+        page: _currentPage,
+        limit: _limit,
+        sortBy: _sortBy,
+        sortOrder: _sortOrder,
+      );
+
+      result.fold(
+        (failure) {
+          setState(() {
+            _isLoadingMore = false;
+            _currentPage--; // Revert page on error
+          });
+        },
+        (data) {
+          final products = data['products'] as List<ProductEntity>;
+          final pagination = data['pagination'] as Map<String, dynamic>?;
+
+          setState(() {
+            _products.addAll(products);
+            _pagination = pagination;
+            _hasMore = _currentPage < (pagination?['pages'] ?? 1);
+            _isLoadingMore = false;
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _isLoadingMore = false;
+        _currentPage--; // Revert page on error
+      });
     }
   }
 
@@ -74,22 +167,25 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Sort & View Options
-          _buildSortBar(isDark),
+      body: RefreshIndicator(
+        onRefresh: _loadProducts,
+        child: Column(
+          children: [
+            // Sort & View Options
+            _buildSortBar(isDark),
 
-          // Products Grid/List
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _products.isEmpty
-                ? _buildEmptyState(isDark)
-                : _isGridView
-                ? _buildProductsGrid()
-                : _buildProductsList(),
-          ),
-        ],
+            // Products Grid/List
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _products.isEmpty
+                  ? _buildEmptyState(isDark)
+                  : _isGridView
+                  ? _buildProductsGrid()
+                  : _buildProductsList(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -109,7 +205,9 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
         children: [
           // Results count
           Text(
-            '${_products.length} منتج',
+            _pagination != null
+                ? '${_pagination!['total'] ?? _products.length} منتج'
+                : '${_products.length} منتج',
             style: TextStyle(
               fontSize: 14.sp,
               color: isDark
@@ -165,6 +263,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
 
   Widget _buildProductsGrid() {
     return GridView.builder(
+      controller: _scrollController,
       padding: EdgeInsets.all(16.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -172,19 +271,30 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
         crossAxisSpacing: 12.w,
         childAspectRatio: 0.60,
       ),
-      itemCount: _products.length,
+      itemCount: _products.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
-        final product = _products[index];
-        return ProductCard(
-          id: product.id.toString(),
-          name: product.name,
-          nameAr: product.nameAr,
-          imageUrl: product.imageUrl,
-          price: product.price,
-          originalPrice: product.originalPrice,
-          stockQuantity: product.stockQuantity,
-          onTap: () => context.push('/product/${product.id}', extra: product),
-        );
+        if (index < _products.length) {
+          final product = _products[index];
+          return ProductCard(
+            id: product.id.toString(),
+            name: product.name,
+            nameAr: product.nameAr,
+            imageUrl: product.imageUrl,
+            price: product.price,
+            originalPrice: product.originalPrice,
+            stockQuantity: product.stockQuantity,
+            onTap: () => context.push('/product/${product.id}', extra: product),
+          );
+        } else if (_isLoadingMore) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        } else {
+          return const SizedBox.shrink();
+        }
       },
     );
   }
@@ -193,12 +303,14 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ListView.separated(
+      controller: _scrollController,
       padding: EdgeInsets.all(16.w),
-      itemCount: _products.length,
+      itemCount: _products.length + (_isLoadingMore ? 1 : 0),
       separatorBuilder: (_, __) => SizedBox(height: 12.h),
       itemBuilder: (context, index) {
-        final product = _products[index];
-        return GestureDetector(
+        if (index < _products.length) {
+          final product = _products[index];
+          return GestureDetector(
           onTap: () => context.push('/product/${product.id}', extra: product),
           child: Container(
             padding: EdgeInsets.all(12.w),
@@ -288,6 +400,16 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
             ),
           ),
         );
+        } else if (_isLoadingMore) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        } else {
+          return const SizedBox.shrink();
+        }
       },
     );
   }
@@ -332,13 +454,13 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
 
   String _getSortLabel() {
     switch (_sortBy) {
-      case 'newest':
-        return 'الأحدث';
-      case 'price_low':
-        return 'السعر: الأقل';
-      case 'price_high':
-        return 'السعر: الأعلى';
-      case 'bestselling':
+      case 'createdAt':
+        return _sortOrder == 'desc' ? 'الأحدث' : 'الأقدم';
+      case 'price':
+        return _sortOrder == 'asc' ? 'السعر: الأقل' : 'السعر: الأعلى';
+      case 'name':
+        return 'الاسم';
+      case 'ordersCount':
         return 'الأكثر مبيعاً';
       default:
         return 'ترتيب';
@@ -371,10 +493,12 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
               ),
             ),
             SizedBox(height: 16.h),
-            _buildSortOption('newest', 'الأحدث', isDark),
-            _buildSortOption('price_low', 'السعر: من الأقل للأعلى', isDark),
-            _buildSortOption('price_high', 'السعر: من الأعلى للأقل', isDark),
-            _buildSortOption('bestselling', 'الأكثر مبيعاً', isDark),
+            _buildSortOption('createdAt', 'desc', 'الأحدث', isDark),
+            _buildSortOption('createdAt', 'asc', 'الأقدم', isDark),
+            _buildSortOption('price', 'asc', 'السعر: من الأقل للأعلى', isDark),
+            _buildSortOption('price', 'desc', 'السعر: من الأعلى للأقل', isDark),
+            _buildSortOption('ordersCount', 'desc', 'الأكثر مبيعاً', isDark),
+            _buildSortOption('name', 'asc', 'الاسم: أ-ي', isDark),
             SizedBox(height: 20.h),
           ],
         ),
@@ -382,14 +506,17 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
     );
   }
 
-  Widget _buildSortOption(String value, String label, bool isDark) {
-    final isSelected = _sortBy == value;
+  Widget _buildSortOption(String sortBy, String sortOrder, String label, bool isDark) {
+    final isSelected = _sortBy == sortBy && _sortOrder == sortOrder;
 
     return ListTile(
       onTap: () {
-        setState(() => _sortBy = value);
+        setState(() {
+          _sortBy = sortBy;
+          _sortOrder = sortOrder;
+        });
         Navigator.pop(context);
-        _sortProducts();
+        _loadProducts(); // Reload with new sort
       },
       leading: Icon(
         isSelected ? Iconsax.tick_circle5 : Iconsax.tick_circle,
@@ -410,23 +537,6 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
     );
   }
 
-  void _sortProducts() {
-    setState(() {
-      switch (_sortBy) {
-        case 'price_low':
-          _products.sort((a, b) => a.price.compareTo(b.price));
-          break;
-        case 'price_high':
-          _products.sort((a, b) => b.price.compareTo(a.price));
-          break;
-        case 'bestselling':
-        case 'newest':
-        default:
-          // Keep original order for mock data
-          break;
-      }
-    });
-  }
 
   void _showFilterSheet() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
