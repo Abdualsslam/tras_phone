@@ -56,6 +56,7 @@ const menuItems = [
     { icon: Wallet, path: '/wallet', labelKey: 'sidebar.wallet' },
     { icon: Tags, path: '/promotions', labelKey: 'sidebar.promotions' },
     { icon: Layers, path: '/content', labelKey: 'sidebar.content' },
+    { icon: BookOpen, path: '/educational-content', labelKey: 'sidebar.educationalContent' },
     { icon: Bell, path: '/notifications', labelKey: 'sidebar.notifications' },
     { icon: HeadphonesIcon, path: '/support', labelKey: 'sidebar.support' },
     { icon: MessageSquare, path: '/live-chat', labelKey: 'sidebar.liveChat' },

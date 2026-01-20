@@ -23,6 +23,7 @@ import { ReturnsPage } from '@/pages/returns/ReturnsPage';
 import { RolesPage } from '@/pages/roles/RolesPage';
 import { AuditLogsPage } from '@/pages/audit/AuditLogsPage';
 import { ContentPage } from '@/pages/content/ContentPage';
+import { EducationalContentPage } from '@/pages/content/EducationalContentPage';
 import { WalletPage } from '@/pages/wallet/WalletPage';
 import { CatalogPage } from '@/pages/catalog/CatalogPage';
 import { LiveChatPage } from '@/pages/support/LiveChatPage';
@@ -82,6 +83,7 @@ function App() {
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="audit" element={<AuditLogsPage />} />
                 <Route path="content" element={<ContentPage />} />
+                <Route path="educational-content" element={<EducationalContentPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>

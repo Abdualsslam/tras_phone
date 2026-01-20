@@ -39,6 +39,14 @@ import '../../features/locations/data/datasources/locations_remote_datasource.da
 import '../../features/locations/presentation/cubit/locations_cubit.dart';
 import '../../features/promotions/data/datasources/promotions_remote_datasource.dart';
 import '../../features/promotions/presentation/cubit/promotions_cubit.dart';
+import '../../features/education/data/datasources/education_remote_datasource.dart';
+import '../../features/education/data/repositories/education_repository_impl.dart';
+import '../../features/education/data/services/favorites_service.dart';
+import '../../features/education/domain/repositories/education_repository.dart';
+import '../../features/education/presentation/cubit/education_categories_cubit.dart';
+import '../../features/education/presentation/cubit/education_content_cubit.dart';
+import '../../features/education/presentation/cubit/education_details_cubit.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final getIt = GetIt.instance;
 
@@ -291,6 +299,41 @@ Future<void> setupDependencies() async {
   // Cubits
   getIt.registerFactory<PromotionsCubit>(
     () => PromotionsCubit(getIt<PromotionsRemoteDataSource>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EDUCATION FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<EducationRemoteDataSource>(
+    () => EducationRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<EducationRepository>(
+    () => EducationRepositoryImpl(
+      remoteDataSource: getIt<EducationRemoteDataSource>(),
+    ),
+  );
+
+  // Services
+  final prefs = await SharedPreferences.getInstance();
+  getIt.registerLazySingleton<FavoritesService>(
+    () => FavoritesService(prefs: prefs),
+  );
+
+  // Cubits
+  getIt.registerFactory<EducationCategoriesCubit>(
+    () => EducationCategoriesCubit(repository: getIt<EducationRepository>()),
+  );
+
+  getIt.registerFactory<EducationContentCubit>(
+    () => EducationContentCubit(repository: getIt<EducationRepository>()),
+  );
+
+  getIt.registerFactory<EducationDetailsCubit>(
+    () => EducationDetailsCubit(repository: getIt<EducationRepository>()),
   );
 }
 

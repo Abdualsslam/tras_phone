@@ -99,6 +99,57 @@ export interface Testimonial {
     createdAt: string;
 }
 
+export interface EducationalCategory {
+    _id: string;
+    name: string;
+    nameAr?: string;
+    slug: string;
+    description?: string;
+    descriptionAr?: string;
+    icon?: string;
+    image?: string;
+    parentId?: string;
+    contentCount: number;
+    sortOrder: number;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface EducationalContent {
+    _id: string;
+    title: string;
+    titleAr?: string;
+    slug: string;
+    categoryId: string | EducationalCategory;
+    type: 'article' | 'video' | 'tutorial' | 'tip' | 'guide';
+    excerpt?: string;
+    excerptAr?: string;
+    content: string;
+    contentAr?: string;
+    featuredImage?: string;
+    videoUrl?: string;
+    videoDuration?: number;
+    attachments: string[];
+    relatedProducts?: string[];
+    relatedContent?: string[];
+    tags: string[];
+    metaTitle?: string;
+    metaDescription?: string;
+    status: 'draft' | 'published' | 'archived';
+    publishedAt?: string;
+    isFeatured: boolean;
+    viewCount: number;
+    likeCount: number;
+    shareCount: number;
+    readingTime?: number;
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    createdBy?: string;
+    updatedBy?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 // ══════════════════════════════════════════════════════════════
 // Content API
 // ══════════════════════════════════════════════════════════════
@@ -271,6 +322,73 @@ export const contentApi = {
 
     deleteTestimonial: async (id: string): Promise<void> => {
         await apiClient.delete(`/content/admin/testimonials/${id}`);
+    },
+
+    // ─────────────────────────────────────────
+    // Educational Categories
+    // ─────────────────────────────────────────
+
+    getEducationalCategories: async (activeOnly?: boolean): Promise<EducationalCategory[]> => {
+        const endpoint = activeOnly === false ? '/educational/admin/categories' : '/educational/categories';
+        const response = await apiClient.get<ApiResponse<EducationalCategory[]>>(endpoint);
+        return extractArrayData<EducationalCategory>(response.data.data);
+    },
+
+    createEducationalCategory: async (data: Omit<EducationalCategory, '_id' | 'contentCount' | 'createdAt' | 'updatedAt'>): Promise<EducationalCategory> => {
+        const response = await apiClient.post<ApiResponse<EducationalCategory>>('/educational/admin/categories', data);
+        return extractData<EducationalCategory>(response.data.data);
+    },
+
+    updateEducationalCategory: async (id: string, data: Partial<EducationalCategory>): Promise<EducationalCategory> => {
+        const response = await apiClient.put<ApiResponse<EducationalCategory>>(`/educational/admin/categories/${id}`, data);
+        return extractData<EducationalCategory>(response.data.data);
+    },
+
+    deleteEducationalCategory: async (id: string): Promise<void> => {
+        await apiClient.delete(`/educational/admin/categories/${id}`);
+    },
+
+    // ─────────────────────────────────────────
+    // Educational Content
+    // ─────────────────────────────────────────
+
+    getEducationalContent: async (filters?: {
+        categoryId?: string;
+        type?: string;
+        status?: string;
+        featured?: boolean;
+        search?: string;
+        page?: number;
+        limit?: number;
+    }): Promise<{ data: EducationalContent[]; total: number; page: number; limit: number }> => {
+        const response = await apiClient.get<ApiResponse<{ data: EducationalContent[]; total: number; page: number; limit: number }>>('/educational/admin/content', {
+            params: filters,
+        });
+        return response.data.data;
+    },
+
+    getEducationalContentById: async (id: string): Promise<EducationalContent> => {
+        const response = await apiClient.get<ApiResponse<EducationalContent>>(`/educational/admin/content/${id}`);
+        return extractData<EducationalContent>(response.data.data);
+    },
+
+    createEducationalContent: async (data: Omit<EducationalContent, '_id' | 'viewCount' | 'likeCount' | 'shareCount' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>): Promise<EducationalContent> => {
+        const response = await apiClient.post<ApiResponse<EducationalContent>>('/educational/admin/content', data);
+        return extractData<EducationalContent>(response.data.data);
+    },
+
+    updateEducationalContent: async (id: string, data: Partial<EducationalContent>): Promise<EducationalContent> => {
+        const response = await apiClient.put<ApiResponse<EducationalContent>>(`/educational/admin/content/${id}`, data);
+        return extractData<EducationalContent>(response.data.data);
+    },
+
+    publishEducationalContent: async (id: string): Promise<EducationalContent> => {
+        const response = await apiClient.put<ApiResponse<EducationalContent>>(`/educational/admin/content/${id}/publish`);
+        return extractData<EducationalContent>(response.data.data);
+    },
+
+    deleteEducationalContent: async (id: string): Promise<void> => {
+        await apiClient.delete(`/educational/admin/content/${id}`);
     },
 };
 
