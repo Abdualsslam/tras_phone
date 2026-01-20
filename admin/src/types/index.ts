@@ -147,6 +147,7 @@ export interface Product {
     weight?: number;
     dimensions?: string;
     color?: string;
+    relatedProducts?: string[];
     createdAt: string;
     updatedAt: string;
 }

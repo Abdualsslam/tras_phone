@@ -35,11 +35,13 @@
     "welcomeBack": "Welcome back",
     "loginSubtitle": "Sign in to access the admin dashboard"
   },
-  "sidebar": {
-    "dashboard": "Dashboard",
-    "admins": "Admins",
-    "customers": "Customers",
-    "products": "Products",
+    "sidebar": {
+        "dashboard": "Dashboard",
+        "admins": "Admins",
+        "customers": "Customers",
+        "passwordResetRequests": "Password Reset Requests",
+        "products": "Products",
+    "priceLevels": "Price Levels",
     "categories": "Categories",
     "catalog": "Catalog",
     "orders": "Orders",
@@ -55,6 +57,7 @@
     "roles": "Roles",
     "wallet": "Wallet",
     "content": "Content",
+    "educationalContent": "Educational Content",
     "audit": "Audit Logs",
     "liveChat": "Live Chat"
   },

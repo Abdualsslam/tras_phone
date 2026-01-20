@@ -78,6 +78,16 @@ class AuthOtpVerified extends AuthState {
   List<Object?> get props => [phone, resetToken];
 }
 
+/// Password reset request submitted state
+class AuthPasswordResetRequestSubmitted extends AuthState {
+  final String requestNumber;
+
+  const AuthPasswordResetRequestSubmitted({required this.requestNumber});
+
+  @override
+  List<Object?> get props => [requestNumber];
+}
+
 /// Password reset success state
 class AuthPasswordResetSuccess extends AuthState {
   const AuthPasswordResetSuccess();

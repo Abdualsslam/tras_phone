@@ -50,11 +50,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           setState(() => _isLoading = false);
         }
 
-        if (state is AuthOtpSent) {
-          context.push(
-            '/otp-verification',
-            extra: {'phone': state.phone, 'purpose': 'password_reset'},
+        if (state is AuthPasswordResetRequestSubmitted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'تم تقديم طلبك بنجاح. سيتم التواصل معك قريباً لإعادة تعيين كلمة المرور.',
+              ),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 5),
+            ),
           );
+          // Go back after a delay
+          Future.delayed(const Duration(seconds: 2), () => context.pop());
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -133,7 +140,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                     // Submit Button
                     AppButton(
-                      text: 'إرسال رمز التحقق',
+                      text: 'تقديم الطلب',
                       onPressed: _handleSubmit,
                       isLoading: _isLoading,
                     ),

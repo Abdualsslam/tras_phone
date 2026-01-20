@@ -9,6 +9,7 @@ import {
   Patch,
   Delete,
   Param,
+  Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -28,6 +29,9 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
+import { ProcessPasswordResetDto } from './dto/process-password-reset.dto';
+import { RejectPasswordResetDto } from './dto/reject-password-reset.dto';
 import { Public } from '@decorators/public.decorator';
 import { CurrentUser } from '@decorators/current-user.decorator';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
@@ -36,7 +40,7 @@ import {
   ApiPublicErrorResponses,
   ApiAuthErrorResponses,
 } from '@common/decorators/api-error-responses.decorator';
-import { ApiParam } from '@nestjs/swagger';
+import { ApiParam, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 
 /**
@@ -348,6 +352,40 @@ export class AuthController {
   }
 
   // ═════════════════════════════════════
+  // 🔐 Password Reset Request (Customer)
+  // ═════════════════════════════════════
+
+  @Public()
+  @Post('request-password-reset')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Request password reset',
+    description:
+      'Submit a password reset request. The request will be processed by an admin who will contact you with a new password.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Password reset request submitted successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async requestPasswordReset(@Body() dto: RequestPasswordResetDto) {
+    const request = await this.authService.requestPasswordReset(
+      dto.phone,
+      dto.customerNotes,
+    );
+
+    return ResponseBuilder.created(
+      {
+        requestNumber: request.requestNumber,
+        status: request.status,
+      },
+      'Password reset request submitted successfully. An admin will contact you soon.',
+      'تم تقديم طلب إعادة تعيين كلمة المرور بنجاح. سيتم التواصل معك قريباً.',
+    );
+  }
+
+  // ═════════════════════════════════════
   // 🔐 Admin Password Reset
   // ═════════════════════════════════════
 
@@ -378,6 +416,154 @@ export class AuthController {
       null,
       'Password reset successfully',
       'تم إعادة تعيين كلمة المرور بنجاح',
+    );
+  }
+
+  // ═════════════════════════════════════
+  // 🔐 Admin Password Reset Requests Management
+  // ═════════════════════════════════════
+
+  @Get('admin/password-reset-requests')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get password reset requests (admin)',
+    description: 'Get list of all password reset requests with filters',
+  })
+  @ApiQuery({ name: 'status', required: false, enum: ['pending', 'completed', 'rejected'] })
+  @ApiQuery({ name: 'customerId', required: false })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset requests retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async getPasswordResetRequests(
+    @Query('status') status?: string,
+    @Query('customerId') customerId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const requests = await this.authService.getPasswordResetRequests({
+      status,
+      customerId,
+      page: page ? parseInt(page) : undefined,
+      limit: limit ? parseInt(limit) : undefined,
+    });
+
+    return ResponseBuilder.success(
+      requests,
+      'Password reset requests retrieved successfully',
+      'تم استرجاع طلبات إعادة تعيين كلمة المرور بنجاح',
+    );
+  }
+
+  @Get('admin/password-reset-requests/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get password reset request by ID (admin)',
+    description: 'Get details of a specific password reset request',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Password reset request ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset request retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async getPasswordResetRequestById(@Param('id') id: string) {
+    const request = await this.authService.getPasswordResetRequestById(id);
+
+    return ResponseBuilder.success(
+      request,
+      'Password reset request retrieved successfully',
+      'تم استرجاع طلب إعادة تعيين كلمة المرور بنجاح',
+    );
+  }
+
+  @Post('admin/password-reset-requests/:id/process')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Process password reset request (admin)',
+    description:
+      'Process a pending password reset request. Generates a new password and updates the request status to completed.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Password reset request ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset request processed successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async processPasswordResetRequest(
+    @CurrentUser() admin: any,
+    @Param('id') id: string,
+    @Body() dto: ProcessPasswordResetDto,
+  ) {
+    const result = await this.authService.processPasswordResetRequest(
+      id,
+      admin.id,
+      dto.adminNotes,
+    );
+
+    return ResponseBuilder.success(
+      {
+        request: result.request,
+        temporaryPassword: result.temporaryPassword, // Plain password for admin to copy
+      },
+      'Password reset request processed successfully. Please send the temporary password to the customer.',
+      'تم معالجة طلب إعادة تعيين كلمة المرور بنجاح. يرجى إرسال كلمة المرور المؤقتة للعميل.',
+    );
+  }
+
+  @Post('admin/password-reset-requests/:id/reject')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Reject password reset request (admin)',
+    description: 'Reject a pending password reset request with a reason',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Password reset request ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset request rejected successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async rejectPasswordResetRequest(
+    @CurrentUser() admin: any,
+    @Param('id') id: string,
+    @Body() dto: RejectPasswordResetDto,
+  ) {
+    const request = await this.authService.rejectPasswordResetRequest(
+      id,
+      admin.id,
+      dto.rejectionReason,
+      dto.adminNotes,
+    );
+
+    return ResponseBuilder.success(
+      request,
+      'Password reset request rejected successfully',
+      'تم رفض طلب إعادة تعيين كلمة المرور بنجاح',
     );
   }
 }

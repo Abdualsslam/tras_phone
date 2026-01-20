@@ -173,10 +173,10 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, void>> forgotPassword({required String phone}) async {
+  Future<Either<Failure, String>> forgotPassword({required String phone}) async {
     try {
-      await _dataSource.forgotPassword(phone: phone);
-      return const Right(null);
+      final requestNumber = await _dataSource.forgotPassword(phone: phone);
+      return Right(requestNumber);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
     }

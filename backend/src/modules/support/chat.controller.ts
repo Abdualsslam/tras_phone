@@ -8,7 +8,7 @@ import {
     Query,
     UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -17,13 +17,17 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ChatSenderType, ChatMessageType } from './schemas/chat-message.schema';
 import { ResponseBuilder } from '../../common/response.builder';
 import { UserRole } from '@/common/enums/user-role.enum';
+import { UploadsService } from '../uploads/uploads.service';
 
 @ApiTags('Chat')
 @Controller('chat')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class ChatController {
-    constructor(private readonly chatService: ChatService) { }
+    constructor(
+        private readonly chatService: ChatService,
+        private readonly uploadsService: UploadsService,
+    ) { }
 
     // ==================== Customer Chat ====================
 
@@ -103,13 +107,24 @@ export class ChatController {
         @Body() data: { rating: number; feedback?: string }
     ) {
         // Find the most recent ended session
-        const session = await this.chatService.findActiveSession(user.customerId);
-        if (session) {
+        const activeSession = await this.chatService.findActiveSession(user.customerId);
+        if (activeSession) {
             return ResponseBuilder.error('Please end the session first', 400);
         }
 
-        // This would need to find the most recent session - simplified for now
-        return ResponseBuilder.error('No session to rate', 404);
+        // Find the most recent ended session that hasn't been rated
+        const lastSession = await this.chatService.findLastEndedSession(user.customerId);
+        if (!lastSession) {
+            return ResponseBuilder.error('No session to rate', 404);
+        }
+
+        const ratedSession = await this.chatService.rateSession(
+            lastSession._id.toString(),
+            data.rating,
+            data.feedback
+        );
+
+        return ResponseBuilder.success(ratedSession, 'Thank you for your feedback');
     }
 
     @Put('my-session/page')
@@ -240,5 +255,49 @@ export class ChatController {
     async markAgentRead(@Param('id') id: string) {
         await this.chatService.markMessagesAsRead(id, 'agent');
         return ResponseBuilder.success(null, 'Messages marked as read');
+    }
+
+    // ==================== File Upload ====================
+
+    @Post('upload')
+    @ApiOperation({ summary: 'Upload chat attachments' })
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                files: {
+                    type: 'array',
+                    items: {
+                        type: 'string',
+                        format: 'binary',
+                    },
+                },
+            },
+        },
+    })
+    async uploadAttachments(@Body() body: { files: Array<{ base64: string; filename: string }> }) {
+        try {
+            const uploadedUrls: string[] = [];
+
+            for (const file of body.files) {
+                const result = await this.uploadsService.uploadBase64(
+                    file.base64,
+                    file.filename,
+                    'support/chat',
+                );
+                uploadedUrls.push(result.url);
+            }
+
+            return ResponseBuilder.success(
+                { urls: uploadedUrls },
+                'Files uploaded successfully',
+            );
+        } catch (error) {
+            return ResponseBuilder.error(
+                'Failed to upload files',
+                500,
+            );
+        }
     }
 }

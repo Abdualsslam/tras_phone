@@ -33,9 +33,6 @@ abstract class ReturnsRemoteDataSource {
 
   /// Get return policy
   Future<Map<String, dynamic>> getReturnPolicy();
-
-  /// Check if order is eligible for return
-  Future<Map<String, dynamic>> checkReturnEligibility(String orderId);
 }
 
 /// Implementation of ReturnsRemoteDataSource using API client
@@ -137,20 +134,6 @@ class ReturnsRemoteDataSourceImpl implements ReturnsRemoteDataSource {
     developer.log('Fetching return policy', name: 'ReturnsDataSource');
 
     final response = await _apiClient.get('${ApiEndpoints.returns}/policy');
-    return response.data['data'] ?? response.data;
-  }
-
-  @override
-  Future<Map<String, dynamic>> checkReturnEligibility(String orderId) async {
-    developer.log(
-      'Checking return eligibility: $orderId',
-      name: 'ReturnsDataSource',
-    );
-
-    final response = await _apiClient.get(
-      '${ApiEndpoints.returns}/eligibility/$orderId',
-    );
-
     return response.data['data'] ?? response.data;
   }
 }

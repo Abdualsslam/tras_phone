@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -130,6 +130,9 @@ interface AddProductForm {
   allowBackorder: boolean;
   tags: string[];
   specifications: Record<string, string>;
+  compatibleDevices: string[];
+  relatedProducts: string[];
+  priceLevelsPrices: Record<string, string>;
 }
 
 const initialFormData: AddProductForm = {
@@ -167,6 +170,9 @@ const initialFormData: AddProductForm = {
   allowBackorder: false,
   tags: [],
   specifications: {},
+  compatibleDevices: [],
+  relatedProducts: [],
+  priceLevelsPrices: {},
 };
 
 export function ProductsPage() {
@@ -191,6 +197,8 @@ export function ProductsPage() {
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [relatedProductsSearch, setRelatedProductsSearch] = useState("");
+  const [relatedProductsDisplayCount, setRelatedProductsDisplayCount] = useState(5);
   const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
 
   // Fetch products
@@ -229,15 +237,43 @@ export function ProductsPage() {
   const { data: priceLevels = [] } = useQuery<PriceLevel[]>({
     queryKey: ["price-levels"],
     queryFn: productsApi.getPriceLevels,
-    enabled: isPricesDialogOpen,
+    enabled: isPricesDialogOpen || isAddDialogOpen,
   });
 
   // Fetch devices for compatibility
   const { data: devices = [] } = useQuery<Device[]>({
     queryKey: ["devices-all"],
     queryFn: () => catalogDeviceApi.getDevices({ limit: 200 }),
-    enabled: isDetailDialogOpen,
+    enabled: isAddDialogOpen || isDetailDialogOpen,
   });
+
+  // Fetch products for related products selection
+  const { data: availableProductsData } = useQuery({
+    queryKey: ["products-for-related", isAddDialogOpen, isEditMode, selectedProduct?._id],
+    queryFn: () =>
+      productsApi.getAll({
+        status: "active",
+        limit: 1000, // Get all active products
+      }),
+    enabled: isAddDialogOpen,
+  });
+
+  // Filter out current product if in edit mode and filter by search
+  const availableProducts = (availableProductsData?.items || [])
+    .filter((p: Product) => !isEditMode || p._id !== selectedProduct?._id)
+    .filter((p: Product) => {
+      if (!relatedProductsSearch.trim()) return true;
+      const searchLower = relatedProductsSearch.toLowerCase();
+      return (
+        (p.name || "").toLowerCase().includes(searchLower) ||
+        (p.nameAr || "").toLowerCase().includes(searchLower) ||
+        (p.sku || "").toLowerCase().includes(searchLower)
+      );
+    });
+
+  // Get displayed products (limited by displayCount)
+  const displayedProducts = availableProducts.slice(0, relatedProductsDisplayCount);
+  const hasMoreProducts = availableProducts.length > relatedProductsDisplayCount;
 
   // Fetch product reviews when detail dialog is open
   const { data: productReviews = [] } = useQuery<ProductReview[]>({
@@ -245,6 +281,29 @@ export function ProductsPage() {
     queryFn: () => productsApi.getProductReviews(selectedProduct!._id),
     enabled: isDetailDialogOpen && !!selectedProduct?._id,
   });
+
+  // Fetch product prices when editing
+  const { data: productPrices = [] } = useQuery({
+    queryKey: ["product-prices", selectedProduct?._id],
+    queryFn: () => productsApi.getProductPrices(selectedProduct!._id),
+    enabled: isEditMode && !!selectedProduct?._id && isAddDialogOpen,
+  });
+
+  // Update form data when product prices are loaded
+  useEffect(() => {
+    if (productPrices && productPrices.length > 0 && isEditMode && isAddDialogOpen) {
+      const pricesMap: Record<string, string> = {};
+      productPrices.forEach((price: any) => {
+        if (price.priceLevelId && price.price) {
+          pricesMap[price.priceLevelId] = String(price.price);
+        }
+      });
+      setFormData((prev) => ({
+        ...prev,
+        priceLevelsPrices: pricesMap,
+      }));
+    }
+  }, [productPrices, isEditMode, isAddDialogOpen]);
 
   // Create mutation
   const createMutation = useMutation({
@@ -263,6 +322,18 @@ export function ProductsPage() {
       productsApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      
+      // Save price levels prices if any
+      const pricesToSave = Object.entries(formData.priceLevelsPrices)
+        .filter(([, value]) => value && Number(value) > 0)
+        .map(([priceLevelId, price]) => ({ priceLevelId, price: Number(price) }));
+      
+      if (pricesToSave.length > 0 && selectedProduct) {
+        productsApi.setProductPrices(selectedProduct._id, pricesToSave).then(() => {
+          queryClient.invalidateQueries({ queryKey: ["products"] });
+        });
+      }
+      
       setIsAddDialogOpen(false);
       setFormData(initialFormData);
       setIsEditMode(false);
@@ -418,6 +489,8 @@ export function ProductsPage() {
     setSelectedProduct(null);
     setFormTagsInput("");
     setUploadError(null);
+    setRelatedProductsSearch("");
+    setRelatedProductsDisplayCount(5);
     setIsAddDialogOpen(true);
   };
 
@@ -458,6 +531,9 @@ export function ProductsPage() {
       allowBackorder: (product as any).allowBackorder || false,
       tags: (product as any).tags || [],
       specifications: (product as any).specifications || {},
+      compatibleDevices: (product as any).compatibleDevices?.map((d: any) => d._id || d) || [],
+      relatedProducts: (product as any).relatedProducts?.map((p: any) => p._id || p) || [],
+      priceLevelsPrices: {},
     });
     setFormTagsInput(((product as any).tags || []).join(", "));
     setIsAddDialogOpen(true);
@@ -531,6 +607,12 @@ export function ProductsPage() {
       ...(Object.keys(formData.specifications).length > 0 && {
         specifications: formData.specifications,
       }),
+      ...(formData.compatibleDevices.length > 0 && {
+        compatibleDevices: formData.compatibleDevices,
+      }),
+      ...(formData.relatedProducts.length > 0 && {
+        relatedProducts: formData.relatedProducts,
+      }),
     };
 
     if (isEditMode && selectedProduct) {
@@ -567,11 +649,25 @@ export function ProductsPage() {
             <div className="relative flex-1">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="البحث عن منتج..."
+                placeholder="البحث عن منتج بالاسم، SKU، أو التاجات..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="ps-10"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    // Trigger search immediately on Enter
+                  }
+                }}
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  ✕
+                </button>
+              )}
             </div>
             <select
               value={statusFilter}
@@ -734,6 +830,8 @@ export function ProductsPage() {
           setSelectedProduct(null);
           setFormData(initialFormData);
           setFormTagsInput("");
+          setRelatedProductsSearch("");
+          setRelatedProductsDisplayCount(5);
         }
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -1057,6 +1155,196 @@ export function ProductsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Compatible Devices Section */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                الأجهزة المتوافقة
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg">
+                {devices.map((device) => (
+                  <label
+                    key={device._id}
+                    className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.compatibleDevices.includes(device._id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          handleFormChange("compatibleDevices", [...formData.compatibleDevices, device._id]);
+                        } else {
+                          handleFormChange("compatibleDevices", formData.compatibleDevices.filter((id) => id !== device._id));
+                        }
+                      }}
+                      className="w-4 h-4 rounded"
+                    />
+                    <span className="text-sm">{device.name}</span>
+                  </label>
+                ))}
+              </div>
+              {devices.length === 0 && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                  جاري تحميل الأجهزة...
+                </p>
+              )}
+            </div>
+
+            {/* Related Products Section */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                المنتجات المشابهة
+              </h3>
+              
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="البحث عن منتج بالاسم أو SKU..."
+                  value={relatedProductsSearch}
+                  onChange={(e) => {
+                    setRelatedProductsSearch(e.target.value);
+                    setRelatedProductsDisplayCount(5); // Reset display count on search
+                  }}
+                  className="ps-10"
+                />
+                {relatedProductsSearch && (
+                  <button
+                    onClick={() => {
+                      setRelatedProductsSearch("");
+                      setRelatedProductsDisplayCount(5);
+                    }}
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Products List */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg">
+                {displayedProducts.map((product) => (
+                  <label
+                    key={product._id}
+                    className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.relatedProducts.includes(product._id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          handleFormChange("relatedProducts", [...formData.relatedProducts, product._id]);
+                        } else {
+                          handleFormChange("relatedProducts", formData.relatedProducts.filter((id) => id !== product._id));
+                        }
+                      }}
+                      className="w-4 h-4 rounded"
+                    />
+                    <span className="text-sm truncate" title={product.nameAr || product.name}>
+                      {product.nameAr || product.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Show More Button */}
+              {hasMoreProducts && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRelatedProductsDisplayCount(prev => prev + 5)}
+                  className="w-full"
+                >
+                  المزيد ({availableProducts.length - relatedProductsDisplayCount} متبقي)
+                </Button>
+              )}
+
+              {/* Empty State */}
+              {displayedProducts.length === 0 && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                  {relatedProductsSearch
+                    ? "لا توجد منتجات تطابق البحث"
+                    : isEditMode
+                    ? "لا توجد منتجات أخرى متاحة"
+                    : "جاري تحميل المنتجات..."}
+                </p>
+              )}
+
+              {/* Selected Count */}
+              {formData.relatedProducts.length > 0 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                  تم اختيار {formData.relatedProducts.length} منتج
+                </p>
+              )}
+            </div>
+
+            {/* Price Levels Section */}
+            {priceLevels.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  أسعار المستويات
+                </h3>
+                <div className="space-y-3 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    يمكنك تعيين سعر مختلف لكل مستوى تسعير. اتركه فارغاً لاستخدام السعر الأساسي.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {priceLevels.map((level) => {
+                      const currentPrice = formData.priceLevelsPrices[level._id] || "";
+                      const basePrice = Number(formData.basePrice) || 0;
+                      return (
+                        <div key={level._id} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm">
+                              {level.nameAr || level.name}
+                              {level.discountPercentage ? (
+                                <span className="text-xs text-gray-500 ms-2">
+                                  (خصم {level.discountPercentage}%)
+                                </span>
+                              ) : null}
+                            </Label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-xs"
+                              onClick={() => {
+                                handleFormChange("priceLevelsPrices", {
+                                  ...formData.priceLevelsPrices,
+                                  [level._id]: String(basePrice),
+                                });
+                              }}
+                            >
+                              استخدام السعر الأساسي
+                            </Button>
+                          </div>
+                          <Input
+                            type="number"
+                            dir="ltr"
+                            placeholder={`${basePrice.toLocaleString()} (السعر الأساسي)`}
+                            className="w-full"
+                            value={currentPrice}
+                            onChange={(e) =>
+                              handleFormChange("priceLevelsPrices", {
+                                ...formData.priceLevelsPrices,
+                                [level._id]: e.target.value,
+                              })
+                            }
+                          />
+                          {currentPrice && Number(currentPrice) > 0 && (
+                            <p className="text-xs text-gray-500">
+                              السعر: {Number(currentPrice).toLocaleString()} ر.س
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Status Section */}
             <div className="space-y-4">

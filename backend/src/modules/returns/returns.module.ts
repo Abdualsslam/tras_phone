@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module, OnModuleInit, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -23,6 +23,8 @@ import {
 import { ReturnsService } from './returns.service';
 import { ReturnsController } from './returns.controller';
 import { AuthModule } from '@modules/auth/auth.module';
+import { OrderItem, OrderItemSchema } from '@modules/orders/schemas/order-item.schema';
+import { WalletModule } from '@modules/wallet/wallet.module';
 
 @Module({
   imports: [
@@ -33,6 +35,7 @@ import { AuthModule } from '@modules/auth/auth.module';
       { name: Refund.name, schema: RefundSchema },
       { name: ReturnReason.name, schema: ReturnReasonSchema },
       { name: SupplierReturnBatch.name, schema: SupplierReturnBatchSchema },
+      { name: OrderItem.name, schema: OrderItemSchema },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -45,6 +48,7 @@ import { AuthModule } from '@modules/auth/auth.module';
       inject: [ConfigService],
     }),
     AuthModule,
+    forwardRef(() => WalletModule),
   ],
   controllers: [ReturnsController],
   providers: [ReturnsService],

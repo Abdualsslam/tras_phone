@@ -23,9 +23,12 @@ import { ReturnsPage } from '@/pages/returns/ReturnsPage';
 import { RolesPage } from '@/pages/roles/RolesPage';
 import { AuditLogsPage } from '@/pages/audit/AuditLogsPage';
 import { ContentPage } from '@/pages/content/ContentPage';
+import { EducationalContentPage } from '@/pages/content/EducationalContentPage';
 import { WalletPage } from '@/pages/wallet/WalletPage';
 import { CatalogPage } from '@/pages/catalog/CatalogPage';
 import { LiveChatPage } from '@/pages/support/LiveChatPage';
+import { PasswordResetRequestsPage } from '@/pages/auth/PasswordResetRequestsPage';
+import { PriceLevelsPage } from '@/pages/price-levels/PriceLevelsPage';
 
 // Import i18n configuration
 import '@/locales/i18n';
@@ -62,7 +65,9 @@ function App() {
                 <Route index element={<DashboardPage />} />
                 <Route path="admins" element={<AdminsPage />} />
                 <Route path="customers" element={<CustomersPage />} />
+                <Route path="password-reset-requests" element={<PasswordResetRequestsPage />} />
                 <Route path="products" element={<ProductsPage />} />
+                <Route path="price-levels" element={<PriceLevelsPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="catalog" element={<CatalogPage />} />
                 <Route path="orders" element={<OrdersPage />} />
@@ -78,6 +83,7 @@ function App() {
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="audit" element={<AuditLogsPage />} />
                 <Route path="content" element={<ContentPage />} />
+                <Route path="educational-content" element={<EducationalContentPage />} />
                 <Route path="wallet" element={<WalletPage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>

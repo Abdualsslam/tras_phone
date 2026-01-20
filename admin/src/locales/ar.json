@@ -35,11 +35,13 @@
     "welcomeBack": "مرحباً بعودتك",
     "loginSubtitle": "سجل دخولك للوصول إلى لوحة التحكم"
   },
-  "sidebar": {
-    "dashboard": "الرئيسية",
-    "admins": "المشرفين",
-    "customers": "العملاء",
-    "products": "المنتجات",
+    "sidebar": {
+        "dashboard": "الرئيسية",
+        "admins": "المشرفين",
+        "customers": "العملاء",
+        "passwordResetRequests": "طلبات إعادة تعيين كلمة المرور",
+        "products": "المنتجات",
+    "priceLevels": "مستويات التسعير",
     "categories": "التصنيفات",
     "catalog": "الكتالوج",
     "orders": "الطلبات",
@@ -55,6 +57,7 @@
     "roles": "الأدوار",
     "wallet": "المحفظة",
     "content": "المحتوى",
+    "educationalContent": "المحتوى التعليمي",
     "audit": "سجل المراجعة",
     "liveChat": "المحادثات المباشرة"
   },

@@ -64,7 +64,7 @@ export class UsersService {
     /**
      * Delete user (soft delete)
      */
-    async delete(id: string): Promise<void> {
+    async delete(id: string, reason?: string): Promise<void> {
         const user = await this.userModel.findById(id);
 
         if (!user) {
@@ -73,6 +73,9 @@ export class UsersService {
 
         user.status = 'deleted';
         user.deletedAt = new Date();
+        if (reason) {
+            user.deletionReason = reason;
+        }
         await user.save();
     }
 

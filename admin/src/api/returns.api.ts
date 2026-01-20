@@ -36,8 +36,11 @@ export interface ReturnItem {
 export interface Return {
     _id: string;
     returnNumber: string;
-    orderId: string;
-    orderNumber: string;
+    orderIds: string[];
+    orderNumbers: string[];
+    // Backward compatibility
+    orderId?: string;
+    orderNumber?: string;
     customerId: string;
     customerName: string;
     status: 'pending' | 'approved' | 'rejected' | 'processing' | 'refunded' | 'completed' | 'cancelled';
@@ -75,7 +78,6 @@ export interface InspectItemDto {
 }
 
 export interface ProcessRefundDto {
-    refundMethod: 'original_payment' | 'store_credit' | 'bank_transfer';
     refundAmount: number;
     notes?: string;
 }

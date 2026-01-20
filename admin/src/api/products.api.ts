@@ -42,6 +42,7 @@ export interface CreateProductDto {
     dimensions?: string;
     color?: string;
     tags?: string[];
+    relatedProducts?: string[];
 }
 
 export interface UpdateProductDto extends Partial<CreateProductDto> { }
@@ -58,9 +59,41 @@ export interface ProductsQueryParams {
 export interface PriceLevel {
     _id: string;
     name: string;
+    nameAr?: string;
     code: string;
-    discountPercent?: number;
-    minQuantity?: number;
+    description?: string;
+    discountPercentage?: number;
+    minOrderAmount?: number;
+    color?: string;
+    displayOrder?: number;
+    isActive?: boolean;
+    isDefault?: boolean;
+}
+
+export interface CreatePriceLevelDto {
+    name: string;
+    nameAr: string;
+    code: string;
+    description?: string;
+    discountPercentage?: number;
+    minOrderAmount?: number;
+    color?: string;
+    displayOrder?: number;
+    isActive?: boolean;
+    isDefault?: boolean;
+}
+
+export interface UpdatePriceLevelDto {
+    name?: string;
+    nameAr?: string;
+    code?: string;
+    description?: string;
+    discountPercentage?: number;
+    minOrderAmount?: number;
+    color?: string;
+    displayOrder?: number;
+    isActive?: boolean;
+    isDefault?: boolean;
 }
 
 export interface ProductPrice {
@@ -199,6 +232,34 @@ export const productsApi = {
     getProductPrices: async (productId: string): Promise<ProductPrice[]> => {
         const response = await apiClient.get<ApiResponse<ProductPrice[]>>(`/products/${productId}/prices`);
         return response.data.data;
+    },
+
+    // ─────────────────────────────────────────
+    // Price Levels Management (Admin)
+    // ─────────────────────────────────────────
+
+    getAllPriceLevels: async (): Promise<PriceLevel[]> => {
+        const response = await apiClient.get<ApiResponse<PriceLevel[]>>('/products/price-levels/all');
+        return response.data.data;
+    },
+
+    getPriceLevelById: async (id: string): Promise<PriceLevel> => {
+        const response = await apiClient.get<ApiResponse<PriceLevel>>(`/products/price-levels/${id}`);
+        return response.data.data;
+    },
+
+    createPriceLevel: async (data: CreatePriceLevelDto): Promise<PriceLevel> => {
+        const response = await apiClient.post<ApiResponse<PriceLevel>>('/products/price-levels', data);
+        return response.data.data;
+    },
+
+    updatePriceLevel: async (id: string, data: UpdatePriceLevelDto): Promise<PriceLevel> => {
+        const response = await apiClient.put<ApiResponse<PriceLevel>>(`/products/price-levels/${id}`, data);
+        return response.data.data;
+    },
+
+    deletePriceLevel: async (id: string): Promise<void> => {
+        await apiClient.delete(`/products/price-levels/${id}`);
     },
 
     // ─────────────────────────────────────────

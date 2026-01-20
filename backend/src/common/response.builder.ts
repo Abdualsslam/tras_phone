@@ -1,18 +1,24 @@
 export class ResponseBuilder {
-    static success<T>(data: T, message?: string): ApiResponse<T> {
+    static success<T>(data: T, message?: string, messageAr?: string): ApiResponse<T> {
         return {
             success: true,
             data,
             message: message || 'Success',
+            messageAr: messageAr || message || 'نجح',
             timestamp: new Date().toISOString(),
         };
     }
 
-    static error(message: string, statusCode?: number, errors?: any[]): ApiResponse<null> {
+    static error(message: string, statusCode?: number, messageAr?: string | any[]): ApiResponse<null> {
+        // Handle backward compatibility: if messageAr is an array, it's actually the errors parameter
+        const errors = Array.isArray(messageAr) ? messageAr : undefined;
+        const arabicMessage = typeof messageAr === 'string' ? messageAr : undefined;
+        
         return {
             success: false,
             data: null,
             message,
+            messageAr: arabicMessage,
             statusCode: statusCode || 400,
             errors,
             timestamp: new Date().toISOString(),
@@ -47,6 +53,7 @@ export interface ApiResponse<T> {
     success: boolean;
     data: T;
     message: string;
+    messageAr?: string;
     statusCode?: number;
     errors?: any[];
     timestamp: string;

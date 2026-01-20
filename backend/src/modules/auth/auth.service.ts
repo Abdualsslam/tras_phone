@@ -30,6 +30,10 @@ import {
   PriceLevel,
   PriceLevelDocument,
 } from '@modules/products/schemas/price-level.schema';
+import {
+  PasswordResetRequest,
+  PasswordResetRequestDocument,
+} from './schemas/password-reset-request.schema';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
@@ -53,6 +57,8 @@ export class AuthService {
     private customerModel: Model<CustomerDocument>,
     @InjectModel(PriceLevel.name)
     private priceLevelModel: Model<PriceLevelDocument>,
+    @InjectModel(PasswordResetRequest.name)
+    private passwordResetRequestModel: Model<PasswordResetRequestDocument>,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
@@ -747,5 +753,231 @@ export class AuthService {
     // Update password
     user.password = hashedPassword;
     await user.save();
+  }
+
+  // ═════════════════════════════════════
+  // Password Reset Requests (New Flow)
+  // ═════════════════════════════════════
+
+  /**
+   * Request password reset (customer)
+   */
+  async requestPasswordReset(
+    phone: string,
+    customerNotes?: string,
+  ): Promise<PasswordResetRequestDocument> {
+    // Find user by phone
+    const user = await this.userModel.findOne({ phone });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Check if there's already a pending request for this user
+    const existingRequest = await this.passwordResetRequestModel.findOne({
+      customerId: user._id,
+      status: 'pending',
+    });
+
+    if (existingRequest) {
+      throw new ConflictException(
+        'A password reset request is already pending. Please wait for admin to process it.',
+      );
+    }
+
+    // Generate request number
+    const requestNumber = await this.generatePasswordResetRequestNumber();
+
+    // Create password reset request
+    const request = await this.passwordResetRequestModel.create({
+      requestNumber,
+      customerId: user._id,
+      phone: user.phone,
+      status: 'pending',
+      customerNotes,
+    });
+
+    return request;
+  }
+
+  /**
+   * Get password reset requests (admin)
+   */
+  async getPasswordResetRequests(filters?: {
+    status?: string;
+    customerId?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: PasswordResetRequestDocument[]; total: number }> {
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      customerId,
+    } = filters || {};
+
+    const query: any = {};
+    if (status) query.status = status;
+    if (customerId) query.customerId = customerId;
+
+    const [data, total] = await Promise.all([
+      this.passwordResetRequestModel
+        .find(query)
+        .populate('customerId', 'phone email')
+        .populate('processedBy', 'fullName email')
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ createdAt: -1 }),
+      this.passwordResetRequestModel.countDocuments(query),
+    ]);
+
+    return { data, total };
+  }
+
+  /**
+   * Get password reset request by ID (admin)
+   */
+  async getPasswordResetRequestById(
+    id: string,
+  ): Promise<PasswordResetRequestDocument> {
+    const request = await this.passwordResetRequestModel
+      .findById(id)
+      .populate('customerId', 'phone email')
+      .populate('processedBy', 'fullName email');
+
+    if (!request) {
+      throw new BadRequestException('Password reset request not found');
+    }
+
+    return request;
+  }
+
+  /**
+   * Process password reset request (admin)
+   */
+  async processPasswordResetRequest(
+    requestId: string,
+    adminId: string,
+    adminNotes?: string,
+  ): Promise<{ request: PasswordResetRequestDocument; temporaryPassword: string }> {
+    const request = await this.passwordResetRequestModel.findById(requestId);
+
+    if (!request) {
+      throw new BadRequestException('Password reset request not found');
+    }
+
+    if (request.status !== 'pending') {
+      throw new BadRequestException(
+        `Request is already ${request.status}. Cannot process it again.`,
+      );
+    }
+
+    // Find user
+    const user = await this.userModel.findById(request.customerId);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Generate temporary password
+    const temporaryPassword = this.generateTemporaryPassword();
+
+    // Hash temporary password
+    const hashedPassword = await this.hashPassword(temporaryPassword);
+
+    // Update user password
+    user.password = hashedPassword;
+    await user.save();
+
+    // Update request
+    request.status = 'completed';
+    request.temporaryPassword = hashedPassword;
+    request.temporaryPasswordPlain = temporaryPassword; // Store plain text temporarily for admin to copy
+    request.processedBy = new Types.ObjectId(adminId);
+    request.processedAt = new Date();
+    if (adminNotes) {
+      request.adminNotes = adminNotes;
+    }
+    await request.save();
+
+    return { request, temporaryPassword };
+  }
+
+  /**
+   * Reject password reset request (admin)
+   */
+  async rejectPasswordResetRequest(
+    requestId: string,
+    adminId: string,
+    rejectionReason: string,
+    adminNotes?: string,
+  ): Promise<PasswordResetRequestDocument> {
+    const request = await this.passwordResetRequestModel.findById(requestId);
+
+    if (!request) {
+      throw new BadRequestException('Password reset request not found');
+    }
+
+    if (request.status !== 'pending') {
+      throw new BadRequestException(
+        `Request is already ${request.status}. Cannot reject it.`,
+      );
+    }
+
+    // Update request
+    request.status = 'rejected';
+    request.processedBy = new Types.ObjectId(adminId);
+    request.processedAt = new Date();
+    request.rejectionReason = rejectionReason;
+    if (adminNotes) {
+      request.adminNotes = adminNotes;
+    }
+    await request.save();
+
+    return request;
+  }
+
+  /**
+   * Generate password reset request number
+   */
+  private async generatePasswordResetRequestNumber(): Promise<string> {
+    const date = new Date();
+    const prefix = 'PWR';
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+
+    const count = await this.passwordResetRequestModel.countDocuments({
+      createdAt: {
+        $gte: new Date(date.getFullYear(), date.getMonth(), 1),
+      },
+    });
+
+    return `${prefix}${year}${month}${(count + 1).toString().padStart(4, '0')}`;
+  }
+
+  /**
+   * Generate temporary password
+   */
+  private generateTemporaryPassword(): string {
+    // Generate a random password: 12 characters with mix of letters and numbers
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const special = '@$!%*?&';
+    
+    // Ensure at least one of each required character type
+    let password = '';
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += special[Math.floor(Math.random() * special.length)];
+    
+    // Fill the rest randomly
+    const allChars = uppercase + lowercase + numbers + special;
+    for (let i = password.length; i < 12; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
   }
 }

@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Cart, CartDocument } from './schemas/cart.schema';
+import { ProductsService } from '@modules/products/products.service';
+import { InventoryService } from '@modules/inventory/inventory.service';
+import { CustomersService } from '@modules/customers/customers.service';
+import { SyncCartItemDto } from './dto/sync-cart.dto';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -13,6 +17,12 @@ export class CartService {
     constructor(
         @InjectModel(Cart.name)
         private cartModel: Model<CartDocument>,
+        @Inject(forwardRef(() => ProductsService))
+        private productsService: ProductsService,
+        @Inject(forwardRef(() => InventoryService))
+        private inventoryService: InventoryService,
+        @Inject(forwardRef(() => CustomersService))
+        private customersService: CustomersService,
     ) { }
 
     /**
@@ -207,5 +217,219 @@ export class CartService {
             })
             .populate('customerId', 'responsiblePersonName email phone')
             .limit(100);
+    }
+
+    /**
+     * Sync local cart with server
+     * Validates stock, prices, and product availability
+     */
+    async syncCart(
+        customerId: string,
+        localItems: SyncCartItemDto[],
+    ): Promise<{
+        cart: CartDocument;
+        removedItems: Array<{
+            productId: string;
+            reason: string;
+            productName?: string;
+            productNameAr?: string;
+        }>;
+        priceChangedItems: Array<{
+            productId: string;
+            oldPrice: number;
+            newPrice: number;
+            productName?: string;
+            productNameAr?: string;
+        }>;
+        quantityAdjustedItems: Array<{
+            productId: string;
+            requestedQuantity: number;
+            availableQuantity: number;
+            finalQuantity: number;
+            productName?: string;
+            productNameAr?: string;
+        }>;
+    }> {
+        // Get or create cart
+        const cart = await this.getCart(customerId);
+
+        // Get customer for priceLevelId
+        let priceLevelId: string;
+        try {
+            const customer = await this.customersService.findByUserId(customerId);
+            priceLevelId = customer?.priceLevelId?.toString() || '';
+        } catch (e) {
+            // If customer not found, use default or fallback
+            priceLevelId = '';
+        }
+
+        // Initialize result arrays
+        const removedItems: Array<{
+            productId: string;
+            reason: string;
+            productName?: string;
+            productNameAr?: string;
+        }> = [];
+
+        const priceChangedItems: Array<{
+            productId: string;
+            oldPrice: number;
+            newPrice: number;
+            productName?: string;
+            productNameAr?: string;
+        }> = [];
+
+        const quantityAdjustedItems: Array<{
+            productId: string;
+            requestedQuantity: number;
+            availableQuantity: number;
+            finalQuantity: number;
+            productName?: string;
+            productNameAr?: string;
+        }> = [];
+
+        // Clear existing items in cart (we'll rebuild from local items)
+        cart.items = [];
+
+        // Process each local item
+        for (const localItem of localItems) {
+            let productName: string | undefined;
+            let productNameAr: string | undefined;
+
+            try {
+                // 1. Check if product exists and is active
+                let product;
+                try {
+                    // Get product - findByIdOrSlug handles both ObjectId and slug
+                    // Note: This will increment viewsCount, which is acceptable for sync operations
+                    product = await this.productsService.findByIdOrSlug(localItem.productId);
+                } catch (e) {
+                    // Product not found
+                    removedItems.push({
+                        productId: localItem.productId,
+                        reason: 'deleted',
+                    });
+                    continue;
+                }
+
+                if (!product) {
+                    removedItems.push({
+                        productId: localItem.productId,
+                        reason: 'deleted',
+                    });
+                    continue;
+                }
+
+                if (!product.isActive || product.status !== 'active') {
+                    productName = product.name;
+                    productNameAr = product.nameAr;
+                    removedItems.push({
+                        productId: localItem.productId,
+                        reason: 'inactive',
+                        productName,
+                        productNameAr,
+                    });
+                    continue;
+                }
+
+                productName = product.name;
+                productNameAr = product.nameAr;
+
+                // 2. Check available stock
+                const availableQuantity = await this.inventoryService.getAvailableQuantity(
+                    localItem.productId,
+                );
+
+                if (availableQuantity === 0) {
+                    removedItems.push({
+                        productId: localItem.productId,
+                        reason: 'out_of_stock',
+                        productName,
+                        productNameAr,
+                    });
+                    continue;
+                }
+
+                // 3. Get current price
+                let currentPrice: number;
+                if (priceLevelId) {
+                    currentPrice = await this.productsService.getPrice(
+                        localItem.productId,
+                        priceLevelId,
+                    );
+                } else {
+                    // Fallback to product base price
+                    currentPrice = product.basePrice || 0;
+                }
+
+                // 4. Check if price changed
+                if (Math.abs(currentPrice - localItem.unitPrice) > 0.01) {
+                    priceChangedItems.push({
+                        productId: localItem.productId,
+                        oldPrice: localItem.unitPrice,
+                        newPrice: currentPrice,
+                        productName,
+                        productNameAr,
+                    });
+                }
+
+                // 5. Adjust quantity if needed
+                let finalQuantity = localItem.quantity;
+                if (availableQuantity < localItem.quantity) {
+                    finalQuantity = availableQuantity;
+                    quantityAdjustedItems.push({
+                        productId: localItem.productId,
+                        requestedQuantity: localItem.quantity,
+                        availableQuantity,
+                        finalQuantity,
+                        productName,
+                        productNameAr,
+                    });
+                }
+
+                // 6. Add/update item in cart
+                const existingItemIndex = cart.items.findIndex(
+                    (item) => item.productId.toString() === localItem.productId,
+                );
+
+                if (existingItemIndex >= 0) {
+                    cart.items[existingItemIndex].quantity = finalQuantity;
+                    cart.items[existingItemIndex].unitPrice = currentPrice;
+                    cart.items[existingItemIndex].totalPrice =
+                        finalQuantity * currentPrice;
+                } else {
+                    cart.items.push({
+                        productId: new Types.ObjectId(localItem.productId),
+                        quantity: finalQuantity,
+                        unitPrice: currentPrice,
+                        totalPrice: finalQuantity * currentPrice,
+                        addedAt: new Date(),
+                    });
+                }
+            } catch (e) {
+                // If any error occurs, add to removed items
+                removedItems.push({
+                    productId: localItem.productId,
+                    reason: 'error',
+                    productName,
+                    productNameAr,
+                });
+                continue;
+            }
+        }
+
+        // Recalculate totals
+        await this.recalculateTotals(cart);
+        cart.lastActivityAt = new Date();
+
+        // Save cart
+        const savedCart = await cart.save();
+
+        return {
+            cart: savedCart,
+            removedItems,
+            priceChangedItems,
+            quantityAdjustedItems,
+        };
     }
 }

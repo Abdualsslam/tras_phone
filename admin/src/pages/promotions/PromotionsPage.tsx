@@ -4,8 +4,25 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { promotionsApi } from '@/api/promotions.api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     Table,
     TableBody,
@@ -22,6 +39,12 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from '@/components/ui/tabs';
+import {
     Plus,
     Search,
     Tags,
@@ -36,20 +59,124 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
+interface PromotionFormData {
+    name: string;
+    nameAr: string;
+    code: string;
+    description?: string;
+    descriptionAr?: string;
+    discountType: 'percentage' | 'fixed_amount' | 'buy_x_get_y' | 'free_shipping';
+    discountValue?: number;
+    maxDiscountAmount?: number;
+    buyQuantity?: number;
+    getQuantity?: number;
+    getDiscountPercentage?: number;
+    startDate: string;
+    endDate: string;
+    minOrderAmount?: number;
+    minQuantity?: number;
+    scope: 'all' | 'specific_products' | 'specific_categories' | 'specific_brands';
+    productIds?: string[];
+    categoryIds?: string[];
+    brandIds?: string[];
+    usageLimit?: number;
+    usageLimitPerCustomer?: number;
+    image?: string;
+    badgeText?: string;
+    badgeColor?: string;
+    isActive: boolean;
+    isAutoApply: boolean;
+    priority: number;
+    isStackable: boolean;
+}
+
+const initialPromotionForm: PromotionFormData = {
+    name: '',
+    nameAr: '',
+    code: '',
+    description: '',
+    descriptionAr: '',
+    discountType: 'percentage',
+    discountValue: 0,
+    maxDiscountAmount: undefined,
+    buyQuantity: undefined,
+    getQuantity: undefined,
+    getDiscountPercentage: undefined,
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    minOrderAmount: undefined,
+    minQuantity: undefined,
+    scope: 'all',
+    productIds: [],
+    categoryIds: [],
+    brandIds: [],
+    usageLimit: undefined,
+    usageLimitPerCustomer: undefined,
+    image: '',
+    badgeText: '',
+    badgeColor: '#FF0000',
+    isActive: true,
+    isAutoApply: false,
+    priority: 0,
+    isStackable: false,
+};
+
 export function PromotionsPage() {
     const { t, i18n } = useTranslation();
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeTab, setActiveTab] = useState<'promotions' | 'coupons'>('coupons');
+    const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
+    const [promotionForm, setPromotionForm] = useState<PromotionFormData>(initialPromotionForm);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
     const locale = i18n.language === 'ar' ? 'ar-SA' : 'en-US';
 
-    // Fetch coupons from backend
-    const { data: coupons, isLoading, error } = useQuery({
-        queryKey: ['coupons'],
-        queryFn: promotionsApi.getAllCoupons,
+    // Fetch promotions and coupons from backend
+    const { data: promotions, isLoading: isLoadingPromotions } = useQuery({
+        queryKey: ['promotions'],
+        queryFn: promotionsApi.getAllPromotions,
+        enabled: activeTab === 'promotions',
     });
 
-    // Delete mutation
-    const deleteMutation = useMutation({
+    const { data: coupons, isLoading: isLoadingCoupons, error } = useQuery({
+        queryKey: ['coupons'],
+        queryFn: promotionsApi.getAllCoupons,
+        enabled: activeTab === 'coupons',
+    });
+
+    // Create promotion mutation
+    const createPromotionMutation = useMutation({
+        mutationFn: (data: any) => promotionsApi.createPromotion(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['promotions'] });
+            setIsPromotionDialogOpen(false);
+            setPromotionForm(initialPromotionForm);
+        },
+    });
+
+    // Update promotion mutation
+    const updatePromotionMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) => promotionsApi.updatePromotion(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['promotions'] });
+            setIsPromotionDialogOpen(false);
+            setPromotionForm(initialPromotionForm);
+            setIsEditMode(false);
+            setSelectedPromotionId(null);
+        },
+    });
+
+    // Delete promotion mutation
+    const deletePromotionMutation = useMutation({
+        mutationFn: (id: string) => promotionsApi.deletePromotion(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['promotions'] });
+        },
+    });
+
+    // Delete coupon mutation
+    const deleteCouponMutation = useMutation({
         mutationFn: (id: string) => promotionsApi.deleteCoupon(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['coupons'] });
@@ -62,15 +189,85 @@ export function PromotionsPage() {
             promo.description?.includes(searchQuery)
     );
 
+    const filteredPromotions = (promotions || []).filter(
+        (promo) =>
+            promo.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            promo.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            promo.nameAr?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     const copyCode = (code: string) => {
         navigator.clipboard.writeText(code);
     };
 
+    const handleOpenPromotionDialog = () => {
+        setIsEditMode(false);
+        setSelectedPromotionId(null);
+        setPromotionForm(initialPromotionForm);
+        setIsPromotionDialogOpen(true);
+    };
+
+    const handleEditPromotion = (promotion: any) => {
+        setIsEditMode(true);
+        setSelectedPromotionId(promotion._id);
+        setPromotionForm({
+            name: promotion.name || '',
+            nameAr: promotion.nameAr || '',
+            code: promotion.code || '',
+            description: promotion.description || '',
+            descriptionAr: promotion.descriptionAr || '',
+            discountType: promotion.discountType || 'percentage',
+            discountValue: promotion.discountValue || 0,
+            maxDiscountAmount: promotion.maxDiscountAmount,
+            buyQuantity: promotion.buyQuantity,
+            getQuantity: promotion.getQuantity,
+            getDiscountPercentage: promotion.getDiscountPercentage,
+            startDate: promotion.startDate ? new Date(promotion.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            endDate: promotion.endDate ? new Date(promotion.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            minOrderAmount: promotion.minOrderAmount,
+            minQuantity: promotion.minQuantity,
+            scope: promotion.scope || 'all',
+            productIds: promotion.productIds || [],
+            categoryIds: promotion.categoryIds || [],
+            brandIds: promotion.brandIds || [],
+            usageLimit: promotion.usageLimit,
+            usageLimitPerCustomer: promotion.usageLimitPerCustomer,
+            image: promotion.image || '',
+            badgeText: promotion.badgeText || '',
+            badgeColor: promotion.badgeColor || '#FF0000',
+            isActive: promotion.isActive ?? true,
+            isAutoApply: promotion.isAutoApply ?? false,
+            priority: promotion.priority || 0,
+            isStackable: promotion.isStackable ?? false,
+        });
+        setIsPromotionDialogOpen(true);
+    };
+
+    const handleSubmitPromotion = () => {
+        const formData = {
+            ...promotionForm,
+            startDate: new Date(promotionForm.startDate).toISOString(),
+            endDate: new Date(promotionForm.endDate).toISOString(),
+        };
+
+        if (isEditMode && selectedPromotionId) {
+            updatePromotionMutation.mutate({ id: selectedPromotionId, data: formData });
+        } else {
+            createPromotionMutation.mutate(formData);
+        }
+    };
+
     const stats = {
-        total: coupons?.length || 0,
-        active: coupons?.filter((c) => c.isActive).length || 0,
-        totalUsage: coupons?.reduce((sum, c) => sum + (c.usageCount || 0), 0) || 0,
-        percentage: coupons?.filter((c) => c.type === 'percentage').length || 0,
+        total: activeTab === 'coupons' ? (coupons?.length || 0) : (promotions?.length || 0),
+        active: activeTab === 'coupons' 
+            ? (coupons?.filter((c) => c.isActive).length || 0)
+            : (promotions?.filter((p) => p.isActive).length || 0),
+        totalUsage: activeTab === 'coupons'
+            ? (coupons?.reduce((sum, c) => sum + (c.usageCount || 0), 0) || 0)
+            : (promotions?.reduce((sum, p) => sum + (p.usedCount || 0), 0) || 0),
+        percentage: activeTab === 'coupons'
+            ? (coupons?.filter((c) => c.type === 'percentage').length || 0)
+            : (promotions?.filter((p) => p.discountType === 'percentage').length || 0),
     };
 
     return (
@@ -81,9 +278,9 @@ export function PromotionsPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('sidebar.promotions')}</h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">إدارة القسائم والعروض الترويجية</p>
                 </div>
-                <Button>
+                <Button onClick={activeTab === 'promotions' ? handleOpenPromotionDialog : handleOpenPromotionDialog}>
                     <Plus className="h-4 w-4" />
-                    إضافة قسيمة
+                    {activeTab === 'promotions' ? 'إضافة عرض' : 'إضافة قسيمة'}
                 </Button>
             </div>
 
@@ -133,7 +330,7 @@ export function PromotionsPage() {
                     <div className="relative max-w-md">
                         <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
-                            placeholder="البحث بكود القسيمة..."
+                            placeholder={activeTab === 'promotions' ? 'البحث بالكود أو الاسم...' : 'البحث بكود القسيمة...'}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="ps-10"
@@ -142,122 +339,604 @@ export function PromotionsPage() {
                 </CardContent>
             </Card>
 
-            {/* Coupons Table */}
-            <Card>
-                <CardHeader className="pb-4">
-                    <CardTitle className="text-lg">قائمة القسائم</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                    {isLoading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'promotions' | 'coupons')}>
+                <TabsList className="grid w-full max-w-md grid-cols-2">
+                    <TabsTrigger value="coupons">القسائم</TabsTrigger>
+                    <TabsTrigger value="promotions">العروض</TabsTrigger>
+                </TabsList>
+
+                {/* Coupons Tab */}
+                <TabsContent value="coupons" className="space-y-4">
+                    <Card>
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-lg">قائمة القسائم</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {isLoadingCoupons ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+                                </div>
+                            ) : error ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                    <AlertCircle className="h-12 w-12 mb-4 text-red-400" />
+                                    <p>حدث خطأ في تحميل البيانات</p>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>الكود</TableHead>
+                                            <TableHead>الوصف</TableHead>
+                                            <TableHead>الخصم</TableHead>
+                                            <TableHead>الاستخدام</TableHead>
+                                            <TableHead>الفترة</TableHead>
+                                            <TableHead>الحالة</TableHead>
+                                            <TableHead className="w-[50px]"></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredCoupons.map((coupon) => (
+                                            <TableRow key={coupon._id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                                                            {coupon.code}
+                                                        </code>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-6 w-6"
+                                                            onClick={() => copyCode(coupon.code)}
+                                                        >
+                                                            <Copy className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-gray-600">{coupon.description || '-'}</TableCell>
+                                                <TableCell className="font-medium">
+                                                    {coupon.type === 'percentage'
+                                                        ? `${coupon.value}%`
+                                                        : formatCurrency(coupon.value, 'SAR', locale)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-gray-900">{coupon.usageCount}</span>
+                                                        {coupon.usageLimit && (
+                                                            <>
+                                                                <span className="text-gray-400">/</span>
+                                                                <span className="text-gray-500">{coupon.usageLimit}</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-sm text-gray-500">
+                                                    <div>
+                                                        {formatDate(coupon.startDate, locale)}
+                                                        <span className="mx-1">-</span>
+                                                        {formatDate(coupon.endDate, locale)}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={coupon.isActive ? 'success' : 'default'}>
+                                                        {coupon.isActive ? 'نشط' : 'غير نشط'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon">
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem>
+                                                                <Pencil className="h-4 w-4" />
+                                                                تعديل
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => copyCode(coupon.code)}>
+                                                                <Copy className="h-4 w-4" />
+                                                                نسخ
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                className="text-red-600"
+                                                                onClick={() => deleteCouponMutation.mutate(coupon._id)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                                حذف
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {filteredCoupons.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                                    لا توجد قسائم
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Promotions Tab */}
+                <TabsContent value="promotions" className="space-y-4">
+                    <Card>
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-lg">قائمة العروض</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {isLoadingPromotions ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>الكود</TableHead>
+                                            <TableHead>الاسم</TableHead>
+                                            <TableHead>نوع الخصم</TableHead>
+                                            <TableHead>الاستخدام</TableHead>
+                                            <TableHead>الفترة</TableHead>
+                                            <TableHead>الحالة</TableHead>
+                                            <TableHead className="w-[50px]"></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredPromotions.map((promotion) => (
+                                            <TableRow key={promotion._id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                                                            {promotion.code || '-'}
+                                                        </code>
+                                                        {promotion.code && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-6 w-6"
+                                                                onClick={() => copyCode(promotion.code)}
+                                                            >
+                                                                <Copy className="h-3 w-3" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-gray-600">
+                                                    {promotion.nameAr || promotion.name || '-'}
+                                                </TableCell>
+                                                <TableCell className="font-medium">
+                                                    {promotion.discountType === 'percentage' && promotion.discountValue
+                                                        ? `${promotion.discountValue}%`
+                                                        : promotion.discountType === 'fixed_amount' && promotion.discountValue
+                                                        ? formatCurrency(promotion.discountValue, 'SAR', locale)
+                                                        : promotion.discountType === 'buy_x_get_y'
+                                                        ? `اشتر ${promotion.buyQuantity} احصل على ${promotion.getQuantity}`
+                                                        : promotion.discountType === 'free_shipping'
+                                                        ? 'شحن مجاني'
+                                                        : '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-gray-900">{promotion.usedCount || 0}</span>
+                                                        {promotion.usageLimit && (
+                                                            <>
+                                                                <span className="text-gray-400">/</span>
+                                                                <span className="text-gray-500">{promotion.usageLimit}</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-sm text-gray-500">
+                                                    <div>
+                                                        {promotion.startDate ? formatDate(promotion.startDate, locale) : '-'}
+                                                        <span className="mx-1">-</span>
+                                                        {promotion.endDate ? formatDate(promotion.endDate, locale) : '-'}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={promotion.isActive ? 'success' : 'default'}>
+                                                        {promotion.isActive ? 'نشط' : 'غير نشط'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon">
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={() => handleEditPromotion(promotion)}>
+                                                                <Pencil className="h-4 w-4" />
+                                                                تعديل
+                                                            </DropdownMenuItem>
+                                                            {promotion.code && (
+                                                                <DropdownMenuItem onClick={() => copyCode(promotion.code)}>
+                                                                    <Copy className="h-4 w-4" />
+                                                                    نسخ الكود
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                className="text-red-600"
+                                                                onClick={() => deletePromotionMutation.mutate(promotion._id)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                                حذف
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {filteredPromotions.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                                    لا توجد عروض
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+
+            {/* Create/Edit Promotion Dialog */}
+            <Dialog open={isPromotionDialogOpen} onOpenChange={setIsPromotionDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>{isEditMode ? 'تعديل عرض' : 'إضافة عرض جديد'}</DialogTitle>
+                        <DialogDescription>
+                            {isEditMode ? 'قم بتعديل بيانات العرض' : 'أدخل بيانات العرض الجديد'} (الحقول المميزة بـ * إلزامية)
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6 py-4">
+                        {/* Basic Info */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                                المعلومات الأساسية
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>
+                                        الاسم بالإنجليزية <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        value={promotionForm.name}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, name: e.target.value })}
+                                        placeholder="Summer Sale"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>
+                                        الاسم بالعربية <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        value={promotionForm.nameAr}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, nameAr: e.target.value })}
+                                        placeholder="عروض الصيف"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>
+                                        الكود <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        value={promotionForm.code}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, code: e.target.value })}
+                                        placeholder="SUMMER2024"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>الوصف</Label>
+                                    <Input
+                                        value={promotionForm.description || ''}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, description: e.target.value })}
+                                        placeholder="Description"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>الوصف بالعربية</Label>
+                                    <Input
+                                        value={promotionForm.descriptionAr || ''}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, descriptionAr: e.target.value })}
+                                        placeholder="الوصف بالعربية"
+                                    />
+                                </div>
+                            </div>
                         </div>
-                    ) : error ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                            <AlertCircle className="h-12 w-12 mb-4 text-red-400" />
-                            <p>حدث خطأ في تحميل البيانات</p>
-                        </div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>الكود</TableHead>
-                                    <TableHead>الوصف</TableHead>
-                                    <TableHead>الخصم</TableHead>
-                                    <TableHead>الاستخدام</TableHead>
-                                    <TableHead>الفترة</TableHead>
-                                    <TableHead>الحالة</TableHead>
-                                    <TableHead className="w-[50px]"></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredCoupons.map((coupon) => (
-                                    <TableRow key={coupon._id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
-                                                    {coupon.code}
-                                                </code>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-6 w-6"
-                                                    onClick={() => copyCode(coupon.code)}
-                                                >
-                                                    <Copy className="h-3 w-3" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-gray-600">{coupon.description || '-'}</TableCell>
-                                        <TableCell className="font-medium">
-                                            {coupon.type === 'percentage'
-                                                ? `${coupon.value}%`
-                                                : formatCurrency(coupon.value, 'SAR', locale)}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-gray-900">{coupon.usageCount}</span>
-                                                {coupon.usageLimit && (
-                                                    <>
-                                                        <span className="text-gray-400">/</span>
-                                                        <span className="text-gray-500">{coupon.usageLimit}</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-sm text-gray-500">
-                                            <div>
-                                                {formatDate(coupon.startDate, locale)}
-                                                <span className="mx-1">-</span>
-                                                {formatDate(coupon.endDate, locale)}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant={coupon.isActive ? 'success' : 'default'}>
-                                                {coupon.isActive ? 'نشط' : 'غير نشط'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem>
-                                                        <Pencil className="h-4 w-4" />
-                                                        تعديل
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => copyCode(coupon.code)}>
-                                                        <Copy className="h-4 w-4" />
-                                                        نسخ
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        className="text-red-600"
-                                                        onClick={() => deleteMutation.mutate(coupon._id)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                        حذف
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {filteredCoupons.length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                                            لا توجد قسائم
-                                        </TableCell>
-                                    </TableRow>
+
+                        {/* Discount Type */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                                نوع الخصم
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>
+                                        نوع الخصم <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Select
+                                        value={promotionForm.discountType}
+                                        onValueChange={(value: any) => setPromotionForm({ ...promotionForm, discountType: value })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="percentage">نسبة مئوية</SelectItem>
+                                            <SelectItem value="fixed_amount">مبلغ ثابت</SelectItem>
+                                            <SelectItem value="buy_x_get_y">اشتر X واحصل على Y</SelectItem>
+                                            <SelectItem value="free_shipping">شحن مجاني</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                {promotionForm.discountType !== 'free_shipping' && (
+                                    <div className="space-y-2">
+                                        <Label>
+                                            قيمة الخصم <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            type="number"
+                                            value={promotionForm.discountValue || ''}
+                                            onChange={(e) => setPromotionForm({ ...promotionForm, discountValue: parseFloat(e.target.value) || 0 })}
+                                            placeholder={promotionForm.discountType === 'percentage' ? '20' : '50'}
+                                        />
+                                    </div>
                                 )}
-                            </TableBody>
-                        </Table>
-                    )}
-                </CardContent>
-            </Card>
+                                {promotionForm.discountType === 'percentage' && (
+                                    <div className="space-y-2">
+                                        <Label>الحد الأقصى للخصم (ريال)</Label>
+                                        <Input
+                                            type="number"
+                                            value={promotionForm.maxDiscountAmount || ''}
+                                            onChange={(e) => setPromotionForm({ ...promotionForm, maxDiscountAmount: parseFloat(e.target.value) || undefined })}
+                                            placeholder="100"
+                                        />
+                                    </div>
+                                )}
+                                {promotionForm.discountType === 'buy_x_get_y' && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label>اشتر (X) <span className="text-red-500">*</span></Label>
+                                            <Input
+                                                type="number"
+                                                value={promotionForm.buyQuantity || ''}
+                                                onChange={(e) => setPromotionForm({ ...promotionForm, buyQuantity: parseInt(e.target.value) || undefined })}
+                                                placeholder="2"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>احصل على (Y) <span className="text-red-500">*</span></Label>
+                                            <Input
+                                                type="number"
+                                                value={promotionForm.getQuantity || ''}
+                                                onChange={(e) => setPromotionForm({ ...promotionForm, getQuantity: parseInt(e.target.value) || undefined })}
+                                                placeholder="1"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>نسبة الخصم على Y (%)</Label>
+                                            <Input
+                                                type="number"
+                                                value={promotionForm.getDiscountPercentage || ''}
+                                                onChange={(e) => setPromotionForm({ ...promotionForm, getDiscountPercentage: parseFloat(e.target.value) || undefined })}
+                                                placeholder="100 (للمجاني)"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Validity */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                                الفترة الزمنية
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>
+                                        تاريخ البداية <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        type="date"
+                                        value={promotionForm.startDate}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, startDate: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>
+                                        تاريخ النهاية <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        type="date"
+                                        value={promotionForm.endDate}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, endDate: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Conditions */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                                الشروط
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>الحد الأدنى لمبلغ الطلب (ريال)</Label>
+                                    <Input
+                                        type="number"
+                                        value={promotionForm.minOrderAmount || ''}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, minOrderAmount: parseFloat(e.target.value) || undefined })}
+                                        placeholder="500"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>الحد الأدنى للكمية</Label>
+                                    <Input
+                                        type="number"
+                                        value={promotionForm.minQuantity || ''}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, minQuantity: parseInt(e.target.value) || undefined })}
+                                        placeholder="1"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>
+                                        النطاق <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Select
+                                        value={promotionForm.scope}
+                                        onValueChange={(value: any) => setPromotionForm({ ...promotionForm, scope: value })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">جميع المنتجات</SelectItem>
+                                            <SelectItem value="specific_products">منتجات محددة</SelectItem>
+                                            <SelectItem value="specific_categories">أقسام محددة</SelectItem>
+                                            <SelectItem value="specific_brands">ماركات محددة</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Usage Limits */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                                حدود الاستخدام
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>الحد الأقصى للاستخدام الإجمالي</Label>
+                                    <Input
+                                        type="number"
+                                        value={promotionForm.usageLimit || ''}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, usageLimit: parseInt(e.target.value) || undefined })}
+                                        placeholder="1000"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>الحد الأقصى لكل عميل</Label>
+                                    <Input
+                                        type="number"
+                                        value={promotionForm.usageLimitPerCustomer || ''}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, usageLimitPerCustomer: parseInt(e.target.value) || undefined })}
+                                        placeholder="1"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Settings */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                                الإعدادات
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>الأولوية</Label>
+                                    <Input
+                                        type="number"
+                                        value={promotionForm.priority}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, priority: parseInt(e.target.value) || 0 })}
+                                        placeholder="0"
+                                    />
+                                    <p className="text-xs text-gray-500">الأعلى أولاً</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>نص الشارة</Label>
+                                    <Input
+                                        value={promotionForm.badgeText || ''}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, badgeText: e.target.value })}
+                                        placeholder="خصم 20%"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>لون الشارة</Label>
+                                    <Input
+                                        type="color"
+                                        value={promotionForm.badgeColor}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, badgeColor: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>رابط الصورة</Label>
+                                    <Input
+                                        value={promotionForm.image || ''}
+                                        onChange={(e) => setPromotionForm({ ...promotionForm, image: e.target.value })}
+                                        placeholder="https://..."
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <Switch
+                                        id="isActive"
+                                        checked={promotionForm.isActive}
+                                        onCheckedChange={(checked) => setPromotionForm({ ...promotionForm, isActive: checked })}
+                                    />
+                                    <Label htmlFor="isActive">عرض نشط</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Switch
+                                        id="isAutoApply"
+                                        checked={promotionForm.isAutoApply}
+                                        onCheckedChange={(checked) => setPromotionForm({ ...promotionForm, isAutoApply: checked })}
+                                    />
+                                    <Label htmlFor="isAutoApply">تطبيق تلقائي</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Switch
+                                        id="isStackable"
+                                        checked={promotionForm.isStackable}
+                                        onCheckedChange={(checked) => setPromotionForm({ ...promotionForm, isStackable: checked })}
+                                    />
+                                    <Label htmlFor="isStackable">قابل للدمج مع عروض أخرى</Label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setIsPromotionDialogOpen(false);
+                                setPromotionForm(initialPromotionForm);
+                                setIsEditMode(false);
+                                setSelectedPromotionId(null);
+                            }}
+                        >
+                            إلغاء
+                        </Button>
+                        <Button
+                            onClick={handleSubmitPromotion}
+                            disabled={createPromotionMutation.isPending || updatePromotionMutation.isPending}
+                        >
+                            {(createPromotionMutation.isPending || updatePromotionMutation.isPending) && (
+                                <Loader2 className="h-4 w-4 animate-spin me-2" />
+                            )}
+                            {isEditMode ? 'تحديث' : 'إنشاء'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

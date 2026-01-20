@@ -65,6 +65,26 @@ abstract class CatalogRemoteDataSource {
   });
   Future<List<String>> getSearchSuggestions(String query);
   Future<List<String>> getPopularSearches();
+  
+  // Advanced Search
+  Future<List<ProductEntity>> advancedSearch({
+    required String query,
+    List<String>? tags,
+    String? tagMode,
+    bool? fuzzy,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? categoryId,
+    double? minPrice,
+    double? maxPrice,
+    int page,
+    int limit,
+  });
+  Future<Map<String, dynamic>> getAdvancedSearchSuggestions(String query, {int? limit});
+  Future<List<String>> getAutocompleteSuggestions(String query, {int? limit});
+  Future<List<String>> getAllTags();
+  Future<List<Map<String, dynamic>>> getPopularTags({int? limit});
 
   // Reviews
   Future<List<ProductReviewModel>> getProductReviews(String productId);
@@ -566,6 +586,140 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
 
     if (data is List) {
       return data.map((e) => e.toString()).toList();
+    }
+    return [];
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ADVANCED SEARCH
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  Future<List<ProductEntity>> advancedSearch({
+    required String query,
+    List<String>? tags,
+    String? tagMode,
+    bool? fuzzy,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? categoryId,
+    double? minPrice,
+    double? maxPrice,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    developer.log('Advanced search: $query', name: 'CatalogDataSource');
+
+    final queryParams = <String, dynamic>{
+      'query': query,
+      'page': page,
+      'limit': limit,
+      if (tags != null && tags.isNotEmpty) 'tags': tags,
+      if (tagMode != null) 'tagMode': tagMode,
+      if (fuzzy != null) 'fuzzy': fuzzy,
+      if (sortBy != null) 'sortBy': sortBy,
+      if (sortOrder != null) 'sortOrder': sortOrder,
+      if (brandId != null) 'brandId': brandId,
+      if (categoryId != null) 'categoryId': categoryId,
+      if (minPrice != null) 'minPrice': minPrice,
+      if (maxPrice != null) 'maxPrice': maxPrice,
+    };
+
+    final response = await _apiClient.get(
+      '${ApiEndpoints.products}/search/advanced',
+      queryParameters: queryParams,
+    );
+
+    final data = response.data['data'] ?? response.data;
+    final List<dynamic> list = data is List ? data : [];
+
+    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>> getAdvancedSearchSuggestions(
+    String query, {
+    int? limit,
+  }) async {
+    developer.log(
+      'Getting advanced search suggestions: $query',
+      name: 'CatalogDataSource',
+    );
+
+    if (query.isEmpty) return {'suggestions': [], 'tags': [], 'products': []};
+
+    final response = await _apiClient.get(
+      '${ApiEndpoints.products}/search/suggestions',
+      queryParameters: {
+        'query': query,
+        if (limit != null) 'limit': limit,
+      },
+    );
+
+    final data = response.data['data'] ?? response.data;
+    if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    }
+    return {'suggestions': [], 'tags': [], 'products': []};
+  }
+
+  @override
+  Future<List<String>> getAutocompleteSuggestions(
+    String query, {
+    int? limit,
+  }) async {
+    developer.log(
+      'Getting autocomplete suggestions: $query',
+      name: 'CatalogDataSource',
+    );
+
+    if (query.isEmpty) return [];
+
+    final response = await _apiClient.get(
+      '${ApiEndpoints.products}/search/autocomplete',
+      queryParameters: {
+        'query': query,
+        if (limit != null) 'limit': limit,
+      },
+    );
+
+    final data = response.data['data'] ?? response.data;
+    if (data is List) {
+      return data.map((e) => e.toString()).toList();
+    }
+    return [];
+  }
+
+  @override
+  Future<List<String>> getAllTags() async {
+    developer.log('Getting all tags', name: 'CatalogDataSource');
+
+    final response = await _apiClient.get(
+      '${ApiEndpoints.products}/search/tags',
+    );
+
+    final data = response.data['data'] ?? response.data;
+    if (data is List) {
+      return data.map((e) => e.toString()).toList();
+    }
+    return [];
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getPopularTags({int? limit}) async {
+    developer.log('Getting popular tags', name: 'CatalogDataSource');
+
+    final response = await _apiClient.get(
+      '${ApiEndpoints.products}/search/popular-tags',
+      queryParameters: {
+        if (limit != null) 'limit': limit,
+      },
+    );
+
+    final data = response.data['data'] ?? response.data;
+    if (data is List) {
+      return data.map((e) => Map<String, dynamic>.from(e)).toList();
     }
     return [];
   }

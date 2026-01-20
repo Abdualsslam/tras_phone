@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { walletApi } from '@/api/wallet.api';
+import { walletApi, type LoyaltyTier } from '@/api/wallet.api';
 import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +36,13 @@ import {
     Search,
     TrendingUp,
     Coins,
+    Plus,
+    Pencil,
+    Trash2,
+    Crown,
 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 // ══════════════════════════════════════════════════════════════
@@ -50,14 +56,21 @@ export function WalletPage() {
     const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
     const [isDebitDialogOpen, setIsDebitDialogOpen] = useState(false);
     const [isPointsDialogOpen, setIsPointsDialogOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('customers');
+    
+    // Tiers management
+    const [isCreateTierDialogOpen, setIsCreateTierDialogOpen] = useState(false);
+    const [isEditTierDialogOpen, setIsEditTierDialogOpen] = useState(false);
+    const [isDeleteTierDialogOpen, setIsDeleteTierDialogOpen] = useState(false);
+    const [selectedTier, setSelectedTier] = useState<LoyaltyTier | null>(null);
 
     // ─────────────────────────────────────────
     // Queries
     // ─────────────────────────────────────────
 
-    const { data: tiers = [], isLoading: tiersLoading } = useQuery({
-        queryKey: ['wallet-tiers'],
-        queryFn: () => walletApi.getTiers(),
+    const { data: tiers = [], isLoading: tiersLoading, refetch: refetchTiers } = useQuery({
+        queryKey: ['wallet-tiers-admin'],
+        queryFn: () => walletApi.getAllTiers(),
     });
 
     const { data: customerBalance, isLoading: balanceLoading } = useQuery({
@@ -111,6 +124,47 @@ export function WalletPage() {
         onError: () => toast.error('حدث خطأ'),
     });
 
+    // Tiers mutations
+    const createTierMutation = useMutation({
+        mutationFn: walletApi.createTier,
+        onSuccess: () => {
+            refetchTiers();
+            setIsCreateTierDialogOpen(false);
+            toast.success('تم إنشاء المستوى بنجاح');
+            tierForm.reset();
+        },
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.messageAr || 'حدث خطأ في إنشاء المستوى');
+        },
+    });
+
+    const updateTierMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<LoyaltyTier> }) => walletApi.updateTier(id, data),
+        onSuccess: () => {
+            refetchTiers();
+            setIsEditTierDialogOpen(false);
+            setSelectedTier(null);
+            toast.success('تم تحديث المستوى بنجاح');
+            tierForm.reset();
+        },
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.messageAr || 'حدث خطأ في تحديث المستوى');
+        },
+    });
+
+    const deleteTierMutation = useMutation({
+        mutationFn: (id: string) => walletApi.deleteTier(id),
+        onSuccess: () => {
+            refetchTiers();
+            setIsDeleteTierDialogOpen(false);
+            setSelectedTier(null);
+            toast.success('تم حذف المستوى بنجاح');
+        },
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.messageAr || 'حدث خطأ في حذف المستوى');
+        },
+    });
+
     // ─────────────────────────────────────────
     // Forms
     // ─────────────────────────────────────────
@@ -135,6 +189,22 @@ export function WalletPage() {
         defaultValues: {
             points: 0,
             reason: '',
+        },
+    });
+
+    const tierForm = useForm<Omit<LoyaltyTier, '_id' | 'createdAt' | 'updatedAt'>>({
+        defaultValues: {
+            name: '',
+            nameAr: '',
+            code: '',
+            minPoints: 0,
+            pointsMultiplier: 1,
+            discountPercentage: 0,
+            freeShipping: false,
+            prioritySupport: false,
+            earlyAccess: false,
+            displayOrder: 0,
+            isActive: true,
         },
     });
 
@@ -195,6 +265,69 @@ export function WalletPage() {
         });
     };
 
+    // Tiers handlers
+    const handleCreateTier = () => {
+        tierForm.reset({
+            name: '',
+            nameAr: '',
+            code: '',
+            minPoints: 0,
+            pointsMultiplier: 1,
+            discountPercentage: 0,
+            freeShipping: false,
+            prioritySupport: false,
+            earlyAccess: false,
+            displayOrder: 0,
+            isActive: true,
+        });
+        setIsCreateTierDialogOpen(true);
+    };
+
+    const handleEditTier = (tier: LoyaltyTier) => {
+        setSelectedTier(tier);
+        tierForm.reset({
+            name: tier.name,
+            nameAr: tier.nameAr,
+            code: tier.code,
+            minPoints: tier.minPoints,
+            pointsMultiplier: tier.pointsMultiplier,
+            discountPercentage: tier.discountPercentage,
+            freeShipping: tier.freeShipping,
+            prioritySupport: tier.prioritySupport,
+            earlyAccess: tier.earlyAccess,
+            displayOrder: tier.displayOrder,
+            isActive: tier.isActive,
+            description: tier.description,
+            descriptionAr: tier.descriptionAr,
+            color: tier.color,
+            icon: tier.icon,
+            badgeImage: tier.badgeImage,
+            customBenefits: tier.customBenefits,
+            minSpend: tier.minSpend,
+            minOrders: tier.minOrders,
+        });
+        setIsEditTierDialogOpen(true);
+    };
+
+    const handleDeleteTier = (tier: LoyaltyTier) => {
+        setSelectedTier(tier);
+        setIsDeleteTierDialogOpen(true);
+    };
+
+    const onTierSubmit = (data: Omit<LoyaltyTier, '_id' | 'createdAt' | 'updatedAt'>) => {
+        if (selectedTier) {
+            updateTierMutation.mutate({ id: selectedTier._id, data });
+        } else {
+            createTierMutation.mutate(data);
+        }
+    };
+
+    const onDeleteTierConfirm = () => {
+        if (selectedTier) {
+            deleteTierMutation.mutate(selectedTier._id);
+        }
+    };
+
     // ─────────────────────────────────────────
     // Render
     // ─────────────────────────────────────────
@@ -206,6 +339,22 @@ export function WalletPage() {
                 <h1 className="text-2xl font-bold">إدارة المحفظة والنقاط</h1>
                 <p className="text-muted-foreground text-sm">إدارة أرصدة العملاء ونقاط الولاء</p>
             </div>
+
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                    <TabsTrigger value="customers" className="flex items-center gap-2">
+                        <Wallet className="h-4 w-4" />
+                        عملاء المحفظة
+                    </TabsTrigger>
+                    <TabsTrigger value="tiers" className="flex items-center gap-2">
+                        <Crown className="h-4 w-4" />
+                        مستويات الولاء
+                    </TabsTrigger>
+                </TabsList>
+
+                {/* Customers Tab */}
+                <TabsContent value="customers" className="space-y-6">
 
             {/* Customer Search */}
             <Card>
@@ -367,47 +516,107 @@ export function WalletPage() {
                 </Card>
             )}
 
-            {/* Loyalty Tiers */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Star className="h-5 w-5" />
-                        مستويات الولاء
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {tiersLoading ? (
-                        <div className="flex justify-center items-center h-40">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        </div>
-                    ) : tiers.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            <Star className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>لا توجد مستويات</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {tiers.map((tier) => (
-                                <Card key={tier._id} className="border-2">
-                                    <CardContent className="p-4 text-center">
-                                        <Star className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
-                                        <h3 className="font-bold text-lg">{tier.name}</h3>
-                                        {tier.nameAr && (
-                                            <p className="text-sm text-muted-foreground">{tier.nameAr}</p>
-                                        )}
-                                        <p className="text-sm mt-2">
-                                            {tier.minPoints.toLocaleString()} - {tier.maxPoints ? tier.maxPoints.toLocaleString() : '∞'} نقطة
-                                        </p>
-                                        <Badge variant="outline" className="mt-2">
-                                            مضاعف x{tier.multiplier}
-                                        </Badge>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                </TabsContent>
+
+                {/* Tiers Management Tab */}
+                <TabsContent value="tiers" className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="flex items-center gap-2">
+                                    <Crown className="h-5 w-5" />
+                                    إدارة مستويات الولاء
+                                </CardTitle>
+                                <Button onClick={handleCreateTier} className="bg-green-600 hover:bg-green-700">
+                                    <Plus className="h-4 w-4 ml-2" />
+                                    إضافة مستوى جديد
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {tiersLoading ? (
+                                <div className="flex justify-center items-center h-40">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                </div>
+                            ) : tiers.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <Crown className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <p>لا توجد مستويات</p>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>الاسم</TableHead>
+                                            <TableHead>الكود</TableHead>
+                                            <TableHead>الحد الأدنى</TableHead>
+                                            <TableHead>المضاعف</TableHead>
+                                            <TableHead>الخصم</TableHead>
+                                            <TableHead>المزايا</TableHead>
+                                            <TableHead>الحالة</TableHead>
+                                            <TableHead>الإجراءات</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {tiers.map((tier) => (
+                                            <TableRow key={tier._id}>
+                                                <TableCell>
+                                                    <div>
+                                                        <p className="font-medium">{tier.name}</p>
+                                                        <p className="text-sm text-muted-foreground">{tier.nameAr}</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">{tier.code}</Badge>
+                                                </TableCell>
+                                                <TableCell>{tier.minPoints.toLocaleString()} نقطة</TableCell>
+                                                <TableCell>x{tier.pointsMultiplier}</TableCell>
+                                                <TableCell>{tier.discountPercentage}%</TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {tier.freeShipping && (
+                                                            <Badge variant="success" className="text-xs">شحن مجاني</Badge>
+                                                        )}
+                                                        {tier.prioritySupport && (
+                                                            <Badge variant="success" className="text-xs">دعم أولوية</Badge>
+                                                        )}
+                                                        {tier.earlyAccess && (
+                                                            <Badge variant="success" className="text-xs">وصول مبكر</Badge>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={tier.isActive ? 'success' : 'danger'}>
+                                                        {tier.isActive ? 'نشط' : 'غير نشط'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleEditTier(tier)}
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() => handleDeleteTier(tier)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
 
             {/* Credit Dialog */}
             <Dialog open={isCreditDialogOpen} onOpenChange={setIsCreditDialogOpen}>
@@ -512,6 +721,187 @@ export function WalletPage() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Create/Edit Tier Dialog */}
+            <Dialog open={isCreateTierDialogOpen || isEditTierDialogOpen} onOpenChange={(open) => {
+                if (!open) {
+                    setIsCreateTierDialogOpen(false);
+                    setIsEditTierDialogOpen(false);
+                    setSelectedTier(null);
+                    tierForm.reset();
+                }
+            }}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>{selectedTier ? 'تعديل مستوى الولاء' : 'إضافة مستوى ولاء جديد'}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={tierForm.handleSubmit(onTierSubmit)} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>الاسم (إنجليزي) *</Label>
+                                <Input {...tierForm.register('name', { required: true })} placeholder="Bronze" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>الاسم (عربي) *</Label>
+                                <Input {...tierForm.register('nameAr', { required: true })} placeholder="برونزي" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>الكود *</Label>
+                                <Input {...tierForm.register('code', { required: true })} placeholder="bronze" disabled={!!selectedTier} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>الحد الأدنى من النقاط *</Label>
+                                <Input
+                                    type="number"
+                                    {...tierForm.register('minPoints', { required: true, valueAsNumber: true, min: 0 })}
+                                    placeholder="0"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>مضاعف النقاط *</Label>
+                                <Input
+                                    type="number"
+                                    step="0.1"
+                                    {...tierForm.register('pointsMultiplier', { required: true, valueAsNumber: true, min: 0.1 })}
+                                    placeholder="1"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>نسبة الخصم (%)</Label>
+                                <Input
+                                    type="number"
+                                    {...tierForm.register('discountPercentage', { valueAsNumber: true, min: 0, max: 100 })}
+                                    placeholder="0"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>اللون (Hex)</Label>
+                                <Input {...tierForm.register('color')} placeholder="#CD7F32" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>ترتيب العرض</Label>
+                                <Input
+                                    type="number"
+                                    {...tierForm.register('displayOrder', { valueAsNumber: true })}
+                                    placeholder="0"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>الوصف (إنجليزي)</Label>
+                            <Textarea {...tierForm.register('description')} placeholder="Tier description..." />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>الوصف (عربي)</Label>
+                            <Textarea {...tierForm.register('descriptionAr')} placeholder="وصف المستوى..." />
+                        </div>
+                        <div className="space-y-4">
+                            <Label className="text-base font-semibold">المزايا</Label>
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="freeShipping" className="cursor-pointer">شحن مجاني</Label>
+                                    <Switch
+                                        id="freeShipping"
+                                        checked={tierForm.watch('freeShipping')}
+                                        onCheckedChange={(checked) => tierForm.setValue('freeShipping', checked)}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="prioritySupport" className="cursor-pointer">دعم أولوية</Label>
+                                    <Switch
+                                        id="prioritySupport"
+                                        checked={tierForm.watch('prioritySupport')}
+                                        onCheckedChange={(checked) => tierForm.setValue('prioritySupport', checked)}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="earlyAccess" className="cursor-pointer">وصول مبكر</Label>
+                                    <Switch
+                                        id="earlyAccess"
+                                        checked={tierForm.watch('earlyAccess')}
+                                        onCheckedChange={(checked) => tierForm.setValue('earlyAccess', checked)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                            <Switch
+                                id="isActive"
+                                checked={tierForm.watch('isActive')}
+                                onCheckedChange={(checked) => tierForm.setValue('isActive', checked)}
+                            />
+                            <Label htmlFor="isActive" className="cursor-pointer">نشط</Label>
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setIsCreateTierDialogOpen(false);
+                                    setIsEditTierDialogOpen(false);
+                                    setSelectedTier(null);
+                                    tierForm.reset();
+                                }}
+                            >
+                                إلغاء
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={createTierMutation.isPending || updateTierMutation.isPending}
+                                className="bg-green-600 hover:bg-green-700"
+                            >
+                                {(createTierMutation.isPending || updateTierMutation.isPending) && (
+                                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                                )}
+                                {selectedTier ? 'تحديث' : 'إنشاء'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Tier Confirmation Dialog */}
+            <Dialog open={isDeleteTierDialogOpen} onOpenChange={setIsDeleteTierDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>تأكيد الحذف</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                            هل أنت متأكد من حذف المستوى <strong>{selectedTier?.name}</strong>؟
+                            <br />
+                            سيتم تعطيل المستوى بدلاً من حذفه نهائياً.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setIsDeleteTierDialogOpen(false);
+                                setSelectedTier(null);
+                            }}
+                        >
+                            إلغاء
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={onDeleteTierConfirm}
+                            disabled={deleteTierMutation.isPending}
+                        >
+                            {deleteTierMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                            حذف
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

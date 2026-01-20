@@ -34,8 +34,8 @@ class ReturnModel {
   @JsonKey(name: '_id', fromJson: _idFromJson)
   final String id;
   final String returnNumber;
-  @JsonKey(fromJson: _idFromJson)
-  final String orderId;
+  @JsonKey(fromJson: _orderIdsFromJson)
+  final List<String> orderIds;
   @JsonKey(fromJson: _idFromJson)
   final String customerId;
   final String status;
@@ -64,7 +64,7 @@ class ReturnModel {
   const ReturnModel({
     required this.id,
     required this.returnNumber,
-    required this.orderId,
+    required this.orderIds,
     required this.customerId,
     required this.status,
     required this.returnType,
@@ -99,6 +99,18 @@ class ReturnModel {
     if (value is Map) return value['_id']?.toString() ?? '';
     return '';
   }
+
+  /// Helper to extract orderIds from either List or single ID (backward compatibility)
+  static List<String> _orderIdsFromJson(dynamic value) {
+    if (value is List) {
+      return value.map((e) => _idFromJson(e)).toList();
+    }
+    // Backward compatibility: if orderIds doesn't exist, check for orderId
+    return [];
+  }
+
+  /// Get primary order ID (first in list)
+  String get primaryOrderId => orderIds.isNotEmpty ? orderIds.first : '';
 
   ReturnStatus get statusEnum => ReturnStatus.fromString(status);
   ReturnType get returnTypeEnum => ReturnType.fromString(returnType);
@@ -220,7 +232,6 @@ class ReturnReasonModel {
 /// Create Return Request
 @JsonSerializable()
 class CreateReturnRequest {
-  final String orderId;
   final String returnType;
   final String reasonId;
   final String? customerNotes;
@@ -229,7 +240,6 @@ class CreateReturnRequest {
   final PickupAddress? pickupAddress;
 
   const CreateReturnRequest({
-    required this.orderId,
     required this.returnType,
     required this.reasonId,
     this.customerNotes,

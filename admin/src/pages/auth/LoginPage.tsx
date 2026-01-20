@@ -5,12 +5,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Globe, Loader2, Eye, EyeOff } from 'lucide-react';
 import { updateDocumentDirection } from '@/locales/i18n';
+import logo from '@/assets/logo.png';
+import logoDark from '@/assets/logo_dark.png';
 
 const loginSchema = z.object({
     email: z.string().email('البريد الإلكتروني غير صحيح'),
@@ -22,9 +25,11 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export function LoginPage() {
     const { t, i18n } = useTranslation();
     const { login } = useAuth();
+    const { isDark } = useTheme();
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const currentLogo = isDark ? logoDark : logo;
 
     const {
         register,
@@ -74,8 +79,12 @@ export function LoginPage() {
             <Card className="w-full max-w-md shadow-2xl animate-fade-in">
                 <CardHeader className="text-center pb-2">
                     {/* Logo */}
-                    <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-                        <span className="text-white font-bold text-2xl">T</span>
+                    <div className="mx-auto mb-4 flex justify-center">
+                        <img 
+                            src={currentLogo} 
+                            alt="TRAS Logo" 
+                            className="h-20 w-auto object-contain max-w-[200px]"
+                        />
                     </div>
                     <CardTitle className="text-2xl font-bold">{t('auth.welcomeBack')}</CardTitle>
                     <CardDescription className="text-gray-500">

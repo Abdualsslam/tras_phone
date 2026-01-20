@@ -11,6 +11,7 @@ import { CatalogService } from './catalog.service';
 import { CategoriesService } from './categories.service';
 import { CatalogController } from './catalog.controller';
 import { AuthModule } from '@modules/auth/auth.module';
+import { ProductsModule } from '@modules/products/products.module';
 
 @Module({
     imports: [
@@ -32,6 +33,7 @@ import { AuthModule } from '@modules/auth/auth.module';
             inject: [ConfigService],
         }),
         AuthModule,
+        ProductsModule,
     ],
     controllers: [CatalogController],
     providers: [CatalogService, CategoriesService],

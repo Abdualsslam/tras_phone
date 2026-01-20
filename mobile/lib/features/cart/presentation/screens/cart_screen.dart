@@ -22,18 +22,10 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  final _couponController = TextEditingController();
-
   @override
   void initState() {
     super.initState();
-    context.read<CartCubit>().loadCart();
-  }
-
-  @override
-  void dispose() {
-    _couponController.dispose();
-    super.dispose();
+    context.read<CartCubit>().loadLocalCart();
   }
 
   @override
@@ -75,7 +67,7 @@ class _CartScreenState extends State<CartScreen> {
                   Text(state.message, style: theme.textTheme.bodyLarge),
                   SizedBox(height: 16.h),
                   ElevatedButton(
-                    onPressed: () => context.read<CartCubit>().loadCart(),
+                    onPressed: () => context.read<CartCubit>().loadLocalCart(),
                     child: Text(AppLocalizations.of(context)!.tryAgain),
                   ),
                 ],
@@ -166,27 +158,19 @@ class _CartScreenState extends State<CartScreen> {
                       item: item,
                       isDark: isDark,
                       onQuantityChanged: (quantity) {
-                        context.read<CartCubit>().updateQuantity(
+                        context.read<CartCubit>().updateQuantityLocal(
                           item.productId,
                           quantity,
                         );
                       },
                       onRemove: () {
-                        context.read<CartCubit>().removeFromCart(
+                        context.read<CartCubit>().removeFromCartLocal(
                           item.productId,
                         );
                       },
                     ),
                   );
                 }, childCount: cart.items.length),
-              ),
-            ),
-
-            // Coupon Section
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: _buildCouponSection(context, theme, isDark, cart),
               ),
             ),
 
@@ -220,92 +204,6 @@ class _CartScreenState extends State<CartScreen> {
           child: _buildCheckoutBar(context, theme, isDark, cart),
         ),
       ],
-    );
-  }
-
-  Widget _buildCouponSection(
-    BuildContext context,
-    ThemeData theme,
-    bool isDark,
-    CartEntity cart,
-  ) {
-    if (cart.couponCode != null) {
-      return Container(
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Iconsax.ticket_discount,
-              color: AppColors.success,
-              size: 24.sp,
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'تم تطبيق الكوبون',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.success,
-                    ),
-                  ),
-                  Text(
-                    cart.couponCode!,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.success,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Iconsax.close_circle, color: AppColors.success),
-              onPressed: () => context.read<CartCubit>().removeCoupon(),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: EdgeInsets.all(4.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _couponController,
-              decoration: InputDecoration(
-                hintText: 'أدخل رمز الخصم',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (_couponController.text.isNotEmpty) {
-                context.read<CartCubit>().applyCoupon(_couponController.text);
-                _couponController.clear();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-            ),
-            child: const Text('تطبيق'),
-          ),
-        ],
-      ),
     );
   }
 

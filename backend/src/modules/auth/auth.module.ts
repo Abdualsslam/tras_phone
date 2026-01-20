@@ -16,6 +16,10 @@ import {
 } from './schemas/login-attempt.schema';
 import { ApiToken, ApiTokenSchema } from './schemas/api-token.schema';
 import {
+  PasswordResetRequest,
+  PasswordResetRequestSchema,
+} from './schemas/password-reset-request.schema';
+import {
   AdminUser,
   AdminUserSchema,
 } from '@modules/admins/schemas/admin-user.schema';
@@ -43,6 +47,7 @@ import { PriceLevel, PriceLevelSchema } from '@modules/products/schemas/price-le
       { name: AdminUser.name, schema: AdminUserSchema },
       { name: Customer.name, schema: CustomerSchema },
       { name: PriceLevel.name, schema: PriceLevelSchema },
+      { name: PasswordResetRequest.name, schema: PasswordResetRequestSchema },
     ]),
   ],
   controllers: [AuthController],

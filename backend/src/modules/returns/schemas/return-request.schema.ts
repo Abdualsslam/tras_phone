@@ -16,8 +16,8 @@ export class ReturnRequest {
     @Prop({ required: true, unique: true })
     returnNumber: string;
 
-    @Prop({ type: Types.ObjectId, ref: 'Order', required: true, index: true })
-    orderId: Types.ObjectId;
+    @Prop({ type: [Types.ObjectId], ref: 'Order', required: true, index: true })
+    orderIds: Types.ObjectId[];
 
     @Prop({ type: Types.ObjectId, ref: 'Customer', required: true, index: true })
     customerId: Types.ObjectId;
@@ -121,7 +121,7 @@ export class ReturnRequest {
 export const ReturnRequestSchema = SchemaFactory.createForClass(ReturnRequest);
 
 ReturnRequestSchema.index({ returnNumber: 1 });
-ReturnRequestSchema.index({ orderId: 1 });
+ReturnRequestSchema.index({ orderIds: 1 });
 ReturnRequestSchema.index({ customerId: 1 });
 ReturnRequestSchema.index({ status: 1 });
 ReturnRequestSchema.index({ createdAt: -1 });

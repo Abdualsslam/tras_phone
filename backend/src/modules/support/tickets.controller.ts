@@ -7,8 +7,11 @@ import {
     Param,
     Query,
     UseGuards,
+    UseInterceptors,
+    UploadedFiles,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { TicketsService } from './tickets.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -19,13 +22,18 @@ import { TicketStatus, TicketPriority } from './schemas/ticket.schema';
 import { MessageSenderType } from './schemas/ticket-message.schema';
 import { ResponseBuilder } from '../../common/response.builder';
 import { UserRole } from '@common/enums/user-role.enum';
+import { UploadsService } from '../uploads/uploads.service';
+import { AdvancedSearchDto } from './dto/advanced-search.dto';
 
 @ApiTags('Tickets')
 @Controller('tickets')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class TicketsController {
-    constructor(private readonly ticketsService: TicketsService) { }
+    constructor(
+        private readonly ticketsService: TicketsService,
+        private readonly uploadsService: UploadsService,
+    ) { }
 
     // ==================== Categories ====================
 
@@ -160,6 +168,14 @@ export class TicketsController {
         return ResponseBuilder.success(result);
     }
 
+    @Post('admin/search')
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Advanced search for tickets' })
+    async advancedSearch(@Body() searchDto: AdvancedSearchDto) {
+        const result = await this.ticketsService.advancedSearch(searchDto);
+        return ResponseBuilder.success(result);
+    }
+
     @Get('admin/stats')
     @Roles(UserRole.ADMIN)
     @ApiOperation({ summary: 'Get ticket statistics' })
@@ -287,5 +303,49 @@ export class TicketsController {
     async useCannedResponse(@Param('id') id: string) {
         const response = await this.ticketsService.useCannedResponse(id);
         return ResponseBuilder.success(response);
+    }
+
+    // ==================== File Upload ====================
+
+    @Post('upload')
+    @ApiOperation({ summary: 'Upload ticket attachments' })
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                files: {
+                    type: 'array',
+                    items: {
+                        type: 'string',
+                        format: 'binary',
+                    },
+                },
+            },
+        },
+    })
+    async uploadAttachments(@Body() body: { files: Array<{ base64: string; filename: string }> }) {
+        try {
+            const uploadedUrls: string[] = [];
+
+            for (const file of body.files) {
+                const result = await this.uploadsService.uploadBase64(
+                    file.base64,
+                    file.filename,
+                    'support/tickets',
+                );
+                uploadedUrls.push(result.url);
+            }
+
+            return ResponseBuilder.success(
+                { urls: uploadedUrls },
+                'Files uploaded successfully',
+            );
+        } catch (error) {
+            return ResponseBuilder.error(
+                'Failed to upload files',
+                500,
+            );
+        }
     }
 }

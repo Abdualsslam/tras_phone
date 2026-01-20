@@ -29,6 +29,11 @@ export class ProductFilterQueryDto extends PaginationQueryDto {
     @IsOptional()
     qualityTypeId?: string;
 
+    @ApiProperty({ example: '507f1f77bcf86cd799439014', required: false, description: 'Filter by device ID' })
+    @IsMongoId()
+    @IsOptional()
+    deviceId?: string;
+
     @ApiProperty({ example: 100, required: false, description: 'Minimum price' })
     @IsNumber()
     @Type(() => Number)

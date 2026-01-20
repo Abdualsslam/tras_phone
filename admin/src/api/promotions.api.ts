@@ -3,21 +3,37 @@ import type { ApiResponse } from '@/types';
 
 export interface Promotion {
     _id: string;
-    title: string;
-    titleAr: string;
+    name: string;
+    nameAr: string;
+    code: string;
     description?: string;
-    type: 'percentage' | 'fixed' | 'buy_x_get_y' | 'free_shipping';
-    value: number;
+    descriptionAr?: string;
+    discountType: 'percentage' | 'fixed_amount' | 'buy_x_get_y' | 'free_shipping';
+    discountValue?: number;
+    maxDiscountAmount?: number;
+    buyQuantity?: number;
+    getQuantity?: number;
+    getDiscountPercentage?: number;
     startDate: string;
     endDate: string;
-    isActive: boolean;
-    applicableProducts?: string[];
-    applicableCategories?: string[];
     minOrderAmount?: number;
-    maxDiscount?: number;
-    usageCount: number;
-    maxUsage?: number;
-    createdAt: string;
+    minQuantity?: number;
+    scope: 'all' | 'specific_products' | 'specific_categories' | 'specific_brands';
+    productIds?: string[];
+    categoryIds?: string[];
+    brandIds?: string[];
+    usageLimit?: number;
+    usageLimitPerCustomer?: number;
+    usedCount: number;
+    image?: string;
+    badgeText?: string;
+    badgeColor?: string;
+    isActive: boolean;
+    isAutoApply: boolean;
+    priority: number;
+    isStackable: boolean;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface Coupon {

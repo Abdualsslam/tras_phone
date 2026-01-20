@@ -2,7 +2,10 @@ import {
     Controller,
     Get,
     Post,
+    Put,
+    Delete,
     Body,
+    Param,
     Query,
     UseGuards,
     HttpCode,
@@ -19,6 +22,8 @@ import { UserRole } from '@common/enums/user-role.enum';
 import { CurrentUser } from '@decorators/current-user.decorator';
 import { Public } from '@decorators/public.decorator';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
+import { CreateTierDto } from './dto/create-tier.dto';
+import { UpdateTierDto } from './dto/update-tier.dto';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -102,12 +107,26 @@ export class WalletController {
     @Get('tiers')
     @ApiOperation({
         summary: 'Get loyalty tiers',
-        description: 'Retrieve all loyalty program tiers and their benefits. Public endpoint.',
+        description: 'Retrieve all active loyalty program tiers and their benefits. Public endpoint.',
     })
     @ApiResponse({ status: 200, description: 'Loyalty tiers retrieved successfully', type: ApiResponseDto })
     @ApiPublicErrorResponses()
     async getTiers() {
         const tiers = await this.walletService.getTiers();
+        return ResponseBuilder.success(tiers, 'Tiers retrieved', 'تم استرجاع المستويات');
+    }
+
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Get('admin/tiers')
+    @ApiOperation({
+        summary: 'Get all loyalty tiers (admin)',
+        description: 'Retrieve all loyalty tiers including inactive ones. Admin only.',
+    })
+    @ApiResponse({ status: 200, description: 'Tiers retrieved successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async getAllTiers() {
+        const tiers = await this.walletService.getAllTiers();
         return ResponseBuilder.success(tiers, 'Tiers retrieved', 'تم استرجاع المستويات');
     }
 
@@ -170,5 +189,55 @@ export class WalletController {
             createdBy: user._id,
         });
         return ResponseBuilder.created(transaction, 'Points granted', 'تم إضافة النقاط');
+    }
+
+    // ═════════════════════════════════════
+    // Admin: Loyalty Tiers Management
+    // ═════════════════════════════════════
+
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Post('admin/tiers')
+    @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({
+        summary: 'Create loyalty tier (admin)',
+        description: 'Create a new loyalty tier. Admin only.',
+    })
+    @ApiResponse({ status: 201, description: 'Tier created successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async createTier(@Body() data: CreateTierDto) {
+        const tier = await this.walletService.createTier(data);
+        return ResponseBuilder.created(tier, 'Tier created', 'تم إنشاء المستوى');
+    }
+
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Put('admin/tiers/:id')
+    @ApiOperation({
+        summary: 'Update loyalty tier (admin)',
+        description: 'Update an existing loyalty tier. Admin only.',
+    })
+    @ApiParam({ name: 'id', description: 'Tier ID' })
+    @ApiResponse({ status: 200, description: 'Tier updated successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async updateTier(@Param('id') id: string, @Body() data: UpdateTierDto) {
+        const tier = await this.walletService.updateTier(id, data);
+        return ResponseBuilder.success(tier, 'Tier updated', 'تم تحديث المستوى');
+    }
+
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Delete('admin/tiers/:id')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: 'Delete loyalty tier (admin)',
+        description: 'Delete (deactivate) a loyalty tier. Admin only.',
+    })
+    @ApiParam({ name: 'id', description: 'Tier ID' })
+    @ApiResponse({ status: 200, description: 'Tier deleted successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async deleteTier(@Param('id') id: string) {
+        await this.walletService.deleteTier(id);
+        return ResponseBuilder.success(null, 'Tier deleted', 'تم حذف المستوى');
     }
 }

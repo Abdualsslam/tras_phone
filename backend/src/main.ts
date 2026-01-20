@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ExpressAdapter } from '@nestjs/platform-express';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import helmet from 'helmet';
 import compression from 'compression';
 import express from 'express';
@@ -27,6 +28,9 @@ async function bootstrap() {
       bodyParser: false, // Disable default body parser since we're using Express middleware
     },
   );
+
+  // Enable WebSocket
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   const configService = app.get(ConfigService);
 

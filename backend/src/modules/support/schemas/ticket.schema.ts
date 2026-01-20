@@ -89,6 +89,12 @@ export class TicketResolution {
 
 @Schema({ timestamps: true })
 export class Ticket {
+    _id: Types.ObjectId;
+    
+    createdAt: Date;
+    
+    updatedAt: Date;
+    
     @Prop({ required: true, unique: true })
     ticketNumber: string; // TKT-2024-000001
 

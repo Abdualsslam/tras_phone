@@ -313,7 +313,7 @@ export class CustomersService {
   /**
    * Delete customer (soft delete)
    */
-  async delete(id: string): Promise<void> {
+  async delete(id: string, reason?: string): Promise<void> {
     const customer = await this.customerModel.findById(id).populate('userId');
 
     if (!customer) {
@@ -326,8 +326,29 @@ export class CustomersService {
         ? customer.userId._id.toString()
         : customer.userId.toString();
 
-    await this.usersService.delete(userId);
+    await this.usersService.delete(userId, reason);
 
+    await customer.deleteOne();
+  }
+
+  /**
+   * Delete account by customer (self-delete)
+   */
+  async deleteAccount(customerId: string, reason?: string): Promise<void> {
+    const customer = await this.customerModel.findById(customerId).populate('userId');
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    const userId =
+      typeof customer.userId === 'object' && customer.userId?._id
+        ? customer.userId._id.toString()
+        : customer.userId.toString();
+
+    await this.usersService.delete(userId, reason);
+
+    // Soft delete customer profile as well
     await customer.deleteOne();
   }
 

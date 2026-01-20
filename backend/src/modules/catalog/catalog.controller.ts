@@ -26,6 +26,8 @@ import {
 } from '@common/decorators/api-error-responses.decorator';
 import { CatalogService } from './catalog.service';
 import { CategoriesService } from './categories.service';
+import { ProductsService } from '@modules/products/products.service';
+import { ProductFilterQueryDto } from '@modules/products/dto/product-filter-query.dto';
 import { Public } from '@decorators/public.decorator';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 import { RolesGuard } from '@guards/roles.guard';
@@ -44,6 +46,7 @@ export class CatalogController {
   constructor(
     private readonly catalogService: CatalogService,
     private readonly categoriesService: CategoriesService,
+    private readonly productsService: ProductsService,
   ) {}
 
   // ═════════════════════════════════════
@@ -55,19 +58,13 @@ export class CatalogController {
   @ApiOperation({
     summary: 'Get all brands',
     description:
-      'Retrieve all brands with optional featured filter. Public endpoint.',
+      'Retrieve all active brands with optional featured filter. Public endpoint.',
   })
   @ApiQuery({
     name: 'featured',
     required: false,
     type: Boolean,
     description: 'Filter featured brands only',
-  })
-  @ApiQuery({
-    name: 'includeInactive',
-    required: false,
-    type: Boolean,
-    description: 'Include inactive brands in results (admin only)',
   })
   @ApiResponse({
     status: 200,
@@ -77,13 +74,120 @@ export class CatalogController {
   @ApiPublicErrorResponses()
   async getBrands(
     @Query('featured') featured?: boolean,
-    @Query('includeInactive') includeInactive?: boolean,
   ) {
-    const brands = await this.catalogService.findAllBrands({ featured, includeInactive });
+    // فقط البراندات النشطة للعامة
+    const brands = await this.catalogService.findAllBrands({ featured });
     return ResponseBuilder.success(
       brands,
       'Brands retrieved',
       'تم استرجاع العلامات التجارية',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get('brands/all')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get all brands (admin only)',
+    description:
+      'Retrieve all brands including inactive ones. Admin only endpoint.',
+  })
+  @ApiQuery({
+    name: 'featured',
+    required: false,
+    type: Boolean,
+    description: 'Filter featured brands only',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'All brands retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getAllBrands(
+    @Query('featured') featured?: boolean,
+  ) {
+    const brands = await this.catalogService.findAllBrands({ 
+      featured, 
+      includeInactive: true 
+    });
+    return ResponseBuilder.success(
+      brands,
+      'All brands retrieved',
+      'تم استرجاع جميع العلامات التجارية',
+    );
+  }
+
+  @Public()
+  @Get('brands/:slug/products')
+  @ApiOperation({
+    summary: 'Get products by brand slug',
+    description:
+      'Retrieve all products for a specific brand by its slug. Public endpoint.',
+  })
+  @ApiParam({ name: 'slug', description: 'Brand slug', example: 'apple' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20)',
+  })
+  @ApiQuery({
+    name: 'minPrice',
+    required: false,
+    type: Number,
+    description: 'Minimum price filter',
+  })
+  @ApiQuery({
+    name: 'maxPrice',
+    required: false,
+    type: Number,
+    description: 'Maximum price filter',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Sort field (price, name, createdAt, etc.)',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Brand products retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getBrandProducts(
+    @Param('slug') slug: string,
+    @Query() query: Partial<ProductFilterQueryDto>,
+  ) {
+    // جلب البراند أولاً للحصول على الـ ID
+    const brand = await this.catalogService.findBrandBySlug(slug);
+    
+    // جلب منتجات البراند
+    const result = await this.productsService.findAll({
+      ...query,
+      brandId: brand._id.toString(),
+      status: 'active', // فقط المنتجات النشطة
+    });
+
+    return ResponseBuilder.success(
+      result.data,
+      'Brand products retrieved',
+      'تم استرجاع منتجات العلامة التجارية',
+      result.pagination,
     );
   }
 
@@ -292,6 +396,88 @@ export class CatalogController {
     );
   }
 
+  @Public()
+  @Get('categories/:identifier/products')
+  @ApiOperation({
+    summary: 'Get products by category',
+    description:
+      'Retrieve all products for a specific category. If the category has subcategories, products from all descendant categories will be included. If the category has no subcategories, only products directly assigned to that category will be returned. Public endpoint.',
+  })
+  @ApiParam({
+    name: 'identifier',
+    description: 'Category ID or slug',
+    example: 'screens or 507f1f77bcf86cd799439011',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20)',
+  })
+  @ApiQuery({
+    name: 'minPrice',
+    required: false,
+    type: Number,
+    description: 'Minimum price filter',
+  })
+  @ApiQuery({
+    name: 'maxPrice',
+    required: false,
+    type: Number,
+    description: 'Maximum price filter',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Sort field (price, name, createdAt, etc.)',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order',
+  })
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    type: String,
+    description: 'Filter by brand ID',
+  })
+  @ApiQuery({
+    name: 'qualityTypeId',
+    required: false,
+    type: String,
+    description: 'Filter by quality type ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category products retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getCategoryProducts(
+    @Param('identifier') identifier: string,
+    @Query() query: Partial<ProductFilterQueryDto>,
+  ) {
+    const result = await this.categoriesService.getCategoryProducts(
+      identifier,
+      query,
+    );
+    return ResponseBuilder.success(
+      result.data,
+      'Category products retrieved',
+      'تم استرجاع منتجات القسم',
+      result.pagination,
+    );
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Post('categories')
@@ -437,6 +623,93 @@ export class CatalogController {
       device,
       'Device retrieved',
       'تم استرجاع الجهاز',
+    );
+  }
+
+  @Public()
+  @Get('devices/:identifier/products')
+  @ApiOperation({
+    summary: 'Get products by device',
+    description:
+      'Retrieve all products compatible with a specific device by device ID or slug. Public endpoint.',
+  })
+  @ApiParam({
+    name: 'identifier',
+    description: 'Device ID or slug',
+    example: 'iphone-15-pro-max or 507f1f77bcf86cd799439011',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20)',
+  })
+  @ApiQuery({
+    name: 'minPrice',
+    required: false,
+    type: Number,
+    description: 'Minimum price filter',
+  })
+  @ApiQuery({
+    name: 'maxPrice',
+    required: false,
+    type: Number,
+    description: 'Maximum price filter',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Sort field (price, name, createdAt, etc.)',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order',
+  })
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    type: String,
+    description: 'Filter by brand ID',
+  })
+  @ApiQuery({
+    name: 'qualityTypeId',
+    required: false,
+    type: String,
+    description: 'Filter by quality type ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Device products retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getDeviceProducts(
+    @Param('identifier') identifier: string,
+    @Query() query: Partial<ProductFilterQueryDto>,
+  ) {
+    // Find device by ID or slug to get device ID
+    const device = await this.catalogService.findDeviceByIdOrSlug(identifier);
+    
+    // Use productsService with deviceId filter
+    const result = await this.productsService.findAll({
+      ...query,
+      deviceId: device._id.toString(),
+    });
+    
+    return ResponseBuilder.success(
+      result.data,
+      'Device products retrieved',
+      'تم استرجاع منتجات الجهاز',
+      result.pagination,
     );
   }
 

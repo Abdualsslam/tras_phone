@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -23,6 +24,7 @@ import {
 import { Tag, TagDocument } from './schemas/tag.schema';
 import { ProductTag, ProductTagDocument } from './schemas/product-tag.schema';
 import { StockAlert, StockAlertDocument } from './schemas/stock-alert.schema';
+import { Customer, CustomerDocument } from '@modules/customers/schemas/customer.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -50,6 +52,8 @@ export class ProductsService {
     private productTagModel: Model<ProductTagDocument>,
     @InjectModel(StockAlert.name)
     private stockAlertModel: Model<StockAlertDocument>,
+    @InjectModel(Customer.name)
+    private customerModel: Model<CustomerDocument>,
   ) {}
 
   /**
@@ -62,6 +66,15 @@ export class ProductsService {
     if (existing) {
       throw new ConflictException(
         'Product with this SKU or slug already exists',
+      );
+    }
+
+    // Convert relatedProducts from string[] to ObjectId[]
+    if (data.relatedProducts && Array.isArray(data.relatedProducts)) {
+      // Remove duplicates
+      const uniqueIds = [...new Set(data.relatedProducts)];
+      data.relatedProducts = uniqueIds.map(
+        (id: string) => new Types.ObjectId(id),
       );
     }
 
@@ -102,7 +115,7 @@ export class ProductsService {
     if (categoryId) query.categoryId = categoryId;
     if (brandId) query.brandId = brandId;
     if (qualityTypeId) query.qualityTypeId = qualityTypeId;
-    if (deviceId) query.compatibleDevices = deviceId;
+    if (deviceId) query.compatibleDevices = { $in: [deviceId] };
     if (status) query.status = status;
     if (featured) query.isFeatured = true;
     if (newArrival) query.isNewArrival = true;
@@ -141,6 +154,173 @@ export class ProductsService {
   }
 
   /**
+   * Find products on offer (with compareAtPrice > basePrice)
+   */
+  async findProductsOnOffer(
+    filters?: any,
+  ): Promise<{ data: any[]; total: number; pagination: any }> {
+    const {
+      page = 1,
+      limit = 20,
+      sortBy = 'discount',
+      sortOrder = 'desc',
+      minDiscount,
+      maxDiscount,
+      categoryId,
+      brandId,
+      status = 'active',
+    } = filters || {};
+
+    // Base query: products with direct offer (compareAtPrice > basePrice)
+    const query: any = {
+      compareAtPrice: { $exists: true, $ne: null },
+      $expr: { $gt: ['$compareAtPrice', '$basePrice'] },
+      status,
+      isActive: true,
+    };
+
+    // Additional filters
+    if (categoryId) query.categoryId = new Types.ObjectId(categoryId);
+    if (brandId) query.brandId = new Types.ObjectId(brandId);
+
+    // Calculate discount percentage for filtering
+    const pipeline: any[] = [
+      {
+        $match: query,
+      },
+      {
+        $addFields: {
+          discountPercentage: {
+            $multiply: [
+              {
+                $divide: [
+                  { $subtract: ['$compareAtPrice', '$basePrice'] },
+                  '$compareAtPrice',
+                ],
+              },
+              100,
+            ],
+          },
+        },
+      },
+    ];
+
+    // Filter by discount percentage range
+    if (minDiscount != null || maxDiscount != null) {
+      const discountFilter: any = {};
+      if (minDiscount != null) discountFilter.$gte = minDiscount;
+      if (maxDiscount != null) discountFilter.$lte = maxDiscount;
+      pipeline.push({
+        $match: { discountPercentage: discountFilter },
+      });
+    }
+
+    // Sort
+    let sortField = 'discountPercentage';
+    if (sortBy === 'price') sortField = 'basePrice';
+    else if (sortBy === 'createdAt') sortField = 'createdAt';
+    else if (sortBy === 'discount') sortField = 'discountPercentage';
+
+    const sortDirection = sortOrder === 'desc' ? -1 : 1;
+    pipeline.push({ $sort: { [sortField]: sortDirection } });
+
+    // Count total before pagination
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await this.productModel.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Pagination
+    const skip = (page - 1) * limit;
+    pipeline.push({ $skip: skip }, { $limit: limit });
+
+    // Populate related fields
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'brandId',
+          foreignField: '_id',
+          as: 'brandId',
+        },
+      },
+      {
+        $unwind: {
+          path: '$brandId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'categoryId',
+          foreignField: '_id',
+          as: 'categoryId',
+        },
+      },
+      {
+        $unwind: {
+          path: '$categoryId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'quality_types',
+          localField: 'qualityTypeId',
+          foreignField: '_id',
+          as: 'qualityTypeId',
+        },
+      },
+      {
+        $unwind: {
+          path: '$qualityTypeId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          hasDirectOffer: true,
+          originalPrice: '$compareAtPrice',
+          currentPrice: '$basePrice',
+          appliedPromotion: null,
+        },
+      },
+    );
+
+    const data = await this.productModel.aggregate(pipeline);
+
+    // Convert to ProductDocument and format
+    const formattedData = data.map((doc) => {
+      const product = this.productModel.hydrate(doc) as any;
+      // Use discountPercentage from aggregation if available, otherwise calculate
+      const discountPercentage = doc.discountPercentage != null
+        ? Math.round(doc.discountPercentage * 100) / 100
+        : Math.round(
+            ((product.compareAtPrice - product.basePrice) / product.compareAtPrice) * 100 * 100,
+          ) / 100;
+      
+      return {
+        ...product.toObject(),
+        hasDirectOffer: true,
+        originalPrice: product.compareAtPrice,
+        currentPrice: product.basePrice,
+        discountPercentage,
+        appliedPromotion: null,
+      };
+    });
+
+    return {
+      data: formattedData,
+      total,
+      pagination: {
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
    * Find product by ID or slug
    */
   async findByIdOrSlug(identifier: string): Promise<ProductDocument> {
@@ -153,10 +333,22 @@ export class ProductsService {
       .populate('brandId')
       .populate('categoryId')
       .populate('qualityTypeId')
-      .populate('compatibleDevices');
+      .populate('compatibleDevices')
+      .populate({
+        path: 'relatedProducts',
+        select: 'name nameAr slug mainImage basePrice compareAtPrice isActive status',
+        match: { isActive: true, status: 'active' },
+      });
 
     if (!product) {
       throw new NotFoundException('Product not found');
+    }
+
+    // Filter out null values from relatedProducts (products that don't match the match condition)
+    if (product.relatedProducts && Array.isArray(product.relatedProducts)) {
+      product.relatedProducts = product.relatedProducts.filter(
+        (p: any) => p !== null && p.isActive === true && p.status === 'active',
+      );
     }
 
     // Increment views
@@ -171,6 +363,30 @@ export class ProductsService {
    * Update product
    */
   async update(id: string, data: any): Promise<ProductDocument> {
+    // Convert relatedProducts from string[] to ObjectId[] if provided
+    if (data.relatedProducts !== undefined) {
+      if (Array.isArray(data.relatedProducts)) {
+        // Remove duplicates and filter out self-reference
+        const uniqueIds = [...new Set(data.relatedProducts)].filter(
+          (relatedId: string) => relatedId !== id,
+        );
+        
+        // Validate: prevent adding the product itself to relatedProducts
+        if (data.relatedProducts.includes(id)) {
+          throw new BadRequestException(
+            'Product cannot be related to itself',
+            'لا يمكن إضافة المنتج نفسه في المنتجات المشابهة',
+          );
+        }
+        
+        data.relatedProducts = uniqueIds.map(
+          (relatedId: string) => new Types.ObjectId(relatedId),
+        );
+      } else {
+        data.relatedProducts = [];
+      }
+    }
+
     const product = await this.productModel.findByIdAndUpdate(
       id,
       { $set: data },
@@ -315,6 +531,127 @@ export class ProductsService {
     return this.priceLevelModel
       .find({ isActive: true })
       .sort({ displayOrder: 1, name: 1 });
+  }
+
+  /**
+   * Get all price levels (including inactive) - for admin
+   */
+  async findAllPriceLevelsAdmin(): Promise<PriceLevelDocument[]> {
+    return this.priceLevelModel
+      .find()
+      .sort({ displayOrder: 1, name: 1 });
+  }
+
+  /**
+   * Get price level by ID
+   */
+  async findPriceLevelById(id: string): Promise<PriceLevelDocument> {
+    const priceLevel = await this.priceLevelModel.findById(id);
+    if (!priceLevel) {
+      throw new NotFoundException('Price level not found');
+    }
+    return priceLevel;
+  }
+
+  /**
+   * Create price level
+   */
+  async createPriceLevel(createDto: any): Promise<PriceLevelDocument> {
+    // Check if code already exists
+    const existing = await this.priceLevelModel.findOne({
+      code: createDto.code,
+    });
+    if (existing) {
+      throw new ConflictException('Price level with this code already exists');
+    }
+
+    // If this is set as default, unset other defaults
+    if (createDto.isDefault) {
+      await this.priceLevelModel.updateMany(
+        { isDefault: true },
+        { $set: { isDefault: false } },
+      );
+    }
+
+    const priceLevel = await this.priceLevelModel.create(createDto);
+    return priceLevel;
+  }
+
+  /**
+   * Update price level
+   */
+  async updatePriceLevel(
+    id: string,
+    updateDto: any,
+  ): Promise<PriceLevelDocument> {
+    const priceLevel = await this.priceLevelModel.findById(id);
+    if (!priceLevel) {
+      throw new NotFoundException('Price level not found');
+    }
+
+    // Check if code is being changed and if it's unique
+    if (updateDto.code && updateDto.code !== priceLevel.code) {
+      const existing = await this.priceLevelModel.findOne({
+        code: updateDto.code,
+      });
+      if (existing) {
+        throw new ConflictException('Price level with this code already exists');
+      }
+    }
+
+    // If this is being set as default, unset other defaults
+    if (updateDto.isDefault === true) {
+      await this.priceLevelModel.updateMany(
+        { isDefault: true, _id: { $ne: id } },
+        { $set: { isDefault: false } },
+      );
+    }
+
+    Object.assign(priceLevel, updateDto);
+    await priceLevel.save();
+
+    return priceLevel;
+  }
+
+  /**
+   * Delete price level
+   */
+  async deletePriceLevel(id: string): Promise<void> {
+    const priceLevel = await this.priceLevelModel.findById(id);
+    if (!priceLevel) {
+      throw new NotFoundException('Price level not found');
+    }
+
+    // Check if used in product prices
+    const usedInProducts = await this.productPriceModel.countDocuments({
+      priceLevelId: new Types.ObjectId(id),
+    });
+
+    if (usedInProducts > 0) {
+      throw new BadRequestException(
+        `Cannot delete price level. It is used in ${usedInProducts} product price(s).`,
+      );
+    }
+
+    // Check if used in customers
+    const usedInCustomers = await this.customerModel.countDocuments({
+      priceLevelId: new Types.ObjectId(id),
+    });
+
+    if (usedInCustomers > 0) {
+      throw new BadRequestException(
+        `Cannot delete price level. It is used by ${usedInCustomers} customer(s).`,
+      );
+    }
+
+    // Check if it's the default level
+    if (priceLevel.isDefault) {
+      throw new BadRequestException(
+        'Cannot delete the default price level. Please set another level as default first.',
+      );
+    }
+
+    await this.priceLevelModel.findByIdAndDelete(id);
   }
 
   // ═════════════════════════════════════

@@ -4,12 +4,18 @@
 
 هذا الموديول يتعامل مع:
 - ✅ السلة (Cart) - إضافة، تعديل، حذف العناصر
-- ✅ الكوبونات (Coupons)
+- ✅ السلة المحلية (Local Cart) - عمليات فورية بدون انتظار السيرفر
+- ✅ مزامنة السلة (Cart Sync) - التحقق من المخزون والأسعار قبل الدفع
+- ✅ الكوبونات (Coupons) - يتم التحقق منها في مرحلة الدفع فقط
 - ✅ إنشاء الطلبات (Create Orders)
 - ✅ طلباتي (My Orders)
 - ✅ تفاصيل الطلب (Order Details)
 
+> **ملاحظة مهمة**: النظام يستخدم **السلة المحلية** للعمليات اليومية (إضافة، تعديل، حذف) مما يوفر تجربة مستخدم فورية. يتم المزامنة مع السيرفر فقط عند الحاجة (قبل الدفع).
+
 > **ملاحظة**: جميع الـ endpoints تحتاج **Token** 🔒
+
+> 📚 **للمزيد من التفاصيل عن السلة المحلية والمزامنة**: راجع [Local Cart Module](./local-cart.md)
 
 ---
 
@@ -735,60 +741,213 @@ Future<Cart> clearCart() async {
 
 ---
 
-#### 6️⃣ تطبيق كوبون
+> **⚠️ ملاحظة مهمة:** الكوبونات **لا تُطبق في السلة** بعد الآن. يتم التحقق من الكوبونات وتطبيقها فقط في **مرحلة الدفع (Checkout)**. راجع قسم إنشاء الطلب أدناه.
 
-**Endpoint:** `POST /cart/coupon`
+---
+
+#### 8️⃣ مزامنة السلة المحلية مع السيرفر
+
+**Endpoint:** `POST /cart/sync`
 
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**الوصف:** مزامنة السلة المحلية مع السيرفر للتحقق من المخزون والأسعار قبل الدفع.
 
 **Request Body:**
 ```dart
 {
-  "couponId": "507f1f77bcf...",     // اختياري
-  "couponCode": "SUMMER2024",       // اختياري (أحدهما مطلوب)
-  "discountAmount": 50.00           // المبلغ المخصوم
+  "items": [
+    {
+      "productId": "507f1f77bcf86cd799439011",
+      "quantity": 2,
+      "unitPrice": 150.00
+    },
+    {
+      "productId": "507f1f77bcf86cd799439012",
+      "quantity": 1,
+      "unitPrice": 200.00
+    }
+  ]
+}
+```
+
+**Response:**
+```dart
+{
+  "success": true,
+  "data": {
+    "cart": { /* Cart object محدث */ },
+    "removedItems": [
+      {
+        "productId": "...",
+        "reason": "out_of_stock",  // أو "deleted", "inactive", "error"
+        "productName": "Product Name",
+        "productNameAr": "اسم المنتج"
+      }
+    ],
+    "priceChangedItems": [
+      {
+        "productId": "...",
+        "oldPrice": 200.00,
+        "newPrice": 180.00,
+        "productName": "Product Name",
+        "productNameAr": "اسم المنتج"
+      }
+    ],
+    "quantityAdjustedItems": [
+      {
+        "productId": "...",
+        "requestedQuantity": 5,
+        "availableQuantity": 2,
+        "finalQuantity": 2,
+        "productName": "Product Name",
+        "productNameAr": "اسم المنتج"
+      }
+    ]
+  },
+  "message": "Cart synced successfully",
+  "messageAr": "تمت مزامنة السلة بنجاح"
 }
 ```
 
 **Flutter Code:**
 ```dart
-/// تطبيق كوبون
-Future<Cart> applyCoupon({
-  String? couponId,
-  String? couponCode,
-  required double discountAmount,
-}) async {
-  final response = await _dio.post('/cart/coupon', data: {
-    if (couponId != null) 'couponId': couponId,
-    if (couponCode != null) 'couponCode': couponCode,
-    'discountAmount': discountAmount,
+/// مزامنة السلة المحلية مع السيرفر
+Future<CartSyncResult> syncCart(List<CartSyncItem> items) async {
+  final response = await _dio.post('/cart/sync', data: {
+    'items': items.map((item) => {
+      'productId': item.productId,
+      'quantity': item.quantity,
+      'unitPrice': item.unitPrice,
+    }).toList(),
   });
   
   if (response.data['success']) {
-    return Cart.fromJson(response.data['data']);
+    final data = response.data['data'];
+    return CartSyncResult(
+      cart: Cart.fromJson(data['cart']),
+      removedItems: (data['removedItems'] as List?)
+          ?.map((i) => RemovedCartItem.fromJson(i))
+          .toList() ?? [],
+      priceChangedItems: (data['priceChangedItems'] as List?)
+          ?.map((i) => PriceChangedCartItem.fromJson(i))
+          .toList() ?? [],
+      quantityAdjustedItems: (data['quantityAdjustedItems'] as List?)
+          ?.map((i) => QuantityAdjustedCartItem.fromJson(i))
+          .toList() ?? [],
+    );
   }
   throw Exception(response.data['messageAr']);
 }
-```
 
----
-
-#### 7️⃣ إزالة الكوبون
-
-**Endpoint:** `DELETE /cart/coupon`
-
-**Headers:** `Authorization: Bearer <accessToken>` 🔒
-
-**Flutter Code:**
-```dart
-/// إزالة الكوبون
-Future<Cart> removeCoupon() async {
-  final response = await _dio.delete('/cart/coupon');
+// Models
+class CartSyncItem {
+  final String productId;
+  final int quantity;
+  final double unitPrice;
   
-  if (response.data['success']) {
-    return Cart.fromJson(response.data['data']);
+  CartSyncItem({
+    required this.productId,
+    required this.quantity,
+    required this.unitPrice,
+  });
+}
+
+class CartSyncResult {
+  final Cart cart;
+  final List<RemovedCartItem> removedItems;
+  final List<PriceChangedCartItem> priceChangedItems;
+  final List<QuantityAdjustedCartItem> quantityAdjustedItems;
+  
+  CartSyncResult({
+    required this.cart,
+    required this.removedItems,
+    required this.priceChangedItems,
+    required this.quantityAdjustedItems,
+  });
+  
+  bool get hasIssues => 
+    removedItems.isNotEmpty || 
+    priceChangedItems.isNotEmpty || 
+    quantityAdjustedItems.isNotEmpty;
+}
+
+class RemovedCartItem {
+  final String productId;
+  final String reason;
+  final String? productName;
+  final String? productNameAr;
+  
+  RemovedCartItem({
+    required this.productId,
+    required this.reason,
+    this.productName,
+    this.productNameAr,
+  });
+  
+  factory RemovedCartItem.fromJson(Map<String, dynamic> json) {
+    return RemovedCartItem(
+      productId: json['productId'],
+      reason: json['reason'],
+      productName: json['productName'],
+      productNameAr: json['productNameAr'],
+    );
   }
-  throw Exception(response.data['messageAr']);
+}
+
+class PriceChangedCartItem {
+  final String productId;
+  final double oldPrice;
+  final double newPrice;
+  final String? productName;
+  final String? productNameAr;
+  
+  PriceChangedCartItem({
+    required this.productId,
+    required this.oldPrice,
+    required this.newPrice,
+    this.productName,
+    this.productNameAr,
+  });
+  
+  factory PriceChangedCartItem.fromJson(Map<String, dynamic> json) {
+    return PriceChangedCartItem(
+      productId: json['productId'],
+      oldPrice: json['oldPrice'].toDouble(),
+      newPrice: json['newPrice'].toDouble(),
+      productName: json['productName'],
+      productNameAr: json['productNameAr'],
+    );
+  }
+}
+
+class QuantityAdjustedCartItem {
+  final String productId;
+  final int requestedQuantity;
+  final int availableQuantity;
+  final int finalQuantity;
+  final String? productName;
+  final String? productNameAr;
+  
+  QuantityAdjustedCartItem({
+    required this.productId,
+    required this.requestedQuantity,
+    required this.availableQuantity,
+    required this.finalQuantity,
+    this.productName,
+    this.productNameAr,
+  });
+  
+  factory QuantityAdjustedCartItem.fromJson(Map<String, dynamic> json) {
+    return QuantityAdjustedCartItem(
+      productId: json['productId'],
+      requestedQuantity: json['requestedQuantity'],
+      availableQuantity: json['availableQuantity'],
+      finalQuantity: json['finalQuantity'],
+      productName: json['productName'],
+      productNameAr: json['productNameAr'],
+    );
+  }
 }
 ```
 
@@ -796,7 +955,7 @@ Future<Cart> removeCoupon() async {
 
 ### 📦 Orders
 
-#### 8️⃣ جلب طلباتي
+#### 9️⃣ جلب طلباتي
 
 **Endpoint:** `GET /orders/my`
 
@@ -873,7 +1032,7 @@ class OrdersResponse {
 
 ---
 
-#### 9️⃣ إنشاء طلب جديد
+#### 🔟 إنشاء طلب جديد
 
 **Endpoint:** `POST /orders`
 
@@ -894,9 +1053,11 @@ class OrdersResponse {
   },
   "paymentMethod": "credit",               // اختياري
   "customerNotes": "يرجى التوصيل صباحاً",  // اختياري
-  "couponCode": "SUMMER2024"               // اختياري
+  "couponCode": "SUMMER2024"               // اختياري - يتم التحقق منه وتطبيقه مباشرة على الطلب
 }
 ```
+
+> **📌 ملاحظة:** `couponCode` يتم التحقق منه وتطبيقه مباشرة عند إنشاء الطلب. الكوبونات **لا تُحفظ في السلة**، بل تُطبق فقط في مرحلة الدفع.
 
 **Response (201 Created):**
 ```dart
@@ -942,7 +1103,7 @@ Future<Order> createOrder({
 
 ---
 
-#### 🔟 جلب تفاصيل طلب
+#### 1️⃣1️⃣ جلب تفاصيل طلب
 
 **Endpoint:** `GET /orders/:orderId`
 
@@ -998,9 +1159,87 @@ Future<Order> getOrderDetails(String orderId) async {
 
 ---
 
+## 🛒 السلة المحلية (Local Cart)
+
+> **ملاحظة مهمة**: النظام يستخدم الآن **السلة المحلية** لجميع العمليات اليومية (إضافة، تعديل، حذف). هذه العمليات تكون فورية بدون انتظار السيرفر. يتم المزامنة مع السيرفر فقط عند الحاجة (قبل الدفع أو عند تسجيل الدخول).
+
+### استخدام CartCubit في Flutter
+
+```dart
+// في ProductDetailsScreen - إضافة منتج للسلة (فوري)
+context.read<CartCubit>().addToCartLocal(
+  productId: product.id,
+  quantity: 1,
+  unitPrice: product.price,
+  productName: product.name,
+  productNameAr: product.nameAr,
+  productImage: product.images.firstOrNull,
+  productSku: product.sku,
+);
+
+// في CartScreen - تحديث الكمية (فوري)
+context.read<CartCubit>().updateQuantityLocal(
+  productId: item.productId,
+  quantity: newQuantity,
+);
+
+// في CartScreen - حذف منتج (فوري)
+context.read<CartCubit>().removeFromCartLocal(
+  productId: item.productId,
+);
+
+// في CartScreen - جلب السلة المحلية
+context.read<CartCubit>().loadLocalCart();
+
+// قبل الدفع - مزامنة مع السيرفر
+final result = await context.read<CartCubit>().syncCart();
+
+if (result?.hasIssues == true) {
+  // عرض نتائج المزامنة للمستخدم
+  _showSyncIssuesDialog(result!);
+} else {
+  // المتابعة للدفع
+  context.push('/checkout');
+}
+```
+
+### حالات السلة (Cart States)
+
+```dart
+// CartInitial - الحالة الأولية
+// CartLoading - جاري التحميل
+// CartLoaded - تم تحميل السلة (من المحلي أو السيرفر)
+// CartUpdating - جاري التحديث
+// CartError - خطأ
+// CartSyncing - جاري المزامنة
+// CartSyncCompleted - تمت المزامنة بنجاح
+// CartSyncError - خطأ في المزامنة
+
+BlocBuilder<CartCubit, CartState>(
+  builder: (context, state) {
+    if (state is CartLoaded) {
+      final cart = state.cart;
+      // عرض السلة
+    } else if (state is CartSyncing) {
+      return CircularProgressIndicator();
+    } else if (state is CartSyncCompleted) {
+      final result = state.syncResult;
+      // عرض نتائج المزامنة
+    }
+    return SizedBox.shrink();
+  },
+)
+```
+
+> 📚 **للمزيد من التفاصيل والأمثلة الكاملة**: راجع [Local Cart Module Documentation](./local-cart.md)
+
+---
+
 ## 🧩 الـ Services الكاملة
 
-### CartService
+### CartService (Legacy - للاستخدام مع Backend مباشرة)
+
+> **ملاحظة**: في التطبيق الفعلي، يتم استخدام `CartCubit` مع العمليات المحلية بدلاً من هذه الـ Service. هذه الـ Service مخصصة للاستخدام المباشر مع Backend بدون استخدام Local Cart.
 
 ```dart
 import 'package:dio/dio.dart';
@@ -1063,24 +1302,30 @@ class CartService {
     throw Exception(response.data['messageAr']);
   }
   
-  Future<Cart> applyCoupon({
-    String? couponCode,
-    required double discountAmount,
-  }) async {
-    final response = await _dio.post('/cart/coupon', data: {
-      if (couponCode != null) 'couponCode': couponCode,
-      'discountAmount': discountAmount,
-    });
-    if (response.data['success']) {
-      return Cart.fromJson(response.data['data']);
-    }
-    throw Exception(response.data['messageAr']);
-  }
   
-  Future<Cart> removeCoupon() async {
-    final response = await _dio.delete('/cart/coupon');
+  Future<CartSyncResult> syncCart(List<CartSyncItem> items) async {
+    final response = await _dio.post('/cart/sync', data: {
+      'items': items.map((item) => {
+        'productId': item.productId,
+        'quantity': item.quantity,
+        'unitPrice': item.unitPrice,
+      }).toList(),
+    });
+    
     if (response.data['success']) {
-      return Cart.fromJson(response.data['data']);
+      final data = response.data['data'];
+      return CartSyncResult(
+        cart: Cart.fromJson(data['cart']),
+        removedItems: (data['removedItems'] as List?)
+            ?.map((i) => RemovedCartItem.fromJson(i))
+            .toList() ?? [],
+        priceChangedItems: (data['priceChangedItems'] as List?)
+            ?.map((i) => PriceChangedCartItem.fromJson(i))
+            .toList() ?? [],
+        quantityAdjustedItems: (data['quantityAdjustedItems'] as List?)
+            ?.map((i) => QuantityAdjustedCartItem.fromJson(i))
+            .toList() ?? [],
+      );
     }
     throw Exception(response.data['messageAr']);
   }
@@ -1155,7 +1400,7 @@ class OrdersService {
 
 ## 🎯 أمثلة الاستخدام
 
-### عرض السلة مع الـ Checkout
+### عرض السلة مع الـ Checkout (باستخدام Local Cart)
 
 ```dart
 class CartScreen extends StatefulWidget {
@@ -1164,83 +1409,149 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  Cart? _cart;
-  bool _isLoading = true;
-  
   @override
   void initState() {
     super.initState();
-    _loadCart();
+    // جلب السلة المحلية (فوري)
+    context.read<CartCubit>().loadLocalCart();
   }
   
-  Future<void> _loadCart() async {
-    setState(() => _isLoading = true);
-    try {
-      _cart = await cartService.getCart();
-    } finally {
-      setState(() => _isLoading = false);
+  Future<void> _handleCheckout() async {
+    // عرض loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(child: CircularProgressIndicator()),
+    );
+    
+    // مزامنة السلة مع السيرفر قبل الدفع
+    final result = await context.read<CartCubit>().syncCart();
+    
+    // إغلاق loading
+    Navigator.pop(context);
+    
+    if (result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشلت المزامنة. حاول مرة أخرى.')),
+      );
+      return;
     }
+    
+    // التحقق من نتائج المزامنة
+    if (result.hasIssues) {
+      await _showSyncIssuesDialog(result);
+    } else {
+      // المتابعة للدفع
+      Navigator.pushNamed(context, '/checkout');
+    }
+  }
+  
+  void _showSyncIssuesDialog(CartSyncResultEntity result) {
+    // عرض نتائج المزامنة (منتجات محذوفة، أسعار متغيرة، كميات معدلة)
+    // راجع local-cart.md للأمثلة الكاملة
   }
   
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return LoadingIndicator();
-    if (_cart == null || _cart!.isEmpty) return EmptyCartView();
-    
     return Scaffold(
-      appBar: AppBar(title: Text('السلة (${_cart!.itemsCount})')),
-      body: Column(
-        children: [
-          // قائمة العناصر
-          Expanded(
-            child: ListView.builder(
-              itemCount: _cart!.items.length,
-              itemBuilder: (context, index) {
-                final item = _cart!.items[index];
-                return CartItemTile(
-                  item: item,
-                  onQuantityChanged: (qty) => _updateQuantity(item.productId, qty),
-                  onRemove: () => _removeItem(item.productId),
-                );
-              },
-            ),
-          ),
+      appBar: AppBar(title: Text('السلة')),
+      body: BlocBuilder<CartCubit, CartState>(
+        builder: (context, state) {
+          if (state is CartLoaded) {
+            final cart = state.cart;
+            
+            if (cart.isEmpty) {
+              return Center(child: Text('السلة فارغة'));
+            }
+            
+            return Column(
+              children: [
+                // قائمة العناصر
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: cart.items.length,
+                    itemBuilder: (context, index) {
+                      final item = cart.items[index];
+                      return CartItemTile(
+                        item: item,
+                        onQuantityChanged: (qty) {
+                          // تحديث فوري بدون انتظار
+                          context.read<CartCubit>().updateQuantityLocal(
+                            item.productId,
+                            qty,
+                          );
+                        },
+                        onRemove: () {
+                          // حذف فوري بدون انتظار
+                          context.read<CartCubit>().removeFromCartLocal(
+                            item.productId,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                
+                // ملخص السلة
+                CartSummary(
+                  subtotal: cart.subtotal,
+                  discount: cart.discount + cart.couponDiscount,
+                  shipping: cart.shippingCost,
+                  tax: cart.taxAmount,
+                  total: cart.total,
+                ),
+                
+                // زر الإتمام
+                Padding(
+                  padding: EdgeInsets.all(16),
+                  child: ElevatedButton(
+                    onPressed: _handleCheckout,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(double.infinity, 50),
+                    ),
+                    child: Text('الدفع'),
+                  ),
+                ),
+              ],
+            );
+          } else if (state is CartSyncing) {
+            return Center(child: CircularProgressIndicator());
+          } else if (state is CartSyncCompleted) {
+            // بعد المزامنة، إعادة بناء الواجهة
+            return build(context);
+          }
           
-          // ملخص السلة
-          CartSummary(
-            subtotal: _cart!.subtotal,
-            discount: _cart!.discount + _cart!.couponDiscount,
-            shipping: _cart!.shippingCost,
-            tax: _cart!.taxAmount,
-            total: _cart!.total,
-            couponCode: _cart!.couponCode,
-            onApplyCoupon: _applyCoupon,
-            onRemoveCoupon: _removeCoupon,
-          ),
-          
-          // زر الإتمام
-          CheckoutButton(
-            total: _cart!.total,
-            onPressed: () => Navigator.pushNamed(context, '/checkout'),
-          ),
-        ],
+          return Center(child: CircularProgressIndicator());
+        },
       ),
     );
   }
-  
-  Future<void> _updateQuantity(String productId, int qty) async {
-    _cart = await cartService.updateItemQuantity(
-      productId: productId,
-      quantity: qty,
-    );
-    setState(() {});
-  }
-  
-  Future<void> _removeItem(String productId) async {
-    _cart = await cartService.removeItem(productId);
-    setState(() {});
-  }
 }
+```
+
+### مثال: إضافة منتج للسلة (في ProductDetailsScreen)
+
+```dart
+ElevatedButton(
+  onPressed: () {
+    // إضافة فورية للسلة المحلية
+    context.read<CartCubit>().addToCartLocal(
+      productId: product.id,
+      quantity: 1,
+      unitPrice: product.price,
+      productName: product.name,
+      productNameAr: product.nameAr,
+      productImage: product.images.firstOrNull,
+      productSku: product.sku,
+    );
+    
+    // عرض رسالة نجاح
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('تمت الإضافة للسلة')),
+    );
+  },
+  child: Text('أضف للسلة'),
+)
 ```
 
 ### عرض تتبع الطلب (Order Timeline)
@@ -1283,13 +1594,17 @@ class OrderTimelineWidget extends StatelessWidget {
 
 | Method | Endpoint | الوصف |
 |--------|----------|-------|
-| GET | `/cart` | جلب السلة |
-| POST | `/cart/items` | إضافة عنصر |
-| PUT | `/cart/items/:productId` | تحديث الكمية |
-| DELETE | `/cart/items/:productId` | حذف عنصر |
-| DELETE | `/cart` | تفريغ السلة |
-| POST | `/cart/coupon` | تطبيق كوبون |
-| DELETE | `/cart/coupon` | إزالة كوبون |
+| GET | `/cart` | جلب السلة من السيرفر |
+| POST | `/cart/items` | إضافة عنصر للسلة على السيرفر |
+| PUT | `/cart/items/:productId` | تحديث كمية عنصر على السيرفر |
+| DELETE | `/cart/items/:productId` | حذف عنصر من السلة على السيرفر |
+| DELETE | `/cart` | تفريغ السلة على السيرفر |
+| **POST** | **`/cart/sync`** | **مزامنة السلة المحلية مع السيرفر** |
+
+> **⚠️ ملاحظات مهمة:**
+> - في التطبيق، يتم استخدام العمليات المحلية (`addToCartLocal`, `updateQuantityLocal`, `removeFromCartLocal`) للعمليات اليومية.
+> - endpoint `/cart/sync` يُستخدم فقط قبل الدفع للتحقق من المخزون والأسعار.
+> - **الكوبونات لا تُطبق في السلة**. يتم إرسال `couponCode` مباشرة عند إنشاء الطلب في Checkout.
 
 ### 📦 Orders
 
@@ -1298,6 +1613,46 @@ class OrderTimelineWidget extends StatelessWidget {
 | GET | `/orders/my` | طلباتي |
 | POST | `/orders` | إنشاء طلب |
 | GET | `/orders/:id` | تفاصيل الطلب |
+
+---
+
+## ⚠️ ملاحظات مهمة
+
+### 1. استخدام السلة المحلية
+
+- **العمليات اليومية**: استخدم `addToCartLocal`, `updateQuantityLocal`, `removeFromCartLocal` (فورية)
+- **المزامنة**: استخدم `syncCart()` فقط قبل الدفع أو عند تسجيل الدخول
+- **الكوبونات**: يتم التحقق منها فقط في مرحلة الدفع، لا يتم حفظها محلياً
+
+### 2. تدفق العمل الموصى به
+
+```
+إضافة منتج → addToCartLocal() (فوري)
+    ↓
+تحديث الكمية → updateQuantityLocal() (فوري)
+    ↓
+الضغط على Checkout → syncCart() (للتحقق)
+    ↓
+عرض نتائج المزامنة → إذا كانت هناك تغييرات
+    ↓
+إنشاء الطلب → POST /orders
+```
+
+### 3. معالجة نتائج المزامنة
+
+عند استخدام `syncCart()`, تأكد من:
+- التحقق من `result.hasIssues`
+- عرض المنتجات المحذوفة للمستخدم
+- عرض المنتجات التي تغير سعرها
+- عرض المنتجات التي تم تعديل كميتها
+- الحصول على موافقة المستخدم قبل المتابعة
+
+---
+
+## 📚 مراجع إضافية
+
+- [Local Cart Module Documentation](./local-cart.md) - دليل شامل عن السلة المحلية والمزامنة
+- [API Documentation](../../backend/README.md) - توثيق API الكامل
 
 ---
 

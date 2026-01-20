@@ -54,6 +54,25 @@ export class PromotionsController {
     }
 
     // ═════════════════════════════════════
+    // Promotions - Admin
+    // ═════════════════════════════════════
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Get()
+    @ApiBearerAuth('JWT-auth')
+    @ApiOperation({
+        summary: 'Get all promotions (admin)',
+        description: 'Retrieve all promotions including inactive ones. Admin only.',
+    })
+    @ApiResponse({ status: 200, description: 'Promotions retrieved successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async getAllPromotions() {
+        const promotions = await this.promotionsService.findAll();
+        return ResponseBuilder.success(promotions, 'Promotions retrieved', 'تم استرجاع العروض');
+    }
+
+    // ═════════════════════════════════════
     // Coupons - Public
     // ═════════════════════════════════════
 

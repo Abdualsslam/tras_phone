@@ -146,15 +146,27 @@ export const PERMISSIONS = {
     },
 
     // ═════════════════════════════════════
-    // Support & Chat (6)
+    // Support & Chat (15)
     // ═════════════════════════════════════
     SUPPORT: {
-        VIEW: 'support.view',
-        CREATE: 'support.create',
-        UPDATE: 'support.update',
-        ASSIGN: 'support.assign',
-        CLOSE: 'support.close',
-        VIEW_CHAT: 'support.view_chat',
+        // Tickets
+        VIEW_TICKETS: 'support.tickets.view',
+        CREATE_TICKETS: 'support.tickets.create',
+        UPDATE_TICKETS: 'support.tickets.update',
+        REPLY_TICKETS: 'support.tickets.reply',
+        ASSIGN_TICKETS: 'support.tickets.assign',
+        ESCALATE_TICKETS: 'support.tickets.escalate',
+        CLOSE_TICKETS: 'support.tickets.close',
+        MERGE_TICKETS: 'support.tickets.merge',
+        // Chat
+        VIEW_CHAT: 'support.chat.view',
+        ACCEPT_CHAT: 'support.chat.accept',
+        TRANSFER_CHAT: 'support.chat.transfer',
+        // Management
+        MANAGE_CATEGORIES: 'support.categories.manage',
+        MANAGE_CANNED: 'support.canned.manage',
+        VIEW_REPORTS: 'support.reports.view',
+        EXPORT_DATA: 'support.export',
     },
 
     // ═════════════════════════════════════

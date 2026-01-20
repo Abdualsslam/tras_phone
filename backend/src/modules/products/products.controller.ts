@@ -19,6 +19,8 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
+import { ProductsSearchService } from './products-search.service';
+import { ProductsSearchSuggestionsService } from './products-search-suggestions.service';
 import { Public } from '@decorators/public.decorator';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 import { RolesGuard } from '@guards/roles.guard';
@@ -29,8 +31,16 @@ import { ResponseBuilder } from '@common/interfaces/response.interface';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SetPricesDto } from './dto/set-prices.dto';
+import { CreatePriceLevelDto } from './dto/create-price-level.dto';
+import { UpdatePriceLevelDto } from './dto/update-price-level.dto';
 import { AddReviewDto } from './dto/add-review.dto';
 import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
+import { ProductsOnOfferQueryDto } from './dto/products-on-offer-query.dto';
+import { 
+  AdvancedSearchQueryDto,
+  SearchSuggestionsQueryDto,
+  AutocompleteQueryDto,
+} from './dto/advanced-search-query.dto';
 import { AddDeviceCompatibilityDto } from './dto/add-device-compatibility.dto';
 import { CreateStockAlertDto } from './dto/create-stock-alert.dto';
 import { ApiResponseDto } from '@common/dto/api-response.dto';
@@ -48,7 +58,11 @@ import {
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly productsSearchService: ProductsSearchService,
+    private readonly productsSearchSuggestionsService: ProductsSearchSuggestionsService,
+  ) {}
 
   // ═════════════════════════════════════
   // Public Endpoints
@@ -153,6 +167,118 @@ export class ProductsController {
     );
   }
 
+  // ═════════════════════════════════════
+  // Advanced Search Endpoints
+  // ═════════════════════════════════════
+
+  @Public()
+  @Get('search/advanced')
+  @ApiOperation({
+    summary: 'Advanced product search',
+    description:
+      'Perform advanced search with fuzzy matching, tag filtering, and relevance scoring',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async advancedSearch(@Query() query: AdvancedSearchQueryDto) {
+    const result = await this.productsSearchService.advancedSearch(query);
+    return ResponseBuilder.success(
+      result.data,
+      'Search results retrieved',
+      'تم استرجاع نتائج البحث',
+      result.pagination,
+    );
+  }
+
+  @Public()
+  @Get('search/suggestions')
+  @ApiOperation({
+    summary: 'Get search suggestions',
+    description:
+      'Get search suggestions based on query, including product names and tags',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Suggestions retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getSearchSuggestions(@Query() query: SearchSuggestionsQueryDto) {
+    const result = await this.productsSearchSuggestionsService.getSuggestions(query);
+    return ResponseBuilder.success(
+      result,
+      'Suggestions retrieved',
+      'تم استرجاع الاقتراحات',
+    );
+  }
+
+  @Public()
+  @Get('search/autocomplete')
+  @ApiOperation({
+    summary: 'Get autocomplete suggestions',
+    description: 'Get autocomplete suggestions for search input',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Autocomplete suggestions retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getAutocomplete(@Query() query: AutocompleteQueryDto) {
+    const suggestions = await this.productsSearchSuggestionsService.getAutocomplete(query);
+    return ResponseBuilder.success(
+      suggestions,
+      'Autocomplete suggestions retrieved',
+      'تم استرجاع اقتراحات الاكتمال التلقائي',
+    );
+  }
+
+  @Public()
+  @Get('search/tags')
+  @ApiOperation({
+    summary: 'Get all available tags',
+    description: 'Get all tags available in products for filtering',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Tags retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getAllTags() {
+    const tags = await this.productsSearchSuggestionsService.getAllTags();
+    return ResponseBuilder.success(
+      tags,
+      'Tags retrieved',
+      'تم استرجاع التاجات',
+    );
+  }
+
+  @Public()
+  @Get('search/popular-tags')
+  @ApiOperation({
+    summary: 'Get popular tags',
+    description: 'Get most frequently used tags with their counts',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Popular tags retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getPopularTags(@Query('limit') limit?: number) {
+    const tags = await this.productsSearchSuggestionsService.getPopularTags(limit || 20);
+    return ResponseBuilder.success(
+      tags,
+      'Popular tags retrieved',
+      'تم استرجاع التاجات الشائعة',
+    );
+  }
+
   @Public()
   @Get()
   @ApiOperation({
@@ -172,6 +298,29 @@ export class ProductsController {
       result.data,
       'Products retrieved',
       'تم استرجاع المنتجات',
+      result.pagination,
+    );
+  }
+
+  @Public()
+  @Get('on-offer')
+  @ApiOperation({
+    summary: 'Get products on offer',
+    description:
+      'Retrieve all products that have direct offers (compareAtPrice > basePrice) with pagination, sorting, and filtering options',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Products on offer retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getProductsOnOffer(@Query() query: ProductsOnOfferQueryDto) {
+    const result = await this.productsService.findProductsOnOffer(query);
+    return ResponseBuilder.success(
+      result.data,
+      'Products on offer retrieved',
+      'تم استرجاع المنتجات ذات العروض',
       result.pagination,
     );
   }
@@ -226,6 +375,149 @@ export class ProductsController {
       reviews,
       'Reviews retrieved',
       'تم استرجاع التقييمات',
+    );
+  }
+
+  // ═════════════════════════════════════
+  // Admin Endpoints - Price Levels
+  // ═════════════════════════════════════
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get('price-levels/all')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get all price levels (admin)',
+    description:
+      'Retrieve all price levels including inactive ones. Admin only.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Price levels retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getAllPriceLevels() {
+    const priceLevels = await this.productsService.findAllPriceLevelsAdmin();
+    return ResponseBuilder.success(
+      priceLevels,
+      'Price levels retrieved',
+      'تم استرجاع مستويات الأسعار',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get('price-levels/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get price level by ID',
+    description: 'Retrieve a single price level by ID. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Price level ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Price level retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getPriceLevelById(@Param('id') id: string) {
+    const priceLevel = await this.productsService.findPriceLevelById(id);
+    return ResponseBuilder.success(
+      priceLevel,
+      'Price level retrieved',
+      'تم استرجاع مستوى السعر',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post('price-levels')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create price level',
+    description: 'Create a new price level. Admin only.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Price level created successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async createPriceLevel(@Body() createDto: CreatePriceLevelDto) {
+    const priceLevel = await this.productsService.createPriceLevel(createDto);
+    return ResponseBuilder.created(
+      priceLevel,
+      'Price level created',
+      'تم إنشاء مستوى السعر',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Put('price-levels/:id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Update price level',
+    description: 'Update price level information. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Price level ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Price level updated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async updatePriceLevel(
+    @Param('id') id: string,
+    @Body() updateDto: UpdatePriceLevelDto,
+  ) {
+    const priceLevel = await this.productsService.updatePriceLevel(
+      id,
+      updateDto,
+    );
+    return ResponseBuilder.success(
+      priceLevel,
+      'Price level updated',
+      'تم تحديث مستوى السعر',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Delete('price-levels/:id')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete price level',
+    description:
+      'Delete a price level. Cannot delete if used in customers or products. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Price level ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Price level deleted successfully',
+  })
+  @ApiCommonErrorResponses()
+  async deletePriceLevel(@Param('id') id: string) {
+    await this.productsService.deletePriceLevel(id);
+    return ResponseBuilder.success(
+      null,
+      'Price level deleted',
+      'تم حذف مستوى السعر',
     );
   }
 
