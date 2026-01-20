@@ -4038,7 +4038,6 @@ lib/
 - WalletScreen                    # المحفظة
 - WalletTransactionsScreen        # سجل المعاملات
 - LoyaltyPointsScreen             # نقاط الولاء
-- ReferralScreen                  # دعوة صديق
 
 # ─────────────────────────────────────────────────────────────
 # PROFILE (8 شاشات)
