@@ -167,7 +167,6 @@ export function ReturnsPage() {
 
     const refundForm = useForm({
         defaultValues: {
-            refundMethod: 'original_payment',
             refundAmount: 0,
             notes: '',
         },
@@ -196,7 +195,6 @@ export function ReturnsPage() {
     const handleRefund = (ret: Return) => {
         setSelectedReturn(ret);
         refundForm.reset({
-            refundMethod: 'original_payment',
             refundAmount: ret.refundAmount || ret.subtotal,
             notes: '',
         });
@@ -220,12 +218,11 @@ export function ReturnsPage() {
         }
     };
 
-    const onRefundSubmit = (data: { refundMethod: string; refundAmount: number; notes: string }) => {
+    const onRefundSubmit = (data: { refundAmount: number; notes: string }) => {
         if (selectedReturn) {
             refundMutation.mutate({
                 id: selectedReturn._id,
                 data: {
-                    refundMethod: data.refundMethod,
                     refundAmount: data.refundAmount,
                     notes: data.notes || undefined,
                 },
@@ -383,7 +380,17 @@ export function ReturnsPage() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <span className="font-mono text-sm">{ret.orderNumber}</span>
+                                                    {ret.orderNumbers && ret.orderNumbers.length > 1 ? (
+                                                        <div className="flex flex-col gap-1">
+                                                            {ret.orderNumbers.map((orderNumber, idx) => (
+                                                                <Badge key={idx} variant="outline" className="font-mono text-xs">
+                                                                    {orderNumber}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="font-mono text-sm">{ret.orderNumber || ret.orderNumbers?.[0]}</span>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
                                                     <p className="font-medium">{ret.customerName}</p>
@@ -677,21 +684,10 @@ export function ReturnsPage() {
                             </p>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>طريقة الاسترداد</Label>
-                            <Select
-                                value={refundForm.watch('refundMethod')}
-                                onValueChange={(value: string) => refundForm.setValue('refundMethod', value)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="اختر طريقة الاسترداد" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="original_payment">طريقة الدفع الأصلية</SelectItem>
-                                    <SelectItem value="store_credit">رصيد المتجر</SelectItem>
-                                    <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                                💰 سيتم إضافة المبلغ تلقائياً إلى محفظة العميل
+                            </p>
                         </div>
 
                         <div className="space-y-2">

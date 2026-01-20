@@ -7,8 +7,13 @@
 - ✅ تتبع حالة المرتجعات
 - ✅ أسباب الإرجاع (Return Reasons)
 - ✅ عناصر المرتجعات (Return Items)
+- ✅ **دعم الإرجاع من عدة فواتير** (Multiple Orders)
+- ✅ **حساب الأسعار تلقائياً من الفواتير**
+- ✅ **التحويل التلقائي للمحفظة** (Automatic Wallet Credit)
 
 > **ملاحظة**: جميع الـ endpoints تحتاج **Token** 🔒 باستثناء `GET /returns/reasons`
+
+> **💡 مهم**: النظام يدعم الآن إرجاع منتجات من عدة فواتير في طلب إرجاع واحد. الأسعار تُجلب تلقائياً من الفواتير الأصلية لضمان الدقة.
 
 ---
 
@@ -20,7 +25,7 @@
 class ReturnRequest {
   final String id;
   final String returnNumber;
-  final String orderId;
+  final List<String> orderIds; // دعم عدة فواتير
   final String customerId;
   final ReturnStatus status;
   final ReturnType returnType;
@@ -47,7 +52,7 @@ class ReturnRequest {
   ReturnRequest({
     required this.id,
     required this.returnNumber,
-    required this.orderId,
+    required this.orderIds,
     required this.customerId,
     required this.status,
     required this.returnType,
@@ -76,9 +81,10 @@ class ReturnRequest {
     return ReturnRequest(
       id: json['_id'] ?? json['id'],
       returnNumber: json['returnNumber'],
-      orderId: json['orderId'] is String 
-          ? json['orderId'] 
-          : json['orderId']?['_id'] ?? '',
+      orderIds: json['orderIds'] != null
+          ? (json['orderIds'] as List).map((id) => 
+              id is String ? id : id['_id']?.toString() ?? '').toList()
+          : (json['orderId'] != null ? [json['orderId']] : []), // backward compatibility
       customerId: json['customerId'] is String 
           ? json['customerId'] 
           : json['customerId']?['_id'] ?? '',
@@ -613,18 +619,18 @@ Future<List<ReturnRequest>> getMyReturns({
 **Request Body:**
 ```dart
 {
-  "orderId": "order_id_here",
+  // ملاحظة: لا يوجد orderId - يتم استخراج الفواتير تلقائياً من orderItemIds
   "returnType": "refund",  // refund | exchange | store_credit
   "reasonId": "reason_id_here",
   "customerNotes": "ملاحظات العميل (اختياري)",
   "customerImages": ["url1", "url2"],  // صور المنتج
   "items": [
     {
-      "orderItemId": "order_item_id_1",
+      "orderItemId": "order_item_id_1",  // من أي فاتورة
       "quantity": 1
     },
     {
-      "orderItemId": "order_item_id_2",
+      "orderItemId": "order_item_id_2",  // يمكن أن تكون من فاتورة أخرى
       "quantity": 2
     }
   ],
@@ -637,6 +643,8 @@ Future<List<ReturnRequest>> getMyReturns({
   }
 }
 ```
+
+> **💡 الأسعار تُجلب تلقائياً**: لا حاجة لإرسال أسعار المنتجات - يتم جلبها من الفواتير الأصلية تلقائياً لضمان الدقة.
 
 **Response:**
 ```dart
@@ -659,8 +667,8 @@ Future<List<ReturnRequest>> getMyReturns({
 **Flutter Code:**
 ```dart
 /// إنشاء طلب إرجاع جديد
+/// ملاحظة: تم إزالة orderId - يُستخرج تلقائياً من orderItemIds
 Future<ReturnRequest> createReturn({
-  required String orderId,
   required ReturnType returnType,
   required String reasonId,
   required List<ReturnItemRequest> items,
@@ -669,7 +677,7 @@ Future<ReturnRequest> createReturn({
   PickupAddress? pickupAddress,
 }) async {
   final response = await _dio.post('/returns', data: {
-    'orderId': orderId,
+    // لا يوجد orderId - يُحدد تلقائياً من items
     'returnType': returnType.toApiString(),
     'reasonId': reasonId,
     'items': items.map((i) => i.toJson()).toList(),
@@ -827,7 +835,6 @@ class ReturnsService {
   }
   
   Future<ReturnRequest> createReturn({
-    required String orderId,
     required ReturnType returnType,
     required String reasonId,
     required List<ReturnItemRequest> items,
@@ -836,7 +843,7 @@ class ReturnsService {
     PickupAddress? pickupAddress,
   }) async {
     final response = await _dio.post('/returns', data: {
-      'orderId': orderId,
+      // لا يوجد orderId - يُستخرج تلقائياً من orderItemIds
       'returnType': returnType.toApiString(),
       'reasonId': reasonId,
       'items': items.map((i) => i.toJson()).toList(),
@@ -881,23 +888,102 @@ class ReturnItemRequest {
 
 ## 🎯 أمثلة الاستخدام
 
-### شاشة طلب إرجاع جديد
+### شاشة اختيار المنتجات من جميع الطلبات
 
 ```dart
-class CreateReturnScreen extends StatefulWidget {
-  final Order order;
-  
-  const CreateReturnScreen({required this.order});
-  
+class SelectItemsForReturnScreen extends StatefulWidget {
+  const SelectItemsForReturnScreen({Key? key}) : super(key: key);
+
   @override
-  State<CreateReturnScreen> createState() => _CreateReturnScreenState();
+  State<SelectItemsForReturnScreen> createState() => _SelectItemsForReturnScreenState();
 }
 
+class _SelectItemsForReturnScreenState extends State<SelectItemsForReturnScreen> {
+  Map<String, int> selectedItems = {}; // orderItemId -> quantity
+  List<Order> eligibleOrders = [];
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadEligibleOrders();
+  }
+  
+  Future<void> _loadEligibleOrders() async {
+    // جلب الطلبات المؤهلة للإرجاع
+    // status = 'delivered' و تاريخ التسليم خلال فترة الإرجاع
+    eligibleOrders = await ordersService.getMyOrders(status: 'delivered');
+    setState(() {});
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('اختر المنتجات للإرجاع')),
+      body: ListView.builder(
+        itemCount: eligibleOrders.length,
+        itemBuilder: (context, index) {
+          final order = eligibleOrders[index];
+          return ExpansionTile(
+            title: Text('طلب ${order.orderNumber}'),
+            subtitle: Text('${order.items.length} منتج'),
+            children: order.items.map((item) {
+              return CheckboxListTile(
+                value: selectedItems.containsKey(item.id),
+                onChanged: (checked) {
+                  setState(() {
+                    if (checked == true) {
+                      selectedItems[item.id] = item.quantity;
+                    } else {
+                      selectedItems.remove(item.id);
+                    }
+                  });
+                },
+                title: Text(item.productName),
+                subtitle: Text('السعر: ${item.unitPrice} ر.س - الكمية: ${item.quantity}'),
+                secondary: item.productImage != null 
+                    ? Image.network(item.productImage!, width: 50) 
+                    : null,
+              );
+            }).toList(),
+          );
+        },
+      ),
+      bottomNavigationBar: selectedItems.isNotEmpty ? SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: ElevatedButton(
+            onPressed: () {
+              // تحويل إلى CreateReturnItemRequest
+              final items = selectedItems.entries
+                  .map((e) => CreateReturnItemRequest(
+                        orderItemId: e.key,
+                        quantity: e.value,
+                      ))
+                  .toList();
+              
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CreateReturnScreen(preSelectedItems: items),
+                ),
+              );
+            },
+            child: Text('متابعة (${selectedItems.length} منتج)'),
+          ),
+        ),
+      ) : null,
+    );
+  }
+}
+```
+
+### شاشة إنشاء طلب الإرجاع
+
+```dart
 class _CreateReturnScreenState extends State<CreateReturnScreen> {
   ReturnReason? selectedReason;
   ReturnType selectedType = ReturnType.refund;
   List<ReturnReason> reasons = [];
-  Map<String, int> selectedItems = {}; // orderItemId -> quantity
   List<String> uploadedImages = [];
   final notesController = TextEditingController();
   bool isLoading = false;
@@ -921,9 +1007,9 @@ class _CreateReturnScreenState extends State<CreateReturnScreen> {
       return;
     }
     
-    if (selectedItems.isEmpty) {
+    if (widget.preSelectedItems == null || widget.preSelectedItems!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('اختر منتج واحد على الأقل')),
+        SnackBar(content: Text('لا توجد منتجات محددة')),
       );
       return;
     }
@@ -938,18 +1024,11 @@ class _CreateReturnScreenState extends State<CreateReturnScreen> {
     setState(() => isLoading = true);
     
     try {
-      final items = selectedItems.entries
-          .map((e) => ReturnItemRequest(
-                orderItemId: e.key,
-                quantity: e.value,
-              ))
-          .toList();
-      
       final result = await returnsService.createReturn(
-        orderId: widget.order.id,
+        // لا يوجد orderId - يُحدد تلقائياً
         returnType: selectedType,
         reasonId: selectedReason!.id,
-        items: items,
+        items: widget.preSelectedItems!,
         customerNotes: notesController.text.isNotEmpty 
             ? notesController.text 
             : null,
@@ -1229,12 +1308,87 @@ class ReturnStatusCard extends StatelessWidget {
 
 ---
 
+## 💰 التحويل التلقائي للمحفظة
+
+### كيف يعمل؟
+
+عند إكمال الاسترداد (`completeRefund`):
+1. ✅ يتم تحديث حالة الاسترداد إلى `completed`
+2. ✅ **يتم إضافة المبلغ تلقائياً إلى محفظة العميل**
+3. ✅ يتم إنشاء `WalletTransaction` من نوع `order_refund`
+4. ✅ يتم تحديث حالة طلب الإرجاع إلى `completed`
+
+### مثال على Transaction
+
+```dart
+{
+  "transactionNumber": "WTX20240116001",
+  "transactionType": "order_refund",
+  "amount": 480.00,
+  "direction": "credit",
+  "balanceBefore": 100.00,
+  "balanceAfter": 580.00,
+  "referenceType": "refund",
+  "referenceId": "refund_id_here",
+  "referenceNumber": "REF20240116001",
+  "description": "Refund for return request",
+  "descriptionAr": "استرداد مبلغ المرتجع RET-2024-001234",
+  "status": "completed"
+}
+```
+
+### عرض في التطبيق
+
+```dart
+// يمكن للعميل رؤية رصيده المحدث فوراً
+final wallet = await walletService.getBalance();
+print('الرصيد الجديد: ${wallet.balance} ر.س');
+
+// رؤية سجل المعاملات
+final transactions = await walletService.getTransactions();
+// سيظهر معاملة order_refund مع رقم المرتجع
+```
+
+---
+
+## 🔢 حساب الأسعار التلقائي
+
+### المزايا:
+- ✅ **الأمان**: لا يمكن للعميل التلاعب بالأسعار
+- ✅ **الدقة**: الأسعار من الفواتير الأصلية دائماً
+- ✅ **التبسيط**: لا حاجة لإرسال أسعار من Flutter
+
+### كيف يعمل؟
+
+```dart
+// العميل يرسل فقط orderItemId و quantity
+{
+  "items": [
+    {
+      "orderItemId": "item_id_here",
+      "quantity": 1
+    }
+  ]
+}
+
+// Backend يجلب OrderItem ويستخرج:
+// - unitPrice من الفاتورة
+// - productSku, productName, productImage
+// - orderId (للربط بالفاتورة)
+
+// ثم يحسب:
+totalItemsValue = quantity × unitPrice (من الفاتورة)
+```
+
+---
+
 ## ⚠️ الأخطاء المحتملة
 
 | Error Code | Message | الوصف |
 |------------|---------|-------|
 | `RETURN_NOT_FOUND` | Return request not found | طلب الإرجاع غير موجود |
 | `ORDER_NOT_FOUND` | Order not found | الطلب غير موجود |
+| `ORDER_ITEM_NOT_FOUND` | Order item not found | عنصر الطلب غير موجود |
 | `ORDER_NOT_ELIGIBLE` | Order not eligible for return | الطلب غير مؤهل للإرجاع |
 | `RETURN_WINDOW_EXPIRED` | Return window has expired | انتهت فترة الإرجاع |
 | `ITEM_ALREADY_RETURNED` | Item already returned | العنصر تم إرجاعه مسبقاً |

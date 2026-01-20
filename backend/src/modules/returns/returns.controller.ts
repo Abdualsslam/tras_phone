@@ -17,6 +17,7 @@ import {
   ApiParam,
   ApiResponse,
   ApiQuery,
+  ApiBody,
 } from '@nestjs/swagger';
 import { ApiResponseDto } from '@common/dto/api-response.dto';
 import {
@@ -32,6 +33,12 @@ import { UserRole } from '@common/enums/user-role.enum';
 import { CurrentUser } from '@decorators/current-user.decorator';
 import { Public } from '@decorators/public.decorator';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
+import {
+  CreateReturnRequestDto,
+  UpdateReturnStatusDto,
+  InspectItemDto,
+  ProcessRefundDto,
+} from './dto';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -104,15 +111,19 @@ export class ReturnsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Create return request',
-    description: 'Create a new return request for an order item.',
+    description: 'Create a new return request. Order IDs are extracted from order items automatically.',
   })
+  @ApiBody({ type: CreateReturnRequestDto })
   @ApiResponse({
     status: 201,
     description: 'Return request created successfully',
     type: ApiResponseDto,
   })
   @ApiAuthErrorResponses()
-  async createReturn(@CurrentUser() user: any, @Body() data: any) {
+  async createReturn(
+    @CurrentUser() user: any,
+    @Body() data: CreateReturnRequestDto,
+  ) {
     const returnRequest = await this.returnsService.createReturnRequest({
       ...data,
       customerId: user.customerId,
@@ -191,6 +202,7 @@ export class ReturnsController {
     description: 'Return request ID',
     example: '507f1f77bcf86cd799439011',
   })
+  @ApiBody({ type: UpdateReturnStatusDto })
   @ApiResponse({
     status: 200,
     description: 'Return status updated successfully',
@@ -199,7 +211,7 @@ export class ReturnsController {
   @ApiCommonErrorResponses()
   async updateStatus(
     @Param('id') id: string,
-    @Body() data: { status: string; notes?: string },
+    @Body() data: UpdateReturnStatusDto,
     @CurrentUser() user: any,
   ) {
     const returnRequest = await this.returnsService.updateStatus(
@@ -227,6 +239,7 @@ export class ReturnsController {
     description: 'Return item ID',
     example: '507f1f77bcf86cd799439011',
   })
+  @ApiBody({ type: InspectItemDto })
   @ApiResponse({
     status: 200,
     description: 'Item inspection completed successfully',
@@ -235,11 +248,15 @@ export class ReturnsController {
   @ApiCommonErrorResponses()
   async inspectItem(
     @Param('itemId') itemId: string,
-    @Body() data: any,
+    @Body() data: InspectItemDto,
     @CurrentUser() user: any,
   ) {
     const item = await this.returnsService.inspectItem(itemId, {
-      ...data,
+      condition: data.condition,
+      approvedQuantity: data.approvedQuantity,
+      rejectedQuantity: data.rejectedQuantity,
+      inspectionNotes: data.inspectionNotes,
+      inspectionImages: data.inspectionImages,
       inspectedBy: user._id,
     });
     return ResponseBuilder.success(item, 'Item inspected', 'تم فحص العنصر');
@@ -251,13 +268,14 @@ export class ReturnsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Process refund',
-    description: 'Process a refund for a return request. Admin only.',
+    description: 'Process a refund for a return request. Amount is automatically credited to customer wallet. Admin only.',
   })
   @ApiParam({
     name: 'id',
     description: 'Return request ID',
     example: '507f1f77bcf86cd799439011',
   })
+  @ApiBody({ type: ProcessRefundDto })
   @ApiResponse({
     status: 201,
     description: 'Refund processed successfully',
@@ -266,11 +284,12 @@ export class ReturnsController {
   @ApiCommonErrorResponses()
   async processRefund(
     @Param('id') id: string,
-    @Body() data: any,
+    @Body() data: ProcessRefundDto,
     @CurrentUser() user: any,
   ) {
     const refund = await this.returnsService.processRefund(id, {
-      ...data,
+      amount: data.amount,
+      bankDetails: data.bankDetails,
       processedBy: user._id,
     });
     return ResponseBuilder.created(

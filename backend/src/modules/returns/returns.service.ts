@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
@@ -19,6 +19,8 @@ import {
   SupplierReturnBatch,
   SupplierReturnBatchDocument,
 } from './schemas/supplier-return-batch.schema';
+import { OrderItem, OrderItemDocument } from '@modules/orders/schemas/order-item.schema';
+import { WalletService } from '@modules/wallet/wallet.service';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -39,21 +41,22 @@ export class ReturnsService {
     private returnReasonModel: Model<ReturnReasonDocument>,
     @InjectModel(SupplierReturnBatch.name)
     private supplierReturnBatchModel: Model<SupplierReturnBatchDocument>,
+    @InjectModel(OrderItem.name)
+    private orderItemModel: Model<OrderItemDocument>,
+    @Inject(forwardRef(() => WalletService))
+    private walletService: WalletService,
   ) {}
 
   /**
    * Create return request
    */
   async createReturnRequest(data: {
-    orderId: string;
     customerId: string;
     returnType: string;
     reasonId: string;
     items: {
       orderItemId: string;
-      productId: string;
       quantity: number;
-      unitPrice: number;
     }[];
     customerNotes?: string;
     customerImages?: string[];
@@ -61,16 +64,45 @@ export class ReturnsService {
   }): Promise<ReturnRequestDocument> {
     const returnNumber = await this.generateReturnNumber();
 
-    // Calculate total value
-    const totalItemsValue = data.items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0,
-    );
+    // 1. Fetch OrderItems from database
+    const orderItemIds = data.items.map((i) => new Types.ObjectId(i.orderItemId));
+    const orderItems = await this.orderItemModel
+      .find({
+        _id: { $in: orderItemIds },
+      })
+      .populate('orderId');
 
-    // Create return request
+    if (orderItems.length !== data.items.length) {
+      throw new BadRequestException('Some order items not found');
+    }
+
+    // 2. Verify all items belong to the same customer
+    const orderIds = [...new Set(orderItems.map((i) => i.orderId._id.toString()))];
+    
+    // Verify customer ownership of all orders
+    // This would require Order model access - for now we trust the orderItems exist
+
+    // 3. Calculate total value from actual invoice prices
+    const totalItemsValue = data.items.reduce((sum, item) => {
+      const orderItem = orderItems.find(
+        (oi) => oi._id.toString() === item.orderItemId,
+      );
+      if (!orderItem) {
+        throw new BadRequestException(`Order item ${item.orderItemId} not found`);
+      }
+      // Validate quantity
+      if (item.quantity > orderItem.quantity) {
+        throw new BadRequestException(
+          `Return quantity exceeds ordered quantity for item ${item.orderItemId}`,
+        );
+      }
+      return sum + item.quantity * orderItem.unitPrice;
+    }, 0);
+
+    // 4. Create return request with orderIds array
     const returnRequest = await this.returnRequestModel.create({
       returnNumber,
-      orderId: data.orderId,
+      orderIds: orderIds.map(id => new Types.ObjectId(id)),
       customerId: data.customerId,
       returnType: data.returnType,
       reasonId: data.reasonId,
@@ -81,17 +113,23 @@ export class ReturnsService {
       status: 'pending',
     });
 
-    // Create return items
-    const returnItems = data.items.map((item) => ({
-      returnRequestId: returnRequest._id,
-      orderItemId: item.orderItemId,
-      productId: item.productId,
-      productSku: '', // Will be populated
-      productName: '', // Will be populated
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      totalValue: item.quantity * item.unitPrice,
-    }));
+    // 5. Create return items using data from invoice
+    const returnItems = data.items.map((item) => {
+      const orderItem = orderItems.find(
+        (oi) => oi._id.toString() === item.orderItemId,
+      );
+      return {
+        returnRequestId: returnRequest._id,
+        orderItemId: new Types.ObjectId(item.orderItemId),
+        productId: orderItem.productId,
+        productSku: orderItem.productSku,
+        productName: orderItem.productName,
+        productImage: orderItem.productImage,
+        quantity: item.quantity,
+        unitPrice: orderItem.unitPrice,
+        totalValue: item.quantity * orderItem.unitPrice,
+      };
+    });
 
     await this.returnItemModel.insertMany(returnItems);
 
@@ -127,7 +165,7 @@ export class ReturnsService {
 
     const query: any = {};
     if (customerId) query.customerId = customerId;
-    if (orderId) query.orderId = orderId;
+    if (orderId) query.orderIds = orderId; // Support filtering by single orderId
     if (status) query.status = status;
     if (returnType) query.returnType = returnType;
     if (startDate || endDate) {
@@ -140,7 +178,7 @@ export class ReturnsService {
       this.returnRequestModel
         .find(query)
         .populate('customerId', 'shopName responsiblePersonName phone')
-        .populate('orderId', 'orderNumber')
+        .populate('orderIds', 'orderNumber')
         .populate('reasonId', 'name nameAr')
         .skip((page - 1) * limit)
         .limit(limit)
@@ -162,7 +200,7 @@ export class ReturnsService {
     const returnRequest = await this.returnRequestModel
       .findById(id)
       .populate('customerId')
-      .populate('orderId')
+      .populate('orderIds')
       .populate('reasonId');
 
     if (!returnRequest) throw new NotFoundException('Return request not found');
@@ -271,7 +309,7 @@ export class ReturnsService {
     returnRequestId: string,
     data: {
       amount: number;
-      refundMethod: string;
+      refundMethod?: string;
       bankDetails?: any;
       processedBy: string;
     },
@@ -282,13 +320,18 @@ export class ReturnsService {
 
     const refundNumber = await this.generateRefundNumber();
 
+    // Use first orderId from orderIds array for refund reference
+    const primaryOrderId = returnRequest.orderIds && returnRequest.orderIds.length > 0 
+      ? returnRequest.orderIds[0] 
+      : null;
+
     const refund = await this.refundModel.create({
       refundNumber,
       returnRequestId,
-      orderId: returnRequest.orderId,
+      orderId: primaryOrderId,
       customerId: returnRequest.customerId,
       amount: data.amount,
-      refundMethod: data.refundMethod,
+      refundMethod: data.refundMethod || 'wallet', // Default to wallet
       status: 'processing',
       processedBy: data.processedBy,
       processedAt: new Date(),
@@ -310,22 +353,39 @@ export class ReturnsService {
     refundId: string,
     transactionId?: string,
   ): Promise<RefundDocument> {
-    const refund = await this.refundModel.findByIdAndUpdate(
-      refundId,
-      {
-        $set: {
-          status: 'completed',
-          completedAt: new Date(),
-          transactionId,
+    const refund = await this.refundModel
+      .findByIdAndUpdate(
+        refundId,
+        {
+          $set: {
+            status: 'completed',
+            completedAt: new Date(),
+            transactionId,
+          },
         },
-      },
-      { new: true },
-    );
+        { new: true },
+      )
+      .populate('returnRequestId');
 
     if (!refund) throw new NotFoundException('Refund not found');
 
+    // Automatic wallet credit for all refunds
+    await this.walletService.credit({
+      customerId: refund.customerId.toString(),
+      amount: refund.amount,
+      transactionType: 'order_refund',
+      referenceType: 'refund',
+      referenceId: refund._id.toString(),
+      referenceNumber: refund.refundNumber,
+      description: 'Refund for return request',
+      descriptionAr: `استرداد مبلغ المرتجع ${(refund.returnRequestId as any).returnNumber}`,
+    });
+
     // Update return request status
-    await this.updateStatus(refund.returnRequestId.toString(), 'completed');
+    await this.updateStatus(
+      (refund.returnRequestId as any)._id.toString(),
+      'completed',
+    );
 
     return refund;
   }

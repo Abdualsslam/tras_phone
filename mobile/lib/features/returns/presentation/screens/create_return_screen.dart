@@ -6,11 +6,16 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../data/models/return_model.dart';
 
 class CreateReturnScreen extends StatefulWidget {
-  final int orderId;
+  /// Pre-selected items from SelectItemsForReturnScreen
+  final List<CreateReturnItemRequest>? preSelectedItems;
 
-  const CreateReturnScreen({super.key, required this.orderId});
+  const CreateReturnScreen({
+    super.key,
+    this.preSelectedItems,
+  });
 
   @override
   State<CreateReturnScreen> createState() => _CreateReturnScreenState();
@@ -83,13 +88,13 @@ class _CreateReturnScreenState extends State<CreateReturnScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'الطلب #ORD-2024-001',
+                            'المنتجات المحددة',
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
-                            'شاشة آيفون 14 برو ماكس',
+                            '${widget.preSelectedItems?.length ?? 0} منتج',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: AppColors.textTertiaryLight,
                             ),
