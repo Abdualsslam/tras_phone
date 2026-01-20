@@ -727,10 +727,10 @@ export function ProductsPage() {
                   <TableRow key={product._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-slate-800 overflow-hidden">
-                          {product.images?.[0] ? (
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-slate-800 overflow-hidden flex-shrink-0">
+                          {(product as any).mainImage || product.images?.[0] ? (
                             <img
-                              src={product.images[0]}
+                              src={(product as any).mainImage || product.images[0]}
                               alt={product.name}
                               className="w-full h-full object-cover"
                             />

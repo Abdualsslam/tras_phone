@@ -6,3 +6,4 @@ export 'categories_list_screen.dart';
 export 'brands_list_screen.dart';
 export 'products_on_offer_screen.dart';
 export 'search_screen.dart';
+export 'products_list_screen.dart';

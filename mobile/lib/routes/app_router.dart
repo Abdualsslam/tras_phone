@@ -12,6 +12,7 @@ import '../features/auth/presentation/screens/reset_password_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/catalog/presentation/screens/screens.dart';
 import '../features/catalog/presentation/screens/category_products_screen.dart';
+import '../features/catalog/presentation/screens/products_list_screen.dart';
 import '../features/catalog/presentation/screens/brand_details_screen.dart';
 import '../features/catalog/presentation/screens/devices_list_screen.dart';
 import '../features/catalog/presentation/screens/device_products_screen.dart';
@@ -144,6 +145,18 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const BrandsListScreen(),
     ),
     GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
+    GoRoute(
+      path: '/products',
+      builder: (context, state) {
+        final isFeatured = state.uri.queryParameters['isFeatured'] ?? 
+                          state.uri.queryParameters['featured'];
+        final sort = state.uri.queryParameters['sort'];
+        return ProductsListScreen(
+          isFeatured: isFeatured == 'true' ? true : null,
+          sortBy: sort,
+        );
+      },
+    ),
 
     // ═══════════════════════════════════════════════════════════════════════
     // CART & CHECKOUT ROUTES

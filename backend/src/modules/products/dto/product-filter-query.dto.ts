@@ -64,7 +64,7 @@ export class ProductFilterQueryDto extends PaginationQueryDto {
     @IsOptional()
     isActive?: boolean;
 
-    @ApiProperty({ example: true, required: false, description: 'Filter featured products only' })
+    @ApiProperty({ example: true, required: false, description: 'Filter featured products only (based on isFeatured field in schema)' })
     @IsBoolean()
     @Type(() => Boolean)
     @IsOptional()

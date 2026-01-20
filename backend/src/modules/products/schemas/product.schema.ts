@@ -238,24 +238,24 @@ ProductSchema.index({ createdAt: -1 });
 // Enhanced text index for advanced search
 // Supports search in name, nameAr, tags, description, shortDescription
 ProductSchema.index(
-  { 
-    name: 'text', 
-    nameAr: 'text', 
+  {
+    name: 'text',
+    nameAr: 'text',
     tags: 'text',
     description: 'text',
     shortDescription: 'text',
-    sku: 'text'
+    sku: 'text',
   },
-  { 
+  {
     weights: {
       name: 10,
       nameAr: 10,
       tags: 8,
       sku: 5,
       description: 3,
-      shortDescription: 2
-    }
-  }
+      shortDescription: 2,
+    },
+  },
 );
 
 // Compound indexes for common search patterns
