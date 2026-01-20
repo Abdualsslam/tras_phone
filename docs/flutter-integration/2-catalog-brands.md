@@ -69,9 +69,9 @@ class CatalogService {
 
 ### 2️⃣ جلب منتجات البراند
 
-**Endpoint:** `GET /catalog/brands/:slug/products`
+**Endpoint:** `GET /catalog/brands/:id/products`
 
-> **استخدام**: عند الضغط على براند معين، استخدم هذا الـ endpoint لجلب جميع المنتجات المرتبطة بهذا البراند.
+> **استخدام**: عند الضغط على براند معين، استخدم هذا الـ endpoint لجلب جميع المنتجات المرتبطة بهذا البراند. يجب استخدام ID البراند وليس slug.
 
 **Query Parameters:**
 | Parameter | Type | Required | Description |
@@ -121,7 +121,7 @@ class CatalogService {
 ```dart
 /// جلب منتجات براند معين
 Future<Map<String, dynamic>> getBrandProducts(
-  String brandSlug, {
+  String brandId, {
   int page = 1,
   int limit = 20,
   double? minPrice,
@@ -140,7 +140,7 @@ Future<Map<String, dynamic>> getBrandProducts(
   if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
   
   final response = await _dio.get(
-    '/catalog/brands/$brandSlug/products',
+    '/catalog/brands/$brandId/products',
     queryParameters: queryParams,
   );
   
@@ -235,7 +235,7 @@ class CatalogService {
   }
   
   Future<Map<String, dynamic>> getBrandProducts(
-    String brandSlug, {
+    String brandId, {
     int page = 1,
     int limit = 20,
     double? minPrice,
@@ -254,7 +254,7 @@ class CatalogService {
     if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
     
     final response = await _dio.get(
-      '/catalog/brands/$brandSlug/products',
+      '/catalog/brands/$brandId/products',
       queryParameters: queryParams,
     );
     
@@ -295,7 +295,7 @@ class BrandsBar extends StatelessWidget {
                 return GestureDetector(
                   onTap: () => Navigator.pushNamed(
                     context, 
-                    '/brand/${brand.slug}',
+                    '/brand/${brand.id}',
                   ),
                   child: Padding(
                     padding: EdgeInsets.all(8),
@@ -325,9 +325,9 @@ class BrandsBar extends StatelessWidget {
 
 ```dart
 class BrandProductsScreen extends StatefulWidget {
-  final String brandSlug;
+  final String brandId;
   
-  const BrandProductsScreen({required this.brandSlug});
+  const BrandProductsScreen({required this.brandId});
   
   @override
   _BrandProductsScreenState createState() => _BrandProductsScreenState();
@@ -353,7 +353,7 @@ class _BrandProductsScreenState extends State<BrandProductsScreen> {
     
     try {
       final result = await catalogService.getBrandProducts(
-        widget.brandSlug,
+        widget.brandId,
         page: _page,
         limit: _limit,
       );
@@ -410,7 +410,7 @@ class _BrandProductsScreenState extends State<BrandProductsScreen> {
 |--------|----------|-------|
 | GET | `/catalog/brands` | جميع الماركات النشطة |
 | GET | `/catalog/brands/:slug` | ماركة بالـ slug |
-| GET | `/catalog/brands/:slug/products` | منتجات براند معين |
+| GET | `/catalog/brands/:id/products` | منتجات براند معين (يستخدم ID) |
 
 ---
 
