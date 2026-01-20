@@ -37,6 +37,9 @@ class ProductModel {
   @JsonKey(defaultValue: [])
   final List<String> compatibleDevices;
 
+  @JsonKey(name: 'relatedProducts', readValue: _readRelatedProducts)
+  final List<String>? relatedProducts;
+
   // Images
   final String? mainImage;
   @JsonKey(defaultValue: [])
@@ -92,6 +95,8 @@ class ProductModel {
   final int viewsCount;
   @JsonKey(defaultValue: 0)
   final int ordersCount;
+  @JsonKey(defaultValue: 0)
+  final int salesCount;
   @JsonKey(defaultValue: 0)
   final int reviewsCount;
   @JsonKey(defaultValue: 0.0)
@@ -161,9 +166,11 @@ class ProductModel {
     this.warrantyDescription,
     this.viewsCount = 0,
     this.ordersCount = 0,
+    this.salesCount = 0,
     this.reviewsCount = 0,
     this.averageRating = 0,
     this.wishlistCount = 0,
+    this.relatedProducts,
     this.tags = const [],
     this.publishedAt,
     required this.createdAt,
@@ -193,6 +200,22 @@ class ProductModel {
       return value['_id']?.toString() ?? value['\$oid']?.toString();
     }
     return value?.toString() ?? '';
+  }
+
+  /// Handle related products which can be List<String> or List of objects
+  static Object? _readRelatedProducts(Map<dynamic, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) return null;
+    if (value is List) {
+      return value.map((p) {
+        if (p is String) return p;
+        if (p is Map) {
+          return p['_id']?.toString() ?? p['\$oid']?.toString() ?? p['id']?.toString();
+        }
+        return p.toString();
+      }).toList().cast<String>();
+    }
+    return null;
   }
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
@@ -260,9 +283,11 @@ class ProductModel {
       warrantyDescription: model.warrantyDescription,
       viewsCount: model.viewsCount,
       ordersCount: model.ordersCount,
+      salesCount: model.salesCount,
       reviewsCount: model.reviewsCount,
       averageRating: model.averageRating,
       wishlistCount: model.wishlistCount,
+      relatedProducts: model.relatedProducts,
       tags: model.tags,
       publishedAt: model.publishedAt,
       createdAt: model.createdAt,
@@ -319,9 +344,11 @@ class ProductModel {
       warrantyDescription: warrantyDescription,
       viewsCount: viewsCount,
       ordersCount: ordersCount,
+      salesCount: salesCount,
       reviewsCount: reviewsCount,
       averageRating: averageRating,
       wishlistCount: wishlistCount,
+      relatedProducts: relatedProducts,
       tags: tags,
       publishedAt: publishedAt,
       createdAt: createdAt,

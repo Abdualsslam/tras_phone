@@ -135,3 +135,27 @@ class BreadcrumbItemModel {
     return BreadcrumbItem(id: id, name: name, nameAr: nameAr, slug: slug);
   }
 }
+
+/// Category with breadcrumb model for JSON serialization
+@JsonSerializable()
+class CategoryWithBreadcrumbModel {
+  final CategoryModel category;
+  @JsonKey(defaultValue: [])
+  final List<BreadcrumbItemModel> breadcrumb;
+
+  const CategoryWithBreadcrumbModel({
+    required this.category,
+    this.breadcrumb = const [],
+  });
+
+  factory CategoryWithBreadcrumbModel.fromJson(Map<String, dynamic> json) =>
+      _$CategoryWithBreadcrumbModelFromJson(json);
+  Map<String, dynamic> toJson() => _$CategoryWithBreadcrumbModelToJson(this);
+
+  CategoryWithBreadcrumb toEntity() {
+    return CategoryWithBreadcrumb(
+      category: category.toEntity(),
+      breadcrumb: breadcrumb.map((b) => b.toEntity()).toList(),
+    );
+  }
+}

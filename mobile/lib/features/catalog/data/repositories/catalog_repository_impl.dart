@@ -6,9 +6,12 @@ import '../../../../core/errors/failures.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/device_entity.dart';
+import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/quality_type_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../datasources/catalog_remote_datasource.dart';
+import '../models/product_filter_query.dart';
+import '../models/product_model.dart';
 import '../models/product_review_model.dart';
 
 /// Implementation of CatalogRepository using remote data source
@@ -161,7 +164,10 @@ class CatalogRepositoryImpl implements CatalogRepository {
     int? limit,
   }) async {
     try {
-      final devices = await _remoteDataSource.getDevices(limit: limit);
+      final devices = await _remoteDataSource.getDevices(
+        limit: limit,
+        popular: true,
+      );
       return Right(devices);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
@@ -193,6 +199,36 @@ class CatalogRepositoryImpl implements CatalogRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> getDeviceProducts(
+    String deviceIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  }) async {
+    try {
+      final result = await _remoteDataSource.getDeviceProducts(
+        deviceIdentifier,
+        page: page,
+        limit: limit,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        brandId: brandId,
+        qualityTypeId: qualityTypeId,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // QUALITY TYPES
   // ═══════════════════════════════════════════════════════════════════════════
@@ -202,6 +238,99 @@ class CatalogRepositoryImpl implements CatalogRepository {
     try {
       final qualityTypes = await _remoteDataSource.getQualityTypes();
       return Right(qualityTypes);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PRODUCTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  Future<Either<Failure, ProductsResponse>> getProducts(
+    ProductFilterQuery filter,
+  ) async {
+    try {
+      final response = await _remoteDataSource.getProductsWithFilter(filter);
+      return Right(response);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ProductEntity>> getProduct(String identifier) async {
+    try {
+      final product = await _remoteDataSource.getProduct(identifier);
+      if (product == null) {
+        return const Left(NotFoundFailure(message: 'المنتج غير موجود'));
+      }
+      return Right(product);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ProductEntity>>> getFeaturedProducts({
+    int? limit,
+  }) async {
+    try {
+      final products = await _remoteDataSource.getFeaturedProducts(limit: limit);
+      return Right(products);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ProductEntity>>> getNewArrivals({
+    int? limit,
+  }) async {
+    try {
+      final products = await _remoteDataSource.getNewArrivals(limit: limit);
+      return Right(products);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ProductEntity>>> getBestSellers({
+    int? limit,
+  }) async {
+    try {
+      final products = await _remoteDataSource.getBestSellers(limit: limit);
+      return Right(products);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ProductsResponse>> getProductsOnOffer({
+    int page = 1,
+    int limit = 20,
+    String? sortBy,
+    String? sortOrder,
+    double? minDiscount,
+    double? maxDiscount,
+    String? categoryId,
+    String? brandId,
+  }) async {
+    try {
+      final response = await _remoteDataSource.getProductsOnOffer(
+        page: page,
+        limit: limit,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        minDiscount: minDiscount,
+        maxDiscount: maxDiscount,
+        categoryId: categoryId,
+        brandId: brandId,
+      );
+      return Right(response);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
     }

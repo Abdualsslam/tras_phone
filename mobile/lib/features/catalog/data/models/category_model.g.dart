@@ -78,3 +78,21 @@ Map<String, dynamic> _$BreadcrumbItemModelToJson(
   'nameAr': instance.nameAr,
   'slug': instance.slug,
 };
+
+CategoryWithBreadcrumbModel _$CategoryWithBreadcrumbModelFromJson(
+  Map<String, dynamic> json,
+) => CategoryWithBreadcrumbModel(
+  category: CategoryModel.fromJson(json['category'] as Map<String, dynamic>),
+  breadcrumb:
+      (json['breadcrumb'] as List<dynamic>?)
+          ?.map((e) => BreadcrumbItemModel.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      [],
+);
+
+Map<String, dynamic> _$CategoryWithBreadcrumbModelToJson(
+  CategoryWithBreadcrumbModel instance,
+) => <String, dynamic>{
+  'category': instance.category,
+  'breadcrumb': instance.breadcrumb,
+};

@@ -16,6 +16,7 @@ import '../models/brand_model.dart';
 import '../models/category_model.dart';
 import '../models/device_model.dart';
 import '../models/product_model.dart';
+import '../models/product_filter_query.dart';
 import '../models/product_review_model.dart';
 import '../models/quality_type_model.dart';
 
@@ -52,9 +53,20 @@ abstract class CatalogRemoteDataSource {
   });
 
   // Devices
-  Future<List<DeviceEntity>> getDevices({int? limit});
+  Future<List<DeviceEntity>> getDevices({int? limit, bool? popular});
   Future<List<DeviceEntity>> getDevicesByBrand(String brandId);
   Future<DeviceEntity?> getDeviceBySlug(String slug);
+  Future<Map<String, dynamic>> getDeviceProducts(
+    String deviceIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  });
 
   // Quality Types
   Future<List<QualityTypeEntity>> getQualityTypes();
@@ -71,12 +83,23 @@ abstract class CatalogRemoteDataSource {
     int page,
     int limit,
   });
+  Future<ProductsResponse> getProductsWithFilter(ProductFilterQuery filter);
+  Future<ProductEntity?> getProduct(String identifier);
   Future<ProductEntity?> getProductById(String id);
   Future<ProductEntity?> getProductBySku(String sku);
-  Future<List<ProductEntity>> getFeaturedProducts();
-  Future<List<ProductEntity>> getNewArrivals();
-  Future<List<ProductEntity>> getBestSellers();
-  Future<List<ProductEntity>> getProductsOnOffer();
+  Future<List<ProductEntity>> getFeaturedProducts({int? limit});
+  Future<List<ProductEntity>> getNewArrivals({int? limit});
+  Future<List<ProductEntity>> getBestSellers({int? limit});
+  Future<ProductsResponse> getProductsOnOffer({
+    int page = 1,
+    int limit = 20,
+    String? sortBy,
+    String? sortOrder,
+    double? minDiscount,
+    double? maxDiscount,
+    String? categoryId,
+    String? brandId,
+  });
 
   // Search
   Future<List<ProductEntity>> searchProducts(
@@ -171,16 +194,10 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       final response = await _apiClient.get('${ApiEndpoints.categories}/$id');
       final data = response.data['data'] ?? response.data;
 
-      // Response includes category and breadcrumb
-      final categoryJson = data['category'] ?? data;
-      final category = CategoryModel.fromJson(categoryJson).toEntity();
-
-      final breadcrumbList = data['breadcrumb'] as List<dynamic>? ?? [];
-      final breadcrumb = breadcrumbList
-          .map((b) => BreadcrumbItemModel.fromJson(b).toEntity())
-          .toList();
-
-      return CategoryWithBreadcrumb(category: category, breadcrumb: breadcrumb);
+      // Use CategoryWithBreadcrumbModel for JSON deserialization
+      final categoryWithBreadcrumbModel =
+          CategoryWithBreadcrumbModel.fromJson(data);
+      return categoryWithBreadcrumbModel.toEntity();
     } catch (e) {
       developer.log('Category not found: $id', name: 'CatalogDataSource');
       return null;
@@ -402,12 +419,21 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   // ═══════════════════════════════════════════════════════════════════════════
 
   @override
-  Future<List<DeviceEntity>> getDevices({int? limit}) async {
+  Future<List<DeviceEntity>> getDevices({int? limit, bool? popular}) async {
     developer.log('Fetching devices', name: 'CatalogDataSource');
+
+    final queryParams = <String, dynamic>{};
+    if (limit != null) queryParams['limit'] = limit;
+    if (popular != null) queryParams['popular'] = popular;
+
+    _printApiUrl(
+      ApiEndpoints.devices,
+      queryParams: queryParams.isNotEmpty ? queryParams : null,
+    );
 
     final response = await _apiClient.get(
       ApiEndpoints.devices,
-      queryParameters: {if (limit != null) 'limit': limit},
+      queryParameters: queryParams,
     );
 
     final data = response.data['data'] ?? response.data;
@@ -438,13 +464,88 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     developer.log('Fetching device: $slug', name: 'CatalogDataSource');
 
     try {
-      final response = await _apiClient.get('${ApiEndpoints.devices}/$slug');
+      final endpoint = '${ApiEndpoints.devices}/$slug';
+      _printApiUrl(endpoint);
+
+      final response = await _apiClient.get(endpoint);
       final data = response.data['data'] ?? response.data;
       return DeviceModel.fromJson(data).toEntity();
     } catch (e) {
       developer.log('Device not found: $slug', name: 'CatalogDataSource');
       return null;
     }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getDeviceProducts(
+    String deviceIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  }) async {
+    developer.log(
+      'Fetching products for device: $deviceIdentifier (page: $page)',
+      name: 'CatalogDataSource',
+    );
+
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+
+    if (minPrice != null) queryParams['minPrice'] = minPrice;
+    if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
+    if (sortBy != null) queryParams['sortBy'] = sortBy;
+    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+    if (brandId != null) queryParams['brandId'] = brandId;
+    if (qualityTypeId != null) queryParams['qualityTypeId'] = qualityTypeId;
+
+    final endpoint = ApiEndpoints.deviceProducts(deviceIdentifier);
+    _printApiUrl(endpoint, queryParams: queryParams);
+
+    final response = await _apiClient.get(
+      endpoint,
+      queryParameters: queryParams,
+    );
+
+    // Print full response
+    print('\n${'=' * 80}');
+    print('📦 API Response - Device Products:');
+    print('${'=' * 80}');
+    print('Status Code: ${response.statusCode}');
+    print('Status Message: ${response.statusMessage}');
+    print('\nResponse Data:');
+    print(response.data);
+    print('${'=' * 80}\n');
+
+    developer.log(
+      'Response: ${response.data}',
+      name: 'CatalogDataSource',
+    );
+
+    final data = response.data['data'] ?? [];
+    final meta = response.data['meta'] ?? {};
+
+    // Print parsed data summary
+    final dataList = data is List ? data : [];
+    print('\n${'=' * 80}');
+    print('📊 Parsed Data Summary:');
+    print('${'=' * 80}');
+    print('Products Count: ${dataList.length}');
+    print('Pagination Meta: $meta');
+    print('${'=' * 80}\n');
+
+    return {
+      'products': List<ProductEntity>.from(
+        dataList.map((p) => ProductModel.fromJson(p).toEntity()),
+      ),
+      'pagination': meta,
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -604,6 +705,40 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   }
 
   @override
+  Future<ProductsResponse> getProductsWithFilter(ProductFilterQuery filter) async {
+    developer.log('Fetching products with filter (page: ${filter.page})', name: 'CatalogDataSource');
+
+    final response = await _apiClient.get(
+      ApiEndpoints.products,
+      queryParameters: filter.toQueryParameters(),
+    );
+
+    if (response.data['success'] == true) {
+      return ProductsResponse.fromJson(response.data);
+    }
+    throw Exception(response.data['messageAr'] ?? 'Failed to fetch products');
+  }
+
+  @override
+  Future<ProductEntity?> getProduct(String identifier) async {
+    developer.log('Fetching product: $identifier', name: 'CatalogDataSource');
+
+    try {
+      final response = await _apiClient.get('${ApiEndpoints.products}/$identifier');
+      final data = response.data['data'] ?? response.data;
+      final product = ProductModel.fromJson(data).toEntity();
+      
+      // Print product to terminal
+      _printProductData(product, context: 'Product: $identifier');
+      
+      return product;
+    } catch (e) {
+      developer.log('Product not found: $identifier', name: 'CatalogDataSource');
+      return null;
+    }
+  }
+
+  @override
   Future<ProductEntity?> getProductById(String id) async {
     developer.log('Fetching product: $id', name: 'CatalogDataSource');
 
@@ -651,10 +786,16 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   }
 
   @override
-  Future<List<ProductEntity>> getFeaturedProducts() async {
+  Future<List<ProductEntity>> getFeaturedProducts({int? limit}) async {
     developer.log('Fetching featured products', name: 'CatalogDataSource');
 
-    final response = await _apiClient.get(ApiEndpoints.productsFeatured);
+    final queryParams = <String, dynamic>{};
+    if (limit != null) queryParams['limit'] = limit;
+
+    final response = await _apiClient.get(
+      ApiEndpoints.productsFeatured,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
@@ -667,10 +808,16 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   }
 
   @override
-  Future<List<ProductEntity>> getNewArrivals() async {
+  Future<List<ProductEntity>> getNewArrivals({int? limit}) async {
     developer.log('Fetching new arrivals', name: 'CatalogDataSource');
 
-    final response = await _apiClient.get(ApiEndpoints.productsNewArrivals);
+    final queryParams = <String, dynamic>{};
+    if (limit != null) queryParams['limit'] = limit;
+
+    final response = await _apiClient.get(
+      ApiEndpoints.productsNewArrivals,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
@@ -683,10 +830,16 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   }
 
   @override
-  Future<List<ProductEntity>> getBestSellers() async {
+  Future<List<ProductEntity>> getBestSellers({int? limit}) async {
     developer.log('Fetching best sellers', name: 'CatalogDataSource');
 
-    final response = await _apiClient.get(ApiEndpoints.productsBestSellers);
+    final queryParams = <String, dynamic>{};
+    if (limit != null) queryParams['limit'] = limit;
+
+    final response = await _apiClient.get(
+      ApiEndpoints.productsBestSellers,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
@@ -699,22 +852,39 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   }
 
   @override
-  Future<List<ProductEntity>> getProductsOnOffer() async {
-    developer.log('Fetching products on offer', name: 'CatalogDataSource');
+  Future<ProductsResponse> getProductsOnOffer({
+    int page = 1,
+    int limit = 20,
+    String? sortBy,
+    String? sortOrder,
+    double? minDiscount,
+    double? maxDiscount,
+    String? categoryId,
+    String? brandId,
+  }) async {
+    developer.log('Fetching products on offer (page: $page)', name: 'CatalogDataSource');
+
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+    
+    if (sortBy != null) queryParams['sortBy'] = sortBy;
+    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
+    if (minDiscount != null) queryParams['minDiscount'] = minDiscount;
+    if (maxDiscount != null) queryParams['maxDiscount'] = maxDiscount;
+    if (categoryId != null) queryParams['categoryId'] = categoryId;
+    if (brandId != null) queryParams['brandId'] = brandId;
 
     final response = await _apiClient.get(
-      ApiEndpoints.products,
-      queryParameters: {'hasDiscount': true},
+      ApiEndpoints.productsOnOffer,
+      queryParameters: queryParams,
     );
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
 
-    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
-    
-    // Print products to terminal
-    _printProductsList(products, context: 'Products on Offer');
-    
-    return products;
+    if (response.data['success'] == true) {
+      return ProductsResponse.fromJson(response.data);
+    }
+    throw Exception(response.data['messageAr'] ?? 'Failed to fetch products on offer');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

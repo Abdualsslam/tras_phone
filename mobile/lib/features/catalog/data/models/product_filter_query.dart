@@ -9,6 +9,7 @@ class ProductFilterQuery {
   final String? brandId;
   final String? categoryId;
   final String? qualityTypeId;
+  final String? deviceId;
   final double? minPrice;
   final double? maxPrice;
   final String? status;
@@ -26,6 +27,7 @@ class ProductFilterQuery {
     this.brandId,
     this.categoryId,
     this.qualityTypeId,
+    this.deviceId,
     this.minPrice,
     this.maxPrice,
     this.status,
@@ -45,6 +47,7 @@ class ProductFilterQuery {
       if (brandId != null) 'brandId': brandId,
       if (categoryId != null) 'categoryId': categoryId,
       if (qualityTypeId != null) 'qualityTypeId': qualityTypeId,
+      if (deviceId != null) 'deviceId': deviceId,
       if (minPrice != null) 'minPrice': minPrice,
       if (maxPrice != null) 'maxPrice': maxPrice,
       if (status != null) 'status': status,
@@ -64,6 +67,7 @@ class ProductFilterQuery {
     String? brandId,
     String? categoryId,
     String? qualityTypeId,
+    String? deviceId,
     double? minPrice,
     double? maxPrice,
     String? status,
@@ -81,6 +85,7 @@ class ProductFilterQuery {
       brandId: brandId ?? this.brandId,
       categoryId: categoryId ?? this.categoryId,
       qualityTypeId: qualityTypeId ?? this.qualityTypeId,
+      deviceId: deviceId ?? this.deviceId,
       minPrice: minPrice ?? this.minPrice,
       maxPrice: maxPrice ?? this.maxPrice,
       status: status ?? this.status,
@@ -111,6 +116,7 @@ class ProductFilterQuery {
       brandId != null ||
       categoryId != null ||
       qualityTypeId != null ||
+      deviceId != null ||
       minPrice != null ||
       maxPrice != null ||
       status != null ||

@@ -56,9 +56,15 @@ ProductModel _$ProductModelFromJson(Map<String, dynamic> json) => ProductModel(
   warrantyDescription: json['warrantyDescription'] as String?,
   viewsCount: (json['viewsCount'] as num?)?.toInt() ?? 0,
   ordersCount: (json['ordersCount'] as num?)?.toInt() ?? 0,
+  salesCount: (json['salesCount'] as num?)?.toInt() ?? 0,
   reviewsCount: (json['reviewsCount'] as num?)?.toInt() ?? 0,
   averageRating: (json['averageRating'] as num?)?.toDouble() ?? 0.0,
   wishlistCount: (json['wishlistCount'] as num?)?.toInt() ?? 0,
+  relatedProducts:
+      (ProductModel._readRelatedProducts(json, 'relatedProducts')
+              as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
   tags:
       (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
   publishedAt: json['publishedAt'] == null
@@ -84,6 +90,7 @@ Map<String, dynamic> _$ProductModelToJson(ProductModel instance) =>
       'additionalCategories': instance.additionalCategories,
       'qualityTypeId': instance.qualityTypeId,
       'compatibleDevices': instance.compatibleDevices,
+      'relatedProducts': instance.relatedProducts,
       'mainImage': instance.mainImage,
       'images': instance.images,
       'video': instance.video,
@@ -109,6 +116,7 @@ Map<String, dynamic> _$ProductModelToJson(ProductModel instance) =>
       'warrantyDescription': instance.warrantyDescription,
       'viewsCount': instance.viewsCount,
       'ordersCount': instance.ordersCount,
+      'salesCount': instance.salesCount,
       'reviewsCount': instance.reviewsCount,
       'averageRating': instance.averageRating,
       'wishlistCount': instance.wishlistCount,

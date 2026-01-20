@@ -42,12 +42,14 @@ class ApiEndpoints {
   static const String categoriesTree = '/catalog/categories/tree';
   static String categoryProducts(String identifier) => '/catalog/categories/$identifier/products';
   static const String devices = '/catalog/devices';
+  static String deviceProducts(String identifier) => '/catalog/devices/$identifier/products';
   static const String qualityTypes = '/catalog/quality-types';
   static const String products = '/products';
   static const String productsSearch = '/products/search';
   static const String productsFeatured = '/products/featured';
   static const String productsNewArrivals = '/products/new-arrivals';
   static const String productsBestSellers = '/products/best-sellers';
+  static const String productsOnOffer = '/products/on-offer';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // WISHLIST & REVIEWS

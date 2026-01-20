@@ -74,7 +74,7 @@ enum ProductSortBy {
   name,
   createdAt,
   viewsCount,
-  ordersCount,
+  salesCount,
   averageRating;
 
   String get value {
@@ -87,8 +87,8 @@ enum ProductSortBy {
         return 'createdAt';
       case ProductSortBy.viewsCount:
         return 'viewsCount';
-      case ProductSortBy.ordersCount:
-        return 'ordersCount';
+      case ProductSortBy.salesCount:
+        return 'salesCount';
       case ProductSortBy.averageRating:
         return 'averageRating';
     }
@@ -104,7 +104,7 @@ enum ProductSortBy {
         return 'الأحدث';
       case ProductSortBy.viewsCount:
         return 'الأكثر مشاهدة';
-      case ProductSortBy.ordersCount:
+      case ProductSortBy.salesCount:
         return 'الأكثر مبيعاً';
       case ProductSortBy.averageRating:
         return 'التقييم';

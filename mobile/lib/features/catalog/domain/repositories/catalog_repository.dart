@@ -3,10 +3,13 @@ library;
 
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
+import '../../data/models/product_filter_query.dart';
+import '../../data/models/product_model.dart';
 import '../../data/models/product_review_model.dart';
 import '../entities/brand_entity.dart';
 import '../entities/category_entity.dart';
 import '../entities/device_entity.dart';
+import '../entities/product_entity.dart';
 import '../entities/quality_type_entity.dart';
 
 /// Abstract repository interface for catalog operations
@@ -76,12 +79,56 @@ abstract class CatalogRepository {
   /// Get a single device by its slug
   Future<Either<Failure, DeviceEntity>> getDeviceBySlug(String slug);
 
+  /// Get products for a device by identifier (id or slug) with pagination and filters
+  Future<Either<Failure, Map<String, dynamic>>> getDeviceProducts(
+    String deviceIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  });
+
   // ═══════════════════════════════════════════════════════════════════════════
   // QUALITY TYPES
   // ═══════════════════════════════════════════════════════════════════════════
 
   /// Get all quality types
   Future<Either<Failure, List<QualityTypeEntity>>> getQualityTypes();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PRODUCTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Get products with filter query
+  Future<Either<Failure, ProductsResponse>> getProducts(ProductFilterQuery filter);
+
+  /// Get a single product by identifier (ID or slug)
+  Future<Either<Failure, ProductEntity>> getProduct(String identifier);
+
+  /// Get featured products
+  Future<Either<Failure, List<ProductEntity>>> getFeaturedProducts({int? limit});
+
+  /// Get new arrivals
+  Future<Either<Failure, List<ProductEntity>>> getNewArrivals({int? limit});
+
+  /// Get best sellers
+  Future<Either<Failure, List<ProductEntity>>> getBestSellers({int? limit});
+
+  /// Get products on offer
+  Future<Either<Failure, ProductsResponse>> getProductsOnOffer({
+    int page = 1,
+    int limit = 20,
+    String? sortBy,
+    String? sortOrder,
+    double? minDiscount,
+    double? maxDiscount,
+    String? categoryId,
+    String? brandId,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // REVIEWS

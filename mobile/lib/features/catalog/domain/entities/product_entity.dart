@@ -65,9 +65,13 @@ class ProductEntity extends Equatable {
   // Stats
   final int viewsCount;
   final int ordersCount;
+  final int salesCount;
   final int reviewsCount;
   final double averageRating;
   final int wishlistCount;
+
+  // Related products
+  final List<String>? relatedProducts;
 
   // Tags
   final List<String> tags;
@@ -124,9 +128,11 @@ class ProductEntity extends Equatable {
     this.warrantyDescription,
     this.viewsCount = 0,
     this.ordersCount = 0,
+    this.salesCount = 0,
     this.reviewsCount = 0,
     this.averageRating = 0,
     this.wishlistCount = 0,
+    this.relatedProducts,
     this.tags = const [],
     this.publishedAt,
     required this.createdAt,

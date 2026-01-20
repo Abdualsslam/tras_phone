@@ -7,5 +7,7 @@ export 'categories_cubit.dart';
 export 'categories_state.dart';
 export 'devices_cubit.dart';
 export 'devices_state.dart';
+export 'products_on_offer_cubit.dart';
+export 'products_on_offer_state.dart';
 export 'quality_types_cubit.dart';
 export 'quality_types_state.dart';
