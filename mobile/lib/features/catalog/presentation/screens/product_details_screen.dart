@@ -7,8 +7,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../wishlist/data/datasources/wishlist_remote_datasource.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final ProductEntity product;
@@ -23,14 +25,102 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   int _currentImageIndex = 0;
   int _quantity = 1;
   bool _isFavorite = false;
+  bool _isLoadingWishlist = false;
   late PageController _pageController;
+  late WishlistRemoteDataSource _wishlistDataSource;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    _wishlistDataSource = getIt<WishlistRemoteDataSource>();
     // Print product details to terminal
     _printProductDetails(widget.product);
+    // Check initial wishlist status
+    _checkWishlistStatus();
+  }
+
+  Future<void> _checkWishlistStatus() async {
+    try {
+      final isInWishlist = await _wishlistDataSource.isInWishlist(widget.product.id);
+      if (mounted) {
+        setState(() {
+          _isFavorite = isInWishlist;
+        });
+      }
+    } catch (e) {
+      // Silently fail - wishlist check is optional
+      // If check fails, try to get wishlist and check if product is in it
+      try {
+        final wishlist = await _wishlistDataSource.getWishlist();
+        final isInWishlist = wishlist.any((item) => item.productId.toString() == widget.product.id);
+        if (mounted) {
+          setState(() {
+            _isFavorite = isInWishlist;
+          });
+        }
+      } catch (e2) {
+        // If both fail, just leave it as false
+        print('Error checking wishlist status: $e, $e2');
+      }
+    }
+  }
+
+  Future<void> _toggleWishlist() async {
+    if (_isLoadingWishlist) return;
+
+    final wasFavorite = _isFavorite;
+    
+    // Optimistic update
+    setState(() {
+      _isFavorite = !_isFavorite;
+      _isLoadingWishlist = true;
+    });
+
+    HapticFeedback.lightImpact();
+
+    try {
+      final newState = await _wishlistDataSource.toggleWishlist(
+        widget.product.id,
+        wasFavorite,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isFavorite = newState;
+          _isLoadingWishlist = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newState ? 'تم الإضافة للمفضلة' : 'تم الإزالة من المفضلة',
+            ),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // Revert on error
+      if (mounted) {
+        setState(() {
+          _isFavorite = wasFavorite;
+          _isLoadingWishlist = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${AppLocalizations.of(context)!.error}: ${e.toString()}',
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   /// Print complete product details to terminal
@@ -269,14 +359,22 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             shape: BoxShape.circle,
           ),
           child: IconButton(
-            icon: Icon(
-              _isFavorite ? Iconsax.heart5 : Iconsax.heart,
-              color: _isFavorite ? AppColors.error : null,
-            ),
-            onPressed: () {
-              setState(() => _isFavorite = !_isFavorite);
-              HapticFeedback.lightImpact();
-            },
+            icon: _isLoadingWishlist
+                ? SizedBox(
+                    width: 20.sp,
+                    height: 20.sp,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        _isFavorite ? AppColors.error : AppColors.primary,
+                      ),
+                    ),
+                  )
+                : Icon(
+                    _isFavorite ? Iconsax.heart5 : Iconsax.heart,
+                    color: _isFavorite ? AppColors.error : null,
+                  ),
+            onPressed: _toggleWishlist,
           ),
         ),
         Container(

@@ -23,6 +23,10 @@ import '../../features/cart/data/datasources/cart_local_datasource.dart';
 import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
 import '../../features/wishlist/data/datasources/wishlist_remote_datasource.dart';
+import '../../features/wishlist/data/repositories/wishlist_repository_impl.dart';
+import '../../features/wishlist/domain/repositories/wishlist_repository.dart';
+import '../../features/wishlist/presentation/cubit/wishlist_cubit.dart';
+import '../../features/wishlist/presentation/cubit/stock_alerts_cubit.dart';
 import '../../features/notifications/data/datasources/notifications_remote_datasource.dart';
 import '../../features/notifications/data/repositories/notifications_repository.dart';
 import '../../features/notifications/presentation/cubit/notifications_cubit.dart';
@@ -207,6 +211,22 @@ Future<void> setupDependencies() async {
   // DataSources
   getIt.registerLazySingleton<WishlistRemoteDataSource>(
     () => WishlistRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Repositories
+  getIt.registerLazySingleton<WishlistRepository>(
+    () => WishlistRepositoryImpl(
+      remoteDataSource: getIt<WishlistRemoteDataSource>(),
+    ),
+  );
+
+  // Cubits
+  getIt.registerFactory<WishlistCubit>(
+    () => WishlistCubit(repository: getIt<WishlistRepository>()),
+  );
+
+  getIt.registerFactory<StockAlertsCubit>(
+    () => StockAlertsCubit(repository: getIt<WishlistRepository>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════

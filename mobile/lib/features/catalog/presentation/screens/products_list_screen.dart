@@ -2,14 +2,19 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
+import '../../domain/enums/product_enums.dart';
 import '../../data/datasources/catalog_remote_datasource.dart';
+import '../../data/models/product_filter_query.dart';
+import '../../../wishlist/data/datasources/wishlist_remote_datasource.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class ProductsListScreen extends StatefulWidget {
@@ -30,8 +35,9 @@ class ProductsListScreen extends StatefulWidget {
 
 class _ProductsListScreenState extends State<ProductsListScreen> {
   final _dataSource = getIt<CatalogRemoteDataSource>();
+  late final WishlistRemoteDataSource _wishlistDataSource;
   final ScrollController _scrollController = ScrollController();
-  
+
   List<ProductEntity> _products = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -41,10 +47,14 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   String _sortBy = 'createdAt';
   String _sortOrder = 'desc';
   bool _isGridView = true;
+  final Set<String> _wishlistProductIds = {};
 
   @override
   void initState() {
     super.initState();
+    _wishlistDataSource = WishlistRemoteDataSourceImpl(
+      apiClient: getIt<ApiClient>(),
+    );
     // Initialize sort from widget parameter or defaults
     if (widget.sortBy == 'newest') {
       _sortBy = 'createdAt';
@@ -52,9 +62,61 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     } else if (widget.sortBy != null) {
       _sortBy = widget.sortBy!;
     }
-    
+
     _scrollController.addListener(_onScroll);
     _loadProducts();
+    _loadWishlistIds();
+  }
+
+  Future<void> _loadWishlistIds() async {
+    try {
+      final wishlist = await _wishlistDataSource.getWishlist();
+      setState(() {
+        _wishlistProductIds.clear();
+        for (var item in wishlist) {
+          if (item.product != null) {
+            _wishlistProductIds.add(item.product!.id);
+          }
+        }
+      });
+    } catch (e) {
+      // Silently fail - wishlist check is optional
+    }
+  }
+
+  Future<void> _toggleWishlist(String productId) async {
+    final isInWishlist = _wishlistProductIds.contains(productId);
+
+    setState(() {
+      if (isInWishlist) {
+        _wishlistProductIds.remove(productId);
+      } else {
+        _wishlistProductIds.add(productId);
+      }
+    });
+
+    try {
+      HapticFeedback.lightImpact();
+      await _wishlistDataSource.toggleWishlist(productId, isInWishlist);
+    } catch (e) {
+      // Revert on error
+      setState(() {
+        if (isInWishlist) {
+          _wishlistProductIds.add(productId);
+        } else {
+          _wishlistProductIds.remove(productId);
+        }
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل تحديث المفضلة: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -79,26 +141,48 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     });
 
     try {
-      final products = await _dataSource.getProducts(
+      final sortByEnum = _getSortByEnum();
+      final sortOrderEnum = _sortOrder == 'asc'
+          ? SortOrder.asc
+          : SortOrder.desc;
+
+      final filter = ProductFilterQuery(
         isFeatured: widget.isFeatured,
-        sortBy: _sortBy,
-        sortOrder: _sortOrder,
+        sortBy: sortByEnum,
+        sortOrder: sortOrderEnum,
         page: _currentPage,
         limit: _limit,
       );
 
+      final response = await _dataSource.getProductsWithFilter(filter);
+
       setState(() {
-        _products = products;
-        _hasMore = products.length >= _limit;
+        _products = response.toEntities();
+        _hasMore = _currentPage < response.pages;
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('حدث خطأ: $e')));
       }
+    }
+  }
+
+  ProductSortBy? _getSortByEnum() {
+    switch (_sortBy) {
+      case 'createdAt':
+        return ProductSortBy.createdAt;
+      case 'price':
+        return ProductSortBy.price;
+      case 'name':
+        return ProductSortBy.name;
+      case 'salesCount':
+        return ProductSortBy.salesCount;
+      default:
+        return ProductSortBy.createdAt;
     }
   }
 
@@ -109,17 +193,24 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     _currentPage++;
 
     try {
-      final products = await _dataSource.getProducts(
+      final sortByEnum = _getSortByEnum();
+      final sortOrderEnum = _sortOrder == 'asc'
+          ? SortOrder.asc
+          : SortOrder.desc;
+
+      final filter = ProductFilterQuery(
         isFeatured: widget.isFeatured,
-        sortBy: _sortBy,
-        sortOrder: _sortOrder,
+        sortBy: sortByEnum,
+        sortOrder: sortOrderEnum,
         page: _currentPage,
         limit: _limit,
       );
 
+      final response = await _dataSource.getProductsWithFilter(filter);
+
       setState(() {
-        _products.addAll(products);
-        _hasMore = products.length >= _limit;
+        _products.addAll(response.toEntities());
+        _hasMore = _currentPage < response.pages;
         _isLoadingMore = false;
       });
     } catch (e) {
@@ -133,8 +224,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final title = widget.title ?? 
-        (widget.isFeatured == true 
+    final title =
+        widget.title ??
+        (widget.isFeatured == true
             ? AppLocalizations.of(context)!.featuredProducts
             : AppLocalizations.of(context)!.products);
 
@@ -266,7 +358,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             price: product.price,
             originalPrice: product.originalPrice,
             stockQuantity: product.stockQuantity,
+            isInWishlist: _wishlistProductIds.contains(product.id),
             onTap: () => context.push('/product/${product.id}', extra: product),
+            onToggleWishlist: () => _toggleWishlist(product.id),
           );
         } else if (_isLoadingMore) {
           return const Center(
@@ -443,7 +537,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         return _sortOrder == 'asc' ? 'السعر: الأقل' : 'السعر: الأعلى';
       case 'name':
         return 'الاسم';
-      case 'ordersCount':
+      case 'salesCount':
         return 'الأكثر مبيعاً';
       default:
         return 'ترتيب';
@@ -480,7 +574,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             _buildSortOption('createdAt', 'asc', 'الأقدم', isDark),
             _buildSortOption('price', 'asc', 'السعر: من الأقل للأعلى', isDark),
             _buildSortOption('price', 'desc', 'السعر: من الأعلى للأقل', isDark),
-            _buildSortOption('ordersCount', 'desc', 'الأكثر مبيعاً', isDark),
+            _buildSortOption('salesCount', 'desc', 'الأكثر مبيعاً', isDark),
             _buildSortOption('name', 'asc', 'الاسم: أ-ي', isDark),
             SizedBox(height: 20.h),
           ],
@@ -489,7 +583,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     );
   }
 
-  Widget _buildSortOption(String sortBy, String sortOrder, String label, bool isDark) {
+  Widget _buildSortOption(
+    String sortBy,
+    String sortOrder,
+    String label,
+    bool isDark,
+  ) {
     final isSelected = _sortBy == sortBy && _sortOrder == sortOrder;
 
     return ListTile(

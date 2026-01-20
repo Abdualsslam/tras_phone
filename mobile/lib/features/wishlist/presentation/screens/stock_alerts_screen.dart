@@ -2,81 +2,150 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
+import '../../domain/repositories/wishlist_repository.dart';
+import '../cubit/stock_alerts_cubit.dart';
+import '../cubit/stock_alerts_state.dart';
 
-class StockAlertsScreen extends StatelessWidget {
+class StockAlertsScreen extends StatefulWidget {
   const StockAlertsScreen({super.key});
+
+  @override
+  State<StockAlertsScreen> createState() => _StockAlertsScreenState();
+}
+
+class _StockAlertsScreenState extends State<StockAlertsScreen> {
+  late final StockAlertsCubit _cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = StockAlertsCubit(
+      repository: getIt<WishlistRepository>(),
+    );
+    _cubit.loadStockAlerts();
+  }
+
+  @override
+  void dispose() {
+    _cubit.close();
+    super.dispose();
+  }
+
+  Future<void> _removeStockAlert(String productId) async {
+    await _cubit.removeStockAlert(productId);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم إزالة التنبيه')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final alerts = [
-      {
-        'id': '1',
-        'product': 'شاشة iPhone 14 Pro',
-        'status': 'available',
-        'addedAt': '2024-12-15',
-      },
-      {
-        'id': '2',
-        'product': 'بطارية Huawei P60',
-        'status': 'waiting',
-        'addedAt': '2024-12-18',
-      },
-      {
-        'id': '3',
-        'product': 'كاميرا Samsung S23',
-        'status': 'waiting',
-        'addedAt': '2024-12-20',
-      },
-    ];
+    return BlocProvider.value(
+      value: _cubit,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('تنبيهات المخزون')),
+        body: BlocBuilder<StockAlertsCubit, StockAlertsState>(
+          bloc: _cubit,
+          builder: (context, state) {
+            if (state is StockAlertsLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('تنبيهات المخزون')),
-      body: alerts.isEmpty
-          ? _buildEmptyState(isDark)
-          : ListView(
-              padding: EdgeInsets.all(16.w),
-              children: [
-                // Info Card
-                Container(
-                  padding: EdgeInsets.all(12.w),
-                  decoration: BoxDecoration(
-                    color: AppColors.info.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Iconsax.info_circle,
-                        size: 20.sp,
-                        color: AppColors.info,
+            if (state is StockAlertsError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Iconsax.danger,
+                      size: 64.sp,
+                      color: AppColors.error,
+                    ),
+                    SizedBox(height: 16.h),
+                    Text(
+                      state.message,
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimaryLight,
                       ),
-                      SizedBox(width: 10.w),
-                      Expanded(
-                        child: Text(
-                          'سنخبرك فور توفر المنتج مجدداً',
-                          style: TextStyle(
-                            fontSize: 12.sp,
+                    ),
+                    SizedBox(height: 16.h),
+                    ElevatedButton(
+                      onPressed: () => _cubit.loadStockAlerts(),
+                      child: const Text('إعادة المحاولة'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (state is StockAlertsLoaded) {
+              if (state.alerts.isEmpty) {
+                return _buildEmptyState(isDark);
+              }
+
+              return RefreshIndicator(
+                onRefresh: () => _cubit.loadStockAlerts(),
+                child: ListView(
+                  padding: EdgeInsets.all(16.w),
+                  children: [
+                    // Info Card
+                    Container(
+                      padding: EdgeInsets.all(12.w),
+                      decoration: BoxDecoration(
+                        color: AppColors.info.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Iconsax.info_circle,
+                            size: 20.sp,
                             color: AppColors.info,
                           ),
-                        ),
+                          SizedBox(width: 10.w),
+                          Expanded(
+                            child: Text(
+                              'سنخبرك فور توفر المنتج مجدداً',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: AppColors.info,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(height: 16.h),
+                    ...state.alerts.map((alert) => _buildAlertCard(alert, isDark)),
+                  ],
                 ),
-                SizedBox(height: 16.h),
-                ...alerts.map((a) => _buildAlertCard(a, isDark)),
-              ],
-            ),
+              );
+            }
+
+            return _buildEmptyState(isDark);
+          },
+        ),
+      ),
     );
   }
 
   Widget _buildAlertCard(Map<String, dynamic> alert, bool isDark) {
-    final isAvailable = alert['status'] == 'available';
+    final product = alert['product'] as Map<String, dynamic>?;
+    final productName = product?['nameAr'] ?? product?['name'] ?? 'منتج';
+    final isAvailable = alert['status'] == 'available' || alert['isAvailable'] == true;
+    
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(12.w),
@@ -93,11 +162,24 @@ class StockAlertsScreen extends StatelessWidget {
               color: AppColors.backgroundLight,
               borderRadius: BorderRadius.circular(8.r),
             ),
-            child: Icon(
-              Iconsax.box,
-              size: 28.sp,
-              color: AppColors.textSecondaryLight,
-            ),
+            child: product?['mainImage'] != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: Image.network(
+                      product!['mainImage'],
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Iconsax.box,
+                        size: 28.sp,
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  )
+                : Icon(
+                    Iconsax.box,
+                    size: 28.sp,
+                    color: AppColors.textSecondaryLight,
+                  ),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -105,11 +187,16 @@ class StockAlertsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  alert['product'] as String,
+                  productName,
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 4.h),
                 Container(
@@ -134,7 +221,13 @@ class StockAlertsScreen extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              final productId = alert['productId']?.toString() ?? 
+                                product?['id']?.toString() ?? '';
+              if (productId.isNotEmpty) {
+                _removeStockAlert(productId);
+              }
+            },
             icon: Icon(Iconsax.trash, size: 20.sp, color: AppColors.error),
           ),
         ],
@@ -155,14 +248,22 @@ class StockAlertsScreen extends StatelessWidget {
           SizedBox(height: 16.h),
           Text(
             'لا توجد تنبيهات',
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+              color: isDark
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textPrimaryLight,
+            ),
           ),
           SizedBox(height: 8.h),
           Text(
             'أضف منتجات لتنبيهك عند توفرها',
             style: TextStyle(
               fontSize: 14.sp,
-              color: AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
             ),
           ),
         ],
