@@ -8,26 +8,23 @@ part of 'wishlist_item_model.dart';
 
 WishlistItemModel _$WishlistItemModelFromJson(Map<String, dynamic> json) =>
     WishlistItemModel(
-      id: (json['id'] as num).toInt(),
-      productId: (json['product_id'] as num).toInt(),
-      product: json['product'] == null
-          ? null
-          : ProductModel.fromJson(json['product'] as Map<String, dynamic>),
-      addedAt: json['added_at'] as String?,
-      isInStock: json['is_in_stock'] as bool? ?? true,
-      priceDropped: json['price_dropped'] as bool? ?? false,
-      originalPrice: (json['original_price'] as num?)?.toDouble(),
-      currentPrice: (json['current_price'] as num?)?.toDouble(),
+      id: WishlistItemModel._readId(json, '_id') as String,
+      customerId:
+          WishlistItemModel._readRelationId(json, 'customerId') as String?,
+      productData: WishlistItemModel._readProductData(json, 'productId'),
+      addedAt: json['createdAt'] as String?,
+      notifyOnPriceChange: json['notifyOnPriceChange'] as bool? ?? false,
+      notifyOnBackInStock: json['notifyOnBackInStock'] as bool? ?? false,
+      note: json['note'] as String?,
     );
 
 Map<String, dynamic> _$WishlistItemModelToJson(WishlistItemModel instance) =>
     <String, dynamic>{
-      'id': instance.id,
-      'product_id': instance.productId,
-      'product': instance.product,
-      'added_at': instance.addedAt,
-      'is_in_stock': instance.isInStock,
-      'price_dropped': instance.priceDropped,
-      'original_price': instance.originalPrice,
-      'current_price': instance.currentPrice,
+      '_id': instance.id,
+      'customerId': instance.customerId,
+      'productId': instance.productData,
+      'createdAt': instance.addedAt,
+      'notifyOnPriceChange': instance.notifyOnPriceChange,
+      'notifyOnBackInStock': instance.notifyOnBackInStock,
+      'note': instance.note,
     };

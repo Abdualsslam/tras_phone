@@ -2,61 +2,53 @@
 library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/repositories/wishlist_repository.dart';
+import '../../data/datasources/wishlist_remote_datasource.dart';
 import 'wishlist_state.dart';
 
 /// Cubit for managing wishlist
 class WishlistCubit extends Cubit<WishlistState> {
-  final WishlistRepository _repository;
+  final WishlistRemoteDataSource _dataSource;
 
-  WishlistCubit({required WishlistRepository repository})
-      : _repository = repository,
+  WishlistCubit({required WishlistRemoteDataSource dataSource})
+      : _dataSource = dataSource,
         super(const WishlistInitial());
 
   /// Load wishlist items
   Future<void> loadWishlist() async {
     emit(const WishlistLoading());
 
-    final result = await _repository.getWishlist();
-
-    result.fold(
-      (failure) => emit(WishlistError(failure.message)),
-      (items) => emit(WishlistLoaded(items)),
-    );
+    try {
+      final items = await _dataSource.getWishlist();
+      emit(WishlistLoaded(items));
+    } catch (e) {
+      emit(WishlistError(e.toString()));
+    }
   }
 
   /// Add product to wishlist
   Future<void> addToWishlist(String productId) async {
-    final result = await _repository.addToWishlist(productId);
-
-    result.fold(
-      (failure) {
-        emit(WishlistError(failure.message));
-        // Reload to sync state
-        loadWishlist();
-      },
-      (_) {
-        // Reload to get updated list
-        loadWishlist();
-      },
-    );
+    try {
+      await _dataSource.addToWishlist(productId);
+      // Reload to get updated list
+      loadWishlist();
+    } catch (e) {
+      emit(WishlistError(e.toString()));
+      // Reload to sync state
+      loadWishlist();
+    }
   }
 
   /// Remove product from wishlist
   Future<void> removeFromWishlist(String productId) async {
-    final result = await _repository.removeFromWishlist(productId);
-
-    result.fold(
-      (failure) {
-        emit(WishlistError(failure.message));
-        // Reload to sync state
-        loadWishlist();
-      },
-      (_) {
-        // Reload to get updated list
-        loadWishlist();
-      },
-    );
+    try {
+      await _dataSource.removeFromWishlist(productId);
+      // Reload to get updated list
+      loadWishlist();
+    } catch (e) {
+      emit(WishlistError(e.toString()));
+      // Reload to sync state
+      loadWishlist();
+    }
   }
 
   /// Toggle wishlist status
@@ -66,71 +58,60 @@ class WishlistCubit extends Cubit<WishlistState> {
     bool isInWishlist = false;
 
     if (currentState is WishlistLoaded) {
-      isInWishlist = currentState.items.any((item) => item.productId == productId);
+      isInWishlist = currentState.items.any((item) => item.productId.toString() == productId);
     }
 
-    final result = await _repository.toggleWishlist(productId, isInWishlist);
-
-    result.fold(
-      (failure) {
-        emit(WishlistError(failure.message));
-        // Reload to sync state
-        loadWishlist();
-      },
-      (_) {
-        // Reload to get updated list
-        loadWishlist();
-      },
-    );
+    try {
+      await _dataSource.toggleWishlist(productId, isInWishlist);
+      // Reload to get updated list
+      loadWishlist();
+    } catch (e) {
+      emit(WishlistError(e.toString()));
+      // Reload to sync state
+      loadWishlist();
+    }
   }
 
   /// Clear entire wishlist
   Future<void> clearWishlist() async {
-    final result = await _repository.clearWishlist();
-
-    result.fold(
-      (failure) => emit(WishlistError(failure.message)),
-      (_) {
-        // Clear local state
-        emit(const WishlistLoaded([]));
-      },
-    );
+    try {
+      await _dataSource.clearWishlist();
+      // Clear local state
+      emit(const WishlistLoaded([]));
+    } catch (e) {
+      emit(WishlistError(e.toString()));
+    }
   }
 
   /// Get wishlist count
   Future<int> getWishlistCount() async {
-    final result = await _repository.getWishlistCount();
-
-    return result.fold(
-      (failure) => 0,
-      (count) => count,
-    );
+    try {
+      return await _dataSource.getWishlistCount();
+    } catch (e) {
+      return 0;
+    }
   }
 
   /// Move item to cart
-  Future<void> moveToCart(String productId, {int quantity = 1}) async {
-    final result = await _repository.moveToCart(productId, quantity: quantity);
-
-    result.fold(
-      (failure) => emit(WishlistError(failure.message)),
-      (_) {
-        // Optionally remove from wishlist after moving to cart
-        // Or just reload to sync state
-        loadWishlist();
-      },
-    );
+  Future<void> moveToCart(String productId) async {
+    try {
+      await _dataSource.moveToCart(productId);
+      // Optionally remove from wishlist after moving to cart
+      // Or just reload to sync state
+      loadWishlist();
+    } catch (e) {
+      emit(WishlistError(e.toString()));
+    }
   }
 
   /// Move all items to cart
   Future<void> moveAllToCart() async {
-    final result = await _repository.moveAllToCart();
-
-    result.fold(
-      (failure) => emit(WishlistError(failure.message)),
-      (_) {
-        // Reload to sync state
-        loadWishlist();
-      },
-    );
+    try {
+      await _dataSource.moveAllToCart();
+      // Reload to sync state
+      loadWishlist();
+    } catch (e) {
+      emit(WishlistError(e.toString()));
+    }
   }
 }

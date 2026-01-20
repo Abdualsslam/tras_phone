@@ -9,7 +9,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../domain/repositories/wishlist_repository.dart';
+import '../../data/datasources/wishlist_remote_datasource.dart';
 import '../cubit/wishlist_cubit.dart';
 import '../cubit/wishlist_state.dart';
 
@@ -27,7 +27,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
   void initState() {
     super.initState();
     _cubit = WishlistCubit(
-      repository: getIt<WishlistRepository>(),
+      dataSource: getIt<WishlistRemoteDataSource>(),
     );
     _cubit.loadWishlist();
   }

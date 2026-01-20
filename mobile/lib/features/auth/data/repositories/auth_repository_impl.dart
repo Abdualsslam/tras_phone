@@ -13,7 +13,6 @@ import '../../domain/entities/session_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../models/user_model.dart';
-import '../models/session_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _dataSource;
@@ -25,7 +24,10 @@ class AuthRepositoryImpl implements AuthRepository {
   /// Save user to storage
   Future<void> _saveUserToStorage(UserModel user) async {
     _cachedUser = user;
-    await _localStorage.setString(StorageKeys.userData, jsonEncode(user.toJson()));
+    await _localStorage.setString(
+      StorageKeys.userData,
+      jsonEncode(user.toJson()),
+    );
   }
 
   AuthRepositoryImpl({
@@ -40,9 +42,15 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<bool> isLoggedIn() async {
     try {
       final token = await _secureStorage.read(StorageKeys.accessToken);
-      developer.log('isLoggedIn check - token exists: ${token != null && token.isNotEmpty}', name: 'AuthRepo');
+      developer.log(
+        'isLoggedIn check - token exists: ${token != null && token.isNotEmpty}',
+        name: 'AuthRepo',
+      );
       if (token != null) {
-        developer.log('Token first 20 chars: ${token.substring(0, token.length > 20 ? 20 : token.length)}...', name: 'AuthRepo');
+        developer.log(
+          'Token first 20 chars: ${token.substring(0, token.length > 20 ? 20 : token.length)}...',
+          name: 'AuthRepo',
+        );
       }
       return token != null && token.isNotEmpty;
     } catch (e) {
@@ -87,10 +95,13 @@ class AuthRepositoryImpl implements AuthRepository {
         authResponse.refreshToken,
       );
       await _localStorage.setBool(StorageKeys.isLoggedIn, true);
-      
+
       // Verify token was saved
       final savedToken = await _secureStorage.read(StorageKeys.accessToken);
-      developer.log('Login: Token saved verification: ${savedToken != null && savedToken.isNotEmpty}', name: 'AuthRepo');
+      developer.log(
+        'Login: Token saved verification: ${savedToken != null && savedToken.isNotEmpty}',
+        name: 'AuthRepo',
+      );
 
       // Save user data to storage for persistence
       await _saveUserToStorage(authResponse.user);

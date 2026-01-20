@@ -6,41 +6,134 @@ import '../../../catalog/data/models/product_model.dart';
 
 part 'wishlist_item_model.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class WishlistItemModel {
-  final int id;
-  @JsonKey(name: 'product_id')
-  final int productId;
+  @JsonKey(name: '_id', readValue: _readId)
+  final String id;
+  
+  @JsonKey(name: 'customerId', readValue: _readRelationId)
+  final String? customerId;
+  
+  @JsonKey(name: 'productId', readValue: _readProductData)
+  final dynamic productData;
+  
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? productIdString;
+  
+  @JsonKey(includeFromJson: false, includeToJson: false)
   final ProductModel? product;
-  @JsonKey(name: 'added_at')
+  
+  @JsonKey(name: 'createdAt')
   final String? addedAt;
-  @JsonKey(name: 'is_in_stock')
-  final bool isInStock;
-  @JsonKey(name: 'price_dropped')
-  final bool priceDropped;
-  @JsonKey(name: 'original_price')
-  final double? originalPrice;
-  @JsonKey(name: 'current_price')
-  final double? currentPrice;
+  
+  @JsonKey(name: 'notifyOnPriceChange', defaultValue: false)
+  final bool notifyOnPriceChange;
+  
+  @JsonKey(name: 'notifyOnBackInStock', defaultValue: false)
+  final bool notifyOnBackInStock;
+  
+  @JsonKey(name: 'note')
+  final String? note;
 
   const WishlistItemModel({
     required this.id,
-    required this.productId,
+    this.customerId,
+    this.productData,
+    this.productIdString,
     this.product,
     this.addedAt,
-    this.isInStock = true,
-    this.priceDropped = false,
-    this.originalPrice,
-    this.currentPrice,
+    this.notifyOnPriceChange = false,
+    this.notifyOnBackInStock = false,
+    this.note,
   });
 
-  factory WishlistItemModel.fromJson(Map<String, dynamic> json) =>
-      _$WishlistItemModelFromJson(json);
+  /// Handle MongoDB _id or id field
+  static Object? _readId(Map<dynamic, dynamic> json, String key) {
+    final value = json['_id'] ?? json['id'];
+    if (value is Map) {
+      return value['\$oid'] ?? value.toString();
+    }
+    return value?.toString();
+  }
+
+  /// Handle relation IDs which can be String or populated object
+  static Object? _readRelationId(Map<dynamic, dynamic> json, String key) {
+    final value = json[key];
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value?.toString();
+  }
+
+  /// Read productId which can be String or populated Product object
+  static Object? _readProductData(Map<dynamic, dynamic> json, String key) {
+    return json[key];
+  }
+
+  factory WishlistItemModel.fromJson(Map<String, dynamic> json) {
+    final model = _$WishlistItemModelFromJson(json);
+    
+    // Extract product and productId from productData
+    String? extractedProductId;
+    ProductModel? extractedProduct;
+    
+    if (model.productData != null) {
+      if (model.productData is String) {
+        extractedProductId = model.productData as String;
+      } else if (model.productData is Map<String, dynamic>) {
+        try {
+          extractedProduct = ProductModel.fromJson(model.productData as Map<String, dynamic>);
+          extractedProductId = extractedProduct.id;
+        } catch (e) {
+          // If parsing fails, try to extract just the ID
+          final data = model.productData as Map<String, dynamic>;
+          extractedProductId = data['_id']?.toString() ?? data['id']?.toString();
+        }
+      }
+    }
+    
+    return WishlistItemModel(
+      id: model.id,
+      customerId: model.customerId,
+      productData: model.productData,
+      productIdString: extractedProductId,
+      product: extractedProduct,
+      addedAt: model.addedAt,
+      notifyOnPriceChange: model.notifyOnPriceChange,
+      notifyOnBackInStock: model.notifyOnBackInStock,
+      note: model.note,
+    );
+  }
+  
   Map<String, dynamic> toJson() => _$WishlistItemModelToJson(this);
 
+  // Computed properties based on product data
+  String get productId => productIdString ?? product?.id ?? '';
+  
+  bool get isInStock => product?.stockQuantity != null && product!.stockQuantity > 0;
+  
+  bool get priceDropped {
+    if (product?.compareAtPrice != null && product?.basePrice != null) {
+      return product!.compareAtPrice! > product!.basePrice;
+    }
+    return false;
+  }
+  
+  double? get originalPrice => product?.compareAtPrice ?? product?.basePrice;
+  
+  double? get currentPrice => product?.basePrice;
+  
   double? get priceDifference {
     if (originalPrice != null && currentPrice != null) {
       return originalPrice! - currentPrice!;
+    }
+    return null;
+  }
+  
+  double? get discountPercentage {
+    if (originalPrice != null && currentPrice != null && originalPrice! > currentPrice!) {
+      return ((originalPrice! - currentPrice!) / originalPrice!) * 100;
     }
     return null;
   }

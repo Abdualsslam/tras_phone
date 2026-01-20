@@ -2,7 +2,7 @@
 library;
 
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/wishlist_item_entity.dart';
+import '../../data/models/wishlist_item_model.dart';
 
 /// Base state for wishlist
 abstract class WishlistState extends Equatable {
@@ -24,7 +24,7 @@ class WishlistLoading extends WishlistState {
 
 /// Loaded state with wishlist items
 class WishlistLoaded extends WishlistState {
-  final List<WishlistItemEntity> items;
+  final List<WishlistItemModel> items;
 
   const WishlistLoaded(this.items);
 

@@ -2,52 +2,48 @@
 library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/repositories/wishlist_repository.dart';
+import '../../data/datasources/wishlist_remote_datasource.dart';
 import 'stock_alerts_state.dart';
 
 /// Cubit for managing stock alerts
 class StockAlertsCubit extends Cubit<StockAlertsState> {
-  final WishlistRepository _repository;
+  final WishlistRemoteDataSource _dataSource;
 
-  StockAlertsCubit({required WishlistRepository repository})
-      : _repository = repository,
+  StockAlertsCubit({required WishlistRemoteDataSource dataSource})
+      : _dataSource = dataSource,
         super(const StockAlertsInitial());
 
   /// Load stock alerts
   Future<void> loadStockAlerts() async {
     emit(const StockAlertsLoading());
 
-    final result = await _repository.getStockAlerts();
-
-    result.fold(
-      (failure) => emit(StockAlertsError(failure.message)),
-      (alerts) => emit(StockAlertsLoaded(alerts)),
-    );
+    try {
+      final alerts = await _dataSource.getStockAlerts();
+      emit(StockAlertsLoaded(alerts));
+    } catch (e) {
+      emit(StockAlertsError(e.toString()));
+    }
   }
 
   /// Create stock alert for product
   Future<void> createStockAlert(String productId) async {
-    final result = await _repository.createStockAlert(productId);
-
-    result.fold(
-      (failure) => emit(StockAlertsError(failure.message)),
-      (_) {
-        // Reload to get updated list
-        loadStockAlerts();
-      },
-    );
+    try {
+      await _dataSource.createStockAlert(productId);
+      // Reload to get updated list
+      loadStockAlerts();
+    } catch (e) {
+      emit(StockAlertsError(e.toString()));
+    }
   }
 
   /// Remove stock alert
   Future<void> removeStockAlert(String productId) async {
-    final result = await _repository.removeStockAlert(productId);
-
-    result.fold(
-      (failure) => emit(StockAlertsError(failure.message)),
-      (_) {
-        // Reload to get updated list
-        loadStockAlerts();
-      },
-    );
+    try {
+      await _dataSource.removeStockAlert(productId);
+      // Reload to get updated list
+      loadStockAlerts();
+    } catch (e) {
+      emit(StockAlertsError(e.toString()));
+    }
   }
 }

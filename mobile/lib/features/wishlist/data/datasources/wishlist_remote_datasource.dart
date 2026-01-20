@@ -2,6 +2,8 @@
 library;
 
 import 'dart:developer' as developer;
+import 'package:dio/dio.dart';
+
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
 import '../models/wishlist_item_model.dart';
@@ -65,11 +67,43 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
   Future<List<WishlistItemModel>> getWishlist() async {
     developer.log('Fetching wishlist', name: 'WishlistDataSource');
 
-    final response = await _apiClient.get(ApiEndpoints.wishlistMy);
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
+    try {
+      final response = await _apiClient.get(ApiEndpoints.wishlistMy);
+      
+      // Handle response structure
+      final data = response.data['data'] ?? response.data;
+      
+      // Ensure we have a list
+      final List<dynamic> list = data is List ? data : [];
+      
+      developer.log(
+        'Wishlist response: ${list.length} items',
+        name: 'WishlistDataSource',
+      );
 
-    return list.map((json) => WishlistItemModel.fromJson(json)).toList();
+      return list.map((json) {
+        try {
+          if (json is Map<String, dynamic>) {
+            return WishlistItemModel.fromJson(json);
+          }
+          throw Exception('Invalid wishlist item format');
+        } catch (e) {
+          developer.log(
+            'Error parsing wishlist item: $e',
+            name: 'WishlistDataSource',
+            error: e,
+          );
+          rethrow;
+        }
+      }).toList();
+    } catch (e) {
+      developer.log(
+        'Error fetching wishlist: $e',
+        name: 'WishlistDataSource',
+        error: e,
+      );
+      rethrow;
+    }
   }
 
   @override
@@ -82,7 +116,9 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
       );
 
       if (response.data['success'] != true) {
-        throw Exception(response.data['messageAr'] ?? 'Failed to add to wishlist');
+        throw Exception(
+          response.data['messageAr'] ?? 'Failed to add to wishlist',
+        );
       }
     } on DioException catch (e) {
       // Handle 409 Conflict - product already in wishlist
@@ -111,7 +147,9 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
     );
 
     if (response.data['success'] != true) {
-      throw Exception(response.data['messageAr'] ?? 'Failed to remove from wishlist');
+      throw Exception(
+        response.data['messageAr'] ?? 'Failed to remove from wishlist',
+      );
     }
   }
 
@@ -130,12 +168,19 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
   Future<bool> isInWishlist(String productId) async {
     developer.log('Checking wishlist: $productId', name: 'WishlistDataSource');
 
-    final response = await _apiClient.get(
-      '${ApiEndpoints.wishlist}/check/$productId',
-    );
-
-    final data = response.data['data'] ?? response.data;
-    return data['in_wishlist'] ?? false;
+    try {
+      // Try to get the full wishlist and check if product is in it
+      final wishlist = await getWishlist();
+      return wishlist.any((item) => item.productId == productId);
+    } catch (e) {
+      developer.log(
+        'Error checking wishlist status: $e',
+        name: 'WishlistDataSource',
+        error: e,
+      );
+      // Return false if check fails
+      return false;
+    }
   }
 
   @override

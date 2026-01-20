@@ -7,7 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
-import '../../domain/repositories/wishlist_repository.dart';
+import '../../data/datasources/wishlist_remote_datasource.dart';
 import '../cubit/stock_alerts_cubit.dart';
 import '../cubit/stock_alerts_state.dart';
 
@@ -25,7 +25,7 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
   void initState() {
     super.initState();
     _cubit = StockAlertsCubit(
-      repository: getIt<WishlistRepository>(),
+      dataSource: getIt<WishlistRemoteDataSource>(),
     );
     _cubit.loadStockAlerts();
   }
