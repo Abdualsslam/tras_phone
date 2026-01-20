@@ -5,7 +5,6 @@ import { promotionsApi } from '@/api/promotions.api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -128,7 +127,6 @@ export function PromotionsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState<'promotions' | 'coupons'>('coupons');
     const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
-    const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
     const [promotionForm, setPromotionForm] = useState<PromotionFormData>(initialPromotionForm);
     const [isEditMode, setIsEditMode] = useState(false);
     const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
@@ -280,7 +278,7 @@ export function PromotionsPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('sidebar.promotions')}</h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">إدارة القسائم والعروض الترويجية</p>
                 </div>
-                <Button onClick={activeTab === 'promotions' ? handleOpenPromotionDialog : () => setIsCouponDialogOpen(true)}>
+                <Button onClick={activeTab === 'promotions' ? handleOpenPromotionDialog : handleOpenPromotionDialog}>
                     <Plus className="h-4 w-4" />
                     {activeTab === 'promotions' ? 'إضافة عرض' : 'إضافة قسيمة'}
                 </Button>

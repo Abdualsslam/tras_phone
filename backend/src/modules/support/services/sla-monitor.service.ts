@@ -64,7 +64,7 @@ export class SLAMonitorService {
             if (!ticket.sla?.firstResponseDue) continue;
 
             const dueTime = ticket.sla.firstResponseDue.getTime();
-            const createdTime = ticket.createdAt.getTime();
+            const createdTime = (ticket as any).createdAt.getTime();
             const totalTime = dueTime - createdTime;
             const elapsedTime = now.getTime() - createdTime;
             const percentElapsed = (elapsedTime / totalTime) * 100;
@@ -103,7 +103,7 @@ export class SLAMonitorService {
             if (!ticket.sla?.resolutionDue) continue;
 
             const dueTime = ticket.sla.resolutionDue.getTime();
-            const createdTime = ticket.createdAt.getTime();
+            const createdTime = (ticket as any).createdAt.getTime();
             const totalTime = dueTime - createdTime;
             const elapsedTime = now.getTime() - createdTime;
             const percentElapsed = (elapsedTime / totalTime) * 100;
@@ -175,7 +175,7 @@ export class SLAMonitorService {
                     body: `Ticket #${ticket.ticketNumber} is ${Math.round(percentElapsed)}% towards SLA deadline`,
                     bodyAr: `التذكرة #${ticket.ticketNumber} وصلت إلى ${Math.round(percentElapsed)}% من موعد SLA`,
                     actionType: 'ticket',
-                    actionId: ticket._id.toString(),
+                    actionId: (ticket as any)._id.toString(),
                     channels: ['push'],
                 });
             }
@@ -200,7 +200,7 @@ export class SLAMonitorService {
                     body: `Ticket #${ticket.ticketNumber} has breached SLA deadline!`,
                     bodyAr: `التذكرة #${ticket.ticketNumber} تجاوزت موعد SLA!`,
                     actionType: 'ticket',
-                    actionId: ticket._id.toString(),
+                    actionId: (ticket as any)._id.toString(),
                     channels: ['push', 'email'],
                 });
             }
@@ -237,7 +237,7 @@ export class SLAMonitorService {
                     body: `Ticket #${ticket.ticketNumber} has no activity for 24 hours`,
                     bodyAr: `التذكرة #${ticket.ticketNumber} بدون نشاط منذ 24 ساعة`,
                     actionType: 'ticket',
-                    actionId: ticket._id.toString(),
+                    actionId: (ticket as any)._id.toString(),
                     channels: ['push'],
                 });
             }
@@ -250,7 +250,7 @@ export class SLAMonitorService {
      * Mark first response as breached
      */
     private async markFirstResponseBreached(ticket: Ticket) {
-        await this.ticketModel.findByIdAndUpdate(ticket._id, {
+        await this.ticketModel.findByIdAndUpdate((ticket as any)._id, {
             'sla.firstResponseBreached': true,
         });
     }
@@ -259,7 +259,7 @@ export class SLAMonitorService {
      * Mark resolution as breached
      */
     private async markResolutionBreached(ticket: Ticket) {
-        await this.ticketModel.findByIdAndUpdate(ticket._id, {
+        await this.ticketModel.findByIdAndUpdate((ticket as any)._id, {
             'sla.resolutionBreached': true,
         });
     }

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productsApi, type PriceLevel, type CreatePriceLevelDto, type UpdatePriceLevelDto } from '@/api/products.api';
 import { Button } from '@/components/ui/button';
@@ -69,7 +68,6 @@ const initialFormData: PriceLevelForm = {
 };
 
 export function PriceLevelsPage() {
-  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -166,23 +164,34 @@ export function PriceLevelsPage() {
       return;
     }
 
-    const submitData: CreatePriceLevelDto | UpdatePriceLevelDto = {
-      name: formData.name,
-      nameAr: formData.nameAr,
-      code: formData.code,
-      ...(formData.description && { description: formData.description }),
-      discountPercentage: formData.discountPercentage,
-      ...(formData.minOrderAmount > 0 && { minOrderAmount: formData.minOrderAmount }),
-      ...(formData.color && { color: formData.color }),
-      displayOrder: formData.displayOrder,
-      isActive: formData.isActive,
-      isDefault: formData.isDefault,
-    };
-
     if (editingPriceLevel) {
-      updateMutation.mutate({ id: editingPriceLevel._id, data: submitData });
+      const updateData: UpdatePriceLevelDto = {
+        name: formData.name,
+        nameAr: formData.nameAr,
+        code: formData.code,
+        ...(formData.description && { description: formData.description }),
+        discountPercentage: formData.discountPercentage,
+        ...(formData.minOrderAmount > 0 && { minOrderAmount: formData.minOrderAmount }),
+        ...(formData.color && { color: formData.color }),
+        displayOrder: formData.displayOrder,
+        isActive: formData.isActive,
+        isDefault: formData.isDefault,
+      };
+      updateMutation.mutate({ id: editingPriceLevel._id, data: updateData });
     } else {
-      createMutation.mutate(submitData);
+      const createData: CreatePriceLevelDto = {
+        name: formData.name,
+        nameAr: formData.nameAr,
+        code: formData.code,
+        ...(formData.description && { description: formData.description }),
+        discountPercentage: formData.discountPercentage,
+        ...(formData.minOrderAmount > 0 && { minOrderAmount: formData.minOrderAmount }),
+        ...(formData.color && { color: formData.color }),
+        displayOrder: formData.displayOrder,
+        isActive: formData.isActive,
+        isDefault: formData.isDefault,
+      };
+      createMutation.mutate(createData);
     }
   };
 

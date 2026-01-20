@@ -124,7 +124,7 @@ export class ChatController {
             data.feedback
         );
 
-        return ResponseBuilder.success(ratedSession, 'Thank you for your feedback', 'شكراً لتقييمك');
+        return ResponseBuilder.success(ratedSession, 'Thank you for your feedback');
     }
 
     @Put('my-session/page')
@@ -292,13 +292,11 @@ export class ChatController {
             return ResponseBuilder.success(
                 { urls: uploadedUrls },
                 'Files uploaded successfully',
-                'تم رفع الملفات بنجاح',
             );
         } catch (error) {
             return ResponseBuilder.error(
                 'Failed to upload files',
                 500,
-                'فشل رفع الملفات',
             );
         }
     }

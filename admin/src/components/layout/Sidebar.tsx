@@ -29,7 +29,7 @@ import {
     Smartphone,
     MessageSquare,
     Key,
-    Layers,
+    BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

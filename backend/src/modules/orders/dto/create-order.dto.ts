@@ -61,5 +61,16 @@ export class CreateOrderDto {
         postalCode?: string;
         notes?: string;
     };
+
+    @ApiProperty({
+        description: 'Order source',
+        enum: ['web', 'mobile', 'admin'],
+        example: 'mobile',
+        required: false,
+    })
+    @IsString()
+    @IsOptional()
+    @IsEnum(['web', 'mobile', 'admin'])
+    source?: string;
 }
 

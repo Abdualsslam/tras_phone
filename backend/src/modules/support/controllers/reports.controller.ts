@@ -180,10 +180,12 @@ export class ReportsController {
         const { tickets } = await this.ticketsService.findTickets(filters);
         const buffer = await this.reportsService.exportTicketsToExcel(tickets);
 
-        res.set({
-            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': `attachment; filename=tickets-${Date.now()}.xlsx`,
-        });
+        if (res) {
+            res.set({
+                'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition': `attachment; filename=tickets-${Date.now()}.xlsx`,
+            });
+        }
 
         return new StreamableFile(buffer);
     }
@@ -208,10 +210,12 @@ export class ReportsController {
         const { tickets } = await this.ticketsService.findTickets(filters);
         const buffer = await this.reportsService.exportTicketsToPDF(tickets);
 
-        res.set({
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename=tickets-${Date.now()}.pdf`,
-        });
+        if (res) {
+            res.set({
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `attachment; filename=tickets-${Date.now()}.pdf`,
+            });
+        }
 
         return new StreamableFile(buffer);
     }

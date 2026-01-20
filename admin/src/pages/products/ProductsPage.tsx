@@ -172,6 +172,7 @@ const initialFormData: AddProductForm = {
   specifications: {},
   compatibleDevices: [],
   relatedProducts: [],
+  priceLevelsPrices: {},
 };
 
 export function ProductsPage() {

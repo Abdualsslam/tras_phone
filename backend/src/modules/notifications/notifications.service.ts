@@ -106,6 +106,40 @@ export class NotificationsService {
     }
 
     /**
+     * Send notification (unified interface for support services)
+     */
+    async sendNotification(data: {
+        recipientId: string;
+        recipientType: 'customer' | 'admin';
+        category: string;
+        priority?: string;
+        title: string;
+        titleAr: string;
+        body: string;
+        bodyAr: string;
+        image?: string;
+        actionType?: string;
+        actionId?: string;
+        actionUrl?: string;
+        channels?: string[];
+    }): Promise<NotificationDocument> {
+        return this.sendCustom({
+            customerId: data.recipientType === 'customer' ? data.recipientId : undefined,
+            adminUserId: data.recipientType === 'admin' ? data.recipientId : undefined,
+            category: data.category,
+            title: data.title,
+            titleAr: data.titleAr,
+            body: data.body,
+            bodyAr: data.bodyAr,
+            image: data.image,
+            actionType: data.actionType,
+            actionId: data.actionId,
+            actionUrl: data.actionUrl,
+            channels: data.channels || ['push'],
+        });
+    }
+
+    /**
      * Deliver notification through channels
      */
     private async deliverNotification(notification: NotificationDocument): Promise<void> {

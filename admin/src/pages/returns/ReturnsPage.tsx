@@ -223,6 +223,7 @@ export function ReturnsPage() {
             refundMutation.mutate({
                 id: selectedReturn._id,
                 data: {
+                    refundMethod: 'wallet', // Default to wallet refund
                     refundAmount: data.refundAmount,
                     notes: data.notes || undefined,
                 },

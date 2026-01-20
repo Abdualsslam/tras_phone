@@ -118,6 +118,9 @@ export class ReturnsService {
       const orderItem = orderItems.find(
         (oi) => oi._id.toString() === item.orderItemId,
       );
+      if (!orderItem) {
+        throw new BadRequestException(`Order item ${item.orderItemId} not found`);
+      }
       return {
         returnRequestId: returnRequest._id,
         orderItemId: new Types.ObjectId(item.orderItemId),

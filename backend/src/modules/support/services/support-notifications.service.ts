@@ -36,7 +36,7 @@ export class SupportNotificationsService {
                     body: `Ticket #${ticket.ticketNumber}: ${ticket.subject}`,
                     bodyAr: `تذكرة #${ticket.ticketNumber}: ${ticket.subject}`,
                     actionType: 'ticket',
-                    actionId: ticket._id.toString(),
+                    actionId: (ticket as any)._id.toString(),
                     channels: ['push', 'email'],
                 });
             }
@@ -61,7 +61,7 @@ export class SupportNotificationsService {
                     body: `Your ticket #${ticket.ticketNumber} status changed to ${newStatus}`,
                     bodyAr: `تم تغيير حالة تذكرتك #${ticket.ticketNumber} إلى ${this.getStatusArabic(newStatus)}`,
                     actionType: 'ticket',
-                    actionId: ticket._id.toString(),
+                    actionId: (ticket as any)._id.toString(),
                     channels: ['push', 'email'],
                 });
             }
@@ -86,7 +86,7 @@ export class SupportNotificationsService {
                     body: `Ticket #${ticket.ticketNumber}: ${ticket.subject}`,
                     bodyAr: `تذكرة #${ticket.ticketNumber}: ${ticket.subject}`,
                     actionType: 'ticket',
-                    actionId: ticket._id.toString(),
+                    actionId: (ticket as any)._id.toString(),
                     channels: ['push', 'email'],
                 });
             }
@@ -112,7 +112,7 @@ export class SupportNotificationsService {
                         body: `${ticket.customer.name}: ${message.content.substring(0, 100)}`,
                         bodyAr: `${ticket.customer.name}: ${message.content.substring(0, 100)}`,
                         actionType: 'ticket',
-                        actionId: ticket._id.toString(),
+                        actionId: (ticket as any)._id.toString(),
                         channels: ['push'],
                     });
                 }
@@ -128,7 +128,7 @@ export class SupportNotificationsService {
                         body: `Ticket #${ticket.ticketNumber}: ${message.content.substring(0, 100)}`,
                         bodyAr: `تذكرة #${ticket.ticketNumber}: ${message.content.substring(0, 100)}`,
                         actionType: 'ticket',
-                        actionId: ticket._id.toString(),
+                        actionId: (ticket as any)._id.toString(),
                         channels: ['push', 'email'],
                     });
                 }
@@ -154,7 +154,7 @@ export class SupportNotificationsService {
                     body: `Your ticket #${ticket.ticketNumber} has been resolved. Please rate our service.`,
                     bodyAr: `تم حل تذكرتك #${ticket.ticketNumber}. يرجى تقييم خدمتنا.`,
                     actionType: 'ticket',
-                    actionId: ticket._id.toString(),
+                    actionId: (ticket as any)._id.toString(),
                     channels: ['push', 'email'],
                 });
             }

@@ -340,13 +340,11 @@ export class TicketsController {
             return ResponseBuilder.success(
                 { urls: uploadedUrls },
                 'Files uploaded successfully',
-                'تم رفع الملفات بنجاح',
             );
         } catch (error) {
             return ResponseBuilder.error(
                 'Failed to upload files',
                 500,
-                'فشل رفع الملفات',
             );
         }
     }
