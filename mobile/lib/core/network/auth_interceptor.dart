@@ -53,10 +53,19 @@ class AuthInterceptor extends Interceptor {
     // Check if token needs refresh before sending request
     final tokenData = await _tokenManager.getTokenData();
     if (tokenData != null) {
+      final now = DateTime.now();
       developer.log(
-        'Token check: expiresAt=${tokenData.expiresAt}, isExpired=${tokenData.isExpired}, willExpireSoon=${tokenData.willExpireSoon}',
+        'Token check: expiresAt=${tokenData.expiresAt}, isExpired=${tokenData.isExpired}, willExpireSoon=${tokenData.willExpireSoon}, now=$now',
         name: 'AuthInterceptor',
       );
+      
+      // If expiresAt is null, log warning
+      if (tokenData.expiresAt == null) {
+        developer.log(
+          'WARNING: Token expiresAt is null - cannot check expiration! Will rely on backend validation.',
+          name: 'AuthInterceptor',
+        );
+      }
       
       // Check if token is expired or will expire soon
       if (tokenData.isExpired) {
@@ -89,6 +98,12 @@ class AuthInterceptor extends Interceptor {
                 ),
               );
             }
+            
+            // After successful refresh, get the new token
+            developer.log(
+              'Token refreshed successfully, using new token for request',
+              name: 'AuthInterceptor',
+            );
           } catch (e) {
             _isRefreshing = false;
             developer.log(
@@ -106,15 +121,18 @@ class AuthInterceptor extends Interceptor {
             );
           }
         } else {
-          // Wait for ongoing refresh
+          // Wait for ongoing refresh - add to pending requests
           developer.log(
-            'Waiting for ongoing token refresh',
+            'Token expired but refresh in progress - adding to pending requests',
             name: 'AuthInterceptor',
           );
+          _pendingRequests.add(options);
+          // Don't send request yet - it will be retried after refresh completes
+          return;
         }
       } else if (tokenData.willExpireSoon) {
         developer.log(
-          'Token will expire soon, refreshing proactively in background',
+          'Token will expire soon (${tokenData.expiresAt?.difference(now).inMinutes} minutes), refreshing proactively in background',
           name: 'AuthInterceptor',
         );
         // Token will expire soon - refresh in background (don't wait)
@@ -122,6 +140,10 @@ class AuthInterceptor extends Interceptor {
           _isRefreshing = true;
           _refreshToken().then((_) {
             _isRefreshing = false;
+            developer.log(
+              'Background token refresh completed',
+              name: 'AuthInterceptor',
+            );
           }).catchError((e) {
             _isRefreshing = false;
             developer.log(
@@ -131,13 +153,33 @@ class AuthInterceptor extends Interceptor {
             );
           });
         }
+      } else {
+        final minutesUntilExpiry = tokenData.expiresAt?.difference(now).inMinutes;
+        developer.log(
+          'Token is valid, expires in ${minutesUntilExpiry ?? "unknown"} minutes',
+          name: 'AuthInterceptor',
+        );
       }
+    } else {
+      developer.log(
+        'No token data available',
+        name: 'AuthInterceptor',
+      );
     }
 
-    // Add auth token if available
+    // Add auth token if available (will be new token if refresh happened above)
     final token = await _tokenManager.getAccessToken();
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
+      developer.log(
+        'Added token to request headers',
+        name: 'AuthInterceptor',
+      );
+    } else {
+      developer.log(
+        'WARNING: No token available for request',
+        name: 'AuthInterceptor',
+      );
     }
 
     return handler.next(options);
@@ -368,12 +410,21 @@ class AuthInterceptor extends Interceptor {
     final requests = List<RequestOptions>.from(_pendingRequests);
     _pendingRequests.clear();
 
+    developer.log(
+      'Retrying ${requests.length} pending requests after token refresh',
+      name: 'AuthInterceptor',
+    );
+
     for (final request in requests) {
       try {
+        developer.log(
+          'Retrying pending request: ${request.method} ${request.path}',
+          name: 'AuthInterceptor',
+        );
         await _retryRequest(request);
       } catch (e) {
         developer.log(
-          'Failed to retry request: ${request.path}',
+          'Failed to retry pending request: ${request.path}',
           name: 'AuthInterceptor',
           error: e,
         );
