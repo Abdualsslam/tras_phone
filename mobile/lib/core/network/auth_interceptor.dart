@@ -50,6 +50,90 @@ class AuthInterceptor extends Interceptor {
       return handler.next(options);
     }
 
+    // Check if token needs refresh before sending request
+    final tokenData = await _tokenManager.getTokenData();
+    if (tokenData != null) {
+      developer.log(
+        'Token check: expiresAt=${tokenData.expiresAt}, isExpired=${tokenData.isExpired}, willExpireSoon=${tokenData.willExpireSoon}',
+        name: 'AuthInterceptor',
+      );
+      
+      // Check if token is expired or will expire soon
+      if (tokenData.isExpired) {
+        developer.log(
+          'Token is expired, refreshing before request',
+          name: 'AuthInterceptor',
+        );
+        // Token expired - refresh proactively
+        if (!_isRefreshing) {
+          _isRefreshing = true;
+          try {
+            final refreshed = await _refreshToken();
+            _isRefreshing = false;
+            
+            if (!refreshed) {
+              developer.log(
+                'Failed to refresh expired token',
+                name: 'AuthInterceptor',
+              );
+              await _handleLogout();
+              return handler.reject(
+                DioException(
+                  requestOptions: options,
+                  error: 'Token expired and refresh failed',
+                  type: DioExceptionType.badResponse,
+                  response: Response(
+                    requestOptions: options,
+                    statusCode: 401,
+                  ),
+                ),
+              );
+            }
+          } catch (e) {
+            _isRefreshing = false;
+            developer.log(
+              'Error refreshing expired token: $e',
+              name: 'AuthInterceptor',
+              error: e,
+            );
+            await _handleLogout();
+            return handler.reject(
+              DioException(
+                requestOptions: options,
+                error: 'Token refresh error: $e',
+                type: DioExceptionType.unknown,
+              ),
+            );
+          }
+        } else {
+          // Wait for ongoing refresh
+          developer.log(
+            'Waiting for ongoing token refresh',
+            name: 'AuthInterceptor',
+          );
+        }
+      } else if (tokenData.willExpireSoon) {
+        developer.log(
+          'Token will expire soon, refreshing proactively in background',
+          name: 'AuthInterceptor',
+        );
+        // Token will expire soon - refresh in background (don't wait)
+        if (!_isRefreshing) {
+          _isRefreshing = true;
+          _refreshToken().then((_) {
+            _isRefreshing = false;
+          }).catchError((e) {
+            _isRefreshing = false;
+            developer.log(
+              'Background token refresh failed: $e',
+              name: 'AuthInterceptor',
+              error: e,
+            );
+          });
+        }
+      }
+    }
+
     // Add auth token if available
     final token = await _tokenManager.getAccessToken();
     if (token != null && token.isNotEmpty) {

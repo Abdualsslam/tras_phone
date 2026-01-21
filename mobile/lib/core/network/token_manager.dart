@@ -1,6 +1,7 @@
 /// Token Manager - Handles access and refresh token storage and retrieval
 library;
 
+import 'dart:convert';
 import 'dart:developer' as developer;
 import '../constants/storage_keys.dart';
 import '../storage/secure_storage.dart';
@@ -34,14 +35,23 @@ class TokenData {
   };
 
   bool get isExpired {
-    if (expiresAt == null) return false;
-    return DateTime.now().isAfter(expiresAt!);
+    if (expiresAt == null) {
+      // No expiration info - assume not expired
+      return false;
+    }
+    final now = DateTime.now();
+    final expired = now.isAfter(expiresAt!);
+    return expired;
   }
 
   bool get willExpireSoon {
-    if (expiresAt == null) return false;
+    if (expiresAt == null) {
+      // No expiration info - assume it won't expire soon
+      return false;
+    }
     final threshold = DateTime.now().add(const Duration(minutes: 5));
-    return threshold.isAfter(expiresAt!);
+    final expiringSoon = threshold.isAfter(expiresAt!);
+    return expiringSoon;
   }
 }
 
@@ -71,29 +81,84 @@ class TokenManager {
 
   /// Get full token data
   Future<TokenData?> getTokenData() async {
-    if (_cachedTokens != null) {
-      return _cachedTokens;
-    }
-
     final accessToken = await _secureStorage.read(StorageKeys.accessToken);
     final refreshToken = await _secureStorage.read(StorageKeys.refreshToken);
 
     if (accessToken == null || refreshToken == null) {
+      _cachedTokens = null;
       return null;
+    }
+
+    // If cached and still valid, return it
+    if (_cachedTokens != null &&
+        _cachedTokens!.accessToken == accessToken &&
+        _cachedTokens!.expiresAt != null &&
+        !_cachedTokens!.isExpired) {
+      return _cachedTokens;
+    }
+
+    // Extract expiration from JWT
+    DateTime? expiresAt;
+    try {
+      final parts = accessToken.split('.');
+      if (parts.length == 3) {
+        final payload = parts[1];
+        // Add padding if needed
+        String normalized = payload;
+        switch (payload.length % 4) {
+          case 1:
+            normalized += '===';
+            break;
+          case 2:
+            normalized += '==';
+            break;
+          case 3:
+            normalized += '=';
+            break;
+        }
+        final decoded = base64Url.decode(normalized);
+        final json = jsonDecode(utf8.decode(decoded)) as Map<String, dynamic>;
+        final exp = json['exp'] as int?;
+        if (exp != null) {
+          expiresAt = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+          developer.log(
+            'Token expires at: $expiresAt (${expiresAt.difference(DateTime.now()).inMinutes} minutes from now)',
+            name: 'TokenManager',
+          );
+        }
+      }
+    } catch (e) {
+      developer.log(
+        'Failed to decode JWT expiration: $e',
+        name: 'TokenManager',
+        error: e,
+      );
+      // Failed to decode - ignore and continue without expiration
     }
 
     _cachedTokens = TokenData(
       accessToken: accessToken,
       refreshToken: refreshToken,
+      expiresAt: expiresAt,
     );
     return _cachedTokens;
   }
 
   /// Save tokens after login/refresh
   Future<void> saveTokens(TokenData tokens) async {
-    _cachedTokens = tokens;
+    // Clear old cache first
+    _cachedTokens = null;
+    
     await _secureStorage.write(StorageKeys.accessToken, tokens.accessToken);
     await _secureStorage.write(StorageKeys.refreshToken, tokens.refreshToken);
+    
+    // Set new cache
+    _cachedTokens = tokens;
+    
+    developer.log(
+      'Tokens cached with expiresAt: ${tokens.expiresAt}',
+      name: 'TokenManager',
+    );
   }
 
   /// Save tokens from API response
@@ -121,7 +186,13 @@ class TokenManager {
       }
     }
 
-    developer.log('Saving new tokens - accessToken: ${accessToken.substring(0, 20)}...', name: 'TokenManager');
+    developer.log(
+      'Saving new tokens - accessToken: ${accessToken.substring(0, 20)}..., expiresAt from API: $expiresAt',
+      name: 'TokenManager',
+    );
+    
+    // Clear cache before saving new tokens
+    _cachedTokens = null;
     
     await saveTokens(
       TokenData(
@@ -130,6 +201,19 @@ class TokenManager {
         expiresAt: expiresAt,
       ),
     );
+    
+    // Force re-read to extract JWT expiration if API didn't provide it
+    if (expiresAt == null) {
+      developer.log(
+        'No expiresAt from API, extracting from JWT...',
+        name: 'TokenManager',
+      );
+      final tokenData = await getTokenData();
+      developer.log(
+        'Extracted expiresAt from JWT: ${tokenData?.expiresAt}',
+        name: 'TokenManager',
+      );
+    }
     
     developer.log('Tokens saved successfully', name: 'TokenManager');
   }
