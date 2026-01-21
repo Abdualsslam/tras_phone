@@ -20,6 +20,7 @@ import '../../features/catalog/presentation/cubit/devices_cubit.dart';
 import '../../features/catalog/presentation/cubit/quality_types_cubit.dart';
 import '../../features/cart/data/datasources/cart_remote_datasource.dart';
 import '../../features/cart/data/datasources/cart_local_datasource.dart';
+import '../../features/cart/presentation/cubit/cart_cubit.dart';
 import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
 import '../../features/wishlist/data/datasources/wishlist_remote_datasource.dart';
@@ -166,6 +167,14 @@ Future<void> setupDependencies() async {
 
   getIt.registerLazySingleton<CartLocalDataSource>(
     () => CartLocalDataSourceImpl(storage: getIt<LocalStorage>()),
+  );
+
+  // Cubit - Singleton so it can be accessed from AuthCubit
+  getIt.registerLazySingleton<CartCubit>(
+    () => CartCubit(
+      remoteDataSource: getIt<CartRemoteDataSource>(),
+      localDataSource: getIt<CartLocalDataSource>(),
+    ),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════

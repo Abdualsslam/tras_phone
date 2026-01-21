@@ -10,6 +10,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../domain/entities/cart_entity.dart';
 import '../../domain/entities/cart_item_entity.dart';
+import '../../domain/entities/cart_sync_result_entity.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/cart_state.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -72,6 +73,41 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                 ],
               ),
+            );
+          }
+
+          if (state is CartSyncing) {
+            return Stack(
+              children: [
+                if (state.currentCart != null)
+                  _buildCartContent(
+                    context,
+                    theme,
+                    isDark,
+                    state.currentCart!,
+                    true,
+                  )
+                else
+                  const Center(child: CircularProgressIndicator()),
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          if (state is CartSyncCompleted) {
+            // After sync, reload the cart to show updated state
+            final cart = state.syncResult.syncedCart;
+            return _buildCartContent(
+              context,
+              theme,
+              isDark,
+              cart,
+              false,
             );
           }
 
@@ -315,20 +351,7 @@ class _CartScreenState extends State<CartScreen> {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: () {
-            HapticFeedback.mediumImpact();
-            // Navigate to checkout
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('جاري التوجه للدفع...'),
-                backgroundColor: AppColors.primary,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-            );
-          },
+          onPressed: () => _handleCheckout(context),
           style: ElevatedButton.styleFrom(
             padding: EdgeInsets.symmetric(vertical: 16.h),
             shape: RoundedRectangleBorder(
@@ -349,6 +372,274 @@ class _CartScreenState extends State<CartScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleCheckout(BuildContext context) async {
+    HapticFeedback.mediumImpact();
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Sync cart with server
+      final syncResult = await context.read<CartCubit>().syncCart();
+
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+
+      if (syncResult == null) {
+        // Sync failed
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('فشلت المزامنة. حاول مرة أخرى.'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Check if there are any sync issues
+      if (syncResult.hasIssues) {
+        // Show sync issues dialog
+        if (context.mounted) {
+          await _showSyncIssuesDialog(context, syncResult);
+        }
+      } else {
+        // No issues, proceed to checkout
+        if (context.mounted) {
+          context.push('/checkout');
+        }
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('حدث خطأ: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showSyncIssuesDialog(
+    BuildContext context,
+    CartSyncResultEntity syncResult,
+  ) async {
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تحديثات السلة'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Removed items
+              if (syncResult.removedItems.isNotEmpty) ...[
+                Text(
+                  'تم حذف المنتجات التالية:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                ...syncResult.removedItems.map(
+                  (item) => Padding(
+                    padding: EdgeInsets.only(bottom: 8.h),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Iconsax.trash,
+                          size: 16.sp,
+                          color: AppColors.error,
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.productNameAr ?? item.productId,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13.sp,
+                                ),
+                              ),
+                              Text(
+                                _getRemovalReason(item.reason),
+                                style: TextStyle(
+                                  color: AppColors.textSecondaryLight,
+                                  fontSize: 12.sp,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+              ],
+
+              // Price changed items
+              if (syncResult.priceChangedItems.isNotEmpty) ...[
+                Text(
+                  'تغيرت أسعار المنتجات التالية:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                ...syncResult.priceChangedItems.map(
+                  (item) => Padding(
+                    padding: EdgeInsets.only(bottom: 8.h),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Iconsax.dollar_circle,
+                          size: 16.sp,
+                          color: AppColors.warning,
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.productNameAr ?? item.productId,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13.sp,
+                                ),
+                              ),
+                              Text(
+                                '${item.oldPrice.toStringAsFixed(0)} ر.س → ${item.newPrice.toStringAsFixed(0)} ر.س',
+                                style: TextStyle(
+                                  color: AppColors.textSecondaryLight,
+                                  fontSize: 12.sp,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+              ],
+
+              // Quantity adjusted items
+              if (syncResult.quantityAdjustedItems.isNotEmpty) ...[
+                Text(
+                  'تم تعديل كميات المنتجات التالية:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                ...syncResult.quantityAdjustedItems.map(
+                  (item) => Padding(
+                    padding: EdgeInsets.only(bottom: 8.h),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Iconsax.minus_cirlce,
+                          size: 16.sp,
+                          color: AppColors.warning,
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.productNameAr ?? item.productId,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13.sp,
+                                ),
+                              ),
+                              Text(
+                                'الكمية المطلوبة: ${item.requestedQuantity}\n'
+                                'الكمية المتاحة: ${item.availableQuantity}\n'
+                                'الكمية النهائية: ${item.finalQuantity}',
+                                style: TextStyle(
+                                  color: AppColors.textSecondaryLight,
+                                  fontSize: 12.sp,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.push('/checkout');
+            },
+            child: const Text('موافق والمتابعة'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getRemovalReason(String reason) {
+    switch (reason) {
+      case 'out_of_stock':
+        return 'نفذ المخزون';
+      case 'deleted':
+        return 'تم حذف المنتج';
+      case 'inactive':
+        return 'المنتج غير متاح';
+      default:
+        return 'غير متاح';
+    }
   }
 
   void _showClearCartDialog(BuildContext context) {

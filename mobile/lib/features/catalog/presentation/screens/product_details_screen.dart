@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
@@ -11,6 +12,7 @@ import '../../../../core/di/injection.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../wishlist/data/datasources/wishlist_remote_datasource.dart';
+import '../../../cart/presentation/cubit/cart_cubit.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final ProductEntity product;
@@ -793,6 +795,18 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 onPressed: product.isInStock
                     ? () {
                         HapticFeedback.mediumImpact();
+                        // Add to local cart (instant operation)
+                        context.read<CartCubit>().addToCartLocal(
+                              productId: product.id,
+                              quantity: _quantity,
+                              unitPrice: product.basePrice,
+                              productName: product.name,
+                              productNameAr: product.nameAr,
+                              productImage: product.mainImage ?? 
+                                  (product.images.isNotEmpty ? product.images.first : null),
+                              productSku: product.sku,
+                            );
+                        // Show success message
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(

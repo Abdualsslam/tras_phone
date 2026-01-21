@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/di/injection.dart';
 import '../../../notifications/services/push_notification_manager.dart';
+import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
@@ -99,6 +100,8 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthAuthenticated(user));
         // Update FCM token after successful login
         _updateFcmTokenAfterAuth();
+        // Sync local cart with server (silent - no UI feedback)
+        _syncCartAfterLogin();
       },
     );
   }
@@ -133,6 +136,8 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthAuthenticated(user));
         // Update FCM token after successful registration
         _updateFcmTokenAfterAuth();
+        // Sync local cart with server (silent - no UI feedback)
+        _syncCartAfterLogin();
       },
     );
   }
@@ -156,6 +161,19 @@ class AuthCubit extends Cubit<AuthState> {
     } catch (e) {
       developer.log('Failed to update FCM token after auth: $e', name: 'AuthCubit');
       // Fail silently - not critical
+    }
+  }
+
+  /// Sync local cart with server after successful login/register
+  /// This is done silently (no UI feedback) to merge local and server carts
+  Future<void> _syncCartAfterLogin() async {
+    try {
+      final cartCubit = getIt<CartCubit>();
+      await cartCubit.syncCart(silent: true);
+      developer.log('Cart synced after login', name: 'AuthCubit');
+    } catch (e) {
+      developer.log('Failed to sync cart after login: $e', name: 'AuthCubit');
+      // Fail silently - not critical, cart sync will happen on next checkout
     }
   }
 
