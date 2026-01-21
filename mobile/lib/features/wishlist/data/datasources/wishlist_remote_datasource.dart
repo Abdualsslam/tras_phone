@@ -115,11 +115,46 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
         ApiEndpoints.productWishlist(productId),
       );
 
-      if (response.data['success'] != true) {
+      // Print full response
+      developer.log(
+        'Add to wishlist response: ${response.statusCode}',
+        name: 'WishlistDataSource',
+      );
+      developer.log(
+        'Response data: ${response.data}',
+        name: 'WishlistDataSource',
+      );
+      developer.log(
+        'Response headers: ${response.headers}',
+        name: 'WishlistDataSource',
+      );
+
+      // Check for success - Backend uses "status": "success" not "success": true
+      final status = response.data['status'] as String?;
+      final statusCode = response.data['statusCode'] as int?;
+      
+      // Consider successful if:
+      // 1. HTTP status code is 200 or 201 (Created)
+      // 2. OR response status is "success"
+      // 3. OR statusCode in body is 200/201
+      final isSuccess = response.statusCode == 200 || 
+                        response.statusCode == 201 ||
+                        status == 'success' ||
+                        statusCode == 200 ||
+                        statusCode == 201;
+
+      if (!isSuccess) {
         throw Exception(
-          response.data['messageAr'] ?? 'Failed to add to wishlist',
+          response.data['messageAr'] ?? 
+          response.data['message'] ?? 
+          'Failed to add to wishlist',
         );
       }
+      
+      developer.log(
+        'Successfully added to wishlist: ${response.data['messageAr'] ?? response.data['message'] ?? 'Success'}',
+        name: 'WishlistDataSource',
+      );
     } on DioException catch (e) {
       // Handle 409 Conflict - product already in wishlist
       if (e.response?.statusCode == 409) {
@@ -127,8 +162,25 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
           'Product already in wishlist: $productId',
           name: 'WishlistDataSource',
         );
+        if (e.response?.data != null) {
+          developer.log(
+            '409 Conflict response: ${e.response!.data}',
+            name: 'WishlistDataSource',
+          );
+        }
         // Don't throw error - product is already in wishlist, which is fine
         return;
+      }
+      // Print error response
+      if (e.response != null) {
+        developer.log(
+          'Error response: ${e.response!.statusCode}',
+          name: 'WishlistDataSource',
+        );
+        developer.log(
+          'Error response data: ${e.response!.data}',
+          name: 'WishlistDataSource',
+        );
       }
       // Re-throw other errors
       rethrow;
@@ -142,14 +194,64 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
       name: 'WishlistDataSource',
     );
 
-    final response = await _apiClient.delete(
-      ApiEndpoints.productWishlist(productId),
-    );
-
-    if (response.data['success'] != true) {
-      throw Exception(
-        response.data['messageAr'] ?? 'Failed to remove from wishlist',
+    try {
+      final response = await _apiClient.delete(
+        ApiEndpoints.productWishlist(productId),
       );
+
+      // Print full response
+      developer.log(
+        'Remove from wishlist response: ${response.statusCode}',
+        name: 'WishlistDataSource',
+      );
+      developer.log(
+        'Response data: ${response.data}',
+        name: 'WishlistDataSource',
+      );
+      developer.log(
+        'Response headers: ${response.headers}',
+        name: 'WishlistDataSource',
+      );
+
+      // Check for success - Backend uses "status": "success" not "success": true
+      final status = response.data['status'] as String?;
+      final statusCode = response.data['statusCode'] as int?;
+      
+      // Consider successful if:
+      // 1. HTTP status code is 200 or 201
+      // 2. OR response status is "success"
+      // 3. OR statusCode in body is 200/201
+      final isSuccess = response.statusCode == 200 || 
+                        response.statusCode == 201 ||
+                        status == 'success' ||
+                        statusCode == 200 ||
+                        statusCode == 201;
+
+      if (!isSuccess) {
+        throw Exception(
+          response.data['messageAr'] ?? 
+          response.data['message'] ?? 
+          'Failed to remove from wishlist',
+        );
+      }
+      
+      developer.log(
+        'Successfully removed from wishlist: ${response.data['messageAr'] ?? response.data['message'] ?? 'Success'}',
+        name: 'WishlistDataSource',
+      );
+    } on DioException catch (e) {
+      // Print error response
+      if (e.response != null) {
+        developer.log(
+          'Error response: ${e.response!.statusCode}',
+          name: 'WishlistDataSource',
+        );
+        developer.log(
+          'Error response data: ${e.response!.data}',
+          name: 'WishlistDataSource',
+        );
+      }
+      rethrow;
     }
   }
 

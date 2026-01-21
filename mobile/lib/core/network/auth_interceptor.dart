@@ -31,8 +31,18 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    // Add logging at the very start
+    developer.log(
+      'onRequest: ${options.method} ${options.path}',
+      name: 'AuthInterceptor',
+    );
+    
     // Skip if this is a retry request (token already added in _retryRequest)
     if (options.headers['X-Retry-Request'] == 'true') {
+      developer.log(
+        'Skipping token check - this is a retry request',
+        name: 'AuthInterceptor',
+      );
       // Ensure token is present
       final authHeader = options.headers['Authorization'];
       if (authHeader == null || !authHeader.toString().startsWith('Bearer ')) {
@@ -47,10 +57,19 @@ class AuthInterceptor extends Interceptor {
     
     // Skip auth header for public endpoints
     if (_isPublicEndpoint(options.path)) {
+      developer.log(
+        'Skipping token check - public endpoint',
+        name: 'AuthInterceptor',
+      );
       return handler.next(options);
     }
 
     // Check if token needs refresh before sending request
+    developer.log(
+      'Fetching token data for authenticated endpoint...',
+      name: 'AuthInterceptor',
+    );
+    
     final tokenData = await _tokenManager.getTokenData();
     if (tokenData != null) {
       final now = DateTime.now();
@@ -162,7 +181,7 @@ class AuthInterceptor extends Interceptor {
       }
     } else {
       developer.log(
-        'No token data available',
+        'CRITICAL: No token data available! Request may fail.',
         name: 'AuthInterceptor',
       );
     }
@@ -275,7 +294,11 @@ class AuthInterceptor extends Interceptor {
 
   /// Check if endpoint is public (no auth required)
   bool _isPublicEndpoint(String path) {
-    const publicEndpoints = [
+    // Extract base path (remove query parameters)
+    final basePath = path.split('?').first;
+    
+    // Exact match endpoints (public)
+    const exactPublicEndpoints = [
       ApiEndpoints.login,
       ApiEndpoints.register,
       ApiEndpoints.sendOtp,
@@ -291,8 +314,45 @@ class AuthInterceptor extends Interceptor {
       ApiEndpoints.settings,
       ApiEndpoints.appVersion,
     ];
-
-    return publicEndpoints.any((endpoint) => path.contains(endpoint));
+    
+    // Check exact matches
+    if (exactPublicEndpoints.any((endpoint) => basePath == endpoint)) {
+      return true;
+    }
+    
+    // Public GET endpoints (read-only operations)
+    // /products/:id - GET product details (public)
+    // /products/:id/reviews - GET reviews (public)
+    if (basePath.startsWith('/products/') && 
+        (basePath.endsWith('/reviews') || 
+         RegExp(r'^/products/[^/]+$').hasMatch(basePath))) {
+      return true;
+    }
+    
+    // Private endpoints (require authentication)
+    // /products/:id/wishlist - POST/DELETE wishlist (private)
+    // /products/wishlist/my - GET my wishlist (private)
+    if (basePath.contains('/wishlist') || 
+        basePath.contains('/cart') ||
+        basePath.contains('/orders') ||
+        basePath.contains('/customer/') ||
+        basePath.contains('/tickets') ||
+        basePath.contains('/stock-alerts')) {
+      return false;
+    }
+    
+    // Default: check if path starts with known public endpoints
+    const prefixPublicEndpoints = [
+      '/auth/',
+      '/catalog/',
+      '/products/featured',
+      '/products/new-arrivals',
+      '/products/best-sellers',
+      '/products/on-offer',
+      '/products/search',
+    ];
+    
+    return prefixPublicEndpoints.any((prefix) => basePath.startsWith(prefix));
   }
 
   /// Attempt to refresh the access token

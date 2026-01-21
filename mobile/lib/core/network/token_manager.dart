@@ -81,10 +81,19 @@ class TokenManager {
 
   /// Get full token data
   Future<TokenData?> getTokenData() async {
+    developer.log(
+      'getTokenData() called',
+      name: 'TokenManager',
+    );
+    
     final accessToken = await _secureStorage.read(StorageKeys.accessToken);
     final refreshToken = await _secureStorage.read(StorageKeys.refreshToken);
 
     if (accessToken == null || refreshToken == null) {
+      developer.log(
+        'No tokens found in storage',
+        name: 'TokenManager',
+      );
       _cachedTokens = null;
       return null;
     }
@@ -94,14 +103,28 @@ class TokenManager {
         _cachedTokens!.accessToken == accessToken &&
         _cachedTokens!.expiresAt != null &&
         !_cachedTokens!.isExpired) {
+      developer.log(
+        'Returning cached token data: expiresAt=${_cachedTokens!.expiresAt}',
+        name: 'TokenManager',
+      );
       return _cachedTokens;
     }
+
+    developer.log(
+      'Extracting expiration from JWT...',
+      name: 'TokenManager',
+    );
 
     // Extract expiration from JWT
     DateTime? expiresAt;
     try {
       final parts = accessToken.split('.');
-      if (parts.length == 3) {
+      if (parts.length != 3) {
+        developer.log(
+          'WARNING: Invalid JWT format - expected 3 parts, got ${parts.length}',
+          name: 'TokenManager',
+        );
+      } else {
         final payload = parts[1];
         // Add padding if needed
         String normalized = payload;
@@ -118,11 +141,24 @@ class TokenManager {
         }
         final decoded = base64Url.decode(normalized);
         final json = jsonDecode(utf8.decode(decoded)) as Map<String, dynamic>;
+        
+        developer.log(
+          'JWT payload: exp=${json['exp']}, iat=${json['iat']}',
+          name: 'TokenManager',
+        );
+        
         final exp = json['exp'] as int?;
         if (exp != null) {
           expiresAt = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+          final now = DateTime.now();
+          final minutesUntilExpiry = expiresAt.difference(now).inMinutes;
           developer.log(
-            'Token expires at: $expiresAt (${expiresAt.difference(DateTime.now()).inMinutes} minutes from now)',
+            'Token expires at: $expiresAt ($minutesUntilExpiry minutes from now)',
+            name: 'TokenManager',
+          );
+        } else {
+          developer.log(
+            'WARNING: JWT does not contain "exp" field!',
             name: 'TokenManager',
           );
         }
@@ -141,6 +177,12 @@ class TokenManager {
       refreshToken: refreshToken,
       expiresAt: expiresAt,
     );
+    
+    developer.log(
+      'Created TokenData: expiresAt=${_cachedTokens!.expiresAt}',
+      name: 'TokenManager',
+    );
+    
     return _cachedTokens;
   }
 
