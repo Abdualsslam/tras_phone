@@ -229,6 +229,7 @@ class ApiClient {
     final translations = {
       'Your account is under review. Please wait for activation':
           'حسابك قيد المراجعة. يرجى انتظار التفعيل',
+      'Your account has been rejected': 'تم رفض حسابك',
       'Invalid credentials': 'رقم الجوال أو كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى',
       'User not found': 'المستخدم غير موجود',
       'Account is locked': 'الحساب مقفل',
@@ -267,28 +268,54 @@ class ApiClient {
     
     final locale = _getCurrentLocale();
     
+    // Extract both English and Arabic messages from response
+    String? messageEn;
+    String? messageAr;
+    if (data is Map) {
+      messageEn = data['message'] != null ? extractMessage(data['message']) : null;
+      messageAr = data['messageAr'] != null ? extractMessage(data['messageAr']) : null;
+    }
+    
+    // Check if this is an account under review error (before choosing locale message)
+    final isAccountUnderReview = 
+        (messageEn != null && (
+          messageEn == AccountUnderReviewException.englishMessage ||
+          messageEn.contains('account is under review') ||
+          messageEn.contains('under review'))) ||
+        (messageAr != null && (
+          messageAr == AccountUnderReviewException.arabicMessage ||
+          messageAr.contains('قيد المراجعة')));
+    
+    // Check if this is an account rejected error (before choosing locale message)
+    final isAccountRejected = 
+        (messageEn != null && (
+          messageEn == AccountRejectedException.englishMessage ||
+          messageEn.contains('account has been rejected') ||
+          messageEn.contains('has been rejected'))) ||
+        (messageAr != null && (
+          messageAr == AccountRejectedException.arabicMessage ||
+          messageAr.contains('تم رفض') ||
+          messageAr.contains('رفض حسابك')));
+    
     // Choose message based on locale: prefer messageAr for Arabic, message for others
     String message;
     if (data is Map) {
-      final messageAr = data['messageAr'];
-      final messageEn = data['message'];
-      
       if (locale == 'ar') {
         // For Arabic: prefer messageAr, fallback to translated message
         if (messageAr != null) {
-          message = extractMessage(messageAr);
+          message = messageAr;
         } else if (messageEn != null) {
           // Translate English message to Arabic
-          message = _translateError(extractMessage(messageEn));
+          message = _translateError(messageEn);
         } else {
           message = 'خطأ في الخادم';
         }
       } else {
         // For English: prefer message, fallback to messageAr
         if (messageEn != null) {
-          message = extractMessage(messageEn);
+          message = messageEn;
         } else if (messageAr != null) {
-          message = extractMessage(messageAr);
+          message = messageAr;
         } else {
           message = 'Server error';
         }
@@ -301,6 +328,22 @@ class ApiClient {
       case 400:
         return ServerException(message: message, statusCode: 400);
       case 401:
+        // Return AccountUnderReviewException if detected
+        if (isAccountUnderReview) {
+          return AccountUnderReviewException(
+            message: locale == 'ar' 
+                ? AccountUnderReviewException.arabicMessage 
+                : AccountUnderReviewException.englishMessage,
+          );
+        }
+        // Return AccountRejectedException if detected
+        if (isAccountRejected) {
+          return AccountRejectedException(
+            message: locale == 'ar' 
+                ? AccountRejectedException.arabicMessage 
+                : AccountRejectedException.englishMessage,
+          );
+        }
         return UnauthorizedException(message: message);
       case 403:
         return ForbiddenException(message: message);

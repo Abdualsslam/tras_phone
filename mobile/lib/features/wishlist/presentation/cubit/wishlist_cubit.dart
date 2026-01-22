@@ -10,17 +10,20 @@ class WishlistCubit extends Cubit<WishlistState> {
   final WishlistRemoteDataSource _dataSource;
 
   WishlistCubit({required WishlistRemoteDataSource dataSource})
-      : _dataSource = dataSource,
-        super(const WishlistInitial());
+    : _dataSource = dataSource,
+      super(const WishlistInitial());
 
   /// Load wishlist items
   Future<void> loadWishlist() async {
+    if (isClosed) return;
     emit(const WishlistLoading());
 
     try {
       final items = await _dataSource.getWishlist();
+      if (isClosed) return;
       emit(WishlistLoaded(items));
     } catch (e) {
+      if (isClosed) return;
       emit(WishlistError(e.toString()));
     }
   }
@@ -30,11 +33,16 @@ class WishlistCubit extends Cubit<WishlistState> {
     try {
       await _dataSource.addToWishlist(productId);
       // Reload to get updated list
-      loadWishlist();
+      if (!isClosed) {
+        loadWishlist();
+      }
     } catch (e) {
+      if (isClosed) return;
       emit(WishlistError(e.toString()));
       // Reload to sync state
-      loadWishlist();
+      if (!isClosed) {
+        loadWishlist();
+      }
     }
   }
 
@@ -43,11 +51,16 @@ class WishlistCubit extends Cubit<WishlistState> {
     try {
       await _dataSource.removeFromWishlist(productId);
       // Reload to get updated list
-      loadWishlist();
+      if (!isClosed) {
+        loadWishlist();
+      }
     } catch (e) {
+      if (isClosed) return;
       emit(WishlistError(e.toString()));
       // Reload to sync state
-      loadWishlist();
+      if (!isClosed) {
+        loadWishlist();
+      }
     }
   }
 
@@ -58,17 +71,24 @@ class WishlistCubit extends Cubit<WishlistState> {
     bool isInWishlist = false;
 
     if (currentState is WishlistLoaded) {
-      isInWishlist = currentState.items.any((item) => item.productId.toString() == productId);
+      isInWishlist = currentState.items.any(
+        (item) => item.productId.toString() == productId,
+      );
     }
 
     try {
       await _dataSource.toggleWishlist(productId, isInWishlist);
       // Reload to get updated list
-      loadWishlist();
+      if (!isClosed) {
+        loadWishlist();
+      }
     } catch (e) {
+      if (isClosed) return;
       emit(WishlistError(e.toString()));
       // Reload to sync state
-      loadWishlist();
+      if (!isClosed) {
+        loadWishlist();
+      }
     }
   }
 
@@ -77,8 +97,10 @@ class WishlistCubit extends Cubit<WishlistState> {
     try {
       await _dataSource.clearWishlist();
       // Clear local state
+      if (isClosed) return;
       emit(const WishlistLoaded([]));
     } catch (e) {
+      if (isClosed) return;
       emit(WishlistError(e.toString()));
     }
   }
@@ -98,8 +120,11 @@ class WishlistCubit extends Cubit<WishlistState> {
       await _dataSource.moveToCart(productId);
       // Optionally remove from wishlist after moving to cart
       // Or just reload to sync state
-      loadWishlist();
+      if (!isClosed) {
+        loadWishlist();
+      }
     } catch (e) {
+      if (isClosed) return;
       emit(WishlistError(e.toString()));
     }
   }
@@ -109,8 +134,11 @@ class WishlistCubit extends Cubit<WishlistState> {
     try {
       await _dataSource.moveAllToCart();
       // Reload to sync state
-      loadWishlist();
+      if (!isClosed) {
+        loadWishlist();
+      }
     } catch (e) {
+      if (isClosed) return;
       emit(WishlistError(e.toString()));
     }
   }

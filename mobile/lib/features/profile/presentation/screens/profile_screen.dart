@@ -299,7 +299,7 @@ class ProfileScreen extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 12.w,
       mainAxisSpacing: 12.h,
-      childAspectRatio: 2,
+      childAspectRatio: 1.7,
       children: [
         _buildStatCard(
           theme: theme,
@@ -350,7 +350,7 @@ class ProfileScreen extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: EdgeInsets.all(12.w),
+          padding: EdgeInsets.all(10.w),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -382,29 +382,38 @@ class ProfileScreen extends StatelessWidget {
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: color, size: 28.sp),
-              SizedBox(height: 8.h),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+              Flexible(
+                child: Icon(icon, color: color, size: 24.sp),
+              ),
+              SizedBox(height: 4.h),
+              Flexible(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               SizedBox(height: 2.h),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
+              Flexible(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
