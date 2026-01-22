@@ -9,6 +9,11 @@ import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../promotions/presentation/widgets/promotions_banner.dart';
+import '../../../banners/presentation/cubit/banners_cubit.dart';
+import '../../../banners/presentation/cubit/banners_state.dart';
+import '../../../banners/domain/enums/banner_position.dart';
+import '../../../banners/domain/enums/banner_type.dart';
+import '../../../banners/presentation/widgets/popup_banner_widget.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/banner_slider.dart';
 import '../widgets/categories_section.dart';
@@ -29,6 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     context.read<HomeCubit>().loadHomeData();
+    // Load banners using BannersCubit
+    context.read<BannersCubit>().loadBanners(placement: BannerPosition.homeTop);
   }
 
   @override
@@ -54,7 +61,12 @@ class _HomeScreenState extends State<HomeScreen> {
           }
           if (state is HomeLoaded) {
             return RefreshIndicator(
-              onRefresh: () => context.read<HomeCubit>().refresh(),
+              onRefresh: () async {
+                await context.read<HomeCubit>().refresh();
+                await context.read<BannersCubit>().loadBanners(
+                  placement: BannerPosition.homeTop,
+                );
+              },
               child: _buildContent(state),
             );
           }
@@ -65,62 +77,87 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildContent(HomeLoaded state) {
-    return ListView(
-      padding: EdgeInsets.only(bottom: 24.h),
-      children: [
-        // Banner Slider
-        if (state.banners.isNotEmpty)
-          BannerSlider(banners: state.banners, controller: _bannerController),
+    final locale = Localizations.localeOf(context).languageCode;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
-        SizedBox(height: 16.h),
+    return BlocBuilder<BannersCubit, BannersState>(
+      builder: (context, bannersState) {
+        return ListView(
+          padding: EdgeInsets.only(bottom: 24.h),
+          children: [
+            // Banner Slider
+            if (bannersState is BannersLoaded &&
+                bannersState.banners.isNotEmpty)
+              BannerSlider(
+                banners: bannersState.banners,
+                controller: _bannerController,
+              ),
 
-        // Promotions Banner
-        const PromotionsBanner(),
+            // Popup Banners
+            if (bannersState is BannersLoaded)
+              ...bannersState.banners
+                  .where(
+                    (b) => b.type == BannerType.popup && b.isCurrentlyActive,
+                  )
+                  .map(
+                    (banner) => PopupBannerWidget(
+                      banner: banner,
+                      locale: locale,
+                      isMobile: isMobile,
+                    ),
+                  ),
 
-        SizedBox(height: 24.h),
+            SizedBox(height: 16.h),
 
-        // Categories
-        if (state.categories.isNotEmpty)
-          CategoriesSection(categories: state.categories),
+            // Promotions Banner
+            const PromotionsBanner(),
 
-        SizedBox(height: 24.h),
+            SizedBox(height: 24.h),
 
-        // Brands
-        if (state.brands.isNotEmpty) BrandsSection(brands: state.brands),
+            // Categories
+            if (state.categories.isNotEmpty)
+              CategoriesSection(categories: state.categories),
 
-        SizedBox(height: 24.h),
+            SizedBox(height: 24.h),
 
-        // Featured Products
-        if (state.featuredProducts.isNotEmpty)
-          ProductsSection(
-            title: AppLocalizations.of(context)!.featuredProducts,
-            products: state.featuredProducts,
-            onSeeAll: () => context.push('/products?isFeatured=true'),
-          ),
+            // Brands
+            if (state.brands.isNotEmpty) BrandsSection(brands: state.brands),
 
-        SizedBox(height: 24.h),
+            SizedBox(height: 24.h),
 
-        // New Arrivals
-        if (state.newArrivals.isNotEmpty)
-          ProductsSection(
-            title: AppLocalizations.of(context)!.newArrivals,
-            products: state.newArrivals,
-            onSeeAll: () => context.push('/products?sort=newest'),
-          ),
+            // Featured Products
+            if (state.featuredProducts.isNotEmpty)
+              ProductsSection(
+                title: AppLocalizations.of(context)!.featuredProducts,
+                products: state.featuredProducts,
+                onSeeAll: () => context.push('/products?isFeatured=true'),
+              ),
 
-        SizedBox(height: 24.h),
+            SizedBox(height: 24.h),
 
-        // Best Sellers
-        if (state.bestSellers.isNotEmpty)
-          ProductsSection(
-            title: AppLocalizations.of(context)!.bestSellers,
-            products: state.bestSellers,
-            onSeeAll: () => context.push('/products?sort=bestselling'),
-          ),
+            // New Arrivals
+            if (state.newArrivals.isNotEmpty)
+              ProductsSection(
+                title: AppLocalizations.of(context)!.newArrivals,
+                products: state.newArrivals,
+                onSeeAll: () => context.push('/products?sort=newest'),
+              ),
 
-        // Extra space for floating bottom nav bar
-        SizedBox(height: 100.h),
-      ],
+            SizedBox(height: 24.h),
+
+            // Best Sellers
+            if (state.bestSellers.isNotEmpty)
+              ProductsSection(
+                title: AppLocalizations.of(context)!.bestSellers,
+                products: state.bestSellers,
+                onSeeAll: () => context.push('/products?sort=bestselling'),
+              ),
+
+            // Extra space for floating bottom nav bar
+            SizedBox(height: 100.h),
+          ],
+        );
+      },
     );
   }
 }

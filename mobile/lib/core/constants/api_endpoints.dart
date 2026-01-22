@@ -145,6 +145,8 @@ class ApiEndpoints {
   static const String pages = '/pages';
   static const String faqs = '/faqs';
   static const String banners = '/banners';
+  static String bannersImpression(String id) => '/content/banners/$id/impression';
+  static String bannersClick(String id) => '/content/banners/$id/click';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // LOCATIONS

@@ -2,7 +2,6 @@
 library;
 
 import 'package:equatable/equatable.dart';
-import '../../../catalog/domain/entities/banner_entity.dart';
 import '../../../catalog/domain/entities/brand_entity.dart';
 import '../../../catalog/domain/entities/category_entity.dart';
 import '../../../catalog/domain/entities/product_entity.dart';
@@ -23,7 +22,6 @@ class HomeLoading extends HomeState {
 }
 
 class HomeLoaded extends HomeState {
-  final List<BannerEntity> banners;
   final List<CategoryEntity> categories;
   final List<BrandEntity> brands;
   final List<ProductEntity> featuredProducts;
@@ -31,7 +29,6 @@ class HomeLoaded extends HomeState {
   final List<ProductEntity> bestSellers;
 
   const HomeLoaded({
-    this.banners = const [],
     this.categories = const [],
     this.brands = const [],
     this.featuredProducts = const [],
@@ -40,7 +37,6 @@ class HomeLoaded extends HomeState {
   });
 
   HomeLoaded copyWith({
-    List<BannerEntity>? banners,
     List<CategoryEntity>? categories,
     List<BrandEntity>? brands,
     List<ProductEntity>? featuredProducts,
@@ -48,7 +44,6 @@ class HomeLoaded extends HomeState {
     List<ProductEntity>? bestSellers,
   }) {
     return HomeLoaded(
-      banners: banners ?? this.banners,
       categories: categories ?? this.categories,
       brands: brands ?? this.brands,
       featuredProducts: featuredProducts ?? this.featuredProducts,
@@ -59,7 +54,6 @@ class HomeLoaded extends HomeState {
 
   @override
   List<Object?> get props => [
-    banners,
     categories,
     brands,
     featuredProducts,

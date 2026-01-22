@@ -16,9 +16,8 @@ class HomeCubit extends Cubit<HomeState> {
     emit(const HomeLoading());
 
     try {
-      // Load all data in parallel
+      // Load all data in parallel (banners are now handled by BannersCubit)
       final results = await Future.wait([
-        _dataSource.getBanners(placement: 'home_slider'),
         _dataSource.getCategories(),
         _dataSource.getBrands(featured: true),
         _dataSource.getFeaturedProducts(),
@@ -28,12 +27,11 @@ class HomeCubit extends Cubit<HomeState> {
 
       emit(
         HomeLoaded(
-          banners: results[0] as dynamic,
-          categories: results[1] as dynamic,
-          brands: results[2] as dynamic,
-          featuredProducts: results[3] as dynamic,
-          newArrivals: results[4] as dynamic,
-          bestSellers: results[5] as dynamic,
+          categories: results[0] as dynamic,
+          brands: results[1] as dynamic,
+          featuredProducts: results[2] as dynamic,
+          newArrivals: results[3] as dynamic,
+          bestSellers: results[4] as dynamic,
         ),
       );
     } catch (e) {

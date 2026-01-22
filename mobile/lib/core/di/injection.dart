@@ -56,6 +56,10 @@ import '../../features/education/presentation/cubit/education_details_cubit.dart
 import '../../features/wallet/data/datasources/wallet_remote_datasource.dart';
 import '../../features/wallet/data/repositories/wallet_repository.dart';
 import '../../features/wallet/presentation/cubit/wallet_cubit.dart';
+import '../../features/banners/data/datasources/banners_remote_datasource.dart';
+import '../../features/banners/data/repositories/banners_repository.dart';
+import '../../features/banners/data/services/banners_service.dart';
+import '../../features/banners/presentation/cubit/banners_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final getIt = GetIt.instance;
@@ -394,6 +398,32 @@ Future<void> setupDependencies() async {
   // Cubit
   getIt.registerFactory<WalletCubit>(
     () => WalletCubit(getIt<WalletRepository>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BANNERS FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<BannersRemoteDataSource>(
+    () => BannersRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<BannersRepository>(
+    () => BannersRepositoryImpl(
+      remoteDataSource: getIt<BannersRemoteDataSource>(),
+    ),
+  );
+
+  // Service
+  getIt.registerLazySingleton<BannersService>(
+    () => BannersService(repository: getIt<BannersRepository>()),
+  );
+
+  // Cubit
+  getIt.registerFactory<BannersCubit>(
+    () => BannersCubit(service: getIt<BannersService>()),
   );
 }
 
