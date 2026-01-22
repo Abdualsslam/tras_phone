@@ -2,10 +2,17 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/config/theme/app_theme.dart';
+import '../../../../core/di/injection.dart';
+import '../cubit/return_details_cubit.dart';
+import '../cubit/return_details_state.dart';
+import '../widgets/return_status_card.dart';
+import '../widgets/return_item_card.dart';
 
 class ReturnDetailsScreen extends StatelessWidget {
   final String returnId;
@@ -14,203 +21,304 @@ class ReturnDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BlocProvider(
+      create: (context) =>
+          getIt<ReturnDetailsCubit>()..loadReturn(returnId),
+      child: const _ReturnDetailsView(),
+    );
+  }
+}
 
-    // Mock return data
-    final returnData = {
-      'id': returnId,
-      'orderNumber': 'ORD-2024-0012',
-      'status': 'pending',
-      'reason': 'المنتج مختلف عن الوصف',
-      'description':
-          'الشاشة المستلمة لا تتوافق مع موديل الهاتف المحدد في الطلب',
-      'createdAt': '2024-12-18',
-      'items': [
-        {'name': 'شاشة iPhone 15 Pro Max', 'quantity': 1, 'price': 850.0},
-      ],
-      'refundAmount': 850.0,
-      'refundMethod': 'wallet',
-    };
+class _ReturnDetailsView extends StatelessWidget {
+  const _ReturnDetailsView();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: Text('طلب إرجاع #$returnId')),
-      body: ListView(
-        padding: EdgeInsets.all(16.w),
-        children: [
-          // Status Card
-          _buildStatusCard(returnData['status'] as String, isDark),
-          SizedBox(height: 16.h),
+      appBar: AppBar(
+        title: const Text('تفاصيل طلب الإرجاع'),
+      ),
+      body: BlocBuilder<ReturnDetailsCubit, ReturnDetailsState>(
+        builder: (context, state) {
+          if (state is ReturnDetailsLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          // Return Info
-          _buildInfoCard(
-            title: 'تفاصيل الإرجاع',
-            children: [
-              _buildInfoRow(
-                'رقم الطلب',
-                returnData['orderNumber'] as String,
-                isDark,
+          if (state is ReturnDetailsError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Iconsax.info_circle,
+                    size: 64.sp,
+                    color: AppColors.error,
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    state.message,
+                    style: theme.textTheme.bodyLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: () {
+                      final cubit = context.read<ReturnDetailsCubit>();
+                      if (cubit.returnId != null) {
+                        cubit.loadReturn(cubit.returnId!);
+                      }
+                    },
+                    child: const Text('إعادة المحاولة'),
+                  ),
+                ],
               ),
-              _buildInfoRow(
-                'تاريخ الطلب',
-                returnData['createdAt'] as String,
-                isDark,
-              ),
-              _buildInfoRow(
-                'سبب الإرجاع',
-                returnData['reason'] as String,
-                isDark,
-              ),
-            ],
-            isDark: isDark,
-          ),
-          SizedBox(height: 16.h),
+            );
+          }
 
-          // Description
-          _buildInfoCard(
-            title: 'الوصف',
-            children: [
-              Text(
-                returnData['description'] as String,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  height: 1.6,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                ),
-              ),
-            ],
-            isDark: isDark,
-          ),
-          SizedBox(height: 16.h),
+          if (state is ReturnDetailsLoaded) {
+            final returnRequest = state.returnRequest;
+            return RefreshIndicator(
+              onRefresh: () async {
+                await context.read<ReturnDetailsCubit>().loadReturn(returnRequest.id);
+              },
+              child: ListView(
+                padding: EdgeInsets.all(16.w),
+                children: [
+                  // Status Card
+                  ReturnStatusCard(returnRequest: returnRequest),
+                  SizedBox(height: 16.h),
 
-          // Items
-          _buildInfoCard(
-            title: 'المنتجات',
-            children: [
-              for (final item in returnData['items'] as List)
-                _buildItemRow(item as Map<String, dynamic>, isDark),
-            ],
-            isDark: isDark,
-          ),
-          SizedBox(height: 16.h),
+                  // Return Info
+                  _buildInfoCard(
+                    context,
+                    theme,
+                    isDark,
+                    'تفاصيل الإرجاع',
+                    [
+                      _buildInfoRow(
+                        context,
+                        theme,
+                        isDark,
+                        'رقم الطلب',
+                        returnRequest.returnNumber,
+                      ),
+                      if (returnRequest.orderIds.isNotEmpty)
+                        _buildInfoRow(
+                          context,
+                          theme,
+                          isDark,
+                          'عدد الطلبات',
+                          '${returnRequest.orderIds.length}',
+                        ),
+                      _buildInfoRow(
+                        context,
+                        theme,
+                        isDark,
+                        'تاريخ الطلب',
+                        DateFormat('yyyy/MM/dd', 'ar').format(returnRequest.createdAt),
+                      ),
+                      if (returnRequest.reason != null)
+                        _buildInfoRow(
+                          context,
+                          theme,
+                          isDark,
+                          'سبب الإرجاع',
+                          returnRequest.reason!.getName('ar'),
+                        ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
 
-          // Refund Info
-          _buildInfoCard(
-            title: 'معلومات الاسترداد',
-            children: [
-              _buildInfoRow(
-                'مبلغ الاسترداد',
-                '${(returnData['refundAmount'] as double).toStringAsFixed(0)} ر.س',
-                isDark,
-                valueColor: AppColors.success,
-              ),
-              _buildInfoRow(
-                'طريقة الاسترداد',
-                returnData['refundMethod'] == 'wallet'
-                    ? 'المحفظة'
-                    : 'نفس طريقة الدفع',
-                isDark,
-              ),
-            ],
-            isDark: isDark,
-          ),
-          SizedBox(height: 16.h),
+                  // Description
+                  if (returnRequest.customerNotes != null)
+                    _buildInfoCard(
+                      context,
+                      theme,
+                      isDark,
+                      'الوصف',
+                      [
+                        Text(
+                          returnRequest.customerNotes!,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  if (returnRequest.customerNotes != null) SizedBox(height: 16.h),
 
-          // Timeline
-          _buildTimeline(isDark),
-          SizedBox(height: 24.h),
+                  // Items
+                  if (returnRequest.items != null && returnRequest.items!.isNotEmpty)
+                    _buildInfoCard(
+                      context,
+                      theme,
+                      isDark,
+                      'المنتجات',
+                      returnRequest.items!
+                          .map((item) => ReturnItemCard(item: item))
+                          .toList(),
+                    ),
+                  if (returnRequest.items != null && returnRequest.items!.isNotEmpty)
+                    SizedBox(height: 16.h),
 
-          // Cancel Button (if pending)
-          if (returnData['status'] == 'pending')
-            OutlinedButton(
-              onPressed: () => _showCancelDialog(context),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.error,
-                side: const BorderSide(color: AppColors.error),
+                  // Refund Info
+                  _buildInfoCard(
+                    context,
+                    theme,
+                    isDark,
+                    'معلومات الاسترداد',
+                    [
+                      _buildInfoRow(
+                        context,
+                        theme,
+                        isDark,
+                        'قيمة المنتجات',
+                        '${returnRequest.totalItemsValue.toStringAsFixed(2)} ر.س',
+                      ),
+                      if (returnRequest.restockingFee > 0)
+                        _buildInfoRow(
+                          context,
+                          theme,
+                          isDark,
+                          'رسوم إعادة التخزين',
+                          '${returnRequest.restockingFee.toStringAsFixed(2)} ر.س',
+                        ),
+                      if (returnRequest.shippingDeduction > 0)
+                        _buildInfoRow(
+                          context,
+                          theme,
+                          isDark,
+                          'خصم الشحن',
+                          '${returnRequest.shippingDeduction.toStringAsFixed(2)} ر.س',
+                        ),
+                      _buildInfoRow(
+                        context,
+                        theme,
+                        isDark,
+                        'مبلغ الاسترداد',
+                        '${returnRequest.refundAmount.toStringAsFixed(2)} ر.س',
+                        valueColor: AppColors.success,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Pickup Address
+                  if (returnRequest.pickupAddress != null)
+                    _buildInfoCard(
+                      context,
+                      theme,
+                      isDark,
+                      'عنوان الاستلام',
+                      [
+                        _buildInfoRow(
+                          context,
+                          theme,
+                          isDark,
+                          'الاسم',
+                          returnRequest.pickupAddress!.fullName,
+                        ),
+                        _buildInfoRow(
+                          context,
+                          theme,
+                          isDark,
+                          'الهاتف',
+                          returnRequest.pickupAddress!.phone,
+                        ),
+                        _buildInfoRow(
+                          context,
+                          theme,
+                          isDark,
+                          'العنوان',
+                          returnRequest.pickupAddress!.address,
+                        ),
+                        _buildInfoRow(
+                          context,
+                          theme,
+                          isDark,
+                          'المدينة',
+                          returnRequest.pickupAddress!.city,
+                        ),
+                        if (returnRequest.pickupAddress!.notes != null)
+                          _buildInfoRow(
+                            context,
+                            theme,
+                            isDark,
+                            'ملاحظات',
+                            returnRequest.pickupAddress!.notes!,
+                          ),
+                      ],
+                    ),
+                  if (returnRequest.pickupAddress != null) SizedBox(height: 16.h),
+
+                  // Cancel Button (if pending)
+                  if (returnRequest.canCancel)
+                    OutlinedButton(
+                      onPressed: () => _showCancelDialog(context, returnRequest.id),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                      ),
+                      child: const Text('إلغاء طلب الإرجاع'),
+                    ),
+                  SizedBox(height: 24.h),
+                ],
               ),
-              child: Text(
-                'إلغاء طلب الإرجاع',
-                style: TextStyle(fontSize: 16.sp),
+            );
+          }
+
+          if (state is ReturnDetailsCancelled) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Iconsax.tick_circle,
+                    size: 64.sp,
+                    color: AppColors.success,
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'تم إلغاء طلب الإرجاع',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: () => context.pop(),
+                    child: const Text('العودة'),
+                  ),
+                ],
               ),
-            ),
-        ],
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
       ),
     );
   }
 
-  Widget _buildStatusCard(String status, bool isDark) {
-    final statusInfo = _getStatusInfo(status);
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: statusInfo['color'].withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: statusInfo['color'].withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12.w),
-            decoration: BoxDecoration(
-              color: statusInfo['color'],
-              shape: BoxShape.circle,
-            ),
-            child: Icon(statusInfo['icon'], size: 24.sp, color: Colors.white),
-          ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  statusInfo['label'],
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w700,
-                    color: statusInfo['color'],
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  statusInfo['description'],
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoCard({
-    required String title,
-    required List<Widget> children,
-    required bool isDark,
-  }) {
+  Widget _buildInfoCard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    String title,
+    List<Widget> children,
+  ) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: AppTheme.radiusMd,
+        borderRadius: BorderRadius.circular(12.r),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontSize: 16.sp,
+            style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.textPrimaryDark
-                  : AppColors.textPrimaryLight,
             ),
           ),
           SizedBox(height: 12.h),
@@ -221,9 +329,11 @@ class ReturnDetailsScreen extends StatelessWidget {
   }
 
   Widget _buildInfoRow(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
     String label,
-    String value,
-    bool isDark, {
+    String value, {
     Color? valueColor,
   }) {
     return Padding(
@@ -233,23 +343,15 @@ class ReturnDetailsScreen extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondaryLight,
             ),
           ),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 13.sp,
+            style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w500,
-              color:
-                  valueColor ??
-                  (isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimaryLight),
+              color: valueColor ?? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
             ),
           ),
         ],
@@ -257,181 +359,7 @@ class ReturnDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildItemRow(Map<String, dynamic> item, bool isDark) {
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      margin: EdgeInsets.only(bottom: 8.h),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48.w,
-            height: 48.w,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Icon(Iconsax.box, size: 24.sp, color: AppColors.primary),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item['name'],
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  'الكمية: ${item['quantity']}',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppColors.textSecondaryLight,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '${(item['price'] as double).toStringAsFixed(0)} ر.س',
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimeline(bool isDark) {
-    final steps = [
-      {'title': 'تم تقديم الطلب', 'date': '18 ديسمبر 2024', 'completed': true},
-      {'title': 'قيد المراجعة', 'date': 'في الانتظار', 'completed': false},
-      {'title': 'تمت الموافقة', 'date': '', 'completed': false},
-      {'title': 'تم الاسترداد', 'date': '', 'completed': false},
-    ];
-
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: AppTheme.radiusMd,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'حالة الطلب',
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
-          ),
-          SizedBox(height: 16.h),
-          ...steps.asMap().entries.map((entry) {
-            final step = entry.value;
-            final isLast = entry.key == steps.length - 1;
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  children: [
-                    Container(
-                      width: 24.w,
-                      height: 24.w,
-                      decoration: BoxDecoration(
-                        color: step['completed'] as bool
-                            ? AppColors.success
-                            : AppColors.dividerLight,
-                        shape: BoxShape.circle,
-                      ),
-                      child: step['completed'] as bool
-                          ? Icon(Icons.check, size: 14.sp, color: Colors.white)
-                          : null,
-                    ),
-                    if (!isLast)
-                      Container(
-                        width: 2.w,
-                        height: 30.h,
-                        color: step['completed'] as bool
-                            ? AppColors.success
-                            : AppColors.dividerLight,
-                      ),
-                  ],
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(bottom: 16.h),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          step['title'] as String,
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        if ((step['date'] as String).isNotEmpty)
-                          Text(
-                            step['date'] as String,
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: AppColors.textSecondaryLight,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Map<String, dynamic> _getStatusInfo(String status) {
-    switch (status) {
-      case 'approved':
-        return {
-          'label': 'تمت الموافقة',
-          'description': 'تم قبول طلب الإرجاع',
-          'color': AppColors.success,
-          'icon': Iconsax.tick_circle,
-        };
-      case 'rejected':
-        return {
-          'label': 'مرفوض',
-          'description': 'تم رفض طلب الإرجاع',
-          'color': AppColors.error,
-          'icon': Iconsax.close_circle,
-        };
-      case 'refunded':
-        return {
-          'label': 'تم الاسترداد',
-          'description': 'تم استرداد المبلغ',
-          'color': AppColors.info,
-          'icon': Iconsax.money_recive,
-        };
-      default:
-        return {
-          'label': 'قيد المراجعة',
-          'description': 'طلبك قيد المراجعة من فريقنا',
-          'color': AppColors.warning,
-          'icon': Iconsax.timer_1,
-        };
-    }
-  }
-
-  void _showCancelDialog(BuildContext context) {
+  void _showCancelDialog(BuildContext context, String returnId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -445,12 +373,12 @@ class ReturnDetailsScreen extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('تم إلغاء طلب الإرجاع')),
-              );
+              context.read<ReturnDetailsCubit>().cancelReturn(returnId);
             },
-            child: Text('نعم، إلغاء', style: TextStyle(color: AppColors.error)),
+            child: Text(
+              'نعم، إلغاء',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),

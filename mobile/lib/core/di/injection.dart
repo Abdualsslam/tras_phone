@@ -22,6 +22,7 @@ import '../../features/cart/data/datasources/cart_remote_datasource.dart';
 import '../../features/cart/data/datasources/cart_local_datasource.dart';
 import '../../features/cart/presentation/cubit/cart_cubit.dart';
 import '../../features/orders/data/datasources/orders_remote_datasource.dart';
+import '../../features/orders/presentation/cubit/orders_cubit.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
 import '../../features/wishlist/data/datasources/wishlist_remote_datasource.dart';
 import '../../features/notifications/data/datasources/notifications_remote_datasource.dart';
@@ -29,6 +30,11 @@ import '../../features/notifications/data/repositories/notifications_repository.
 import '../../features/notifications/presentation/cubit/notifications_cubit.dart';
 import '../../features/notifications/services/push_notification_manager.dart';
 import '../../features/returns/data/datasources/returns_remote_datasource.dart';
+import '../../features/returns/data/repositories/returns_repository_impl.dart';
+import '../../features/returns/domain/repositories/returns_repository.dart';
+import '../../features/returns/presentation/cubit/returns_cubit.dart';
+import '../../features/returns/presentation/cubit/create_return_cubit.dart';
+import '../../features/returns/presentation/cubit/return_details_cubit.dart';
 import '../../features/support/data/datasources/support_remote_datasource.dart';
 import '../../features/support/presentation/cubit/support_cubit.dart';
 import '../../features/support/presentation/cubit/live_chat_cubit.dart';
@@ -186,6 +192,11 @@ Future<void> setupDependencies() async {
     () => OrdersRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
 
+  // Cubit
+  getIt.registerFactory<OrdersCubit>(
+    () => OrdersCubit(dataSource: getIt<OrdersRemoteDataSource>()),
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   // PROFILE FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
@@ -251,6 +262,26 @@ Future<void> setupDependencies() async {
   // DataSources
   getIt.registerLazySingleton<ReturnsRemoteDataSource>(
     () => ReturnsRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<ReturnsRepository>(
+    () => ReturnsRepositoryImpl(
+      remoteDataSource: getIt<ReturnsRemoteDataSource>(),
+    ),
+  );
+
+  // Cubits
+  getIt.registerFactory<ReturnsCubit>(
+    () => ReturnsCubit(repository: getIt<ReturnsRepository>()),
+  );
+
+  getIt.registerFactory<CreateReturnCubit>(
+    () => CreateReturnCubit(repository: getIt<ReturnsRepository>()),
+  );
+
+  getIt.registerFactory<ReturnDetailsCubit>(
+    () => ReturnDetailsCubit(repository: getIt<ReturnsRepository>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════

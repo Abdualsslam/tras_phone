@@ -2,154 +2,167 @@
 library;
 
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/loading/app_loading.dart';
-import '../../../../core/widgets/feedback/app_error.dart';
-import '../../../orders/data/models/order_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
+import '../../../orders/domain/entities/order_entity.dart';
+import '../../../orders/domain/enums/order_enums.dart';
+import '../../../orders/presentation/cubit/orders_cubit.dart';
+import '../../../orders/presentation/cubit/orders_state.dart';
 import '../../data/models/return_model.dart';
-import 'create_return_screen.dart';
 
 /// شاشة اختيار المنتجات من جميع الطلبات للإرجاع
-class SelectItemsForReturnScreen extends StatefulWidget {
+class SelectItemsForReturnScreen extends StatelessWidget {
   const SelectItemsForReturnScreen({super.key});
 
   @override
-  State<SelectItemsForReturnScreen> createState() =>
-      _SelectItemsForReturnScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => getIt<OrdersCubit>()..loadOrders(status: OrderStatus.delivered),
+      child: const _SelectItemsForReturnView(),
+    );
+  }
 }
 
-class _SelectItemsForReturnScreenState
-    extends State<SelectItemsForReturnScreen> {
+class _SelectItemsForReturnView extends StatefulWidget {
+  const _SelectItemsForReturnView();
+
+  @override
+  State<_SelectItemsForReturnView> createState() => _SelectItemsForReturnViewState();
+}
+
+class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
   /// Map of orderItemId -> quantity
   final Map<String, int> _selectedItems = {};
 
-  /// List of eligible orders
-  List<OrderModel> _eligibleOrders = [];
-
-  /// Loading state
-  bool _isLoading = true;
-
-  /// Error message
-  String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadEligibleOrders();
-  }
-
-  /// جلب الطلبات المؤهلة للإرجاع
-  Future<void> _loadEligibleOrders() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      // TODO: Replace with actual implementation
-      // For now, fetch all delivered orders
-      // In production, add filters for:
-      // - status = 'delivered'
-      // - deliveredAt within return window (e.g., last 30 days)
-      // final orders = await ordersDataSource.getMyOrders(status: 'delivered');
-
-      // Placeholder: Empty list for now
-      _eligibleOrders = [];
-
-      setState(() {
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'فشل تحميل الطلبات: $e';
-      });
-    }
-  }
-
-  /// تبديل اختيار المنتج
-  /// orderItemId هو معرف فريد يتكون من orderId + productId + variantId
-  void _toggleItem(String orderItemId, int maxQuantity) {
-    setState(() {
-      if (_selectedItems.containsKey(orderItemId)) {
-        _selectedItems.remove(orderItemId);
-      } else {
-        _selectedItems[orderItemId] = maxQuantity;
-      }
-    });
-  }
-
-  /// المتابعة إلى صفحة إنشاء طلب الإرجاع
-  void _proceed() {
-    if (_selectedItems.isEmpty) return;
-
-    // تحويل selectedItems إلى List<CreateReturnItemRequest>
-    final items = _selectedItems.entries
-        .map(
-          (e) => CreateReturnItemRequest(orderItemId: e.key, quantity: e.value),
-        )
-        .toList();
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CreateReturnScreen(preSelectedItems: items),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('اختر المنتجات للإرجاع'),
         centerTitle: true,
       ),
-      body: _isLoading
-          ? const AppLoading()
-          : _errorMessage != null
-          ? AppError(message: _errorMessage!, onRetry: _loadEligibleOrders)
-          : _eligibleOrders.isEmpty
-          ? const Center(
+      body: BlocBuilder<OrdersCubit, OrdersState>(
+        builder: (context, state) {
+          if (state is OrdersLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is OrdersError) {
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.shopping_bag_outlined,
-                    size: 64,
-                    color: Colors.grey,
+                    Iconsax.warning_2,
+                    size: 64.sp,
+                    color: AppColors.error,
                   ),
-                  SizedBox(height: 16),
+                  SizedBox(height: 16.h),
                   Text(
-                    'لا توجد طلبات مؤهلة للإرجاع',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    state.message,
+                    style: theme.textTheme.bodyLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: () => context.read<OrdersCubit>().loadOrders(
+                          status: OrderStatus.delivered,
+                        ),
+                    child: const Text('إعادة المحاولة'),
                   ),
                 ],
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _eligibleOrders.length,
+            );
+          }
+
+          if (state is OrdersLoaded) {
+            final eligibleOrders = state.orders;
+
+            if (eligibleOrders.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Iconsax.shopping_bag,
+                      size: 80.sp,
+                      color: AppColors.textTertiaryLight,
+                    ),
+                    SizedBox(height: 24.h),
+                    Text(
+                      'لا توجد طلبات مؤهلة للإرجاع',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'يجب أن تكون الطلبات في حالة "تم التسليم"',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textTertiaryLight,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: EdgeInsets.all(16.w),
+              itemCount: eligibleOrders.length,
               itemBuilder: (context, index) {
-                final order = _eligibleOrders[index];
+                final order = eligibleOrders[index];
                 return _OrderCard(
                   order: order,
                   selectedItems: _selectedItems,
-                  onItemToggle: _toggleItem,
+                  onItemToggle: (orderItemId, quantity) {
+                    setState(() {
+                      if (_selectedItems.containsKey(orderItemId)) {
+                        _selectedItems.remove(orderItemId);
+                      } else {
+                        _selectedItems[orderItemId] = quantity;
+                      }
+                    });
+                  },
                 );
               },
-            ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
       bottomNavigationBar: _selectedItems.isNotEmpty
           ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+              child: Container(
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.cardDark : AppColors.cardLight,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
                 child: ElevatedButton(
-                  onPressed: _proceed,
+                  onPressed: () => _proceed(context),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
                   ),
                   child: Text(
                     'متابعة (${_selectedItems.length} منتج)',
-                    style: const TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 16.sp),
                   ),
                 ),
               ),
@@ -157,11 +170,27 @@ class _SelectItemsForReturnScreenState
           : null,
     );
   }
+
+  void _proceed(BuildContext context) {
+    if (_selectedItems.isEmpty) return;
+
+    // Convert selectedItems to List<CreateReturnItemRequest>
+    final items = _selectedItems.entries
+        .map(
+          (e) => CreateReturnItemRequest(
+            orderItemId: e.key,
+            quantity: e.value,
+          ),
+        )
+        .toList();
+
+    context.push('/returns/create', extra: items);
+  }
 }
 
 /// بطاقة الطلب مع المنتجات
 class _OrderCard extends StatelessWidget {
-  final OrderModel order;
+  final OrderEntity order;
   final Map<String, int> selectedItems;
   final Function(String, int) onItemToggle;
 
@@ -173,20 +202,30 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 16.h),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
       child: ExpansionTile(
         title: Text(
           'طلب ${order.orderNumber}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         subtitle: Text('${order.items.length} منتج'),
         children: order.items.asMap().entries.map((entry) {
           final index = entry.key;
           final item = entry.value;
-          // إنشاء معرف فريد من order.id + productId + variantId + index
-          final orderItemId =
-              '${order.id}_${item.productId}_${item.variantId ?? ''}_$index';
+          // Note: In production, order items should have unique IDs from the API
+          // For now, we use a combination that should be unique
+          // The backend will need to provide orderItemId in the API response
+          final orderItemId = '${order.id}_${item.productId}_${item.variantId ?? ''}_$index';
           final isSelected = selectedItems.containsKey(orderItemId);
 
           return CheckboxListTile(
@@ -194,26 +233,52 @@ class _OrderCard extends StatelessWidget {
             onChanged: (checked) {
               onItemToggle(orderItemId, item.quantity);
             },
-            title: Text(item.nameAr ?? item.name),
+            title: Text(item.getName('ar')),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('السعر: ${item.unitPrice} ر.س'),
-                Text('الكمية: ${item.quantity}'),
+                SizedBox(height: 4.h),
+                Text(
+                  'السعر: ${item.unitPrice.toStringAsFixed(2)} ر.س',
+                  style: theme.textTheme.bodySmall,
+                ),
+                Text(
+                  'الكمية: ${item.quantity}',
+                  style: theme.textTheme.bodySmall,
+                ),
               ],
             ),
             secondary: item.image != null
                 ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      item.image!,
-                      width: 50,
-                      height: 50,
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: CachedNetworkImage(
+                      imageUrl: item.image!,
+                      width: 50.w,
+                      height: 50.w,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.image),
+                      placeholder: (context, url) => Container(
+                        width: 50.w,
+                        height: 50.w,
+                        color: Colors.grey[300],
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        width: 50.w,
+                        height: 50.w,
+                        color: Colors.grey[300],
+                        child: Icon(Icons.image, color: Colors.grey[600]),
+                      ),
                     ),
                   )
-                : const Icon(Icons.image),
+                : Container(
+                    width: 50.w,
+                    height: 50.w,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Icon(Icons.image, color: Colors.grey[600]),
+                  ),
           );
         }).toList(),
       ),

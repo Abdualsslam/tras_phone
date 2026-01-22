@@ -5,8 +5,12 @@ import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
 import '../../domain/entities/order_entity.dart';
+import '../../domain/entities/order_stats_entity.dart';
+import '../../domain/entities/bank_account_entity.dart';
 import '../../domain/enums/order_enums.dart';
 import '../models/order_model.dart';
+import '../models/order_stats_model.dart';
+import '../models/bank_account_model.dart';
 import '../models/shipping_address_model.dart';
 
 /// Response for paginated orders
@@ -51,10 +55,28 @@ abstract class OrdersRemoteDataSource {
   Future<String> getOrderInvoice(String orderId);
 
   /// Rate order / product
-  Future<bool> rateOrder({
+  Future<OrderEntity> rateOrder({
     required String orderId,
     required int rating,
     String? comment,
+  });
+
+  /// Get my order statistics
+  Future<OrderStatsEntity> getMyOrderStats();
+
+  /// Get pending payment orders
+  Future<List<OrderEntity>> getPendingPaymentOrders();
+
+  /// Get bank accounts (public endpoint)
+  Future<List<BankAccountEntity>> getBankAccounts();
+
+  /// Upload receipt for order
+  Future<OrderEntity> uploadReceipt({
+    required String orderId,
+    required String receiptImage,
+    String? transferReference,
+    String? transferDate,
+    String? notes,
   });
 
   /// Get available payment methods
@@ -109,9 +131,12 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     developer.log('Fetching order: $orderId', name: 'OrdersDataSource');
 
     final response = await _apiClient.get('${ApiEndpoints.orders}/$orderId');
-    final data = response.data['data'] ?? response.data;
+    final responseData = response.data['data'] ?? response.data;
+    
+    // Handle nested response (data.order) or direct response (data)
+    final orderData = responseData['order'] ?? responseData;
 
-    return OrderModel.fromJson(data).toEntity();
+    return OrderModel.fromJson(orderData as Map<String, dynamic>).toEntity();
   }
 
   @override
@@ -190,7 +215,7 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
   }
 
   @override
-  Future<bool> rateOrder({
+  Future<OrderEntity> rateOrder({
     required String orderId,
     required int rating,
     String? comment,
@@ -202,7 +227,10 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
       data: {'rating': rating, if (comment != null) 'comment': comment},
     );
 
-    return response.statusCode == 200;
+    final responseData = response.data['data'] ?? response.data;
+    final orderData = responseData['order'] ?? responseData;
+
+    return OrderModel.fromJson(orderData as Map<String, dynamic>).toEntity();
   }
 
   @override
@@ -245,5 +273,76 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
 
     final data = response.data['data'] ?? response.data;
     return (data['shipping_cost'] ?? 0).toDouble();
+  }
+
+  @override
+  Future<OrderStatsEntity> getMyOrderStats() async {
+    developer.log('Fetching order stats', name: 'OrdersDataSource');
+
+    final response = await _apiClient.get('${ApiEndpoints.ordersMy}/stats');
+    final data = response.data['data'] ?? response.data;
+
+    return OrderStatsModel.fromJson(data as Map<String, dynamic>).toEntity();
+  }
+
+  @override
+  Future<List<OrderEntity>> getPendingPaymentOrders() async {
+    developer.log(
+      'Fetching pending payment orders',
+      name: 'OrdersDataSource',
+    );
+
+    final response = await _apiClient.get(ApiEndpoints.ordersPendingPayment);
+    final data = response.data['data'] ?? response.data;
+    final List<dynamic> list = data is List ? data : [];
+
+    return list
+        .map((json) => OrderModel.fromJson(json as Map<String, dynamic>).toEntity())
+        .toList();
+  }
+
+  @override
+  Future<List<BankAccountEntity>> getBankAccounts() async {
+    developer.log('Fetching bank accounts', name: 'OrdersDataSource');
+
+    final response = await _apiClient.get(ApiEndpoints.bankAccounts);
+    final data = response.data['data'] ?? response.data;
+    final List<dynamic> list = data is List ? data : [];
+
+    return list
+        .map(
+          (json) => BankAccountModel.fromJson(json as Map<String, dynamic>)
+              .toEntity(),
+        )
+        .toList();
+  }
+
+  @override
+  Future<OrderEntity> uploadReceipt({
+    required String orderId,
+    required String receiptImage,
+    String? transferReference,
+    String? transferDate,
+    String? notes,
+  }) async {
+    developer.log(
+      'Uploading receipt for order: $orderId',
+      name: 'OrdersDataSource',
+    );
+
+    final response = await _apiClient.post(
+      '${ApiEndpoints.orders}/$orderId/upload-receipt',
+      data: {
+        'receiptImage': receiptImage,
+        if (transferReference != null) 'transferReference': transferReference,
+        if (transferDate != null) 'transferDate': transferDate,
+        if (notes != null) 'notes': notes,
+      },
+    );
+
+    final responseData = response.data['data'] ?? response.data;
+    final orderData = responseData['order'] ?? responseData;
+
+    return OrderModel.fromJson(orderData as Map<String, dynamic>).toEntity();
   }
 }

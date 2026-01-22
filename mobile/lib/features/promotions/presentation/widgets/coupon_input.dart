@@ -122,6 +122,9 @@ class _CouponInputState extends State<CouponInput> {
             const SizedBox(width: 12),
             ElevatedButton(
               onPressed: isLoading ? null : _applyCoupon,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(80, 56),
+              ),
               child: isLoading
                   ? const SizedBox(
                       width: 20,

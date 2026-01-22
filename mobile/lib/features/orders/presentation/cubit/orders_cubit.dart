@@ -3,7 +3,6 @@ library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/order_entity.dart';
-import '../../domain/enums/order_enums.dart';
 import '../../data/datasources/orders_remote_datasource.dart';
 import '../../data/models/shipping_address_model.dart';
 import 'orders_state.dart';
@@ -16,7 +15,11 @@ class OrdersCubit extends Cubit<OrdersState> {
       super(const OrdersInitial());
 
   /// Load my orders
-  Future<void> loadOrders({OrderStatus? status, int page = 1, int limit = 20}) async {
+  Future<void> loadOrders({
+    OrderStatus? status,
+    int page = 1,
+    int limit = 20,
+  }) async {
     emit(const OrdersLoading());
 
     try {
@@ -25,11 +28,13 @@ class OrdersCubit extends Cubit<OrdersState> {
         page: page,
         limit: limit,
       );
-      emit(OrdersLoaded(
-        response.orders,
-        total: response.total,
-        filterStatus: status,
-      ));
+      emit(
+        OrdersLoaded(
+          response.orders,
+          total: response.total,
+          filterStatus: status,
+        ),
+      );
     } catch (e) {
       emit(OrdersError(e.toString()));
     }
@@ -101,7 +106,7 @@ class OrdersCubit extends Cubit<OrdersState> {
   }
 
   /// Rate order
-  Future<bool> rateOrder({
+  Future<OrderEntity?> rateOrder({
     required String orderId,
     required int rating,
     String? comment,
@@ -113,7 +118,64 @@ class OrdersCubit extends Cubit<OrdersState> {
         comment: comment,
       );
     } catch (e) {
-      return false;
+      emit(OrdersError(e.toString()));
+      return null;
+    }
+  }
+
+  /// Load order statistics
+  Future<void> loadOrderStats() async {
+    try {
+      final stats = await _dataSource.getMyOrderStats();
+      emit(OrdersStatsLoaded(stats));
+    } catch (e) {
+      emit(OrdersError(e.toString()));
+    }
+  }
+
+  /// Load pending payment orders
+  Future<void> loadPendingPaymentOrders() async {
+    try {
+      final orders = await _dataSource.getPendingPaymentOrders();
+      emit(OrdersPendingPaymentLoaded(orders));
+    } catch (e) {
+      emit(OrdersError(e.toString()));
+    }
+  }
+
+  /// Load bank accounts
+  Future<void> loadBankAccounts() async {
+    try {
+      final accounts = await _dataSource.getBankAccounts();
+      emit(BankAccountsLoaded(accounts));
+    } catch (e) {
+      emit(OrdersError(e.toString()));
+    }
+  }
+
+  /// Upload receipt for order
+  Future<OrderEntity?> uploadReceipt({
+    required String orderId,
+    required String receiptImage,
+    String? transferReference,
+    String? transferDate,
+    String? notes,
+  }) async {
+    emit(OrderReceiptUploading(orderId));
+    try {
+      final order = await _dataSource.uploadReceipt(
+        orderId: orderId,
+        receiptImage: receiptImage,
+        transferReference: transferReference,
+        transferDate: transferDate,
+        notes: notes,
+      );
+      // Reload orders to get updated state
+      await loadOrders();
+      return order;
+    } catch (e) {
+      emit(OrdersError(e.toString()));
+      return null;
     }
   }
 }

@@ -3,6 +3,8 @@ library;
 
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/order_entity.dart';
+import '../../domain/entities/order_stats_entity.dart';
+import '../../domain/entities/bank_account_entity.dart';
 import '../../domain/enums/order_enums.dart';
 
 abstract class OrdersState extends Equatable {
@@ -38,4 +40,40 @@ class OrdersError extends OrdersState {
 
   @override
   List<Object?> get props => [message];
+}
+
+class OrdersStatsLoaded extends OrdersState {
+  final OrderStatsEntity stats;
+
+  const OrdersStatsLoaded(this.stats);
+
+  @override
+  List<Object?> get props => [stats];
+}
+
+class OrdersPendingPaymentLoaded extends OrdersState {
+  final List<OrderEntity> orders;
+
+  const OrdersPendingPaymentLoaded(this.orders);
+
+  @override
+  List<Object?> get props => [orders];
+}
+
+class BankAccountsLoaded extends OrdersState {
+  final List<BankAccountEntity> accounts;
+
+  const BankAccountsLoaded(this.accounts);
+
+  @override
+  List<Object?> get props => [accounts];
+}
+
+class OrderReceiptUploading extends OrdersState {
+  final String orderId;
+
+  const OrderReceiptUploading(this.orderId);
+
+  @override
+  List<Object?> get props => [orderId];
 }

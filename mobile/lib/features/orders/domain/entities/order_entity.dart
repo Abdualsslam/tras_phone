@@ -118,6 +118,11 @@ class OrderEntity extends Equatable {
   final DateTime? cancelledAt;
   final String? cancellationReason;
 
+  // Rating
+  final int? customerRating; // 1-5
+  final String? customerRatingComment;
+  final DateTime? ratedAt;
+
   // Items
   final List<OrderItemEntity> items;
 
@@ -154,6 +159,9 @@ class OrderEntity extends Equatable {
     this.completedAt,
     this.cancelledAt,
     this.cancellationReason,
+    this.customerRating,
+    this.customerRatingComment,
+    this.ratedAt,
     this.items = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -167,6 +175,14 @@ class OrderEntity extends Equatable {
 
   /// Status text in Arabic for backward compatibility
   String get statusText => status.displayNameAr;
+
+  /// Check if order is rated
+  bool get isRated => customerRating != null && customerRating! > 0;
+
+  /// Check if order can be rated
+  bool get canRate =>
+      (status == OrderStatus.delivered || status == OrderStatus.completed) &&
+      !isRated;
 
   @override
   List<Object?> get props => [id, orderNumber, status];

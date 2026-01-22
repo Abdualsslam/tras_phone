@@ -3,6 +3,7 @@ library;
 
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/enums/return_enums.dart';
+import '../../domain/entities/return_entity.dart';
 
 part 'return_model.g.dart';
 
@@ -26,6 +27,17 @@ class PickupAddress {
   factory PickupAddress.fromJson(Map<String, dynamic> json) =>
       _$PickupAddressFromJson(json);
   Map<String, dynamic> toJson() => _$PickupAddressToJson(this);
+
+  /// Convert to domain entity
+  PickupAddressEntity toEntity() {
+    return PickupAddressEntity(
+      fullName: fullName,
+      phone: phone,
+      address: address,
+      city: city,
+      notes: notes,
+    );
+  }
 }
 
 /// Return Request Model
@@ -138,6 +150,37 @@ class ReturnModel {
       rejectedAt != null ? DateTime.tryParse(rejectedAt!) : null;
   DateTime? get completedAtDate =>
       completedAt != null ? DateTime.tryParse(completedAt!) : null;
+
+  /// Convert to domain entity
+  ReturnEntity toEntity() {
+    return ReturnEntity(
+      id: id,
+      returnNumber: returnNumber,
+      orderIds: orderIds,
+      customerId: customerId,
+      status: statusEnum,
+      returnType: returnTypeEnum,
+      reasonId: reasonId,
+      reason: reason?.toEntity(),
+      customerNotes: customerNotes,
+      customerImages: customerImages,
+      totalItemsValue: totalItemsValue,
+      restockingFee: restockingFee,
+      shippingDeduction: shippingDeduction,
+      refundAmount: refundAmount,
+      pickupAddress: pickupAddress?.toEntity(),
+      scheduledPickupDate: scheduledPickupDateParsed,
+      pickupTrackingNumber: pickupTrackingNumber,
+      exchangeOrderId: exchangeOrderId,
+      approvedAt: approvedAtDate,
+      rejectedAt: rejectedAtDate,
+      rejectionReason: rejectionReason,
+      completedAt: completedAtDate,
+      items: items?.map((item) => item.toEntity()).toList(),
+      createdAt: createdAtDate ?? DateTime.now(),
+      updatedAt: updatedAtDate ?? DateTime.now(),
+    );
+  }
 }
 
 /// Return Item Model
@@ -189,6 +232,27 @@ class ReturnItemModel {
       InspectionStatus.fromString(inspectionStatus);
   ItemCondition? get conditionEnum =>
       condition != null ? ItemCondition.fromString(condition!) : null;
+
+  /// Convert to domain entity
+  ReturnItemEntity toEntity() {
+    return ReturnItemEntity(
+      id: id,
+      returnRequestId: returnRequestId,
+      orderItemId: orderItemId,
+      productId: productId,
+      productSku: productSku,
+      productName: productName,
+      productImage: productImage,
+      quantity: quantity,
+      unitPrice: unitPrice,
+      totalValue: totalValue,
+      inspectionStatus: inspectionStatusEnum,
+      condition: conditionEnum,
+      approvedQuantity: approvedQuantity,
+      rejectedQuantity: rejectedQuantity,
+      inspectionNotes: inspectionNotes,
+    );
+  }
 }
 
 /// Return Reason Model
@@ -227,6 +291,22 @@ class ReturnReasonModel {
 
   /// الحصول على الاسم حسب اللغة
   String getName(String locale) => locale == 'ar' ? nameAr : name;
+
+  /// Convert to domain entity
+  ReturnReasonEntity toEntity() {
+    return ReturnReasonEntity(
+      id: id,
+      name: name,
+      nameAr: nameAr,
+      description: description,
+      category: categoryEnum,
+      requiresPhoto: requiresPhoto,
+      eligibleForRefund: eligibleForRefund,
+      eligibleForExchange: eligibleForExchange,
+      displayOrder: displayOrder,
+      isActive: isActive,
+    );
+  }
 }
 
 /// Create Return Request

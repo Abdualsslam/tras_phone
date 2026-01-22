@@ -137,6 +137,11 @@ class OrderModel {
   final DateTime? cancelledAt;
   final String? cancellationReason;
 
+  // Rating
+  final int? customerRating; // 1-5
+  final String? customerRatingComment;
+  final DateTime? ratedAt;
+
   // Items
   @JsonKey(defaultValue: [])
   final List<OrderItemModel> items;
@@ -174,6 +179,9 @@ class OrderModel {
     this.completedAt,
     this.cancelledAt,
     this.cancellationReason,
+    this.customerRating,
+    this.customerRatingComment,
+    this.ratedAt,
     this.items = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -245,6 +253,9 @@ class OrderModel {
       completedAt: completedAt,
       cancelledAt: cancelledAt,
       cancellationReason: cancellationReason,
+      customerRating: customerRating,
+      customerRatingComment: customerRatingComment,
+      ratedAt: ratedAt,
       items: items.map((i) => i.toEntity()).toList(),
       createdAt: createdAt,
       updatedAt: updatedAt,

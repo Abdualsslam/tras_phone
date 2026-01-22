@@ -9,6 +9,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../locations/presentation/cubit/locations_cubit.dart';
 import '../../domain/entities/address_entity.dart';
 import '../cubit/profile_cubit.dart';
 import '../cubit/profile_state.dart';
@@ -101,8 +102,11 @@ class _AddressesListView extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => BlocProvider.value(
-          value: context.read<AddressesCubit>(),
+        builder: (_) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: context.read<AddressesCubit>()),
+            BlocProvider.value(value: context.read<LocationsCubit>()),
+          ],
           child: const AddEditAddressScreen(),
         ),
       ),
@@ -113,8 +117,11 @@ class _AddressesListView extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => BlocProvider.value(
-          value: context.read<AddressesCubit>(),
+        builder: (_) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: context.read<AddressesCubit>()),
+            BlocProvider.value(value: context.read<LocationsCubit>()),
+          ],
           child: AddEditAddressScreen(address: address),
         ),
       ),
@@ -249,14 +256,36 @@ class _AddressesListView extends StatelessWidget {
               ),
             ],
           ),
-          if (address.phone != null) ...[
+          if (address.recipientName != null || address.phone != null) ...[
             SizedBox(height: 8.h),
-            Text(
-              address.phone!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textTertiaryLight,
+            if (address.recipientName != null)
+              Row(
+                children: [
+                  Icon(Iconsax.user, size: 14.sp, color: AppColors.textTertiaryLight),
+                  SizedBox(width: 4.w),
+                  Text(
+                    address.recipientName!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
               ),
-            ),
+            if (address.recipientName != null && address.phone != null)
+              SizedBox(height: 4.h),
+            if (address.phone != null)
+              Row(
+                children: [
+                  Icon(Iconsax.call, size: 14.sp, color: AppColors.textTertiaryLight),
+                  SizedBox(width: 4.w),
+                  Text(
+                    address.phone!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ),
           ],
         ],
       ),

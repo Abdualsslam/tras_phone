@@ -84,7 +84,7 @@ class ApiEndpoints {
   static const String checkoutSummary = '/checkout/summary';
   static const String placeOrder = '/checkout/place-order';
   static const String paymentMethods = '/checkout/payment-methods';
-  static const String bankAccounts = '/checkout/bank-accounts';
+  static const String bankAccounts = '/bank-accounts';
   static const String calculateShipping = '/checkout/calculate-shipping';
   static const String validateCoupon = '/coupons/validate';
   static const String availableCoupons = '/coupons/available';
@@ -99,6 +99,7 @@ class ApiEndpoints {
   static const String ordersStats = '/orders/stats';
   static const String ordersRecent = '/orders/recent';
   static const String ordersPendingPayment = '/orders/pending-payment';
+  static String orderUploadReceipt(String orderId) => '/orders/$orderId/upload-receipt';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RETURNS

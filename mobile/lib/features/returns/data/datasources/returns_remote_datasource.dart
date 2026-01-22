@@ -72,6 +72,52 @@ class ReturnsRemoteDataSourceImpl implements ReturnsRemoteDataSource {
     final response = await _apiClient.get('${ApiEndpoints.returns}/$id');
     final data = response.data['data'] ?? response.data;
 
+    // Handle response structure: { returnRequest: {...}, items: [...] }
+    if (data is Map<String, dynamic>) {
+      final returnRequestData = data['returnRequest'] ?? data;
+      final itemsData = data['items'] as List<dynamic>?;
+      
+      // Parse return request
+      final returnModel = ReturnModel.fromJson(returnRequestData);
+      
+      // If items are provided separately, merge them
+      if (itemsData != null && itemsData.isNotEmpty) {
+        final items = itemsData
+            .map((json) => ReturnItemModel.fromJson(json as Map<String, dynamic>))
+            .toList();
+        // Return a new model with items merged
+        return ReturnModel(
+          id: returnModel.id,
+          returnNumber: returnModel.returnNumber,
+          orderIds: returnModel.orderIds,
+          customerId: returnModel.customerId,
+          status: returnModel.status,
+          returnType: returnModel.returnType,
+          reasonId: returnModel.reasonId,
+          reason: returnModel.reason,
+          customerNotes: returnModel.customerNotes,
+          customerImages: returnModel.customerImages,
+          totalItemsValue: returnModel.totalItemsValue,
+          restockingFee: returnModel.restockingFee,
+          shippingDeduction: returnModel.shippingDeduction,
+          refundAmount: returnModel.refundAmount,
+          pickupAddress: returnModel.pickupAddress,
+          scheduledPickupDate: returnModel.scheduledPickupDate,
+          pickupTrackingNumber: returnModel.pickupTrackingNumber,
+          exchangeOrderId: returnModel.exchangeOrderId,
+          approvedAt: returnModel.approvedAt,
+          rejectedAt: returnModel.rejectedAt,
+          rejectionReason: returnModel.rejectionReason,
+          completedAt: returnModel.completedAt,
+          items: items,
+          createdAt: returnModel.createdAt,
+          updatedAt: returnModel.updatedAt,
+        );
+      }
+      
+      return returnModel;
+    }
+
     return ReturnModel.fromJson(data);
   }
 

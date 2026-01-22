@@ -89,11 +89,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(16.w),
+              physics: const ClampingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
             // Address Section
             _buildSectionTitle(theme, AppLocalizations.of(context)!.addresses),
             SizedBox(height: 12.h),
@@ -155,10 +160,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               },
             ),
             SizedBox(height: 100.h),
-          ],
-        ),
+                ],
+              ),
+            ),
+          ),
+          _buildBottomBar(context, theme, isDark),
+        ],
       ),
-      bottomSheet: _buildBottomBar(context, theme, isDark),
     );
   }
 
