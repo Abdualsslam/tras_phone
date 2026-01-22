@@ -186,24 +186,24 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Check if customer is rejected (for customers only) - must check before other status checks
+    if (user.userType === 'customer') {
+      const customer = await this.customerModel.findOne({ userId: user._id });
+      if (customer && customer.rejectionReason) {
+        await this.logLoginAttempt({
+          identifier: phone,
+          identifierType: 'phone',
+          ipAddress: ipAddress || 'unknown',
+          userAgent,
+          status: 'blocked',
+          failureReason: 'Account rejected',
+        });
+        throw new UnauthorizedException('Your account has been rejected');
+      }
+    }
+
     // Check if account is suspended or deleted
     if (user.status === 'suspended') {
-      // Check if customer is rejected (for customers only)
-      if (user.userType === 'customer') {
-        const customer = await this.customerModel.findOne({ userId: user._id });
-        if (customer && customer.rejectionReason) {
-          await this.logLoginAttempt({
-            identifier: phone,
-            identifierType: 'phone',
-            ipAddress: ipAddress || 'unknown',
-            userAgent,
-            status: 'blocked',
-            failureReason: 'Account rejected',
-          });
-          throw new UnauthorizedException('Your account has been rejected');
-        }
-      }
-
       await this.logLoginAttempt({
         identifier: phone,
         identifierType: 'phone',
