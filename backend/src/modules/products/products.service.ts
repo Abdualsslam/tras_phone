@@ -619,6 +619,31 @@ export class ProductsService {
   }
 
   /**
+   * Get default price level
+   */
+  async getDefaultPriceLevel(): Promise<PriceLevelDocument> {
+    const priceLevel = await this.priceLevelModel.findOne({
+      isDefault: true,
+      isActive: true,
+    });
+
+    if (!priceLevel) {
+      // Fallback: get first active price level
+      const fallback = await this.priceLevelModel
+        .findOne({ isActive: true })
+        .sort({ displayOrder: 1, name: 1 });
+
+      if (!fallback) {
+        throw new NotFoundException('No price level found');
+      }
+
+      return fallback;
+    }
+
+    return priceLevel;
+  }
+
+  /**
    * Delete price level
    */
   async deletePriceLevel(id: string): Promise<void> {

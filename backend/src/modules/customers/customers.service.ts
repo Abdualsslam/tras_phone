@@ -67,6 +67,47 @@ export class CustomersService {
   }
 
   /**
+   * Create customer profile automatically (for auto-creation when profile is missing)
+   * This method allows cityId to be optional/null
+   */
+  async createAutoProfile(
+    userId: string,
+    priceLevelId: string,
+    responsiblePersonName: string = 'Customer',
+  ): Promise<CustomerDocument> {
+    // Check if customer already exists for this user
+    const existingCustomer = await this.customerModel.findOne({
+      userId,
+    });
+
+    if (existingCustomer) {
+      throw new ConflictException('Customer already exists for this user');
+    }
+
+    // Generate customer code
+    const customerCode = await this.generateCustomerCode();
+
+    // Create customer with minimal required fields
+    // Note: cityId is optional and will be updated later
+    const customer = await this.customerModel.create({
+      userId,
+      customerCode,
+      responsiblePersonName,
+      shopName: 'My Shop',
+      businessType: 'shop',
+      // cityId is optional - will be updated later
+      priceLevelId,
+      creditLimit: 0,
+      walletBalance: 0,
+      loyaltyPoints: 0,
+      loyaltyTier: 'bronze',
+      preferredContactMethod: 'whatsapp',
+    });
+
+    return customer;
+  }
+
+  /**
    * Find all customers with pagination and filters
    * Now includes users with userType=customer even if they don't have a customer profile
    */
@@ -481,7 +522,7 @@ export class CustomersService {
   /**
    * Generate unique customer code
    */
-  private async generateCustomerCode(): Promise<string> {
+  async generateCustomerCode(): Promise<string> {
     const prefix = 'CUS';
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
