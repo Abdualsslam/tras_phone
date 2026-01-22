@@ -81,6 +81,11 @@ export class CustomerProfileController {
 
       // إعادة جلب customer مع populate
       customer = await this.customersService.findByUserId(user.id);
+      
+      // إذا لم يتم العثور على customer بعد الإنشاء، إرجاع خطأ
+      if (!customer) {
+        throw new NotFoundException('Customer profile not found');
+      }
     }
 
     // تحويل customer إلى plain object وإضافة name إلى userId
