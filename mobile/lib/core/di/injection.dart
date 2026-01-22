@@ -60,6 +60,9 @@ import '../../features/banners/data/datasources/banners_remote_datasource.dart';
 import '../../features/banners/data/repositories/banners_repository.dart';
 import '../../features/banners/data/services/banners_service.dart';
 import '../../features/banners/presentation/cubit/banners_cubit.dart';
+import '../cache/hive_cache_service.dart';
+import '../../features/home/data/services/home_cache_service.dart';
+import '../../features/home/presentation/cubit/home_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final getIt = GetIt.instance;
@@ -92,6 +95,14 @@ Future<void> setupDependencies() async {
     enableLogging: true, // Set to false in production
   );
   getIt.registerSingleton<ApiClient>(apiClient);
+
+  // Cache Services
+  final hiveCacheService = HiveCacheService();
+  await hiveCacheService.init();
+  getIt.registerSingleton<HiveCacheService>(hiveCacheService);
+
+  final homeCacheService = HomeCacheService(hiveCacheService);
+  getIt.registerSingleton<HomeCacheService>(homeCacheService);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // AUTH FEATURE

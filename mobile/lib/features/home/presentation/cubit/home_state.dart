@@ -62,6 +62,47 @@ class HomeLoaded extends HomeState {
   ];
 }
 
+class HomeLoadedFromCache extends HomeState {
+  final List<CategoryEntity> categories;
+  final List<BrandEntity> brands;
+  final List<ProductEntity> featuredProducts;
+  final List<ProductEntity> newArrivals;
+  final List<ProductEntity> bestSellers;
+
+  const HomeLoadedFromCache({
+    this.categories = const [],
+    this.brands = const [],
+    this.featuredProducts = const [],
+    this.newArrivals = const [],
+    this.bestSellers = const [],
+  });
+
+  HomeLoadedFromCache copyWith({
+    List<CategoryEntity>? categories,
+    List<BrandEntity>? brands,
+    List<ProductEntity>? featuredProducts,
+    List<ProductEntity>? newArrivals,
+    List<ProductEntity>? bestSellers,
+  }) {
+    return HomeLoadedFromCache(
+      categories: categories ?? this.categories,
+      brands: brands ?? this.brands,
+      featuredProducts: featuredProducts ?? this.featuredProducts,
+      newArrivals: newArrivals ?? this.newArrivals,
+      bestSellers: bestSellers ?? this.bestSellers,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    categories,
+    brands,
+    featuredProducts,
+    newArrivals,
+    bestSellers,
+  ];
+}
+
 class HomeError extends HomeState {
   final String message;
 

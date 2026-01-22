@@ -713,10 +713,10 @@ packages:
     dependency: "direct main"
     description:
       name: get_it
-      sha256: d85128a5dae4ea777324730dc65edd9c9f43155c109d5cc0a69cab74139fbac1
+      sha256: ae78de7c3f2304b8d81f2bb6e320833e5e81de942188542328f074978cc0efa9
       url: "https://pub.dev"
     source: hosted
-    version: "7.7.0"
+    version: "8.3.0"
   glob:
     dependency: transitive
     description:
@@ -741,6 +741,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.2"
+  hive_ce:
+    dependency: "direct main"
+    description:
+      name: hive_ce
+      sha256: b844955c89f61f479170632b971dcf6fbb8e7233d2a5c2e3c7b89e1b2986bdb5
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.19.1"
+  hive_ce_flutter:
+    dependency: "direct main"
+    description:
+      name: hive_ce_flutter
+      sha256: "2677e95a333ff15af43ccd06af7eb7abbf1a4f154ea071997f3de4346cae913a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.4"
+  hive_ce_generator:
+    dependency: "direct dev"
+    description:
+      name: hive_ce_generator
+      sha256: b19ac263cb37529513508ba47352c41e6de72ba879952898d9c18c9c8a955921
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.10.0"
   html:
     dependency: transitive
     description:
@@ -857,10 +881,10 @@ packages:
     dependency: "direct main"
     description:
       name: injectable
-      sha256: "29559f7e3daebf0084597de86a825ae7f149d9e30264b7fbc71d1069ae82697d"
+      sha256: "32b36a9d87f18662bee0b1951b81f47a01f2bf28cd6ea94f60bc5453c7bf598c"
       url: "https://pub.dev"
     source: hosted
-    version: "2.6.0"
+    version: "2.7.1+4"
   injectable_generator:
     dependency: "direct dev"
     description:
@@ -885,6 +909,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
+  isolate_channel:
+    dependency: transitive
+    description:
+      name: isolate_channel
+      sha256: "000d617d021a608186b468584bbc6df2509ecba048f08510f832fdb9cf7aafbe"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.1"
   js:
     dependency: transitive
     description:
@@ -1754,6 +1786,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.3"
+  yaml_writer:
+    dependency: transitive
+    description:
+      name: yaml_writer
+      sha256: "69651cd7238411179ac32079937d4aa9a2970150d6b2ae2c6fe6de09402a5dc5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   youtube_player_flutter:
     dependency: "direct main"
     description:

@@ -22,6 +22,7 @@ import { ApiAuthErrorResponses } from '@common/decorators/api-error-responses.de
 import { CustomersService } from './customers.service';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
+import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 import { CurrentUser } from '@decorators/current-user.decorator';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
@@ -39,6 +40,76 @@ import { NotFoundException } from '@nestjs/common';
 @ApiBearerAuth('JWT-auth')
 export class CustomerProfileController {
   constructor(private readonly customersService: CustomersService) {}
+
+  // ═════════════════════════════════════
+  // Profile Management
+  // ═════════════════════════════════════
+
+  /**
+   * Get customer profile
+   */
+  @Get('profile')
+  @ApiOperation({
+    summary: 'Get customer profile',
+    description: 'Retrieve the current customer profile information',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async getProfile(@CurrentUser() user: any) {
+    // Find customer by userId
+    const customer = await this.customersService.findByUserId(user.id);
+
+    if (!customer) {
+      throw new NotFoundException('Customer profile not found');
+    }
+
+    return ResponseBuilder.success(
+      customer,
+      'Profile retrieved successfully',
+      'تم استرجاع البروفايل بنجاح',
+    );
+  }
+
+  /**
+   * Update customer profile
+   */
+  @Put('profile')
+  @ApiOperation({
+    summary: 'Update customer profile',
+    description: 'Update the current customer profile. All fields are optional.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile updated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async updateProfile(
+    @CurrentUser() user: any,
+    @Body() updateCustomerDto: UpdateCustomerDto,
+  ) {
+    // Find customer by userId
+    const customer = await this.customersService.findByUserId(user.id);
+
+    if (!customer) {
+      throw new NotFoundException('Customer profile not found');
+    }
+
+    const updatedCustomer = await this.customersService.update(
+      customer._id.toString(),
+      updateCustomerDto,
+    );
+
+    return ResponseBuilder.success(
+      updatedCustomer,
+      'Profile updated successfully',
+      'تم تحديث البروفايل بنجاح',
+    );
+  }
 
   /**
    * Delete customer account (self-delete)

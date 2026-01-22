@@ -59,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onRetry: () => context.read<HomeCubit>().loadHomeData(),
             );
           }
-          if (state is HomeLoaded) {
+          if (state is HomeLoaded || state is HomeLoadedFromCache) {
             return RefreshIndicator(
               onRefresh: () async {
                 await context.read<HomeCubit>().refresh();
@@ -76,9 +76,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildContent(HomeLoaded state) {
+  Widget _buildContent(HomeState state) {
     final locale = Localizations.localeOf(context).languageCode;
     final isMobile = MediaQuery.of(context).size.width < 600;
+
+    // Extract data from either HomeLoaded or HomeLoadedFromCache
+    final categories = state is HomeLoaded
+        ? state.categories
+        : (state as HomeLoadedFromCache).categories;
+    final brands = state is HomeLoaded
+        ? state.brands
+        : (state as HomeLoadedFromCache).brands;
+    final featuredProducts = state is HomeLoaded
+        ? state.featuredProducts
+        : (state as HomeLoadedFromCache).featuredProducts;
+    final newArrivals = state is HomeLoaded
+        ? state.newArrivals
+        : (state as HomeLoadedFromCache).newArrivals;
+    final bestSellers = state is HomeLoaded
+        ? state.bestSellers
+        : (state as HomeLoadedFromCache).bestSellers;
 
     return BlocBuilder<BannersCubit, BannersState>(
       builder: (context, bannersState) {
@@ -115,41 +132,41 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(height: 24.h),
 
             // Categories
-            if (state.categories.isNotEmpty)
-              CategoriesSection(categories: state.categories),
+            if (categories.isNotEmpty)
+              CategoriesSection(categories: categories),
 
             SizedBox(height: 24.h),
 
             // Brands
-            if (state.brands.isNotEmpty) BrandsSection(brands: state.brands),
+            if (brands.isNotEmpty) BrandsSection(brands: brands),
 
             SizedBox(height: 24.h),
 
             // Featured Products
-            if (state.featuredProducts.isNotEmpty)
+            if (featuredProducts.isNotEmpty)
               ProductsSection(
                 title: AppLocalizations.of(context)!.featuredProducts,
-                products: state.featuredProducts,
+                products: featuredProducts,
                 onSeeAll: () => context.push('/products?isFeatured=true'),
               ),
 
             SizedBox(height: 24.h),
 
             // New Arrivals
-            if (state.newArrivals.isNotEmpty)
+            if (newArrivals.isNotEmpty)
               ProductsSection(
                 title: AppLocalizations.of(context)!.newArrivals,
-                products: state.newArrivals,
+                products: newArrivals,
                 onSeeAll: () => context.push('/products?sort=newest'),
               ),
 
             SizedBox(height: 24.h),
 
             // Best Sellers
-            if (state.bestSellers.isNotEmpty)
+            if (bestSellers.isNotEmpty)
               ProductsSection(
                 title: AppLocalizations.of(context)!.bestSellers,
-                products: state.bestSellers,
+                products: bestSellers,
                 onSeeAll: () => context.push('/products?sort=bestselling'),
               ),
 

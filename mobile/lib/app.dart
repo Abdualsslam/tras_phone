@@ -11,6 +11,7 @@ import 'core/storage/local_storage.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/cart/presentation/cubit/cart_cubit.dart';
 import 'features/home/presentation/cubit/home_cubit.dart';
+import 'features/home/data/services/home_cache_service.dart';
 import 'features/catalog/data/datasources/catalog_remote_datasource.dart';
 import 'features/orders/presentation/cubit/orders_cubit.dart';
 import 'features/orders/data/datasources/orders_remote_datasource.dart';
@@ -43,8 +44,10 @@ class TrasPhoneApp extends StatelessWidget {
             ),
             BlocProvider(create: (_) => getIt<AuthCubit>()),
             BlocProvider(
-              create: (_) =>
-                  HomeCubit(dataSource: getIt<CatalogRemoteDataSource>()),
+              create: (_) => HomeCubit(
+                dataSource: getIt<CatalogRemoteDataSource>(),
+                cacheService: getIt<HomeCacheService>(),
+              ),
             ),
             BlocProvider.value(
               value: getIt<CartCubit>(),

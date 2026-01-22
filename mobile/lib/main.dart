@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'app.dart';
 import 'core/di/injection.dart';
 import 'features/notifications/services/push_notification_manager.dart';
@@ -13,12 +14,15 @@ void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Hive for caching
+  await Hive.initFlutter();
+
   // Initialize Firebase
   // Note: Make sure to add google-services.json (Android) and GoogleService-Info.plist (iOS)
   // from Firebase Console to the respective platform directories
   try {
     await Firebase.initializeApp();
-    
+
     // Register background message handler
     // This must be a top-level function (defined in push_notification_manager.dart)
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
@@ -26,7 +30,9 @@ void main() async {
     // Firebase initialization failed - log error but continue app startup
     // This allows the app to work without Firebase if configuration files are missing
     debugPrint('Firebase initialization failed: $e');
-    debugPrint('Note: Add Firebase configuration files to enable push notifications');
+    debugPrint(
+      'Note: Add Firebase configuration files to enable push notifications',
+    );
   }
 
   // Set preferred orientations
