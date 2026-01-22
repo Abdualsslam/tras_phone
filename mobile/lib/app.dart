@@ -64,7 +64,14 @@ class TrasPhoneApp extends StatelessWidget {
               create: (_) => getIt<WalletCubit>(),
             ),
             BlocProvider(
-              create: (_) => getIt<NotificationsCubit>(),
+              create: (_) {
+                try {
+                  return getIt<NotificationsCubit>();
+                } catch (e) {
+                  debugPrint('Error creating NotificationsCubit: $e');
+                  rethrow;
+                }
+              },
             ),
           ],
           child: BlocBuilder<LocaleCubit, LocaleState>(
