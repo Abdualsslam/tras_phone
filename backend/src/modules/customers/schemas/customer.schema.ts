@@ -43,8 +43,8 @@ export class Customer {
     // ═════════════════════════════════════
     // Location
     // ═════════════════════════════════════
-    @Prop({ type: Types.ObjectId, ref: 'City', required: true })
-    cityId: Types.ObjectId;
+    @Prop({ type: Types.ObjectId, ref: 'City', required: false })
+    cityId?: Types.ObjectId;
 
     @Prop({ type: Types.ObjectId, ref: 'Market' })
     marketId?: Types.ObjectId;

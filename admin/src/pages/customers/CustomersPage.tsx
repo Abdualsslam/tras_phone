@@ -482,6 +482,18 @@ export function CustomersPage() {
                                                             </DropdownMenuItem>
                                                         </>
                                                     )}
+                                                    {customer.status === 'rejected' && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                className="text-green-600"
+                                                                onClick={() => approveMutation.mutate(customer._id)}
+                                                            >
+                                                                <CheckCircle className="h-4 w-4" />
+                                                                قبول
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </TableCell>
@@ -790,6 +802,66 @@ export function CustomersPage() {
                         </div>
                     )}
                     <DialogFooter className="gap-2">
+                        {selectedCustomer && selectedCustomer.status === 'pending' && (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    className="text-green-600 border-green-600 hover:bg-green-50"
+                                    onClick={() => {
+                                        if (selectedCustomer) {
+                                            approveMutation.mutate(selectedCustomer._id);
+                                            setIsDetailsDialogOpen(false);
+                                        }
+                                    }}
+                                    disabled={approveMutation.isPending}
+                                >
+                                    {approveMutation.isPending ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <CheckCircle className="h-4 w-4" />
+                                    )}
+                                    قبول
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="text-red-600 border-red-600 hover:bg-red-50"
+                                    onClick={() => {
+                                        if (selectedCustomer) {
+                                            rejectMutation.mutate(selectedCustomer._id);
+                                            setIsDetailsDialogOpen(false);
+                                        }
+                                    }}
+                                    disabled={rejectMutation.isPending}
+                                >
+                                    {rejectMutation.isPending ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <XCircle className="h-4 w-4" />
+                                    )}
+                                    رفض
+                                </Button>
+                            </>
+                        )}
+                        {selectedCustomer && selectedCustomer.status === 'rejected' && (
+                            <Button
+                                variant="outline"
+                                className="text-green-600 border-green-600 hover:bg-green-50"
+                                onClick={() => {
+                                    if (selectedCustomer) {
+                                        approveMutation.mutate(selectedCustomer._id);
+                                        setIsDetailsDialogOpen(false);
+                                    }
+                                }}
+                                disabled={approveMutation.isPending}
+                            >
+                                {approveMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <CheckCircle className="h-4 w-4" />
+                                )}
+                                قبول
+                            </Button>
+                        )}
                         <Button variant="outline" onClick={() => setIsDetailsDialogOpen(false)}>
                             إغلاق
                         </Button>

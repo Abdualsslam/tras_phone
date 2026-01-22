@@ -20,6 +20,7 @@ import {
 import { ApiResponseDto } from '@common/dto/api-response.dto';
 import { ApiAuthErrorResponses } from '@common/decorators/api-error-responses.decorator';
 import { CustomersService } from './customers.service';
+import { ProductsService } from '@modules/products/products.service';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -39,7 +40,10 @@ import { NotFoundException } from '@nestjs/common';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class CustomerProfileController {
-  constructor(private readonly customersService: CustomersService) {}
+  constructor(
+    private readonly customersService: CustomersService,
+    private readonly productsService: ProductsService,
+  ) {}
 
   // ═════════════════════════════════════
   // Profile Management
@@ -61,10 +65,19 @@ export class CustomerProfileController {
   @ApiAuthErrorResponses()
   async getProfile(@CurrentUser() user: any) {
     // Find customer by userId
-    const customer = await this.customersService.findByUserId(user.id);
+    let customer = await this.customersService.findByUserId(user.id);
 
+    // إنشاء profile تلقائياً إذا لم يكن موجوداً
     if (!customer) {
-      throw new NotFoundException('Customer profile not found');
+      // الحصول على default price level
+      const defaultPriceLevel = await this.productsService.getDefaultPriceLevel();
+
+      // إنشاء customer profile أساسي
+      customer = await this.customersService.createAutoProfile(
+        user.id,
+        defaultPriceLevel._id.toString(),
+        user.phone || 'Customer',
+      );
     }
 
     return ResponseBuilder.success(

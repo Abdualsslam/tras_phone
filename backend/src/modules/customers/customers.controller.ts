@@ -25,6 +25,7 @@ import { Roles } from '@decorators/roles.decorator';
 import { UserRole } from '@common/enums/user-role.enum';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
 import { UsersService } from '@modules/users/users.service';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -196,8 +197,8 @@ export class CustomersController {
         type: ApiResponseDto,
     })
     @ApiCommonErrorResponses()
-    async approve(@Param('id') id: string, @Body('adminId') adminId: string) {
-        const customer = await this.customersService.approve(id, adminId);
+    async approve(@Param('id') id: string, @CurrentUser() user: any) {
+        const customer = await this.customersService.approve(id, user.id);
 
         return ResponseBuilder.success(
             customer,

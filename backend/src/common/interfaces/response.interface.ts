@@ -256,6 +256,7 @@ export class ResponseBuilder {
             'Your account is under review. Please wait for activation': 'حسابك قيد المراجعة. الحالة: قيد المراجعة - يرجى انتظار التفعيل',
             'Your account is not active. Please verify your account or contact support': 'حسابك غير مفعل. الحالة: غير مفعل - يرجى التحقق من حسابك أو الاتصال بالدعم',
             'Your account has been suspended': 'تم تعليق حسابك. الحالة: معطل',
+            'Your account has been rejected': 'حسابك مرفوض. الحالة: مرفوض',
             'Your account has been deleted': 'تم حذف حسابك. الحالة: محذوف',
             'Your account is not active': 'حسابك غير مفعل. الحالة: غير مفعل',
             'User not found': 'المستخدم غير موجود',
