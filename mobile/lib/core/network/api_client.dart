@@ -229,11 +229,7 @@ class ApiClient {
     final translations = {
       'Your account is under review. Please wait for activation':
           'حسابك قيد المراجعة. يرجى انتظار التفعيل',
-<<<<<<< HEAD
       'Your account has been rejected': 'تم رفض حسابك',
-=======
-      'Your account has been rejected': 'حسابك مرفوض. الحالة: مرفوض',
->>>>>>> 1b9295612e025c6e9ccde46e5d6b25c003980842
       'Invalid credentials': 'رقم الجوال أو كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى',
       'User not found': 'المستخدم غير موجود',
       'Account is locked': 'الحساب مقفل',
