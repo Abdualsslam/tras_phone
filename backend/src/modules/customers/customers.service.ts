@@ -341,23 +341,33 @@ export class CustomersService {
    * Reject customer
    */
   async reject(id: string, reason: string): Promise<CustomerDocument> {
-    const customer = await this.customerModel.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          rejectionReason: reason,
+    const customer = await this.customerModel
+      .findByIdAndUpdate(
+        id,
+        {
+          $set: {
+            rejectionReason: reason,
+          },
+          $unset: {
+            approvedAt: '',
+            approvedBy: '',
+          },
         },
-        $unset: {
-          approvedAt: '',
-          approvedBy: '',
-        },
-      },
-      { new: true, runValidators: false },
-    );
+        { new: true, runValidators: false },
+      )
+      .populate('userId');
 
     if (!customer) {
       throw new NotFoundException('Customer not found');
     }
+
+    // Update user status to 'suspended' when customer is rejected
+    const userId =
+      typeof customer.userId === 'object' && customer.userId?._id
+        ? customer.userId._id.toString()
+        : customer.userId.toString();
+
+    await this.usersService.update(userId, { status: 'suspended' });
 
     return customer;
   }
