@@ -73,15 +73,27 @@ export class CustomerProfileController {
       const defaultPriceLevel = await this.productsService.getDefaultPriceLevel();
 
       // إنشاء customer profile أساسي
-      customer = await this.customersService.createAutoProfile(
+      await this.customersService.createAutoProfile(
         user.id,
         defaultPriceLevel._id.toString(),
         user.phone || 'Customer',
       );
+
+      // إعادة جلب customer مع populate
+      customer = await this.customersService.findByUserId(user.id);
+    }
+
+    // تحويل customer إلى plain object وإضافة name إلى userId
+    const customerObj = customer.toObject ? customer.toObject() : customer;
+    if (customerObj.userId && typeof customerObj.userId === 'object') {
+      customerObj.userId = {
+        ...customerObj.userId,
+        name: customerObj.responsiblePersonName,
+      };
     }
 
     return ResponseBuilder.success(
-      customer,
+      customerObj,
       'Profile retrieved successfully',
       'تم استرجاع البروفايل بنجاح',
     );
