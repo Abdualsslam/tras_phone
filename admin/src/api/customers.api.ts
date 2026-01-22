@@ -147,8 +147,11 @@ export const customersApi = {
         return response.data.data;
     },
 
-    reject: async (id: string): Promise<Customer> => {
-        const response = await apiClient.patch<ApiResponse<Customer>>(`/customers/${id}/reject`);
+    reject: async (id: string, reason?: string): Promise<Customer> => {
+        const response = await apiClient.patch<ApiResponse<Customer>>(
+            `/customers/${id}/reject`,
+            { reason: reason || 'تم الرفض من قبل الإدارة' }
+        );
         return response.data.data;
     },
 

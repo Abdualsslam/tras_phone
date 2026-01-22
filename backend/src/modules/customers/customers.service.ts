@@ -310,8 +310,13 @@ export class CustomersService {
       .findByIdAndUpdate(
         id,
         {
-          approvedBy: adminId,
-          approvedAt: new Date(),
+          $set: {
+            approvedBy: adminId,
+            approvedAt: new Date(),
+          },
+          $unset: {
+            rejectionReason: '',
+          },
         },
         { new: true, runValidators: false },
       )
@@ -339,7 +344,13 @@ export class CustomersService {
     const customer = await this.customerModel.findByIdAndUpdate(
       id,
       {
-        rejectionReason: reason,
+        $set: {
+          rejectionReason: reason,
+        },
+        $unset: {
+          approvedAt: '',
+          approvedBy: '',
+        },
       },
       { new: true, runValidators: false },
     );
