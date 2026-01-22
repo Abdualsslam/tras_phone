@@ -157,38 +157,57 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildErrorState(BuildContext context, ThemeData theme, String message) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Iconsax.warning_2,
-            size: 80.sp,
-            color: Colors.red,
-          ),
-          SizedBox(height: 24.h),
-          Text(
-            'حدث خطأ',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+      child: Padding(
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Iconsax.warning_2,
+              size: 80.sp,
+              color: AppColors.error,
             ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            message,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.textTertiaryLight,
+            SizedBox(height: 24.h),
+            Text(
+              'حدث خطأ',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 24.h),
-          ElevatedButton.icon(
-            onPressed: () {
-              context.read<NotificationsCubit>().refresh();
-            },
-            icon: const Icon(Iconsax.refresh),
-            label: const Text('إعادة المحاولة'),
-          ),
-        ],
+            SizedBox(height: 8.h),
+            Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textTertiaryLight,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: 24.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    context.read<NotificationsCubit>().refresh();
+                  },
+                  icon: const Icon(Iconsax.refresh),
+                  label: const Text('إعادة المحاولة'),
+                ),
+                SizedBox(width: 12.w),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    // Try to load with default settings
+                    context.read<NotificationsCubit>().loadNotifications();
+                  },
+                  icon: const Icon(Iconsax.refresh_circle),
+                  label: const Text('إعادة التحميل'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

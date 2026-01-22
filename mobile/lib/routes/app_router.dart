@@ -22,6 +22,8 @@ import '../features/navigation/presentation/screens/main_navigation_shell.dart';
 import '../features/wallet/presentation/screens/wallet_screen.dart';
 import '../features/wallet/presentation/screens/loyalty_points_screen.dart';
 import '../features/wallet/presentation/screens/wallet_transactions_screen.dart';
+import '../features/wallet/presentation/screens/loyalty_tiers_screen.dart';
+import '../features/wallet/presentation/screens/loyalty_transactions_screen.dart';
 import '../features/wallet/presentation/screens/referral_screen.dart';
 import '../features/notifications/presentation/screens/notifications_screen.dart';
 import '../features/notifications/presentation/screens/notification_details_screen.dart';
@@ -148,8 +150,9 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/products',
       builder: (context, state) {
-        final isFeatured = state.uri.queryParameters['isFeatured'] ?? 
-                          state.uri.queryParameters['featured'];
+        final isFeatured =
+            state.uri.queryParameters['isFeatured'] ??
+            state.uri.queryParameters['featured'];
         final sort = state.uri.queryParameters['sort'];
         return ProductsListScreen(
           isFeatured: isFeatured == 'true' ? true : null,
@@ -237,6 +240,14 @@ final GoRouter appRouter = GoRouter(
       path: '/loyalty-points',
       builder: (context, state) => const LoyaltyPointsScreen(),
     ),
+    GoRoute(
+      path: '/loyalty-tiers',
+      builder: (context, state) => const LoyaltyTiersScreen(),
+    ),
+    GoRoute(
+      path: '/loyalty/transactions',
+      builder: (context, state) => const LoyaltyTransactionsScreen(),
+    ),
 
     // ═══════════════════════════════════════════════════════════════════════
     // PROFILE ROUTES
@@ -268,7 +279,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/support/:id/chat',
       builder: (context, state) {
-        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+        final id = state.pathParameters['id'] ?? '';
         return TicketChatScreen(ticketId: id, subject: 'تذكرة دعم');
       },
     ),

@@ -114,11 +114,19 @@ class ApiEndpoints {
   static const String myTickets = '/tickets/my';
   static const String tickets = '/tickets';
   static const String supportCategories = '/support/categories';
+  static const String ticketUpload = '/tickets/upload';
+  
+  // Ticket endpoints
+  static String ticketDetails(String id) => '/tickets/my/$id';
+  static String ticketMessages(String id) => '/tickets/my/$id/messages';
+  static String ticketRate(String id) => '/tickets/my/$id/rate';
   
   // Live Chat
   static const String chatStart = '/chat/start';
   static const String chatMySession = '/chat/my-session';
   static const String chatConversations = '/chat/conversations';
+  static const String chatMessages = '/chat/my-session/messages';
+  static const String chatEnd = '/chat/my-session/end';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // NOTIFICATIONS
@@ -132,8 +140,8 @@ class ApiEndpoints {
   // ═══════════════════════════════════════════════════════════════════════════
   // CONTENT
   // ═══════════════════════════════════════════════════════════════════════════
-  static const String educationCategories = '/education/categories';
-  static const String educationContent = '/education/content';
+  static const String educationCategories = '/educational/categories';
+  static const String educationContent = '/educational/content';
   static const String pages = '/pages';
   static const String faqs = '/faqs';
   static const String banners = '/banners';

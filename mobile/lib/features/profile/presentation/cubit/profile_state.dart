@@ -33,6 +33,13 @@ class ProfileError extends ProfileState {
   const ProfileError(this.message);
 }
 
+/// Profile updated successfully
+class ProfileUpdated extends ProfileState {
+  final CustomerEntity customer;
+
+  const ProfileUpdated(this.customer);
+}
+
 /// Base state for addresses
 abstract class AddressesState {
   const AddressesState();

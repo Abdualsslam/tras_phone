@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/address_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../../data/models/address_model.dart';
+import '../../data/models/update_customer_profile_dto.dart';
 import '../../../auth/domain/entities/customer_entity.dart';
 import 'profile_state.dart';
 
@@ -30,21 +31,11 @@ class ProfileCubit extends Cubit<ProfileState> {
   }
 
   /// Update profile
-  Future<void> updateProfile({
-    String? name,
-    String? email,
-    String? phone,
-    String? avatar,
-  }) async {
+  Future<void> updateProfile(UpdateCustomerProfileDto dto) async {
     emit(const ProfileLoading());
     try {
-      final customer = await _repository.updateProfile(
-        name: name,
-        email: email,
-        phone: phone,
-        avatar: avatar,
-      );
-      emit(ProfileLoaded(customer));
+      final customer = await _repository.updateProfile(dto);
+      emit(ProfileUpdated(customer));
     } catch (e) {
       developer.log('Error updating profile: $e', name: 'ProfileCubit');
       emit(ProfileError(e.toString()));

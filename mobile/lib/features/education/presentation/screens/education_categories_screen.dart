@@ -241,7 +241,7 @@ class _EducationCategoriesView extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              category.nameAr ?? category.name,
+              category.getName('ar'),
               style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

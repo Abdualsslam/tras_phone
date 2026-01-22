@@ -6,7 +6,9 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../routes/app_router.dart';
 import '../../../notifications/services/push_notification_manager.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../domain/entities/user_entity.dart';
@@ -45,6 +47,8 @@ class AuthCubit extends Cubit<AuthState> {
     if (cachedUser != null) {
       developer.log('Using cached user, going to AuthAuthenticated', name: 'AuthCubit');
       emit(AuthAuthenticated(cachedUser));
+      // Initialize push notifications for already logged in user
+      _initializePushNotifications();
       // Optionally refresh profile in background
       _refreshProfileInBackground();
       return;
@@ -61,6 +65,8 @@ class AuthCubit extends Cubit<AuthState> {
       (user) {
         developer.log('getProfile success: ${user.phone}', name: 'AuthCubit');
         emit(AuthAuthenticated(user));
+        // Initialize push notifications for already logged in user
+        _initializePushNotifications();
       },
     );
   }
@@ -98,6 +104,8 @@ class AuthCubit extends Cubit<AuthState> {
       (failure) => emit(AuthError(failure.message)),
       (user) {
         emit(AuthAuthenticated(user));
+        // Initialize push notifications after successful login
+        _initializePushNotifications();
         // Update FCM token after successful login
         _updateFcmTokenAfterAuth();
         // Sync local cart with server (silent - no UI feedback)
@@ -134,12 +142,72 @@ class AuthCubit extends Cubit<AuthState> {
       (failure) => emit(AuthError(failure.message)),
       (user) {
         emit(AuthAuthenticated(user));
+        // Initialize push notifications after successful registration
+        _initializePushNotifications();
         // Update FCM token after successful registration
         _updateFcmTokenAfterAuth();
         // Sync local cart with server (silent - no UI feedback)
         _syncCartAfterLogin();
       },
     );
+  }
+
+  /// Initialize push notifications with navigation handler
+  Future<void> _initializePushNotifications() async {
+    try {
+      final pushManager = getIt<PushNotificationManager>();
+      await pushManager.initialize(
+        onNotificationTap: _handleNotificationTap,
+      );
+      developer.log('Push notifications initialized', name: 'AuthCubit');
+    } catch (e) {
+      developer.log('Failed to initialize push notifications: $e', name: 'AuthCubit');
+      // Fail silently - not critical
+    }
+  }
+
+  /// Handle notification tap and navigate to appropriate screen
+  void _handleNotificationTap(Map<String, dynamic> data) {
+    try {
+      final actionType = data['actionType'] as String?;
+      final actionId = data['actionId'] as String?;
+      final actionUrl = data['actionUrl'] as String?;
+      final notificationId = data['notificationId'] as String?;
+
+      // Use appRouter directly for navigation
+      // Navigate based on action type
+      if (actionType != null && actionId != null) {
+        switch (actionType) {
+          case 'order':
+            appRouter.push('/orders/$actionId');
+            break;
+          case 'product':
+            appRouter.push('/products/$actionId');
+            break;
+          case 'promotion':
+            appRouter.push('/promotions/$actionId');
+            break;
+          case 'url':
+            if (actionUrl != null) {
+              launchUrl(Uri.parse(actionUrl), mode: LaunchMode.externalApplication);
+            }
+            break;
+          default:
+            // If no specific action, navigate to notification details if available
+            if (notificationId != null) {
+              appRouter.push('/notification/$notificationId');
+            }
+        }
+      } else if (notificationId != null) {
+        // Fallback: navigate to notification details
+        appRouter.push('/notification/$notificationId');
+      } else {
+        // No action available, navigate to notifications list
+        appRouter.push('/notifications');
+      }
+    } catch (e) {
+      developer.log('Error handling notification tap: $e', name: 'AuthCubit');
+    }
   }
 
   /// Update FCM token after authentication (login/register)

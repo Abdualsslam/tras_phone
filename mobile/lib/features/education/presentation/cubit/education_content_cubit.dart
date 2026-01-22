@@ -48,9 +48,11 @@ class EducationContentCubit extends Cubit<EducationContentState> {
         limit: _limit,
       );
 
-      final content = result['data'] as List<EducationalContentEntity>;
-      final total = result['total'] as int;
-      final hasMore = content.length >= _limit;
+      final content = result['content'] as List<EducationalContentEntity>;
+      final pagination = result['pagination'] as Map<String, dynamic>;
+      final total = pagination['total'] as int? ?? content.length;
+      final pages = pagination['pages'] as int? ?? (total / _limit).ceil();
+      final hasMore = _currentPage < pages;
 
       emit(EducationContentLoaded(
         content: content,
@@ -82,9 +84,11 @@ class EducationContentCubit extends Cubit<EducationContentState> {
         limit: _limit,
       );
 
-      final newContent = result['data'] as List<EducationalContentEntity>;
-      final total = result['total'] as int;
-      final hasMore = newContent.length >= _limit;
+      final newContent = result['content'] as List<EducationalContentEntity>;
+      final pagination = result['pagination'] as Map<String, dynamic>;
+      final total = pagination['total'] as int? ?? currentState.total;
+      final pages = pagination['pages'] as int? ?? (total / _limit).ceil();
+      final hasMore = _currentPage < pages;
 
       emit(EducationContentLoaded(
         content: [...currentState.content, ...newContent],
@@ -135,5 +139,41 @@ class EducationContentCubit extends Cubit<EducationContentState> {
       featured: _currentFeatured,
       search: query.isEmpty ? null : query,
     );
+  }
+
+  /// جلب المحتوى المميز
+  Future<void> loadFeaturedContent({int limit = 6}) async {
+    emit(const EducationContentLoading());
+
+    try {
+      final content = await _repository.getFeaturedContent(limit: limit);
+      emit(EducationContentLoaded(
+        content: content,
+        hasMore: false,
+        currentPage: 1,
+        total: content.length,
+      ));
+    } catch (e) {
+      emit(EducationContentError(e.toString()));
+    }
+  }
+
+  /// الإعجاب بالمحتوى
+  Future<void> likeContent(String contentId) async {
+    try {
+      await _repository.likeContent(contentId);
+      // يمكن تحديث الحالة المحلية هنا إذا لزم الأمر
+    } catch (e) {
+      emit(EducationContentError(e.toString()));
+    }
+  }
+
+  /// مشاركة المحتوى
+  Future<void> shareContent(String contentId) async {
+    try {
+      await _repository.shareContent(contentId);
+    } catch (e) {
+      emit(EducationContentError(e.toString()));
+    }
   }
 }

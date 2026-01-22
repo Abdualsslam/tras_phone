@@ -187,41 +187,13 @@ class _EducationListViewState extends State<_EducationListView> {
     BuildContext context,
   ) {
     final isVideo = content.type == ContentType.video;
+    final locale = 'ar'; // TODO: Get from localization
     
-    String getTypeLabel(ContentType type) {
-      switch (type) {
-        case ContentType.article:
-          return 'مقال';
-        case ContentType.video:
-          return 'فيديو';
-        case ContentType.tutorial:
-          return 'درس';
-        case ContentType.tip:
-          return 'نصيحة';
-        case ContentType.guide:
-          return 'دليل';
-      }
-    }
-
-    Color getTypeColor(ContentType type) {
-      switch (type) {
-        case ContentType.video:
-          return AppColors.error;
-        case ContentType.tutorial:
-          return AppColors.warning;
-        case ContentType.tip:
-          return AppColors.success;
-        default:
-          return AppColors.info;
-      }
-    }
-
     String getDuration() {
-      if (content.videoDuration != null) {
-        final minutes = (content.videoDuration! / 60).round();
-        return '$minutes دقيقة';
-      } else if (content.readingTime != null) {
-        return '${content.readingTime} دقائق قراءة';
+      if (content.videoDurationFormatted != null) {
+        return content.videoDurationFormatted!;
+      } else if (content.readingTimeFormatted.isNotEmpty) {
+        return content.readingTimeFormatted;
       }
       return '5 دقائق';
     }
@@ -241,7 +213,7 @@ class _EducationListViewState extends State<_EducationListView> {
               width: 80.w,
               height: 80.w,
               decoration: BoxDecoration(
-                color: getTypeColor(content.type).withValues(alpha: 0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10.r),
                 image: content.featuredImage != null
                     ? DecorationImage(
@@ -255,15 +227,15 @@ class _EducationListViewState extends State<_EducationListView> {
                       alignment: Alignment.center,
                       children: [
                         Icon(
-                          isVideo ? Iconsax.video : Iconsax.document_text,
+                          content.type.icon,
                           size: 32.sp,
-                          color: getTypeColor(content.type),
+                          color: AppColors.primary,
                         ),
                         if (isVideo)
                           Container(
                             padding: EdgeInsets.all(6.w),
                             decoration: BoxDecoration(
-                              color: getTypeColor(content.type),
+                              color: AppColors.primary,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -303,14 +275,14 @@ class _EducationListViewState extends State<_EducationListView> {
                       vertical: 2.h,
                     ),
                     decoration: BoxDecoration(
-                      color: getTypeColor(content.type).withValues(alpha: 0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4.r),
                     ),
                     child: Text(
-                      getTypeLabel(content.type),
+                      content.type.getName(locale),
                       style: TextStyle(
                         fontSize: 10.sp,
-                        color: getTypeColor(content.type),
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -318,7 +290,7 @@ class _EducationListViewState extends State<_EducationListView> {
                   SizedBox(height: 6.h),
                   // Title
                   Text(
-                    content.titleAr ?? content.title,
+                    content.getTitle(locale),
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,

@@ -8,6 +8,7 @@ import '../datasources/profile_remote_datasource.dart';
 import '../models/address_model.dart';
 import '../models/wallet_model.dart';
 import '../models/referral_model.dart';
+import '../models/update_customer_profile_dto.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
   final ProfileRemoteDataSource _dataSource;
@@ -25,18 +26,8 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<CustomerEntity> updateProfile({
-    String? name,
-    String? email,
-    String? phone,
-    String? avatar,
-  }) async {
-    return await _dataSource.updateProfile(
-      name: name,
-      email: email,
-      phone: phone,
-      avatar: avatar,
-    );
+  Future<CustomerEntity> updateProfile(UpdateCustomerProfileDto dto) async {
+    return await _dataSource.updateProfile(dto);
   }
 
   @override

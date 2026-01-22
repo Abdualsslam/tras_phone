@@ -53,4 +53,15 @@ class EducationalCategoryEntity extends Equatable {
         createdAt,
         updatedAt,
       ];
+
+  /// الحصول على الاسم حسب اللغة
+  String getName(String locale) =>
+      locale == 'ar' && nameAr != null ? nameAr! : name;
+
+  /// الحصول على الوصف حسب اللغة
+  String? getDescription(String locale) =>
+      locale == 'ar' && descriptionAr != null ? descriptionAr : description;
+
+  /// هل لديه محتوى؟
+  bool get hasContent => contentCount > 0;
 }

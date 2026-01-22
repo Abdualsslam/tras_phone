@@ -343,4 +343,91 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get passwordsDoNotMatch => 'كلمات المرور غير متطابقة';
+
+  @override
+  String get supportTickets => 'تذاكر الدعم';
+
+  @override
+  String get createTicket => 'إنشاء تذكرة';
+
+  @override
+  String get ticketNumber => 'رقم التذكرة';
+
+  @override
+  String get ticketSubject => 'موضوع التذكرة';
+
+  @override
+  String get ticketDescription => 'وصف المشكلة';
+
+  @override
+  String get ticketCategory => 'فئة التذكرة';
+
+  @override
+  String get ticketPriority => 'أولوية التذكرة';
+
+  @override
+  String get ticketStatus => 'حالة التذكرة';
+
+  @override
+  String get ticketMessages => 'رسائل التذكرة';
+
+  @override
+  String get sendMessage => 'إرسال رسالة';
+
+  @override
+  String get typeMessage => 'اكتب رسالتك...';
+
+  @override
+  String get attachments => 'المرفقات';
+
+  @override
+  String get addAttachment => 'إضافة مرفق';
+
+  @override
+  String get rateTicket => 'قيم التذكرة';
+
+  @override
+  String get rateService => 'قيم الخدمة';
+
+  @override
+  String get liveChat => 'المحادثة المباشرة';
+
+  @override
+  String get startChat => 'بدء المحادثة';
+
+  @override
+  String get endChat => 'إنهاء المحادثة';
+
+  @override
+  String get chatWaiting => 'في الانتظار';
+
+  @override
+  String get chatActive => 'نشطة';
+
+  @override
+  String get chatEnded => 'منتهية';
+
+  @override
+  String get noTickets => 'لا توجد تذاكر';
+
+  @override
+  String get noMessages => 'لا توجد رسائل';
+
+  @override
+  String get ticketCreated => 'تم إنشاء التذكرة بنجاح';
+
+  @override
+  String get messageSent => 'تم إرسال الرسالة';
+
+  @override
+  String get ratingSubmitted => 'شكراً لتقييمك';
+
+  @override
+  String get selectCategory => 'اختر فئة التذكرة';
+
+  @override
+  String get enterSubject => 'أدخل موضوع التذكرة';
+
+  @override
+  String get enterDescription => 'أدخل وصف المشكلة';
 }

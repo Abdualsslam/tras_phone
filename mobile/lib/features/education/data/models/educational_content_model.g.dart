@@ -25,12 +25,8 @@ EducationalContentModel _$EducationalContentModelFromJson(
   attachments: (json['attachments'] as List<dynamic>)
       .map((e) => e as String)
       .toList(),
-  relatedProducts: (json['relatedProducts'] as List<dynamic>?)
-      ?.map((e) => e as String)
-      .toList(),
-  relatedContent: (json['relatedContent'] as List<dynamic>?)
-      ?.map((e) => e as String)
-      .toList(),
+  relatedProducts: json['relatedProducts'],
+  relatedContent: json['relatedContent'],
   tags: (json['tags'] as List<dynamic>).map((e) => e as String).toList(),
   metaTitle: json['metaTitle'] as String?,
   metaDescription: json['metaDescription'] as String?,

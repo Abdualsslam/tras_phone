@@ -53,6 +53,9 @@ import '../../features/education/domain/repositories/education_repository.dart';
 import '../../features/education/presentation/cubit/education_categories_cubit.dart';
 import '../../features/education/presentation/cubit/education_content_cubit.dart';
 import '../../features/education/presentation/cubit/education_details_cubit.dart';
+import '../../features/wallet/data/datasources/wallet_remote_datasource.dart';
+import '../../features/wallet/data/repositories/wallet_repository.dart';
+import '../../features/wallet/presentation/cubit/wallet_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final getIt = GetIt.instance;
@@ -372,6 +375,25 @@ Future<void> setupDependencies() async {
 
   getIt.registerFactory<EducationDetailsCubit>(
     () => EducationDetailsCubit(repository: getIt<EducationRepository>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WALLET FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // DataSources
+  getIt.registerLazySingleton<WalletRemoteDataSource>(
+    () => WalletRemoteDataSourceImpl(getIt<ApiClient>()),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<WalletRepository>(
+    () => WalletRepositoryImpl(getIt<WalletRemoteDataSource>()),
+  );
+
+  // Cubit
+  getIt.registerFactory<WalletCubit>(
+    () => WalletCubit(getIt<WalletRepository>()),
   );
 }
 

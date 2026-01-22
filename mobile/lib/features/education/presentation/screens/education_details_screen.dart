@@ -88,9 +88,11 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
           final content = state.content;
           _checkFavoriteStatus(content.id);
 
+          final locale = 'ar'; // TODO: Get from localization
+          
           return Scaffold(
             appBar: AppBar(
-              title: Text(content.titleAr ?? content.title),
+              title: Text(content.getTitle(locale)),
               actions: [
                 IconButton(
                   onPressed: () => _toggleFavorite(content.id),
@@ -141,7 +143,7 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
 
                         // Title
                         Text(
-                          content.titleAr ?? content.title,
+                          content.getTitle(locale),
                           style: TextStyle(
                             fontSize: 20.sp,
                             fontWeight: FontWeight.w700,
@@ -150,9 +152,9 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
                         SizedBox(height: 8.h),
 
                         // Excerpt
-                        if (content.excerpt != null || content.excerptAr != null)
+                        if (content.getExcerpt(locale) != null)
                           Text(
-                            content.excerptAr ?? content.excerpt!,
+                            content.getExcerpt(locale)!,
                             style: TextStyle(
                               fontSize: 14.sp,
                               color: AppColors.textSecondaryLight,
@@ -170,11 +172,11 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
                             content.type == ContentType.tutorial ||
                             content.type == ContentType.guide)
                           HtmlContentWidget(
-                            htmlContent: content.contentAr ?? content.content,
+                            htmlContent: content.getContentText(locale),
                           )
                         else
                           Text(
-                            content.contentAr ?? content.content,
+                            content.getContentText(locale),
                             style: TextStyle(
                               fontSize: 15.sp,
                               height: 1.8,
@@ -251,44 +253,7 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
   }
 
   Widget _buildMetaInfo(EducationalContentEntity content, bool isDark) {
-    String getTypeLabel(ContentType type) {
-      switch (type) {
-        case ContentType.article:
-          return 'مقال';
-        case ContentType.video:
-          return 'فيديو';
-        case ContentType.tutorial:
-          return 'درس';
-        case ContentType.tip:
-          return 'نصيحة';
-        case ContentType.guide:
-          return 'دليل';
-      }
-    }
-
-    Color getTypeColor(ContentType type) {
-      switch (type) {
-        case ContentType.video:
-          return AppColors.error;
-        case ContentType.tutorial:
-          return AppColors.warning;
-        case ContentType.tip:
-          return AppColors.success;
-        default:
-          return AppColors.info;
-      }
-    }
-
-    String getDifficultyLabel(ContentDifficulty difficulty) {
-      switch (difficulty) {
-        case ContentDifficulty.beginner:
-          return 'مبتدئ';
-        case ContentDifficulty.intermediate:
-          return 'متوسط';
-        case ContentDifficulty.advanced:
-          return 'متقدم';
-      }
-    }
+    final locale = 'ar'; // TODO: Get from localization
 
     return Row(
       children: [
@@ -296,14 +261,14 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
           decoration: BoxDecoration(
-            color: getTypeColor(content.type).withValues(alpha: 0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(6.r),
           ),
           child: Text(
-            getTypeLabel(content.type),
+            content.type.getName(locale),
             style: TextStyle(
               fontSize: 12.sp,
-              color: getTypeColor(content.type),
+              color: AppColors.primary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -314,14 +279,14 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
           decoration: BoxDecoration(
-            color: AppColors.textSecondaryLight.withValues(alpha: 0.1),
+            color: content.difficulty.color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(6.r),
           ),
           child: Text(
-            getDifficultyLabel(content.difficulty),
+            content.difficulty.getName(locale),
             style: TextStyle(
               fontSize: 12.sp,
-              color: AppColors.textSecondaryLight,
+              color: content.difficulty.color,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -332,11 +297,10 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
         Icon(Iconsax.clock, size: 14.sp, color: AppColors.textSecondaryLight),
         SizedBox(width: 4.w),
         Text(
-          content.videoDuration != null
-              ? '${(content.videoDuration! / 60).round()} دقيقة'
-              : content.readingTime != null
-                  ? '${content.readingTime} دقائق قراءة'
-                  : '5 دقائق',
+          content.videoDurationFormatted ?? 
+          (content.readingTimeFormatted.isNotEmpty 
+              ? content.readingTimeFormatted 
+              : '5 دقائق'),
           style: TextStyle(
             fontSize: 12.sp,
             color: AppColors.textSecondaryLight,

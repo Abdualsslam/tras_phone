@@ -9,6 +9,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../data/models/support_model.dart';
 import '../cubit/support_cubit.dart';
+import '../widgets/attachment_picker.dart';
 
 class CreateTicketScreen extends StatefulWidget {
   final String? orderId;
@@ -30,7 +31,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   final _descriptionController = TextEditingController();
   TicketCategoryModel? _selectedCategory;
   TicketPriority _selectedPriority = TicketPriority.medium;
-  final List<String> _attachments = [];
+  List<String> _attachmentPaths = [];
   bool _isSubmitting = false;
 
   @override
@@ -227,57 +228,14 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     ),
                   ),
                   SizedBox(height: 8.h),
-                  GestureDetector(
-                    onTap: _pickAttachments,
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(24.w),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: AppColors.dividerLight,
-                          style: BorderStyle.solid,
-                        ),
-                        borderRadius: BorderRadius.circular(14.r),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Iconsax.document_upload,
-                            size: 40.sp,
-                            color: AppColors.textTertiaryLight,
-                          ),
-                          SizedBox(height: 8.h),
-                          Text(
-                            'اضغط لإرفاق صور أو ملفات',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.textTertiaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  AttachmentPicker(
+                    attachments: _attachmentPaths,
+                    onChanged: (paths) {
+                      setState(() => _attachmentPaths = paths);
+                    },
+                    maxAttachments: 5,
+                    allowImages: true,
                   ),
-                  if (_attachments.isNotEmpty) ...[
-                    SizedBox(height: 8.h),
-                    Wrap(
-                      spacing: 8.w,
-                      runSpacing: 8.h,
-                      children: _attachments.map((url) {
-                        return Chip(
-                          label: Text(
-                            url.split('/').last,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          deleteIcon:
-                              Icon(Iconsax.close_circle, size: 16.sp),
-                          onDeleted: () {
-                            setState(() => _attachments.remove(url));
-                          },
-                        );
-                      }).toList(),
-                    ),
-                  ],
                   SizedBox(height: 32.h),
 
                   // Submit Button
@@ -312,20 +270,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     );
   }
 
-  Future<void> _pickAttachments() async {
-    // TODO: Implement file picker
-    // For now, just show a snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('سيتم إضافة هذه الميزة قريباً'),
-        backgroundColor: AppColors.info,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-      ),
-    );
-  }
 
   Future<void> _submitTicket() async {
     if (_selectedCategory == null) {
@@ -345,30 +289,51 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
 
-      final ticket = await context.read<SupportCubit>().createTicket(
-            categoryId: _selectedCategory!.id,
-            subject: _subjectController.text,
-            description: _descriptionController.text,
-            priority: _selectedPriority,
-            orderId: widget.orderId,
-            productId: widget.productId,
-            attachments: _attachments.isNotEmpty ? _attachments : null,
-          );
+      try {
+        // Upload attachments first if any
+        List<String> attachmentUrls = [];
+        if (_attachmentPaths.isNotEmpty) {
+          attachmentUrls = await context.read<SupportCubit>().uploadAttachments(
+                _attachmentPaths,
+              );
+        }
 
-      setState(() => _isSubmitting = false);
+        final ticket = await context.read<SupportCubit>().createTicket(
+              categoryId: _selectedCategory!.id,
+              subject: _subjectController.text,
+              description: _descriptionController.text,
+              priority: _selectedPriority,
+              orderId: widget.orderId,
+              productId: widget.productId,
+              attachments: attachmentUrls.isNotEmpty ? attachmentUrls : null,
+            );
 
-      if (ticket != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('تم إرسال التذكرة بنجاح'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
+        if (ticket != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('تم إرسال التذكرة بنجاح'),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
             ),
-          ),
-        );
-        context.pop();
+          );
+          context.pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('فشل إرسال التذكرة: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isSubmitting = false);
+        }
       }
     }
   }

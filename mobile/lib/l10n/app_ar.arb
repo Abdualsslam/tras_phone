@@ -560,5 +560,150 @@
   "passwordsDoNotMatch": "كلمات المرور غير متطابقة",
   "@passwordsDoNotMatch": {
     "description": "رسالة خطأ عدم تطابق كلمات المرور"
+  },
+
+  "supportTickets": "تذاكر الدعم",
+  "@supportTickets": {
+    "description": "عنوان تذاكر الدعم"
+  },
+
+  "createTicket": "إنشاء تذكرة",
+  "@createTicket": {
+    "description": "زر إنشاء تذكرة جديدة"
+  },
+
+  "ticketNumber": "رقم التذكرة",
+  "@ticketNumber": {
+    "description": "عنوان رقم التذكرة"
+  },
+
+  "ticketSubject": "موضوع التذكرة",
+  "@ticketSubject": {
+    "description": "حقل موضوع التذكرة"
+  },
+
+  "ticketDescription": "وصف المشكلة",
+  "@ticketDescription": {
+    "description": "حقل وصف المشكلة"
+  },
+
+  "ticketCategory": "فئة التذكرة",
+  "@ticketCategory": {
+    "description": "عنوان فئة التذكرة"
+  },
+
+  "ticketPriority": "أولوية التذكرة",
+  "@ticketPriority": {
+    "description": "عنوان أولوية التذكرة"
+  },
+
+  "ticketStatus": "حالة التذكرة",
+  "@ticketStatus": {
+    "description": "عنوان حالة التذكرة"
+  },
+
+  "ticketMessages": "رسائل التذكرة",
+  "@ticketMessages": {
+    "description": "عنوان رسائل التذكرة"
+  },
+
+  "sendMessage": "إرسال رسالة",
+  "@sendMessage": {
+    "description": "زر إرسال رسالة"
+  },
+
+  "typeMessage": "اكتب رسالتك...",
+  "@typeMessage": {
+    "description": "نص تلميح حقل الرسالة"
+  },
+
+  "attachments": "المرفقات",
+  "@attachments": {
+    "description": "عنوان المرفقات"
+  },
+
+  "addAttachment": "إضافة مرفق",
+  "@addAttachment": {
+    "description": "زر إضافة مرفق"
+  },
+
+  "rateTicket": "قيم التذكرة",
+  "@rateTicket": {
+    "description": "عنوان تقييم التذكرة"
+  },
+
+  "rateService": "قيم الخدمة",
+  "@rateService": {
+    "description": "عنوان تقييم الخدمة"
+  },
+
+  "liveChat": "المحادثة المباشرة",
+  "@liveChat": {
+    "description": "عنوان المحادثة المباشرة"
+  },
+
+  "startChat": "بدء المحادثة",
+  "@startChat": {
+    "description": "زر بدء المحادثة"
+  },
+
+  "endChat": "إنهاء المحادثة",
+  "@endChat": {
+    "description": "زر إنهاء المحادثة"
+  },
+
+  "chatWaiting": "في الانتظار",
+  "@chatWaiting": {
+    "description": "حالة الانتظار في المحادثة"
+  },
+
+  "chatActive": "نشطة",
+  "@chatActive": {
+    "description": "حالة المحادثة النشطة"
+  },
+
+  "chatEnded": "منتهية",
+  "@chatEnded": {
+    "description": "حالة المحادثة المنتهية"
+  },
+
+  "noTickets": "لا توجد تذاكر",
+  "@noTickets": {
+    "description": "رسالة عدم وجود تذاكر"
+  },
+
+  "noMessages": "لا توجد رسائل",
+  "@noMessages": {
+    "description": "رسالة عدم وجود رسائل"
+  },
+
+  "ticketCreated": "تم إنشاء التذكرة بنجاح",
+  "@ticketCreated": {
+    "description": "رسالة نجاح إنشاء التذكرة"
+  },
+
+  "messageSent": "تم إرسال الرسالة",
+  "@messageSent": {
+    "description": "رسالة نجاح إرسال الرسالة"
+  },
+
+  "ratingSubmitted": "شكراً لتقييمك",
+  "@ratingSubmitted": {
+    "description": "رسالة نجاح التقييم"
+  },
+
+  "selectCategory": "اختر فئة التذكرة",
+  "@selectCategory": {
+    "description": "رسالة اختيار الفئة"
+  },
+
+  "enterSubject": "أدخل موضوع التذكرة",
+  "@enterSubject": {
+    "description": "رسالة إدخال الموضوع"
+  },
+
+  "enterDescription": "أدخل وصف المشكلة",
+  "@enterDescription": {
+    "description": "رسالة إدخال الوصف"
   }
 }

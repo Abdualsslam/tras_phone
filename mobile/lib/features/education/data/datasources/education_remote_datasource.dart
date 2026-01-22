@@ -115,39 +115,57 @@ class EducationRemoteDataSourceImpl implements EducationRemoteDataSource {
       if (search != null && search.isNotEmpty) 'search': search,
     };
 
-    final response = await _apiClient.get(
-      ApiEndpoints.educationContent,
-      queryParameters: queryParams,
-    );
+    try {
+      final response = await _apiClient.get(
+        ApiEndpoints.educationContent,
+        queryParameters: queryParams,
+      );
 
-    final responseData = response.data['data'] ?? response.data;
-    
-    // Handle paginated response
-    if (responseData is Map && responseData.containsKey('data')) {
-      final List<dynamic> list = responseData['data'] ?? [];
-      final contentList = list
-          .map((json) => EducationalContentModel.fromJson(json).toEntity())
-          .toList();
+      final responseData = response.data;
       
-      return {
-        'data': contentList,
-        'total': responseData['total'] ?? 0,
-        'page': responseData['page'] ?? page,
-        'limit': responseData['limit'] ?? limit,
-      };
-    } else {
-      // Handle simple list response
-      final List<dynamic> list = responseData is List ? responseData : [];
-      final contentList = list
-          .map((json) => EducationalContentModel.fromJson(json).toEntity())
-          .toList();
-      
-      return {
-        'data': contentList,
-        'total': contentList.length,
-        'page': page,
-        'limit': limit,
-      };
+      // Handle paginated response (from documentation: response.data['data'] and response.data['pagination'])
+      if (responseData is Map && responseData.containsKey('data')) {
+        final List<dynamic> list = responseData['data'] ?? [];
+        final contentList = list
+            .map((json) => EducationalContentModel.fromJson(json).toEntity())
+            .toList();
+        
+        // Extract pagination info
+        final pagination = responseData['pagination'] as Map<String, dynamic>?;
+        
+        return {
+          'content': contentList,
+          'pagination': pagination ?? {
+            'page': page,
+            'limit': limit,
+            'total': responseData['total'] ?? contentList.length,
+            'pages': (responseData['total'] ?? contentList.length / limit).ceil(),
+          },
+        };
+      } else {
+        // Handle simple list response
+        final List<dynamic> list = responseData is List ? responseData : [];
+        final contentList = list
+            .map((json) => EducationalContentModel.fromJson(json).toEntity())
+            .toList();
+        
+        return {
+          'content': contentList,
+          'pagination': {
+            'page': page,
+            'limit': limit,
+            'total': contentList.length,
+            'pages': (contentList.length / limit).ceil(),
+          },
+        };
+      }
+    } catch (e) {
+      developer.log(
+        'Error fetching educational content: $e',
+        name: 'EducationDataSource',
+        error: e,
+      );
+      rethrow;
     }
   }
 
@@ -262,17 +280,6 @@ class EducationRemoteDataSourceImpl implements EducationRemoteDataSource {
 
   // Helper method to convert ContentType enum to string
   String _contentTypeToString(ContentType type) {
-    switch (type) {
-      case ContentType.article:
-        return 'article';
-      case ContentType.video:
-        return 'video';
-      case ContentType.tutorial:
-        return 'tutorial';
-      case ContentType.tip:
-        return 'tip';
-      case ContentType.guide:
-        return 'guide';
-    }
+    return type.value;
   }
 }

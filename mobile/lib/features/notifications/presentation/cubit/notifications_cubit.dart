@@ -1,7 +1,7 @@
-/// Notifications Cubit - State management for notifications
-library;
+// Notifications Cubit - State management for notifications
 
 import 'dart:developer' as developer;
+import 'package:bloc/bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/repositories/notifications_repository.dart';
@@ -13,8 +13,8 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   static const int _pageSize = 20;
 
   NotificationsCubit({required NotificationsRepository repository})
-      : _repository = repository,
-        super(const NotificationsInitial());
+    : _repository = repository,
+      super(const NotificationsInitial());
 
   /// Load notifications
   Future<void> loadNotifications({
@@ -24,7 +24,9 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   }) async {
     if (state is NotificationsLoading && !refresh) return;
 
-    if (refresh || state is NotificationsInitial || state is NotificationsError) {
+    if (refresh ||
+        state is NotificationsInitial ||
+        state is NotificationsError) {
       emit(const NotificationsLoading());
     }
 
@@ -49,15 +51,17 @@ class NotificationsCubit extends Cubit<NotificationsState> {
         emit(NotificationsError(message: failure.message));
       },
       (response) {
-        emit(NotificationsLoaded(
-          notifications: response.notifications,
-          total: response.total,
-          unreadCount: response.unreadCount,
-          currentPage: 1,
-          hasMore: response.notifications.length >= _pageSize,
-          filterCategory: category,
-          filterIsRead: isRead,
-        ));
+        emit(
+          NotificationsLoaded(
+            notifications: response.notifications,
+            total: response.total,
+            unreadCount: response.unreadCount,
+            currentPage: 1,
+            hasMore: response.notifications.length >= _pageSize,
+            filterCategory: category,
+            filterIsRead: isRead,
+          ),
+        );
       },
     );
   }
@@ -74,7 +78,10 @@ class NotificationsCubit extends Cubit<NotificationsState> {
     emit(currentState.copyWith(isLoadingMore: true));
 
     final nextPage = currentState.currentPage + 1;
-    developer.log('Loading more notifications (page: $nextPage)', name: 'NotificationsCubit');
+    developer.log(
+      'Loading more notifications (page: $nextPage)',
+      name: 'NotificationsCubit',
+    );
 
     final result = await _repository.getMyNotifications(
       page: nextPage,
@@ -92,27 +99,35 @@ class NotificationsCubit extends Cubit<NotificationsState> {
           ...currentState.notifications,
           ...response.notifications,
         ];
-        emit(currentState.copyWith(
-          notifications: allNotifications,
-          total: response.total,
-          unreadCount: response.unreadCount,
-          currentPage: nextPage,
-          hasMore: response.notifications.length >= _pageSize,
-          isLoadingMore: false,
-        ));
+        emit(
+          currentState.copyWith(
+            notifications: allNotifications,
+            total: response.total,
+            unreadCount: response.unreadCount,
+            currentPage: nextPage,
+            hasMore: response.notifications.length >= _pageSize,
+            isLoadingMore: false,
+          ),
+        );
       },
     );
   }
 
   /// Mark a notification as read
   Future<void> markAsRead(String notificationId) async {
-    developer.log('Marking notification as read: $notificationId', name: 'NotificationsCubit');
+    developer.log(
+      'Marking notification as read: $notificationId',
+      name: 'NotificationsCubit',
+    );
 
     final result = await _repository.markAsRead(notificationId);
 
     result.fold(
       (failure) {
-        developer.log('Failed to mark as read: ${failure.message}', name: 'NotificationsCubit');
+        developer.log(
+          'Failed to mark as read: ${failure.message}',
+          name: 'NotificationsCubit',
+        );
       },
       (_) {
         final currentState = state;
@@ -146,12 +161,14 @@ class NotificationsCubit extends Cubit<NotificationsState> {
             return n;
           }).toList();
 
-          emit(currentState.copyWith(
-            notifications: updatedNotifications,
-            unreadCount: currentState.unreadCount > 0 
-                ? currentState.unreadCount - 1 
-                : 0,
-          ));
+          emit(
+            currentState.copyWith(
+              notifications: updatedNotifications,
+              unreadCount: currentState.unreadCount > 0
+                  ? currentState.unreadCount - 1
+                  : 0,
+            ),
+          );
         }
       },
     );
@@ -159,13 +176,19 @@ class NotificationsCubit extends Cubit<NotificationsState> {
 
   /// Mark all notifications as read
   Future<void> markAllAsRead() async {
-    developer.log('Marking all notifications as read', name: 'NotificationsCubit');
+    developer.log(
+      'Marking all notifications as read',
+      name: 'NotificationsCubit',
+    );
 
     final result = await _repository.markAllAsRead();
 
     result.fold(
       (failure) {
-        developer.log('Failed to mark all as read: ${failure.message}', name: 'NotificationsCubit');
+        developer.log(
+          'Failed to mark all as read: ${failure.message}',
+          name: 'NotificationsCubit',
+        );
       },
       (_) {
         final currentState = state;
@@ -195,10 +218,12 @@ class NotificationsCubit extends Cubit<NotificationsState> {
             );
           }).toList();
 
-          emit(currentState.copyWith(
-            notifications: updatedNotifications,
-            unreadCount: 0,
-          ));
+          emit(
+            currentState.copyWith(
+              notifications: updatedNotifications,
+              unreadCount: 0,
+            ),
+          );
         }
       },
     );
@@ -206,13 +231,19 @@ class NotificationsCubit extends Cubit<NotificationsState> {
 
   /// Delete a notification
   Future<void> deleteNotification(String notificationId) async {
-    developer.log('Deleting notification: $notificationId', name: 'NotificationsCubit');
+    developer.log(
+      'Deleting notification: $notificationId',
+      name: 'NotificationsCubit',
+    );
 
     final result = await _repository.deleteNotification(notificationId);
 
     result.fold(
       (failure) {
-        developer.log('Failed to delete: ${failure.message}', name: 'NotificationsCubit');
+        developer.log(
+          'Failed to delete: ${failure.message}',
+          name: 'NotificationsCubit',
+        );
       },
       (_) {
         final currentState = state;
@@ -227,13 +258,15 @@ class NotificationsCubit extends Cubit<NotificationsState> {
               .where((n) => n.id != notificationId)
               .toList();
 
-          emit(currentState.copyWith(
-            notifications: updatedNotifications,
-            total: currentState.total - 1,
-            unreadCount: wasUnread && currentState.unreadCount > 0
-                ? currentState.unreadCount - 1
-                : currentState.unreadCount,
-          ));
+          emit(
+            currentState.copyWith(
+              notifications: updatedNotifications,
+              total: currentState.total - 1,
+              unreadCount: wasUnread && currentState.unreadCount > 0
+                  ? currentState.unreadCount - 1
+                  : currentState.unreadCount,
+            ),
+          );
         }
       },
     );
@@ -254,11 +287,34 @@ class NotificationsCubit extends Cubit<NotificationsState> {
   }
 
   /// Get unread count only
-  Future<int> getUnreadCount() async {
+  Future<void> getUnreadCount() async {
     final result = await _repository.getUnreadCount();
-    return result.fold(
-      (failure) => 0,
-      (count) => count,
+    result.fold(
+      (failure) {
+        developer.log(
+          'Failed to get unread count: ${failure.message}',
+          name: 'NotificationsCubit',
+        );
+        // Don't emit error state for unread count, just log it
+      },
+      (count) {
+        final currentState = state;
+        if (currentState is NotificationsLoaded) {
+          // Update existing loaded state with new unread count
+          emit(currentState.copyWith(unreadCount: count));
+        } else {
+          // If not loaded yet, create a minimal loaded state with just the unread count
+          emit(
+            NotificationsLoaded(
+              notifications: const [],
+              total: 0,
+              unreadCount: count,
+              currentPage: 1,
+              hasMore: false,
+            ),
+          );
+        }
+      },
     );
   }
 }

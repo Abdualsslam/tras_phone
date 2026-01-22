@@ -3,13 +3,31 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../cubit/wallet_cubit.dart';
+import '../cubit/wallet_state.dart';
+import '../../data/models/wallet_transaction_model.dart';
+import '../../domain/enums/wallet_enums.dart';
 
-class WalletScreen extends StatelessWidget {
+class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
+
+  @override
+  State<WalletScreen> createState() => _WalletScreenState();
+}
+
+class _WalletScreenState extends State<WalletScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load wallet data when screen opens
+    context.read<WalletCubit>().loadAll();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,27 +37,64 @@ class WalletScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(title: Text(AppLocalizations.of(context)!.wallet)),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          children: [
-            // Balance Card
-            _buildBalanceCard(theme, isDark),
-            SizedBox(height: 24.h),
+      body: BlocBuilder<WalletCubit, WalletState>(
+        builder: (context, state) {
+          if (state is WalletLoading && state is! WalletLoaded) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            // Quick Actions
-            _buildQuickActions(context, theme, isDark),
-            SizedBox(height: 24.h),
+          if (state is WalletError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(state.message),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: () => context.read<WalletCubit>().loadAll(),
+                    child: const Text('إعادة المحاولة'),
+                  ),
+                ],
+              ),
+            );
+          }
 
-            // Transaction History
-            _buildTransactionHistory(theme, isDark),
-          ],
-        ),
+          return RefreshIndicator(
+            onRefresh: () async {
+              await context.read<WalletCubit>().loadAll();
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                children: [
+                  // Balance Card
+                  _buildBalanceCard(context, theme, isDark, state),
+                  SizedBox(height: 24.h),
+
+                  // Quick Actions
+                  _buildQuickActions(context, theme, isDark),
+                  SizedBox(height: 24.h),
+
+                  // Transaction History
+                  _buildTransactionHistory(context, theme, isDark, state),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildBalanceCard(ThemeData theme, bool isDark) {
+  Widget _buildBalanceCard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    WalletState state,
+  ) {
+    final balance = state is WalletLoaded ? state.balance : null;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(24.w),
@@ -72,7 +127,9 @@ class WalletScreen extends StatelessWidget {
           ),
           SizedBox(height: 16.h),
           Text(
-            '٥٠٠.٠٠ ر.س',
+            balance != null
+                ? '${balance.toStringAsFixed(2)} ر.س'
+                : '0.00 ر.س',
             style: TextStyle(
               fontSize: 36.sp,
               fontWeight: FontWeight.w700,
@@ -81,7 +138,7 @@ class WalletScreen extends StatelessWidget {
           ),
           SizedBox(height: 8.h),
           Text(
-            'آخر تحديث: اليوم',
+            'آخر تحديث: ${_formatLastUpdate()}',
             style: TextStyle(
               fontSize: 12.sp,
               color: Colors.white.withValues(alpha: 0.6),
@@ -90,6 +147,11 @@ class WalletScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatLastUpdate() {
+    final now = DateTime.now();
+    return 'اليوم ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
   }
 
   Widget _buildQuickActions(
@@ -126,7 +188,7 @@ class WalletScreen extends StatelessWidget {
           ),
         ),
         SizedBox(width: 12.w),
-        Expanded(
+            Expanded(
           child: _buildActionButton(
             theme,
             isDark,
@@ -135,6 +197,7 @@ class WalletScreen extends StatelessWidget {
             color: Colors.orange,
             onTap: () {
               HapticFeedback.mediumImpact();
+              context.push('/wallet/transactions');
             },
           ),
         ),
@@ -182,33 +245,15 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionHistory(ThemeData theme, bool isDark) {
-    final transactions = [
-      _Transaction(
-        title: 'دفع طلب #ORD-2024-001',
-        amount: -1242.5,
-        date: DateTime.now().subtract(const Duration(days: 2)),
-        type: _TransactionType.payment,
-      ),
-      _Transaction(
-        title: 'إضافة رصيد',
-        amount: 1000,
-        date: DateTime.now().subtract(const Duration(days: 5)),
-        type: _TransactionType.deposit,
-      ),
-      _Transaction(
-        title: 'استرداد طلب ملغي',
-        amount: 350,
-        date: DateTime.now().subtract(const Duration(days: 10)),
-        type: _TransactionType.refund,
-      ),
-      _Transaction(
-        title: 'دفع طلب #ORD-2024-002',
-        amount: -520,
-        date: DateTime.now().subtract(const Duration(days: 15)),
-        type: _TransactionType.payment,
-      ),
-    ];
+  Widget _buildTransactionHistory(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    WalletState state,
+  ) {
+    final transactions = state is WalletLoaded
+        ? (state.transactions ?? []).take(5).toList()
+        : <WalletTransaction>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,48 +267,89 @@ class WalletScreen extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            TextButton(onPressed: () {}, child: const Text('عرض الكل')),
+            TextButton(
+              onPressed: () => context.push('/wallet/transactions'),
+              child: const Text('عرض الكل'),
+            ),
           ],
         ),
         SizedBox(height: 12.h),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.cardDark : AppColors.cardLight,
-            borderRadius: BorderRadius.circular(16.r),
+        if (transactions.isEmpty)
+          Container(
+            padding: EdgeInsets.all(32.w),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.cardDark : AppColors.cardLight,
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Iconsax.document_text,
+                    size: 48.sp,
+                    color: AppColors.textTertiaryLight,
+                  ),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'لا توجد معاملات',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textTertiaryLight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.cardDark : AppColors.cardLight,
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: transactions.length,
+              separatorBuilder: (_, __) => Divider(
+                height: 1,
+                indent: 72.w,
+                color: AppColors.dividerLight,
+              ),
+              itemBuilder: (context, index) {
+                final tx = transactions[index];
+                return _buildTransactionItem(context, theme, tx);
+              },
+            ),
           ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: transactions.length,
-            separatorBuilder: (_, __) =>
-                Divider(height: 1, indent: 72.w, color: AppColors.dividerLight),
-            itemBuilder: (context, index) {
-              final tx = transactions[index];
-              return _buildTransactionItem(theme, tx);
-            },
-          ),
-        ),
       ],
     );
   }
 
-  Widget _buildTransactionItem(ThemeData theme, _Transaction tx) {
-    final isPositive = tx.amount > 0;
+  Widget _buildTransactionItem(
+    BuildContext context,
+    ThemeData theme,
+    WalletTransaction tx,
+  ) {
+    final isCredit = tx.isCredit;
+    final locale = Localizations.localeOf(context).languageCode;
     IconData icon;
     Color iconBg;
 
-    switch (tx.type) {
-      case _TransactionType.deposit:
+    switch (tx.transactionType) {
+      case WalletTransactionType.walletTopup:
+      case WalletTransactionType.orderRefund:
+      case WalletTransactionType.referralReward:
+      case WalletTransactionType.loyaltyReward:
+      case WalletTransactionType.adminCredit:
         icon = Iconsax.add;
         iconBg = AppColors.success;
         break;
-      case _TransactionType.payment:
+      case WalletTransactionType.orderPayment:
+      case WalletTransactionType.walletWithdrawal:
+      case WalletTransactionType.adminDebit:
+      case WalletTransactionType.expiredBalance:
         icon = Iconsax.shopping_cart;
         iconBg = AppColors.primary;
-        break;
-      case _TransactionType.refund:
-        icon = Iconsax.rotate_left;
-        iconBg = Colors.orange;
         break;
     }
 
@@ -278,23 +364,36 @@ class WalletScreen extends StatelessWidget {
         child: Icon(icon, color: iconBg, size: 20.sp),
       ),
       title: Text(
-        tx.title,
+        tx.getDescription(locale),
         style: theme.textTheme.bodyMedium?.copyWith(
           fontWeight: FontWeight.w500,
         ),
       ),
-      subtitle: Text(
-        _formatDate(tx.date),
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: AppColors.textTertiaryLight,
-        ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _formatDate(tx.createdAt),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textTertiaryLight,
+            ),
+          ),
+          if (tx.referenceNumber != null)
+            Text(
+              tx.referenceNumber!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.textTertiaryLight,
+                fontSize: 10.sp,
+              ),
+            ),
+        ],
       ),
       trailing: Text(
-        '${isPositive ? '+' : ''}${tx.amount.toStringAsFixed(0)} ر.س',
+        '${isCredit ? '+' : '-'}${tx.amount.toStringAsFixed(2)} ر.س',
         style: TextStyle(
           fontSize: 14.sp,
           fontWeight: FontWeight.w700,
-          color: isPositive ? AppColors.success : AppColors.error,
+          color: isCredit ? AppColors.success : AppColors.error,
         ),
       ),
       contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -382,18 +481,3 @@ class WalletScreen extends StatelessWidget {
   }
 }
 
-class _Transaction {
-  final String title;
-  final double amount;
-  final DateTime date;
-  final _TransactionType type;
-
-  _Transaction({
-    required this.title,
-    required this.amount,
-    required this.date,
-    required this.type,
-  });
-}
-
-enum _TransactionType { deposit, payment, refund }

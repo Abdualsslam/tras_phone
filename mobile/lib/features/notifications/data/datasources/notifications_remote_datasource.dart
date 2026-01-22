@@ -146,12 +146,30 @@ class NotificationsRemoteDataSourceImpl
   Future<int> getUnreadCount() async {
     developer.log('Getting unread count', name: 'NotificationsDataSource');
 
-    final response = await _apiClient.get(
-      ApiEndpoints.notificationsUnreadCount,
-    );
-    final data = response.data['data'] ?? response.data;
-
-    return data['count'] ?? data['unreadCount'] ?? 0;
+    try {
+      // Try dedicated endpoint first if available
+      try {
+        final response = await _apiClient.get(
+          ApiEndpoints.notificationsUnreadCount,
+        );
+        final data = response.data['data'] ?? response.data;
+        return data['count'] ?? data['unreadCount'] ?? 0;
+      } catch (e) {
+        // If dedicated endpoint doesn't exist, get from notifications list meta
+        developer.log(
+          'Unread count endpoint not available, using notifications list meta',
+          name: 'NotificationsDataSource',
+        );
+        final response = await getMyNotifications(page: 1, limit: 1);
+        return response.unreadCount;
+      }
+    } catch (e) {
+      developer.log(
+        'Failed to get unread count: $e',
+        name: 'NotificationsDataSource',
+      );
+      return 0;
+    }
   }
 
   @override

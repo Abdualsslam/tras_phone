@@ -2,59 +2,146 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../cubit/wallet_cubit.dart';
+import '../cubit/wallet_state.dart';
+import '../../data/models/loyalty_points_model.dart';
+import '../../data/models/loyalty_tier_model.dart';
 
-class LoyaltyPointsScreen extends StatelessWidget {
+class LoyaltyPointsScreen extends StatefulWidget {
   const LoyaltyPointsScreen({super.key});
+
+  @override
+  State<LoyaltyPointsScreen> createState() => _LoyaltyPointsScreenState();
+}
+
+class _LoyaltyPointsScreenState extends State<LoyaltyPointsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<WalletCubit>().loadPoints();
+    context.read<WalletCubit>().loadTiers();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('نقاط الولاء')),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          children: [
-            // Points Card
-            _buildPointsCard(theme, isDark),
-            SizedBox(height: 24.h),
+      appBar: AppBar(
+        title: const Text('نقاط الولاء'),
+        actions: [
+          IconButton(
+            icon: const Icon(Iconsax.document_text),
+            onPressed: () {
+              context.push('/loyalty/transactions');
+            },
+            tooltip: 'معاملات النقاط',
+          ),
+        ],
+      ),
+      body: BlocBuilder<WalletCubit, WalletState>(
+        builder: (context, state) {
+          if (state is WalletLoading && state is! WalletLoaded) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            // Tier Progress
-            _buildTierProgress(theme, isDark),
-            SizedBox(height: 24.h),
+          if (state is WalletError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(state.message),
+                  SizedBox(height: 16.h),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<WalletCubit>().loadPoints();
+                      context.read<WalletCubit>().loadTiers();
+                    },
+                    child: const Text('إعادة المحاولة'),
+                  ),
+                ],
+              ),
+            );
+          }
 
-            // Rewards
-            _buildRewardsSection(theme, isDark),
-            SizedBox(height: 24.h),
+          final loyaltyPoints = state is WalletLoaded
+              ? state.loyaltyPoints
+              : null;
+          final tiers = state is WalletLoaded ? state.tiers : null;
 
-            // How to earn
-            _buildHowToEarn(theme, isDark),
-          ],
-        ),
+          return RefreshIndicator(
+            onRefresh: () async {
+              await context.read<WalletCubit>().loadPoints();
+              await context.read<WalletCubit>().loadTiers();
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                children: [
+                  // Points Card
+                  if (loyaltyPoints != null)
+                    _buildPointsCard(context, theme, isDark, loyaltyPoints, locale)
+                  else
+                    _buildPointsCardPlaceholder(theme, isDark),
+                  SizedBox(height: 24.h),
+
+                  // Tier Progress
+                  if (loyaltyPoints != null && tiers != null)
+                    _buildTierProgress(context, theme, isDark, loyaltyPoints, tiers, locale)
+                  else
+                    _buildTierProgressPlaceholder(theme, isDark),
+                  SizedBox(height: 24.h),
+
+                  // Rewards
+                  _buildRewardsSection(context, theme, isDark, loyaltyPoints),
+                  SizedBox(height: 24.h),
+
+                  // How to earn
+                  _buildHowToEarn(theme, isDark),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildPointsCard(ThemeData theme, bool isDark) {
+  Widget _buildPointsCard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    LoyaltyPoints loyaltyPoints,
+    String locale,
+  ) {
+    final tierColor = loyaltyPoints.tier.getColor() ?? Colors.amber;
+    final gradientColors = [
+      tierColor.withValues(alpha: 0.8),
+      tierColor,
+    ];
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(24.w),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.amber[600]!, Colors.orange[400]!],
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withValues(alpha: 0.3),
+            color: tierColor.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -62,10 +149,22 @@ class LoyaltyPointsScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(Iconsax.medal_star, color: Colors.white, size: 48.sp),
+          if (loyaltyPoints.tier.badgeImage != null)
+            Image.network(
+              loyaltyPoints.tier.badgeImage!,
+              width: 64.w,
+              height: 64.w,
+              errorBuilder: (_, __, ___) => Icon(
+                Iconsax.medal_star,
+                color: Colors.white,
+                size: 48.sp,
+              ),
+            )
+          else
+            Icon(Iconsax.medal_star, color: Colors.white, size: 48.sp),
           SizedBox(height: 16.h),
           Text(
-            '١٥٠',
+            '${loyaltyPoints.points}',
             style: TextStyle(
               fontSize: 48.sp,
               fontWeight: FontWeight.w700,
@@ -87,7 +186,7 @@ class LoyaltyPointsScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(20.r),
             ),
             child: Text(
-              'المستوى الفضي',
+              loyaltyPoints.tier.getName(locale),
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w600,
@@ -95,12 +194,93 @@ class LoyaltyPointsScreen extends StatelessWidget {
               ),
             ),
           ),
+          if (loyaltyPoints.expiringTotal > 0) ...[
+            SizedBox(height: 12.h),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Iconsax.info_circle, color: Colors.white, size: 16.sp),
+                  SizedBox(width: 6.w),
+                  Text(
+                    '${loyaltyPoints.expiringTotal} نقطة ستنتهي قريباً',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildTierProgress(ThemeData theme, bool isDark) {
+  Widget _buildPointsCardPlaceholder(ThemeData theme, bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(24.w),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.amber[600]!, Colors.orange[400]!],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24.r),
+      ),
+      child: const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildTierProgress(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    LoyaltyPoints loyaltyPoints,
+    List<LoyaltyTier> tiers,
+    String locale,
+  ) {
+    // Sort tiers by minPoints
+    final sortedTiers = List<LoyaltyTier>.from(tiers)
+      ..sort((a, b) => a.minPoints.compareTo(b.minPoints));
+
+    // Find current tier index
+    final currentTierIndex = sortedTiers.indexWhere(
+      (t) => t.id == loyaltyPoints.tier.id,
+    );
+
+    // Find next tier
+    LoyaltyTier? nextTier;
+    if (currentTierIndex >= 0 && currentTierIndex < sortedTiers.length - 1) {
+      nextTier = sortedTiers[currentTierIndex + 1];
+    }
+
+    // Calculate progress
+    double progress = 0.0;
+    String progressText = '';
+    if (nextTier != null) {
+      final pointsNeeded = nextTier.minPoints - loyaltyPoints.points;
+      final totalNeeded = nextTier.minPoints - loyaltyPoints.tier.minPoints;
+      progress = totalNeeded > 0
+          ? (loyaltyPoints.points - loyaltyPoints.tier.minPoints) / totalNeeded
+          : 1.0;
+      progress = progress.clamp(0.0, 1.0);
+      progressText = pointsNeeded > 0
+          ? 'أنت بحاجة لـ $pointsNeeded نقطة للوصول للمستوى ${nextTier.getName(locale)}'
+          : 'أنت في أعلى مستوى!';
+    } else {
+      progress = 1.0;
+      progressText = 'أنت في أعلى مستوى!';
+    }
+
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
@@ -111,24 +291,75 @@ class LoyaltyPointsScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'تقدمك للمستوى الذهبي',
+            nextTier != null
+                ? 'تقدمك للمستوى ${nextTier.getName(locale)}'
+                : 'مستواك الحالي',
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
           SizedBox(height: 16.h),
-          Row(
-            children: [
-              _buildTierBadge('برونزي', Colors.brown, true),
-              Expanded(child: _buildProgressLine(1.0)),
-              _buildTierBadge('فضي', Colors.grey, true),
-              Expanded(child: _buildProgressLine(0.3)),
-              _buildTierBadge('ذهبي', Colors.amber, false),
-            ],
+          if (sortedTiers.length <= 3)
+            Row(
+              children: sortedTiers.asMap().entries.map((entry) {
+                final index = entry.key;
+                final tier = entry.value;
+                final isActive = tier.id == loyaltyPoints.tier.id ||
+                    sortedTiers
+                        .take(index + 1)
+                        .any((t) => t.minPoints <= loyaltyPoints.points);
+                final isCurrent = tier.id == loyaltyPoints.tier.id;
+
+                return Expanded(
+                  child: Row(
+                    children: [
+                      _buildTierBadge(
+                        tier.getName(locale),
+                        tier.getColor() ?? Colors.grey,
+                        isActive,
+                        isCurrent,
+                      ),
+                      if (index < sortedTiers.length - 1)
+                        Expanded(
+                          child: _buildProgressLine(
+                            isActive && !isCurrent ? 1.0 : 0.0,
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            )
+          else
+            Column(
+              children: [
+                _buildTierBadge(
+                  loyaltyPoints.tier.getName(locale),
+                  loyaltyPoints.tier.getColor() ?? Colors.grey,
+                  true,
+                  true,
+                ),
+                SizedBox(height: 12.h),
+                if (nextTier != null)
+                  _buildTierBadge(
+                    nextTier.getName(locale),
+                    nextTier.getColor() ?? Colors.grey,
+                    false,
+                    false,
+                  ),
+              ],
+            ),
+          SizedBox(height: 12.h),
+          LinearProgressIndicator(
+            value: progress,
+            backgroundColor: AppColors.dividerLight,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              loyaltyPoints.tier.getColor() ?? AppColors.primary,
+            ),
           ),
           SizedBox(height: 12.h),
           Text(
-            'أنت بحاجة لـ 350 نقطة للوصول للمستوى الذهبي',
+            progressText,
             style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.textTertiaryLight,
             ),
@@ -138,7 +369,23 @@ class LoyaltyPointsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTierBadge(String label, Color color, bool isActive) {
+  Widget _buildTierProgressPlaceholder(ThemeData theme, bool isDark) {
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildTierBadge(
+    String label,
+    Color color,
+    bool isActive,
+    bool isCurrent,
+  ) {
     return Column(
       children: [
         Container(
@@ -147,9 +394,14 @@ class LoyaltyPointsScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: isActive ? color : color.withValues(alpha: 0.3),
             shape: BoxShape.circle,
+            border: isCurrent
+                ? Border.all(color: Colors.white, width: 2)
+                : null,
           ),
           child: Icon(
-            isActive ? Iconsax.tick_circle5 : Iconsax.medal_star,
+            isActive
+                ? (isCurrent ? Iconsax.tick_circle5 : Iconsax.medal_star)
+                : Iconsax.medal_star,
             color: Colors.white,
             size: 16.sp,
           ),
@@ -162,6 +414,7 @@ class LoyaltyPointsScreen extends StatelessWidget {
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
             color: isActive ? color : AppColors.textTertiaryLight,
           ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -188,12 +441,54 @@ class LoyaltyPointsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRewardsSection(ThemeData theme, bool isDark) {
+  Widget _buildRewardsSection(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    LoyaltyPoints? loyaltyPoints,
+  ) {
+    final currentPoints = loyaltyPoints?.points ?? 0;
+    final tier = loyaltyPoints?.tier;
+
     final rewards = [
-      _Reward(name: 'خصم 5%', points: 100, icon: Iconsax.percentage_square),
-      _Reward(name: 'شحن مجاني', points: 200, icon: Iconsax.truck),
-      _Reward(name: 'خصم 10%', points: 300, icon: Iconsax.percentage_square),
-      _Reward(name: 'هدية مجانية', points: 500, icon: Iconsax.gift),
+      if (tier != null && tier.discountPercentage > 0)
+        _Reward(
+          name: 'خصم ${tier.discountPercentage.toStringAsFixed(0)}%',
+          points: 0,
+          icon: Iconsax.percentage_square,
+          available: true,
+        ),
+      if (tier != null && tier.freeShipping)
+        _Reward(
+          name: 'شحن مجاني',
+          points: 0,
+          icon: Iconsax.truck,
+          available: true,
+        ),
+      _Reward(
+        name: 'خصم 5%',
+        points: 100,
+        icon: Iconsax.percentage_square,
+        available: currentPoints >= 100,
+      ),
+      _Reward(
+        name: 'شحن مجاني',
+        points: 200,
+        icon: Iconsax.truck,
+        available: currentPoints >= 200,
+      ),
+      _Reward(
+        name: 'خصم 10%',
+        points: 300,
+        icon: Iconsax.percentage_square,
+        available: currentPoints >= 300,
+      ),
+      _Reward(
+        name: 'هدية مجانية',
+        points: 500,
+        icon: Iconsax.gift,
+        available: currentPoints >= 500,
+      ),
     ];
 
     return Column(
@@ -218,13 +513,12 @@ class LoyaltyPointsScreen extends StatelessWidget {
           itemCount: rewards.length,
           itemBuilder: (ctx, index) {
             final reward = rewards[index];
-            final canRedeem = 150 >= reward.points;
             return Container(
               padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.cardDark : AppColors.cardLight,
                 borderRadius: BorderRadius.circular(16.r),
-                border: canRedeem
+                border: reward.available
                     ? Border.all(
                         color: AppColors.primary.withValues(alpha: 0.3),
                       )
@@ -236,7 +530,7 @@ class LoyaltyPointsScreen extends StatelessWidget {
                   Icon(
                     reward.icon,
                     size: 32.sp,
-                    color: canRedeem
+                    color: reward.available
                         ? AppColors.primary
                         : AppColors.textTertiaryLight,
                   ),
@@ -246,17 +540,20 @@ class LoyaltyPointsScreen extends StatelessWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    '${reward.points} نقطة',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: canRedeem
-                          ? AppColors.primary
-                          : AppColors.textTertiaryLight,
-                      fontWeight: FontWeight.w600,
+                  if (reward.points > 0) ...[
+                    SizedBox(height: 4.h),
+                    Text(
+                      '${reward.points} نقطة',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: reward.available
+                            ? AppColors.primary
+                            : AppColors.textTertiaryLight,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             );
@@ -315,6 +612,12 @@ class _Reward {
   final String name;
   final int points;
   final IconData icon;
+  final bool available;
 
-  _Reward({required this.name, required this.points, required this.icon});
+  _Reward({
+    required this.name,
+    required this.points,
+    required this.icon,
+    this.available = false,
+  });
 }

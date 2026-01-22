@@ -38,13 +38,18 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
 
   @override
   Future<double> getBalance() async {
-    final response = await _apiClient.get('/wallet/balance');
-    final data = response.data;
+    try {
+      final response = await _apiClient.get('/wallet/balance');
+      final data = response.data;
 
-    if (data['success'] == true) {
-      return (data['data']['balance'] ?? 0).toDouble();
+      if (data['success'] == true) {
+        return (data['data']['balance'] ?? 0).toDouble();
+      }
+      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل في جلب رصيد المحفظة');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('فشل في جلب رصيد المحفظة: ${e.toString()}');
     }
-    throw Exception(data['messageAr'] ?? 'فشل في جلب رصيد المحفظة');
   }
 
   @override
@@ -53,58 +58,87 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
     int limit = 20,
     WalletTransactionType? transactionType,
   }) async {
-    final response = await _apiClient.get(
-      '/wallet/transactions',
-      queryParameters: {
+    try {
+      final queryParams = <String, dynamic>{
         'page': page,
         'limit': limit,
-        if (transactionType != null) 'transactionType': transactionType.apiValue,
-      },
-    );
-    final data = response.data;
+      };
+      
+      // Use 'type' parameter as per API documentation
+      if (transactionType != null) {
+        queryParams['type'] = transactionType.apiValue;
+      }
 
-    if (data['success'] == true) {
-      return (data['data'] as List)
-          .map((t) => WalletTransaction.fromJson(t))
-          .toList();
+      final response = await _apiClient.get(
+        '/wallet/transactions',
+        queryParameters: queryParams,
+      );
+      final data = response.data;
+
+      if (data['success'] == true) {
+        final transactionsList = data['data'] as List? ?? [];
+        return transactionsList
+            .map((t) => WalletTransaction.fromJson(t))
+            .toList();
+      }
+      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل في جلب معاملات المحفظة');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('فشل في جلب معاملات المحفظة: ${e.toString()}');
     }
-    throw Exception(data['messageAr'] ?? 'فشل في جلب معاملات المحفظة');
   }
 
   @override
   Future<LoyaltyPoints> getPoints() async {
-    final response = await _apiClient.get('/wallet/points');
-    final data = response.data;
+    try {
+      final response = await _apiClient.get('/wallet/points');
+      final data = response.data;
 
-    if (data['success'] == true) {
-      return LoyaltyPoints.fromJson(data['data']);
+      if (data['success'] == true) {
+        return LoyaltyPoints.fromJson(data['data'] ?? {});
+      }
+      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل في جلب نقاط الولاء');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('فشل في جلب نقاط الولاء: ${e.toString()}');
     }
-    throw Exception(data['messageAr'] ?? 'فشل في جلب نقاط الولاء');
   }
 
   @override
   Future<List<LoyaltyTransaction>> getPointsTransactions() async {
-    final response = await _apiClient.get('/wallet/points/transactions');
-    final data = response.data;
+    try {
+      final response = await _apiClient.get('/wallet/points/transactions');
+      final data = response.data;
 
-    if (data['success'] == true) {
-      return (data['data'] as List)
-          .map((t) => LoyaltyTransaction.fromJson(t))
-          .toList();
+      if (data['success'] == true) {
+        final transactionsList = data['data'] as List? ?? [];
+        return transactionsList
+            .map((t) => LoyaltyTransaction.fromJson(t))
+            .toList();
+      }
+      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل في جلب معاملات النقاط');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('فشل في جلب معاملات النقاط: ${e.toString()}');
     }
-    throw Exception(data['messageAr'] ?? 'فشل في جلب معاملات النقاط');
   }
 
   @override
   Future<List<LoyaltyTier>> getTiers() async {
-    final response = await _apiClient.get('/wallet/tiers');
-    final data = response.data;
+    try {
+      final response = await _apiClient.get('/wallet/tiers');
+      final data = response.data;
 
-    if (data['success'] == true) {
-      return (data['data'] as List)
-          .map((t) => LoyaltyTier.fromJson(t))
-          .toList();
+      if (data['success'] == true) {
+        final tiersList = data['data'] as List? ?? [];
+        return tiersList
+            .map((t) => LoyaltyTier.fromJson(t))
+            .toList();
+      }
+      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل في جلب مستويات الولاء');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('فشل في جلب مستويات الولاء: ${e.toString()}');
     }
-    throw Exception(data['messageAr'] ?? 'فشل في جلب مستويات الولاء');
   }
 }

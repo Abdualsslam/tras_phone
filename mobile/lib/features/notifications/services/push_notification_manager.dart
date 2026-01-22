@@ -185,6 +185,14 @@ class PushNotificationManager {
             'Failed to register push token: ${failure.message}',
             name: 'PushNotificationManager',
           );
+          // Retry after a delay if registration fails
+          Future.delayed(const Duration(seconds: 5), () {
+            developer.log(
+              'Retrying push token registration',
+              name: 'PushNotificationManager',
+            );
+            _registerToken();
+          });
         },
         (token) {
           developer.log(
@@ -203,17 +211,33 @@ class PushNotificationManager {
 
   /// Handle foreground message
   void _handleForegroundMessage(RemoteMessage message) {
-    developer.log(
-      'Received foreground message: ${message.notification?.title}',
-      name: 'PushNotificationManager',
-    );
+    try {
+      developer.log(
+        'Received foreground message: ${message.notification?.title}',
+        name: 'PushNotificationManager',
+      );
 
-    final notification = message.notification;
-    if (notification != null) {
-      _showLocalNotification(
-        title: notification.title ?? '',
-        body: notification.body ?? '',
-        payload: message.data,
+      final notification = message.notification;
+      if (notification != null) {
+        _showLocalNotification(
+          title: notification.title ?? 'إشعار جديد',
+          body: notification.body ?? '',
+          payload: message.data,
+        );
+      } else if (message.data.isNotEmpty) {
+        // Handle data-only messages
+        final title = message.data['title'] as String? ?? 'إشعار جديد';
+        final body = message.data['body'] as String? ?? '';
+        _showLocalNotification(
+          title: title,
+          body: body,
+          payload: message.data,
+        );
+      }
+    } catch (e) {
+      developer.log(
+        'Error handling foreground message: $e',
+        name: 'PushNotificationManager',
       );
     }
   }
@@ -244,12 +268,27 @@ class PushNotificationManager {
       iOS: iosDetails,
     );
 
+    // Convert payload to string for storage
+    // Store notificationId or actionType/actionId for navigation
+    String? payloadString;
+    if (payload != null) {
+      // Prefer notificationId if available, otherwise use actionType and actionId
+      if (payload.containsKey('notificationId')) {
+        payloadString = payload['notificationId'].toString();
+      } else if (payload.containsKey('actionType') && payload.containsKey('actionId')) {
+        payloadString = '${payload['actionType']}:${payload['actionId']}';
+      } else {
+        // Fallback: convert entire payload to string (simplified)
+        payloadString = payload.toString();
+      }
+    }
+
     await _localNotifications.show(
       DateTime.now().millisecondsSinceEpoch.remainder(100000),
       title,
       body,
       details,
-      payload: payload?.toString(),
+      payload: payloadString,
     );
   }
 
@@ -260,7 +299,17 @@ class PushNotificationManager {
       name: 'PushNotificationManager',
     );
 
-    _onNotificationTap?.call(message.data);
+    // Extract notification data from message
+    final data = Map<String, dynamic>.from(message.data);
+    
+    // Add notification data from message if available
+    if (message.notification != null) {
+      data['title'] = message.notification!.title;
+      data['body'] = message.notification!.body;
+    }
+
+    // Call the callback with the data
+    _onNotificationTap?.call(data);
   }
 
   /// Handle local notification tap
@@ -271,9 +320,33 @@ class PushNotificationManager {
     );
 
     if (response.payload != null) {
-      // Parse payload and handle tap
-      // Note: Payload is converted to string, you may need to parse it
-      _onNotificationTap?.call({'payload': response.payload});
+      try {
+        // Try to parse payload as JSON string
+        // Note: Payload is stored as string, so we need to extract the data
+        // The payload should contain the notification data
+        final payload = response.payload!;
+        
+        // If payload contains JSON-like data, parse it
+        // Otherwise, treat it as a simple notification ID
+        Map<String, dynamic> data;
+        if (payload.startsWith('{') && payload.endsWith('}')) {
+          // This is a simplified approach - in production, use proper JSON parsing
+          // For now, we'll extract key fields from the payload string
+          data = {'payload': payload};
+        } else {
+          // Assume it's a notification ID
+          data = {'notificationId': payload};
+        }
+        
+        _onNotificationTap?.call(data);
+      } catch (e) {
+        developer.log(
+          'Error parsing notification payload: $e',
+          name: 'PushNotificationManager',
+        );
+        // Fallback: call with payload as notification ID
+        _onNotificationTap?.call({'notificationId': response.payload});
+      }
     }
   }
 

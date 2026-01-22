@@ -1,5 +1,4 @@
-/// Home Screen - Main dashboard with banners, categories, products
-library;
+// Home Screen - Main dashboard with banners, categories, products
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -8,6 +7,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:tras_phone/features/notifications/presentation/cubit/notifications_state.dart';
+import 'package:tras_phone/features/notifications/presentation/cubit/notifications_cubit.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -20,6 +21,7 @@ import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../promotions/presentation/widgets/promotions_banner.dart';
+import '../../../notifications/presentation/widgets/notification_badge.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -100,26 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () => context.push('/search'),
           icon: Icon(Iconsax.search_normal, size: 24.sp),
         ),
-        IconButton(
-          onPressed: () => context.push('/notifications'),
-          icon: Stack(
-            children: [
-              Icon(Iconsax.notification, size: 24.sp),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  width: 8.w,
-                  height: 8.w,
-                  decoration: const BoxDecoration(
-                    color: AppColors.error,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        const _NotificationButton(),
         SizedBox(width: 8.w),
       ],
     );
@@ -647,5 +630,35 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _getBrandLogo(String slug) {
     // TODO: استخدم صور العلامات التجارية من الـ API
     return null;
+  }
+}
+
+/// Notification button widget that displays unread count badge
+class _NotificationButton extends StatelessWidget {
+  const _NotificationButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<NotificationsCubit, NotificationsState>(
+      builder: (context, state) {
+        int unreadCount = 0;
+        if (state is NotificationsLoaded) {
+          unreadCount = state.unreadCount;
+        } else {
+          // Load unread count if not already loaded
+          Future.microtask(() {
+            context.read<NotificationsCubit>().getUnreadCount();
+          });
+        }
+
+        return NotificationBadge(
+          count: unreadCount,
+          child: IconButton(
+            onPressed: () => context.push('/notifications'),
+            icon: Icon(Iconsax.notification, size: 24.sp),
+          ),
+        );
+      },
+    );
   }
 }

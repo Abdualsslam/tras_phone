@@ -343,4 +343,91 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passwordsDoNotMatch => 'Passwords do not match';
+
+  @override
+  String get supportTickets => 'Support Tickets';
+
+  @override
+  String get createTicket => 'Create Ticket';
+
+  @override
+  String get ticketNumber => 'Ticket Number';
+
+  @override
+  String get ticketSubject => 'Ticket Subject';
+
+  @override
+  String get ticketDescription => 'Problem Description';
+
+  @override
+  String get ticketCategory => 'Ticket Category';
+
+  @override
+  String get ticketPriority => 'Ticket Priority';
+
+  @override
+  String get ticketStatus => 'Ticket Status';
+
+  @override
+  String get ticketMessages => 'Ticket Messages';
+
+  @override
+  String get sendMessage => 'Send Message';
+
+  @override
+  String get typeMessage => 'Type your message...';
+
+  @override
+  String get attachments => 'Attachments';
+
+  @override
+  String get addAttachment => 'Add Attachment';
+
+  @override
+  String get rateTicket => 'Rate Ticket';
+
+  @override
+  String get rateService => 'Rate Service';
+
+  @override
+  String get liveChat => 'Live Chat';
+
+  @override
+  String get startChat => 'Start Chat';
+
+  @override
+  String get endChat => 'End Chat';
+
+  @override
+  String get chatWaiting => 'Waiting';
+
+  @override
+  String get chatActive => 'Active';
+
+  @override
+  String get chatEnded => 'Ended';
+
+  @override
+  String get noTickets => 'No tickets';
+
+  @override
+  String get noMessages => 'No messages';
+
+  @override
+  String get ticketCreated => 'Ticket created successfully';
+
+  @override
+  String get messageSent => 'Message sent';
+
+  @override
+  String get ratingSubmitted => 'Thank you for your rating';
+
+  @override
+  String get selectCategory => 'Select ticket category';
+
+  @override
+  String get enterSubject => 'Enter ticket subject';
+
+  @override
+  String get enterDescription => 'Enter problem description';
 }

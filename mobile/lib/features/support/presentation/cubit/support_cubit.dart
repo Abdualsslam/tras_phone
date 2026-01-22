@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../data/datasources/support_remote_datasource.dart';
@@ -73,15 +74,34 @@ class SupportCubit extends Cubit<SupportState> {
     await loadMyTickets(status: status);
   }
 
-  /// تحميل تفاصيل تذكرة
+  /// تحميل تفاصيل تذكرة مع الرسائل
   Future<void> loadTicketDetails(String ticketId) async {
     try {
       emit(state.copyWith(status: SupportStatus.loading));
-      final ticket = await _dataSource.getMyTicketById(ticketId);
+      final result = await _dataSource.getMyTicketById(ticketId);
+      final ticket = result['ticket'] as TicketModel;
+      final messages = result['messages'] as List<TicketMessageModel>;
+      
       emit(state.copyWith(
         status: SupportStatus.loaded,
         selectedTicket: ticket,
+        messages: messages,
       ));
+    } catch (e) {
+      emit(state.copyWith(
+        status: SupportStatus.error,
+        error: e.toString(),
+      ));
+    }
+  }
+
+  /// تحميل رسائل التذكرة فقط
+  Future<void> loadTicketMessages(String ticketId) async {
+    try {
+      final result = await _dataSource.getMyTicketById(ticketId);
+      final messages = result['messages'] as List<TicketMessageModel>;
+      
+      emit(state.copyWith(messages: messages));
     } catch (e) {
       emit(state.copyWith(
         status: SupportStatus.error,
@@ -177,7 +197,35 @@ class SupportCubit extends Cubit<SupportState> {
   /// رفع المرفقات
   Future<List<String>> uploadAttachments(List<String> filePaths) async {
     try {
-      return await _dataSource.uploadAttachments(filePaths);
+      emit(state.copyWith(status: SupportStatus.loading));
+      final urls = await _dataSource.uploadAttachments(filePaths);
+      emit(state.copyWith(status: SupportStatus.loaded));
+      return urls;
+    } catch (e) {
+      emit(state.copyWith(
+        status: SupportStatus.error,
+        error: e.toString(),
+      ));
+      return [];
+    }
+  }
+
+  /// رفع المرفقات من XFile
+  Future<List<String>> uploadAttachmentsFromXFiles(
+    List<XFile> files,
+  ) async {
+    try {
+      emit(state.copyWith(status: SupportStatus.loading));
+      
+      // Convert XFiles to file paths
+      final filePaths = <String>[];
+      for (final file in files) {
+        filePaths.add(file.path);
+      }
+      
+      final urls = await _dataSource.uploadAttachments(filePaths);
+      emit(state.copyWith(status: SupportStatus.loaded));
+      return urls;
     } catch (e) {
       emit(state.copyWith(
         status: SupportStatus.error,

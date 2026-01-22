@@ -769,6 +769,180 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'كلمات المرور غير متطابقة'**
   String get passwordsDoNotMatch;
+
+  /// عنوان تذاكر الدعم
+  ///
+  /// In ar, this message translates to:
+  /// **'تذاكر الدعم'**
+  String get supportTickets;
+
+  /// زر إنشاء تذكرة جديدة
+  ///
+  /// In ar, this message translates to:
+  /// **'إنشاء تذكرة'**
+  String get createTicket;
+
+  /// عنوان رقم التذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم التذكرة'**
+  String get ticketNumber;
+
+  /// حقل موضوع التذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'موضوع التذكرة'**
+  String get ticketSubject;
+
+  /// حقل وصف المشكلة
+  ///
+  /// In ar, this message translates to:
+  /// **'وصف المشكلة'**
+  String get ticketDescription;
+
+  /// عنوان فئة التذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'فئة التذكرة'**
+  String get ticketCategory;
+
+  /// عنوان أولوية التذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'أولوية التذكرة'**
+  String get ticketPriority;
+
+  /// عنوان حالة التذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'حالة التذكرة'**
+  String get ticketStatus;
+
+  /// عنوان رسائل التذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'رسائل التذكرة'**
+  String get ticketMessages;
+
+  /// زر إرسال رسالة
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال رسالة'**
+  String get sendMessage;
+
+  /// نص تلميح حقل الرسالة
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب رسالتك...'**
+  String get typeMessage;
+
+  /// عنوان المرفقات
+  ///
+  /// In ar, this message translates to:
+  /// **'المرفقات'**
+  String get attachments;
+
+  /// زر إضافة مرفق
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة مرفق'**
+  String get addAttachment;
+
+  /// عنوان تقييم التذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'قيم التذكرة'**
+  String get rateTicket;
+
+  /// عنوان تقييم الخدمة
+  ///
+  /// In ar, this message translates to:
+  /// **'قيم الخدمة'**
+  String get rateService;
+
+  /// عنوان المحادثة المباشرة
+  ///
+  /// In ar, this message translates to:
+  /// **'المحادثة المباشرة'**
+  String get liveChat;
+
+  /// زر بدء المحادثة
+  ///
+  /// In ar, this message translates to:
+  /// **'بدء المحادثة'**
+  String get startChat;
+
+  /// زر إنهاء المحادثة
+  ///
+  /// In ar, this message translates to:
+  /// **'إنهاء المحادثة'**
+  String get endChat;
+
+  /// حالة الانتظار في المحادثة
+  ///
+  /// In ar, this message translates to:
+  /// **'في الانتظار'**
+  String get chatWaiting;
+
+  /// حالة المحادثة النشطة
+  ///
+  /// In ar, this message translates to:
+  /// **'نشطة'**
+  String get chatActive;
+
+  /// حالة المحادثة المنتهية
+  ///
+  /// In ar, this message translates to:
+  /// **'منتهية'**
+  String get chatEnded;
+
+  /// رسالة عدم وجود تذاكر
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد تذاكر'**
+  String get noTickets;
+
+  /// رسالة عدم وجود رسائل
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد رسائل'**
+  String get noMessages;
+
+  /// رسالة نجاح إنشاء التذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إنشاء التذكرة بنجاح'**
+  String get ticketCreated;
+
+  /// رسالة نجاح إرسال الرسالة
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إرسال الرسالة'**
+  String get messageSent;
+
+  /// رسالة نجاح التقييم
+  ///
+  /// In ar, this message translates to:
+  /// **'شكراً لتقييمك'**
+  String get ratingSubmitted;
+
+  /// رسالة اختيار الفئة
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر فئة التذكرة'**
+  String get selectCategory;
+
+  /// رسالة إدخال الموضوع
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل موضوع التذكرة'**
+  String get enterSubject;
+
+  /// رسالة إدخال الوصف
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل وصف المشكلة'**
+  String get enterDescription;
 }
 
 class _AppLocalizationsDelegate

@@ -6,17 +6,13 @@ import '../entities/address_entity.dart';
 import '../../data/models/address_model.dart';
 import '../../data/models/wallet_model.dart';
 import '../../data/models/referral_model.dart';
+import '../../data/models/update_customer_profile_dto.dart';
 
 /// Abstract repository for profile operations
 abstract class ProfileRepository {
   // Profile
   Future<CustomerEntity> getProfile();
-  Future<CustomerEntity> updateProfile({
-    String? name,
-    String? email,
-    String? phone,
-    String? avatar,
-  });
+  Future<CustomerEntity> updateProfile(UpdateCustomerProfileDto dto);
   Future<bool> deleteAccount({String? reason});
 
   // Addresses

@@ -9,9 +9,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
-import '../../../auth/domain/entities/user_entity.dart';
+import '../../presentation/cubit/profile_cubit.dart';
+import '../../presentation/cubit/profile_state.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -22,163 +24,144 @@ class ProfileScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.profile),
-        actions: [
-          IconButton(
-            icon: const Icon(Iconsax.setting_2),
-            onPressed: () => context.push('/settings'),
-          ),
-        ],
-      ),
-      body: BlocBuilder<AuthCubit, AuthState>(
-        builder: (context, state) {
-          if (state is AuthAuthenticated) {
-            return _buildAuthenticatedContent(
-              context,
-              theme,
-              isDark,
-              state.user,
-            );
-          }
-          return _buildUnauthenticatedContent(context, theme);
-        },
-      ),
-    );
-  }
-
-  Widget _buildAuthenticatedContent(
-    BuildContext context,
-    ThemeData theme,
-    bool isDark,
-    UserEntity user,
-  ) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(16.w),
-      child: Column(
-        children: [
-          // Profile Header
-          _buildProfileHeader(context, theme, isDark, user),
-          SizedBox(height: 24.h),
-
-          // Stats Cards
-          _buildStatsRow(theme, isDark, user),
-          SizedBox(height: 24.h),
-
-          // Menu Sections
-          _buildMenuSection(
-            theme,
-            isDark,
-            title: AppLocalizations.of(context)!.orders,
-            items: [
-              _MenuItem(
-                icon: Iconsax.box,
-                title: AppLocalizations.of(context)!.orders,
-                subtitle: null,
-                onTap: () => context.push('/orders'),
-              ),
-              _MenuItem(
-                icon: Iconsax.rotate_left,
-                title: AppLocalizations.of(context)!.returns,
-                subtitle: null,
-                onTap: () => context.push('/returns'),
-              ),
-            ],
-          ),
-          SizedBox(height: 16.h),
-
-          _buildMenuSection(
-            theme,
-            isDark,
-            title: AppLocalizations.of(context)!.wallet,
-            items: [
-              _MenuItem(
-                icon: Iconsax.wallet,
-                title: AppLocalizations.of(context)!.wallet,
-                subtitle: null,
-                onTap: () => context.push('/wallet'),
-              ),
-              _MenuItem(
-                icon: Iconsax.medal_star,
-                title: 'نقاط الولاء',
-                subtitle: '١٥٠ نقطة',
-                onTap: () => context.push('/loyalty-points'),
-              ),
-            ],
-          ),
-          SizedBox(height: 16.h),
-
-          _buildMenuSection(
-            theme,
-            isDark,
-            title: AppLocalizations.of(context)!.profile,
-            items: [
-              _MenuItem(
-                icon: Iconsax.user_edit,
-                title: AppLocalizations.of(context)!.editProfile,
-                onTap: () => context.push('/edit-profile'),
-              ),
-              _MenuItem(
-                icon: Iconsax.location,
-                title: AppLocalizations.of(context)!.addresses,
-                onTap: () => context.push('/addresses'),
-              ),
-              _MenuItem(
-                icon: Iconsax.lock,
-                title: AppLocalizations.of(context)!.changePassword,
-                onTap: () => context.push('/change-password'),
-              ),
-            ],
-          ),
-          SizedBox(height: 16.h),
-
-          _buildMenuSection(
-            theme,
-            isDark,
-            title: AppLocalizations.of(context)!.support,
-            items: [
-              _MenuItem(
-                icon: Iconsax.message_question,
-                title: AppLocalizations.of(context)!.faq,
-                onTap: () => context.push('/faq'),
-              ),
-              _MenuItem(
-                icon: Iconsax.headphone,
-                title: AppLocalizations.of(context)!.support,
-                onTap: () => context.push('/support'),
-              ),
-              _MenuItem(
-                icon: Iconsax.document_text,
-                title: AppLocalizations.of(context)!.termsAndConditions,
-                onTap: () => context.push('/terms'),
-              ),
-            ],
-          ),
-          SizedBox(height: 24.h),
-
-          // Logout Button
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _showLogoutDialog(context),
-              icon: const Icon(Iconsax.logout, color: AppColors.error),
-              label: Text(
-                AppLocalizations.of(context)!.logout,
-                style: const TextStyle(color: AppColors.error),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.error),
-                padding: EdgeInsets.symmetric(vertical: 16.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14.r),
-                ),
-              ),
+    return BlocProvider(
+      create: (context) => getIt<ProfileCubit>()..loadProfile(),
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.profile),
+          actions: [
+            IconButton(
+              icon: const Icon(Iconsax.setting_2),
+              onPressed: () => context.push('/settings'),
             ),
-          ),
-          SizedBox(height: 100.h), // Extra space for floating bottom nav bar
-        ],
+          ],
+        ),
+        body: BlocBuilder<AuthCubit, AuthState>(
+          builder: (context, authState) {
+            if (authState is AuthAuthenticated) {
+              return BlocBuilder<ProfileCubit, ProfileState>(
+                builder: (context, profileState) {
+                  if (profileState is ProfileLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (profileState is ProfileError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Iconsax.warning_2,
+                            size: 64.sp,
+                            color: AppColors.error,
+                          ),
+                          SizedBox(height: 16.h),
+                          Text(
+                            profileState.message,
+                            style: theme.textTheme.bodyLarge,
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 16.h),
+                          ElevatedButton(
+                            onPressed: () =>
+                                context.read<ProfileCubit>().loadProfile(),
+                            child: const Text('إعادة المحاولة'),
+                          ),
+                        ],
+                      ),
+                    );
+                  } else if (profileState is ProfileLoaded ||
+                      profileState is ProfileUpdated) {
+                    final customer = (profileState is ProfileLoaded
+                        ? profileState.customer
+                        : (profileState as ProfileUpdated).customer);
+
+                    return RefreshIndicator(
+                      onRefresh: () =>
+                          context.read<ProfileCubit>().loadProfile(),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.all(16.w),
+                        child: Column(
+                          children: [
+                            // Profile Header
+                            _buildProfileHeader(
+                              context,
+                              theme,
+                              isDark,
+                              customer,
+                            ),
+                            SizedBox(height: 24.h),
+
+                            // Statistics Grid
+                            _buildSectionTitle(theme, isDark, 'الإحصائيات'),
+                            SizedBox(height: 12.h),
+                            _buildStatsGrid(theme, isDark, customer),
+                            SizedBox(height: 24.h),
+
+                            // Business Info
+                            _buildSectionTitle(theme, isDark, 'معلومات العمل'),
+                            SizedBox(height: 12.h),
+                            _buildBusinessInfoCard(theme, isDark, customer),
+                            SizedBox(height: 24.h),
+
+                            // Location Info
+                            if (customer.cityId != null || customer.address != null)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildSectionTitle(theme, isDark, 'الموقع'),
+                                  SizedBox(height: 12.h),
+                                  _buildLocationInfoCard(theme, isDark, customer),
+                                  SizedBox(height: 24.h),
+                                ],
+                              ),
+
+                            // Wallet & Credit
+                            _buildSectionTitle(theme, isDark, 'المحفظة والائتمان'),
+                            SizedBox(height: 12.h),
+                            _buildWalletCard(theme, isDark, customer),
+                            SizedBox(height: 24.h),
+
+                            // Actions
+                            _buildSectionTitle(theme, isDark, 'الإجراءات'),
+                            SizedBox(height: 12.h),
+                            _buildActionsSection(context, theme, isDark),
+                            SizedBox(height: 24.h),
+
+                            // Logout Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () => _showLogoutDialog(context),
+                                icon: const Icon(Iconsax.logout,
+                                    color: AppColors.error),
+                                label: Text(
+                                  AppLocalizations.of(context)!.logout,
+                                  style: const TextStyle(color: AppColors.error),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: AppColors.error),
+                                  padding:
+                                      EdgeInsets.symmetric(vertical: 16.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14.r),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 100.h), // Extra space for nav bar
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox();
+                },
+              );
+            }
+            return _buildUnauthenticatedContent(context, theme);
+          },
+        ),
       ),
     );
   }
@@ -187,13 +170,16 @@ class ProfileScreen extends StatelessWidget {
     BuildContext context,
     ThemeData theme,
     bool isDark,
-    UserEntity user,
+    customer,
   ) {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+          colors: [
+            AppColors.primary,
+            AppColors.primary.withValues(alpha: 0.8),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -219,7 +205,7 @@ class ProfileScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user.email ?? user.phone,
+                  customer.responsiblePersonName,
                   style: TextStyle(
                     fontSize: 20.sp,
                     fontWeight: FontWeight.w700,
@@ -228,27 +214,54 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  user.phone,
+                  customer.getShopName('ar'),
                   style: TextStyle(
                     fontSize: 14.sp,
                     color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
                 SizedBox(height: 4.h),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: Text(
-                    user.status.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                Row(
+                  children: [
+                    if (customer.isApproved)
+                      Container(
+                        margin: EdgeInsets.only(left: 8.w),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 4.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Text(
+                          '✓ معتمد',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 4.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Text(
+                        customer.customerCode,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -264,51 +277,72 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsRow(ThemeData theme, bool isDark, UserEntity user) {
-    return Row(
+  Widget _buildSectionTitle(ThemeData theme, bool isDark, String title) {
+    return Padding(
+      padding: EdgeInsets.only(right: 4.w),
+      child: Text(
+        title,
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: isDark
+              ? AppColors.textSecondaryDark
+              : AppColors.textSecondaryLight,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsGrid(ThemeData theme, bool isDark, customer) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisSpacing: 12.w,
+      mainAxisSpacing: 12.h,
+      childAspectRatio: 2,
       children: [
-        Expanded(
-          child: _buildStatCard(
-            theme,
-            isDark,
-            icon: Iconsax.shopping_bag,
-            value: '0',
-            label: 'طلب',
-            color: Colors.blue,
-          ),
+        _buildStatCard(
+          theme: theme,
+          isDark: isDark,
+          title: 'إجمالي الطلبات',
+          value: customer.totalOrders.toString(),
+          icon: Iconsax.shopping_bag,
+          color: Colors.blue,
         ),
-        SizedBox(width: 12.w),
-        Expanded(
-          child: _buildStatCard(
-            theme,
-            isDark,
-            icon: Iconsax.wallet_money,
-            value: '0',
-            label: 'ر.س',
-            color: Colors.green,
-          ),
+        _buildStatCard(
+          theme: theme,
+          isDark: isDark,
+          title: 'إجمالي الإنفاق',
+          value: '${customer.totalSpent.toStringAsFixed(2)} ر.س',
+          icon: Iconsax.wallet_money,
+          color: Colors.green,
         ),
-        SizedBox(width: 12.w),
-        Expanded(
-          child: _buildStatCard(
-            theme,
-            isDark,
-            icon: Iconsax.medal_star,
-            value: '0',
-            label: 'نقطة',
-            color: Colors.orange,
-          ),
+        _buildStatCard(
+          theme: theme,
+          isDark: isDark,
+          title: 'متوسط قيمة الطلب',
+          value: '${customer.averageOrderValue.toStringAsFixed(2)} ر.س',
+          icon: Iconsax.trend_up,
+          color: Colors.orange,
+        ),
+        _buildStatCard(
+          theme: theme,
+          isDark: isDark,
+          title: 'نقاط الولاء',
+          value: customer.loyaltyPoints.toString(),
+          icon: Iconsax.medal_star,
+          color: Colors.purple,
         ),
       ],
     );
   }
 
-  Widget _buildStatCard(
-    ThemeData theme,
-    bool isDark, {
-    required IconData icon,
+  Widget _buildStatCard({
+    required ThemeData theme,
+    required bool isDark,
+    required String title,
     required String value,
-    required String label,
+    required IconData icon,
     required Color color,
   }) {
     return ClipRRect(
@@ -316,7 +350,7 @@ class ProfileScreen extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: EdgeInsets.all(16.w),
+          padding: EdgeInsets.all(12.w),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -347,46 +381,30 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 44.w,
-                height: 44.w,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color.withValues(alpha: 0.2),
-                      color.withValues(alpha: 0.1),
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: color.withValues(alpha: 0.3),
-                    width: 1.5,
-                  ),
-                ),
-                child: Icon(icon, size: 22.sp, color: color),
-              ),
-              SizedBox(height: 10.h),
+              Icon(icon, color: color, size: 28.sp),
+              SizedBox(height: 8.h),
               Text(
                 value,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimaryLight,
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: color,
                 ),
               ),
               SizedBox(height: 2.h),
               Text(
-                label,
-                style: theme.textTheme.bodySmall?.copyWith(
+                title,
+                style: TextStyle(
+                  fontSize: 11.sp,
                   color: isDark
                       ? AppColors.textSecondaryDark
                       : AppColors.textSecondaryLight,
-                  fontWeight: FontWeight.w500,
                 ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -395,93 +413,100 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuSection(
-    ThemeData theme,
-    bool isDark, {
-    required String title,
-    required List<_MenuItem> items,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.only(right: 4.w, bottom: 8.h),
-          child: Text(
-            title,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
-            ),
-          ),
-        ),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(18.r),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isDark
-                      ? [
-                          Colors.white.withValues(alpha: 0.08),
-                          Colors.white.withValues(alpha: 0.04),
-                        ]
-                      : [
-                          Colors.white.withValues(alpha: 0.9),
-                          Colors.white.withValues(alpha: 0.75),
-                        ],
-                ),
-                borderRadius: BorderRadius.circular(18.r),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : AppColors.primary.withValues(alpha: 0.1),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: items.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  return Column(
-                    children: [
-                      _buildMenuItem(theme, item, isDark),
-                      if (index < items.length - 1)
-                        Divider(
-                          height: 1,
-                          indent: 56.w,
-                          color: isDark
-                              ? AppColors.dividerDark
-                              : AppColors.dividerLight,
-                        ),
+  Widget _buildBusinessInfoCard(ThemeData theme, bool isDark, customer) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18.r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [
+                      Colors.white.withValues(alpha: 0.08),
+                      Colors.white.withValues(alpha: 0.04),
+                    ]
+                  : [
+                      Colors.white.withValues(alpha: 0.9),
+                      Colors.white.withValues(alpha: 0.75),
                     ],
-                  );
-                }).toList(),
-              ),
+            ),
+            borderRadius: BorderRadius.circular(18.r),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : AppColors.primary.withValues(alpha: 0.1),
+              width: 1.5,
             ),
           ),
+          child: Column(
+            children: [
+              _buildInfoTile(
+                theme,
+                isDark,
+                Iconsax.shop,
+                'اسم المتجر',
+                customer.getShopName('ar'),
+              ),
+              Divider(
+                height: 1,
+                indent: 56.w,
+                color: isDark
+                    ? AppColors.dividerDark
+                    : AppColors.dividerLight,
+              ),
+              _buildInfoTile(
+                theme,
+                isDark,
+                Iconsax.user,
+                'اسم المسؤول',
+                customer.responsiblePersonName,
+              ),
+              Divider(
+                height: 1,
+                indent: 56.w,
+                color: isDark
+                    ? AppColors.dividerDark
+                    : AppColors.dividerLight,
+              ),
+              _buildInfoTile(
+                theme,
+                isDark,
+                Iconsax.category,
+                'نوع العمل',
+                customer.businessType.displayName,
+              ),
+              Divider(
+                height: 1,
+                indent: 56.w,
+                color: isDark
+                    ? AppColors.dividerDark
+                    : AppColors.dividerLight,
+              ),
+              _buildInfoTile(
+                theme,
+                isDark,
+                Iconsax.code,
+                'كود العميل',
+                customer.customerCode,
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildMenuItem(ThemeData theme, _MenuItem item, bool isDark) {
+  Widget _buildInfoTile(
+    ThemeData theme,
+    bool isDark,
+    IconData icon,
+    String title,
+    String value,
+  ) {
     return ListTile(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        item.onTap();
-      },
       leading: Container(
         width: 42.w,
         height: 42.w,
@@ -495,15 +520,19 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.2),
-            width: 1,
-          ),
         ),
-        child: Icon(item.icon, size: 20.sp, color: AppColors.primary),
+        child: Icon(icon, size: 20.sp, color: AppColors.primary),
       ),
       title: Text(
-        item.title,
+        title,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: isDark
+              ? AppColors.textSecondaryDark
+              : AppColors.textSecondaryLight,
+        ),
+      ),
+      subtitle: Text(
+        value,
         style: theme.textTheme.bodyLarge?.copyWith(
           fontWeight: FontWeight.w500,
           color: isDark
@@ -511,30 +540,250 @@ class ProfileScreen extends StatelessWidget {
               : AppColors.textPrimaryLight,
         ),
       ),
-      subtitle: item.subtitle != null
-          ? Text(
-              item.subtitle!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textTertiaryLight,
-              ),
-            )
-          : null,
-      trailing: Container(
-        width: 28.w,
-        height: 28.w,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Icon(
-          Iconsax.arrow_left_2,
-          size: 16.sp,
-          color: AppColors.primary,
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+    );
+  }
+
+  Widget _buildLocationInfoCard(ThemeData theme, bool isDark, customer) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18.r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [
+                      Colors.white.withValues(alpha: 0.08),
+                      Colors.white.withValues(alpha: 0.04),
+                    ]
+                  : [
+                      Colors.white.withValues(alpha: 0.9),
+                      Colors.white.withValues(alpha: 0.75),
+                    ],
+            ),
+            borderRadius: BorderRadius.circular(18.r),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : AppColors.primary.withValues(alpha: 0.1),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              if (customer.address != null)
+                _buildInfoTile(
+                  theme,
+                  isDark,
+                  Iconsax.location,
+                  'العنوان',
+                  customer.address!,
+                ),
+            ],
+          ),
         ),
       ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+    );
+  }
+
+  Widget _buildWalletCard(ThemeData theme, bool isDark, customer) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18.r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primary.withValues(alpha: 0.1),
+                AppColors.primaryLight.withValues(alpha: 0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(18.r),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.2),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'رصيد المحفظة',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                '${customer.walletBalance.toStringAsFixed(2)} ر.س',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Divider(),
+              SizedBox(height: 16.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'حد الائتمان',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        '${customer.creditLimit.toStringAsFixed(2)} ر.س',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'المستخدم',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        '${customer.creditUsed.toStringAsFixed(2)} ر.س',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: 12.h),
+              LinearProgressIndicator(
+                value: customer.creditLimit > 0
+                    ? customer.creditUsed / customer.creditLimit
+                    : 0,
+                backgroundColor: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.grey.shade300,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'المتاح: ${customer.availableCredit.toStringAsFixed(2)} ر.س',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionsSection(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18.r),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [
+                      Colors.white.withValues(alpha: 0.08),
+                      Colors.white.withValues(alpha: 0.04),
+                    ]
+                  : [
+                      Colors.white.withValues(alpha: 0.9),
+                      Colors.white.withValues(alpha: 0.75),
+                    ],
+            ),
+            borderRadius: BorderRadius.circular(18.r),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : AppColors.primary.withValues(alpha: 0.1),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              _MenuItem(
+                icon: Iconsax.user_edit,
+                title: AppLocalizations.of(context)!.editProfile,
+                onTap: () => context.push('/edit-profile'),
+              ),
+              Divider(
+                height: 1,
+                indent: 56.w,
+                color: isDark
+                    ? AppColors.dividerDark
+                    : AppColors.dividerLight,
+              ),
+              _MenuItem(
+                icon: Iconsax.location,
+                title: AppLocalizations.of(context)!.addresses,
+                onTap: () => context.push('/addresses'),
+              ),
+              Divider(
+                height: 1,
+                indent: 56.w,
+                color: isDark
+                    ? AppColors.dividerDark
+                    : AppColors.dividerLight,
+              ),
+              _MenuItem(
+                icon: Iconsax.box,
+                title: AppLocalizations.of(context)!.orders,
+                onTap: () => context.push('/orders'),
+              ),
+              Divider(
+                height: 1,
+                indent: 56.w,
+                color: isDark
+                    ? AppColors.dividerDark
+                    : AppColors.dividerLight,
+              ),
+              _MenuItem(
+                icon: Iconsax.trash,
+                title: 'حذف الحساب',
+                onTap: () => _showDeleteAccountDialog(context),
+                isDestructive: true,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -580,11 +829,11 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(AppLocalizations.of(context)!.logout),
-        content: Text(AppLocalizations.of(context)!.logout),
+        content: const Text('هل أنت متأكد من تسجيل الخروج؟'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)!.cancel),
+            child: const Text('إلغاء'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -599,18 +848,148 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    final reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف الحساب'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'هل أنت متأكد من حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.',
+            ),
+            SizedBox(height: 16.h),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'السبب (اختياري)',
+                hintText: 'أخبرنا لماذا تريد حذف حسابك...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              reasonController.dispose();
+              Navigator.pop(ctx);
+            },
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final reason = reasonController.text.trim().isEmpty
+                  ? null
+                  : reasonController.text.trim();
+              reasonController.dispose();
+
+              final success = await context
+                  .read<ProfileCubit>()
+                  .deleteAccount(reason: reason);
+
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+                if (success) {
+                  context.read<AuthCubit>().logout();
+                  context.go('/login');
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('فشل حذف الحساب'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _MenuItem {
+class _MenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String? subtitle;
   final VoidCallback onTap;
+  final bool isDestructive;
 
   const _MenuItem({
     required this.icon,
     required this.title,
-    this.subtitle,
     required this.onTap,
+    this.isDestructive = false,
   });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return ListTile(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      leading: Container(
+        width: 42.w,
+        height: 42.w,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDestructive
+                ? [
+                    AppColors.error.withValues(alpha: 0.15),
+                    AppColors.error.withValues(alpha: 0.08),
+                  ]
+                : [
+                    AppColors.primary.withValues(alpha: 0.15),
+                    AppColors.primaryLight.withValues(alpha: 0.08),
+                  ],
+          ),
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Icon(
+          icon,
+          size: 20.sp,
+          color: isDestructive ? AppColors.error : AppColors.primary,
+        ),
+      ),
+      title: Text(
+        title,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: isDestructive
+              ? AppColors.error
+              : (isDark
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textPrimaryLight),
+        ),
+      ),
+      trailing: Container(
+        width: 28.w,
+        height: 28.w,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Icon(
+          Iconsax.arrow_left_2,
+          size: 16.sp,
+          color: AppColors.primary,
+        ),
+      ),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+    );
+  }
 }

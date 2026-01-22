@@ -9,17 +9,13 @@ import '../../../auth/domain/entities/customer_entity.dart';
 import '../models/address_model.dart';
 import '../models/wallet_model.dart';
 import '../models/referral_model.dart';
+import '../models/update_customer_profile_dto.dart';
 
 /// Abstract interface for profile data source
 abstract class ProfileRemoteDataSource {
   // Profile
   Future<CustomerEntity> getProfile();
-  Future<CustomerEntity> updateProfile({
-    String? name,
-    String? email,
-    String? phone,
-    String? avatar,
-  });
+  Future<CustomerEntity> updateProfile(UpdateCustomerProfileDto dto);
   Future<bool> deleteAccount({String? reason});
 
   // Addresses
@@ -75,22 +71,12 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   }
 
   @override
-  Future<CustomerEntity> updateProfile({
-    String? name,
-    String? email,
-    String? phone,
-    String? avatar,
-  }) async {
+  Future<CustomerEntity> updateProfile(UpdateCustomerProfileDto dto) async {
     developer.log('Updating profile', name: 'ProfileDataSource');
 
     final response = await _apiClient.put(
       ApiEndpoints.profile,
-      data: {
-        if (name != null) 'name': name,
-        if (email != null) 'email': email,
-        if (phone != null) 'phone': phone,
-        if (avatar != null) 'avatar': avatar,
-      },
+      data: dto.toJson(),
     );
 
     final data = response.data['data'] ?? response.data;

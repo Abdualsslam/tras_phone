@@ -8,8 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../data/models/support_model.dart';
 import '../cubit/support_cubit.dart';
+import '../widgets/ticket_card.dart';
 
 class SupportTicketsScreen extends StatefulWidget {
   const SupportTicketsScreen({super.key});
@@ -44,7 +44,6 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -75,11 +74,8 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
                 if (index >= state.tickets.length) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                return _buildTicketCard(
-                  context,
-                  theme,
-                  isDark,
-                  state.tickets[index],
+                return TicketCard(
+                  ticket: state.tickets[index],
                 );
               },
             ),
@@ -87,7 +83,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/support/create-ticket'),
+        onPressed: () => context.push('/support/create'),
         icon: const Icon(Iconsax.add),
         label: const Text('تذكرة جديدة'),
       ),
@@ -158,147 +154,4 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
     );
   }
 
-  Widget _buildTicketCard(
-    BuildContext context,
-    ThemeData theme,
-    bool isDark,
-    TicketModel ticket,
-  ) {
-    return GestureDetector(
-      onTap: () => context.push('/support/tickets/${ticket.id}'),
-      child: Container(
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 44.w,
-                  height: 44.w,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Icon(Iconsax.message_text, color: AppColors.primary),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        ticket.subject,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        ticket.category?.getName('ar') ?? 'غير محدد',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textTertiaryLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _buildStatusBadge(ticket.status),
-              ],
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              ticket.description,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondaryLight,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 8.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _formatDate(ticket.createdAt),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textTertiaryLight,
-                  ),
-                ),
-                Row(
-                  children: [
-                    if (ticket.messageCount > 0) ...[
-                      Icon(
-                        Iconsax.message,
-                        size: 14.sp,
-                        color: AppColors.textTertiaryLight,
-                      ),
-                      SizedBox(width: 4.w),
-                      Text(
-                        '${ticket.messageCount}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textTertiaryLight,
-                        ),
-                      ),
-                    ],
-                    if (ticket.canRate) ...[
-                      SizedBox(width: 8.w),
-                      Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                        decoration: BoxDecoration(
-                          color: AppColors.warning.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                        child: Text(
-                          'قيم الخدمة',
-                          style: TextStyle(
-                            color: AppColors.warning,
-                            fontSize: 10.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(TicketStatus status) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: status.color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Text(
-        status.displayNameAr,
-        style: TextStyle(
-          fontSize: 11.sp,
-          fontWeight: FontWeight.w600,
-          color: status.color,
-        ),
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    final diff = DateTime.now().difference(date);
-    if (diff.inHours < 1) return 'منذ ${diff.inMinutes} دقيقة';
-    if (diff.inHours < 24) return 'منذ ${diff.inHours} ساعة';
-    if (diff.inDays == 1) return 'أمس';
-    return '${date.day}/${date.month}/${date.year}';
-  }
 }

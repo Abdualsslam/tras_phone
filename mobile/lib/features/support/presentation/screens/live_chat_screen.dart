@@ -9,6 +9,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../data/models/support_model.dart';
 import '../cubit/live_chat_cubit.dart';
+import '../widgets/rating_dialog.dart';
 
 class LiveChatScreen extends StatefulWidget {
   const LiveChatScreen({super.key});
@@ -517,46 +518,18 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
   }
 
   Future<void> _showRatingDialog() async {
-    int selectedRating = 5;
-
-    final rating = await showDialog<int>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: const Text('قيم المحادثة'),
-            content: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (index) {
-                return IconButton(
-                  icon: Icon(
-                    index < selectedRating ? Icons.star : Icons.star_border,
-                    color: Colors.amber,
-                    size: 32.sp,
-                  ),
-                  onPressed: () {
-                    setDialogState(() => selectedRating = index + 1);
-                  },
-                );
-              }),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('تخطي'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, selectedRating),
-                child: const Text('إرسال'),
-              ),
-            ],
-          );
-        },
-      ),
+    final result = await RatingDialog.show(
+      context,
+      title: 'قيم المحادثة',
+      message: 'كيف تقيم خدمة الدعم التي تلقيتها؟',
+      allowFeedback: true,
     );
 
-    if (rating != null && mounted) {
-      await context.read<LiveChatCubit>().endChat(rating: rating);
+    if (result != null && mounted) {
+      await context.read<LiveChatCubit>().endChat(
+            rating: result['rating'] as int,
+            feedback: result['feedback'] as String?,
+          );
       if (mounted) {
         context.pop();
       }

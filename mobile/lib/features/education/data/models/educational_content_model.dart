@@ -25,8 +25,10 @@ class EducationalContentModel {
   final String? videoUrl;
   final int? videoDuration;
   final List<String> attachments;
-  final List<String>? relatedProducts;
-  final List<String>? relatedContent;
+  @JsonKey(name: 'relatedProducts')
+  final dynamic relatedProducts; // Can be List<String> or List<Map>
+  @JsonKey(name: 'relatedContent')
+  final dynamic relatedContent; // Can be List<String> or List<Map>
   final List<String> tags;
   final String? metaTitle;
   final String? metaDescription;
@@ -96,6 +98,42 @@ class EducationalContentModel {
       categoryId = '';
     }
 
+    // Parse related products (can be strings or objects)
+    List<String> parsedRelatedProducts = [];
+    if (relatedProducts != null) {
+      if (relatedProducts is List) {
+        for (var product in relatedProducts) {
+          if (product is String) {
+            parsedRelatedProducts.add(product);
+          } else if (product is Map<String, dynamic>) {
+            // Extract ID from populated product object
+            final productId = product['_id'] ?? product['id'];
+            if (productId != null) {
+              parsedRelatedProducts.add(productId.toString());
+            }
+          }
+        }
+      }
+    }
+
+    // Parse related content (can be strings or objects)
+    List<String> parsedRelatedContent = [];
+    if (relatedContent != null) {
+      if (relatedContent is List) {
+        for (var contentItem in relatedContent) {
+          if (contentItem is String) {
+            parsedRelatedContent.add(contentItem);
+          } else if (contentItem is Map<String, dynamic>) {
+            // Extract ID from populated content object
+            final contentId = contentItem['_id'] ?? contentItem['id'];
+            if (contentId != null) {
+              parsedRelatedContent.add(contentId.toString());
+            }
+          }
+        }
+      }
+    }
+
     // Parse content type
     ContentType contentType;
     switch (type.toLowerCase()) {
@@ -150,8 +188,8 @@ class EducationalContentModel {
       videoUrl: videoUrl,
       videoDuration: videoDuration,
       attachments: attachments,
-      relatedProducts: relatedProducts ?? [],
-      relatedContent: relatedContent ?? [],
+      relatedProducts: parsedRelatedProducts,
+      relatedContent: parsedRelatedContent,
       tags: tags,
       metaTitle: metaTitle,
       metaDescription: metaDescription,

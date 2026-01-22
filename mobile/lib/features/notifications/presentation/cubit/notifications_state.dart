@@ -1,12 +1,11 @@
-/// Notifications States - State classes for NotificationsCubit
-library;
+// Notifications States - State classes for NotificationsCubit
 
 import 'package:equatable/equatable.dart';
 import '../../data/models/notification_model.dart';
 import '../../domain/enums/notification_enums.dart';
 
 /// Base state for notifications
-sealed class NotificationsState extends Equatable {
+abstract class NotificationsState extends Equatable {
   const NotificationsState();
 
   @override

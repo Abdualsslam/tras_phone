@@ -1,10 +1,13 @@
 /// Support Remote DataSource - Real API implementation
 library;
 
+import 'dart:convert';
 import 'dart:developer' as developer;
+import 'dart:io';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
 import '../models/support_model.dart';
+import '../helpers/file_upload_helper.dart';
 
 /// Abstract interface for support data source
 abstract class SupportRemoteDataSource {
@@ -26,8 +29,8 @@ abstract class SupportRemoteDataSource {
     int limit = 10,
   });
 
-  /// جلب تفاصيل تذكرتي
-  Future<TicketModel> getMyTicketById(String ticketId);
+  /// جلب تفاصيل تذكرتي مع الرسائل
+  Future<Map<String, dynamic>> getMyTicketById(String ticketId);
 
   /// إنشاء تذكرة جديدة
   Future<TicketModel> createTicket(CreateTicketRequest request);
@@ -128,13 +131,25 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
   }
 
   @override
-  Future<TicketModel> getMyTicketById(String ticketId) async {
+  Future<Map<String, dynamic>> getMyTicketById(String ticketId) async {
     developer.log('Fetching my ticket: $ticketId', name: 'SupportDataSource');
 
-    final response = await _apiClient.get('${ApiEndpoints.myTickets}/$ticketId');
+    final response = await _apiClient.get(ApiEndpoints.ticketDetails(ticketId));
     final data = response.data['data'] ?? response.data;
 
-    return TicketModel.fromJson(data);
+    // Parse ticket and messages
+    final ticket = TicketModel.fromJson(data['ticket'] ?? data);
+    final messagesJson = data['messages'] as List<dynamic>?;
+    final messages = messagesJson != null
+        ? messagesJson
+            .map((m) => TicketMessageModel.fromJson(m))
+            .toList()
+        : <TicketMessageModel>[];
+
+    return {
+      'ticket': ticket,
+      'messages': messages,
+    };
   }
 
   @override
@@ -162,7 +177,7 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     );
 
     final response = await _apiClient.post(
-      '${ApiEndpoints.myTickets}/$ticketId/messages',
+      ApiEndpoints.ticketMessages(ticketId),
       data: {
         'content': content,
         if (attachments != null) 'attachments': attachments,
@@ -182,7 +197,7 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     developer.log('Rating ticket: $ticketId', name: 'SupportDataSource');
 
     final response = await _apiClient.post(
-      '${ApiEndpoints.myTickets}/$ticketId/rate',
+      ApiEndpoints.ticketRate(ticketId),
       data: {
         'rating': rating,
         if (feedback != null) 'feedback': feedback,
@@ -240,7 +255,7 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     developer.log('Sending chat message', name: 'SupportDataSource');
 
     final response = await _apiClient.post(
-      '${ApiEndpoints.chatMySession}/messages',
+      ApiEndpoints.chatMessages,
       data: {
         'content': content,
         'messageType': messageType.apiValue,
@@ -256,7 +271,7 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     developer.log('Ending chat session', name: 'SupportDataSource');
 
     final response = await _apiClient.post(
-      '${ApiEndpoints.chatMySession}/end',
+      ApiEndpoints.chatEnd,
       data: {
         if (rating != null) 'rating': rating,
         if (feedback != null) 'feedback': feedback,
@@ -276,18 +291,79 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
   Future<List<String>> uploadAttachments(List<String> filePaths) async {
     developer.log('Uploading attachments', name: 'SupportDataSource');
 
-    final uploadedUrls = <String>[];
-    for (final path in filePaths) {
-      final response = await _apiClient.uploadFile(
-        '${ApiEndpoints.tickets}/upload',
-        filePath: path,
-        fieldName: 'file',
-      );
+    // Import helper
+    final helper = await _convertFilesToBase64(filePaths);
 
-      final url = response.data['data']?['url'] ?? response.data['url'];
-      if (url != null) uploadedUrls.add(url);
+    final response = await _apiClient.post(
+      ApiEndpoints.ticketUpload,
+      data: {
+        'files': helper.map((f) => f.toJson()).toList(),
+      },
+    );
+
+    final data = response.data['data'] ?? response.data;
+    final urls = data['urls'] as List<dynamic>?;
+
+    if (urls != null) {
+      return urls.map((url) => url.toString()).toList();
     }
 
-    return uploadedUrls;
+    throw Exception(
+      response.data['messageAr'] ??
+          response.data['message'] ??
+          'Failed to upload files',
+    );
+  }
+
+  /// Convert file paths to base64 format
+  Future<List<FileUploadData>> _convertFilesToBase64(
+    List<String> filePaths,
+  ) async {
+    final results = <FileUploadData>[];
+    for (final path in filePaths) {
+      final file = File(path);
+      if (!await file.exists()) {
+        throw Exception('File does not exist: $path');
+      }
+
+      final bytes = await file.readAsBytes();
+      final base64String = base64Encode(bytes);
+      final extension = path.split('.').last;
+      final mimeType = _getMimeTypeFromExtension(extension);
+      final filename = path.split('/').last;
+
+      results.add(FileUploadData(
+        base64: base64String,
+        filename: filename,
+        mimeType: mimeType,
+      ));
+    }
+    return results;
+  }
+
+  /// Get MIME type from file extension
+  String _getMimeTypeFromExtension(String extension) {
+    final ext = extension.toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      case 'pdf':
+        return 'application/pdf';
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case 'txt':
+        return 'text/plain';
+      default:
+        return 'application/octet-stream';
+    }
   }
 }
