@@ -21,6 +21,7 @@ import { ApiResponseDto } from '@common/dto/api-response.dto';
 import { ApiAuthErrorResponses } from '@common/decorators/api-error-responses.decorator';
 import { CustomersService } from './customers.service';
 import { ProductsService } from '@modules/products/products.service';
+import { UsersService } from '@modules/users/users.service';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -43,6 +44,7 @@ export class CustomerProfileController {
   constructor(
     private readonly customersService: CustomersService,
     private readonly productsService: ProductsService,
+    private readonly usersService: UsersService,
   ) {}
 
   // ═════════════════════════════════════
@@ -73,15 +75,58 @@ export class CustomerProfileController {
       const defaultPriceLevel = await this.productsService.getDefaultPriceLevel();
 
       // إنشاء customer profile أساسي
-      customer = await this.customersService.createAutoProfile(
+      await this.customersService.createAutoProfile(
         user.id,
         defaultPriceLevel._id.toString(),
         user.phone || 'Customer',
       );
+
+      // إعادة جلب customer مع populate
+      customer = await this.customersService.findByUserId(user.id);
+      
+      // إذا لم يتم العثور على customer بعد الإنشاء، إرجاع خطأ
+      if (!customer) {
+        throw new NotFoundException('Customer profile not found');
+      }
+    }
+
+    // تحويل customer إلى plain object
+    const customerObj = customer.toObject ? customer.toObject({ virtuals: true }) : JSON.parse(JSON.stringify(customer));
+    
+    // إضافة name إلى userId
+    // إذا كان userId populated ككائن، أضف name إليه
+    // إذا كان userId string فقط، قم بتحميله يدوياً
+    if (customerObj.userId) {
+      if (typeof customerObj.userId === 'object' && !Array.isArray(customerObj.userId)) {
+        // userId هو كائن populated
+        if (customerObj.userId._id || customerObj.userId.id) {
+          customerObj.userId = {
+            ...customerObj.userId,
+            name: customerObj.responsiblePersonName,
+          };
+        }
+      } else if (typeof customerObj.userId === 'string') {
+        // userId هو string فقط، نحتاج لتحميله يدوياً
+        try {
+          const user = await this.usersService.findById(customerObj.userId);
+          const userObj = user.toObject ? user.toObject() : user;
+          customerObj.userId = {
+            _id: userObj._id || userObj.id,
+            phone: userObj.phone,
+            email: userObj.email,
+            userType: userObj.userType,
+            status: userObj.status,
+            name: customerObj.responsiblePersonName,
+          };
+        } catch (error) {
+          // إذا فشل تحميل user، نترك userId كما هو
+          console.error('Failed to load user:', error);
+        }
+      }
     }
 
     return ResponseBuilder.success(
-      customer,
+      customerObj,
       'Profile retrieved successfully',
       'تم استرجاع البروفايل بنجاح',
     );

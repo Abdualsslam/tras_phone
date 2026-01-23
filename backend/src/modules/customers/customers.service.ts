@@ -267,7 +267,12 @@ export class CustomersService {
    * Find customer by user ID
    */
   async findByUserId(userId: string): Promise<CustomerDocument | null> {
-    return this.customerModel.findOne({ userId }).populate('priceLevelId');
+    return this.customerModel
+      .findOne({ userId })
+      .populate('userId', '_id phone email userType status')
+      .populate('cityId', 'name nameAr')
+      .populate('marketId', 'name nameAr')
+      .populate('priceLevelId', 'name discount');
   }
 
   /**
