@@ -204,7 +204,7 @@ export const CustomerSchema = SchemaFactory.createForClass(Customer);
 // ═════════════════════════════════════
 // Indexes
 // ═════════════════════════════════════
-CustomerSchema.index({ userId: 1 });
+CustomerSchema.index({ userId: 1 }, { unique: true });
 CustomerSchema.index({ customerCode: 1 });
 CustomerSchema.index({ cityId: 1 });
 CustomerSchema.index({ priceLevelId: 1 });
