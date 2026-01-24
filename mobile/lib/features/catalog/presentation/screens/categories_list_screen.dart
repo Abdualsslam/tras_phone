@@ -2,6 +2,7 @@
 library;
 
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -185,10 +186,15 @@ class _CategoryCard extends StatelessWidget {
                   ),
                   child: category.image != null
                       ? ClipOval(
-                          child: Image.network(
-                            category.image!,
+                          child: CachedNetworkImage(
+                            imageUrl: category.image!,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(
+                            placeholder: (context, url) => Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Icon(
                               Iconsax.category,
                               size: 36.sp,
                               color: AppColors.primary,

@@ -1,6 +1,7 @@
 /// GlassBrandCard - Glass card for brand items
 library;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../config/theme/app_colors.dart';
@@ -52,10 +53,15 @@ class GlassBrandCard extends StatelessWidget {
               ],
             ),
             child: logoUrl != null
-                ? Image.network(
-                    logoUrl!,
+                ? CachedNetworkImage(
+                    imageUrl: logoUrl!,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(
+                    placeholder: (context, url) => Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Icon(
                       Icons.business_rounded,
                       size: 26.sp,
                       color: AppColors.primary,

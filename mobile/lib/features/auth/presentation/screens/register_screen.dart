@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../cubit/auth_cubit.dart';
@@ -113,10 +114,86 @@ class _RegisterScreenState extends State<RegisterScreen> {
             context.go('/home');
           }
         } else if (state is AuthError) {
+          // Get current locale
+          final locale = Localizations.localeOf(context);
+          final isArabic = locale.languageCode == 'ar';
+          
+          // Check if this is an account under review error
+          final isAccountUnderReview = 
+              state.message.contains('account is under review') ||
+              state.message.contains('قيد المراجعة') ||
+              state.message.contains('ACCOUNT_UNDER_REVIEW') ||
+              state.message.contains('under review');
+          
+          // Check if this is an account rejected error
+          final isAccountRejected = 
+              state.message.contains('account has been rejected') ||
+              state.message.contains('تم رفض') ||
+              state.message.contains('ACCOUNT_REJECTED') ||
+              state.message.contains('has been rejected');
+          
+          final backgroundColor = isAccountUnderReview 
+              ? AppColors.warning 
+              : AppColors.error;
+          
+          final icon = isAccountUnderReview 
+              ? Iconsax.warning_2 
+              : Iconsax.info_circle;
+          
+          // Extract clean message (remove AppException prefix if present)
+          String cleanMessage = state.message;
+          if (cleanMessage.contains('AppException:')) {
+            cleanMessage = cleanMessage.split('AppException:').last.trim();
+            // Remove code part if present
+            if (cleanMessage.contains('(code:')) {
+              cleanMessage = cleanMessage.split('(code:').first.trim();
+            }
+          }
+          
+          // Use localized message for account under review
+          if (isAccountUnderReview) {
+            cleanMessage = isArabic 
+                ? AccountUnderReviewException.arabicMessage
+                : AccountUnderReviewException.englishMessage;
+          }
+          // Use localized message for account rejected
+          else if (isAccountRejected) {
+            cleanMessage = isArabic 
+                ? AccountRejectedException.arabicMessage
+                : AccountRejectedException.englishMessage;
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppColors.error,
+              content: Row(
+                children: [
+                  Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 20.sp,
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(
+                      cleanMessage,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+                      textAlign: isArabic ? TextAlign.right : TextAlign.left,
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: backgroundColor,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              margin: EdgeInsets.all(16.w),
+              duration: const Duration(seconds: 4),
             ),
           );
         }

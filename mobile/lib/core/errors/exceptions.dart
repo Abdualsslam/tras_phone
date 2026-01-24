@@ -61,6 +61,36 @@ class UnauthorizedException extends AuthException {
   });
 }
 
+/// Account under review exception
+class AccountUnderReviewException extends AuthException {
+  const AccountUnderReviewException({
+    super.message = 'حسابك قيد المراجعة. يرجى انتظار التفعيل',
+    super.code = 'ACCOUNT_UNDER_REVIEW',
+    super.originalError,
+  });
+  
+  /// English message
+  static const String englishMessage = 'Your account is under review. Please wait for activation';
+  
+  /// Arabic message
+  static const String arabicMessage = 'حسابك قيد المراجعة. يرجى انتظار التفعيل';
+}
+
+/// Account rejected exception
+class AccountRejectedException extends AuthException {
+  const AccountRejectedException({
+    super.message = 'تم رفض حسابك',
+    super.code = 'ACCOUNT_REJECTED',
+    super.originalError,
+  });
+  
+  /// English message
+  static const String englishMessage = 'Your account has been rejected';
+  
+  /// Arabic message
+  static const String arabicMessage = 'تم رفض حسابك';
+}
+
 /// Forbidden exception (403)
 class ForbiddenException extends AppException {
   const ForbiddenException({

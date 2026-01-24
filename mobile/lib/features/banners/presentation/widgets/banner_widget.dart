@@ -1,6 +1,7 @@
 /// Banner Widget
 library;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -93,12 +94,21 @@ class _BannerContentState extends State<_BannerContent> {
         child: Stack(
           children: [
             // Banner Image
-            Image.network(
-              widget.imageUrl,
+            CachedNetworkImage(
+              imageUrl: widget.imageUrl,
               width: double.infinity,
               height: 200.h,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
+              placeholder: (context, url) => Container(
+                height: 200.h,
+                color: Colors.grey.shade300,
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+              errorWidget: (context, url, error) {
                 return Container(
                   height: 200.h,
                   color: Colors.grey.shade300,

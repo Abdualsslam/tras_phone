@@ -1,6 +1,7 @@
 /// GlassCategoryCard - Glass card for category items
 library;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../config/theme/app_colors.dart';
@@ -63,10 +64,15 @@ class GlassCategoryCard extends StatelessWidget {
             ),
             child: imageUrl != null
                 ? ClipOval(
-                    child: Image.network(
-                      imageUrl!,
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
+                      placeholder: (context, url) => Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      errorWidget: (context, url, error) =>
                           Icon(icon, size: 32.sp, color: AppColors.primary),
                     ),
                   )

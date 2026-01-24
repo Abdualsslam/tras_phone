@@ -8,6 +8,8 @@ import '../../domain/repositories/profile_repository.dart';
 import '../../data/models/address_model.dart';
 import '../../data/models/update_customer_profile_dto.dart';
 import '../../../auth/domain/entities/customer_entity.dart';
+import '../../../../core/config/app_config.dart';
+import '../../../../core/constants/api_endpoints.dart';
 import 'profile_state.dart';
 
 /// Cubit for managing customer profile
@@ -22,12 +24,119 @@ class ProfileCubit extends Cubit<ProfileState> {
   Future<void> loadProfile() async {
     emit(const ProfileLoading());
     try {
+      // Print request URL
+      _printRequestUrl();
+      
       final customer = await _repository.getProfile();
+      
+      // Print all profile data to terminal
+      _printProfileData(customer);
+      
       emit(ProfileLoaded(customer));
     } catch (e) {
       developer.log('Error loading profile: $e', name: 'ProfileCubit');
       emit(ProfileError(e.toString()));
     }
+  }
+
+  /// Print request URL to terminal
+  void _printRequestUrl() {
+    final fullUrl = '${AppConfig.baseUrl}${ApiEndpoints.profile}';
+    final separator = List.filled(80, '=').join();
+    print('\n$separator');
+    print('🌐 API REQUEST - رابط الطلب');
+    print(separator);
+    print('Method: GET');
+    print('URL: $fullUrl');
+    print('Endpoint: ${ApiEndpoints.profile}');
+    print('Base URL: ${AppConfig.baseUrl}');
+    print(separator + '\n');
+  }
+
+  /// Print all profile data to terminal in a formatted way
+  void _printProfileData(customer) {
+    final separator = List.filled(80, '=').join();
+    print('\n$separator');
+    print('📋 PROFILE DATA - جميع بيانات البروفايل');
+    print(separator);
+    
+    // Basic Information
+    print('\n🔹 Basic Information - المعلومات الأساسية:');
+    print('  ID: ${customer.id}');
+    print('  User ID: ${customer.userId ?? "N/A"}');
+    print('  Customer Code: ${customer.customerCode}');
+    print('  Responsible Person Name: ${customer.responsiblePersonName}');
+    print('  Shop Name (EN): ${customer.shopName}');
+    print('  Shop Name (AR): ${customer.shopNameAr ?? "N/A"}');
+    print('  Business Type: ${customer.businessType.displayName}');
+    print('  Is Approved: ${customer.isApproved}');
+    
+    // User Information
+    if (customer.user != null) {
+      print('\n🔹 User Information - معلومات المستخدم:');
+      print('  User ID: ${customer.user!.id}');
+      print('  Phone: ${customer.user!.phone}');
+      print('  Email: ${customer.user!.email ?? "N/A"}');
+      print('  User Type: ${customer.user!.userType}');
+      print('  Status: ${customer.user!.status}');
+      print('  Is Active: ${customer.user!.isActive}');
+      print('  Referral Code: ${customer.user!.referralCode ?? "N/A"}');
+      print('  Last Login: ${customer.user!.lastLoginAt?.toString() ?? "N/A"}');
+      print('  Created At: ${customer.user!.createdAt}');
+      print('  Updated At: ${customer.user!.updatedAt}');
+    }
+    
+    // Location Information
+    print('\n🔹 Location Information - معلومات الموقع:');
+    print('  City ID: ${customer.cityId ?? "N/A"}');
+    print('  Market ID: ${customer.marketId ?? "N/A"}');
+    print('  Address: ${customer.address ?? "N/A"}');
+    print('  Latitude: ${customer.latitude ?? "N/A"}');
+    print('  Longitude: ${customer.longitude ?? "N/A"}');
+    
+    // Pricing & Credit
+    print('\n🔹 Pricing & Credit - التسعير والائتمان:');
+    print('  Price Level ID: ${customer.priceLevelId ?? "N/A"}');
+    print('  Credit Limit: ${customer.creditLimit.toStringAsFixed(2)} ر.س');
+    print('  Credit Used: ${customer.creditUsed.toStringAsFixed(2)} ر.س');
+    print('  Available Credit: ${customer.availableCredit.toStringAsFixed(2)} ر.س');
+    
+    // Wallet
+    print('\n🔹 Wallet - المحفظة:');
+    print('  Wallet Balance: ${customer.walletBalance.toStringAsFixed(2)} ر.س');
+    
+    // Loyalty
+    print('\n🔹 Loyalty - الولاء:');
+    print('  Loyalty Points: ${customer.loyaltyPoints}');
+    print('  Loyalty Tier: ${customer.loyaltyTier.displayName}');
+    
+    // Statistics
+    print('\n🔹 Statistics - الإحصائيات:');
+    print('  Total Orders: ${customer.totalOrders}');
+    print('  Total Spent: ${customer.totalSpent.toStringAsFixed(2)} ر.س');
+    print('  Average Order Value: ${customer.averageOrderValue.toStringAsFixed(2)} ر.س');
+    print('  Last Order At: ${customer.lastOrderAt?.toString() ?? "N/A"}');
+    
+    // Preferences
+    print('\n🔹 Preferences - التفضيلات:');
+    print('  Preferred Payment Method: ${customer.preferredPaymentMethod?.displayName ?? "N/A"}');
+    print('  Preferred Shipping Time: ${customer.preferredShippingTime ?? "N/A"}');
+    print('  Preferred Contact Method: ${customer.preferredContactMethod.displayName}');
+    
+    // Social Media
+    print('\n🔹 Social Media - وسائل التواصل:');
+    print('  Instagram Handle: ${customer.instagramHandle ?? "N/A"}');
+    print('  Twitter Handle: ${customer.twitterHandle ?? "N/A"}');
+    
+    // Timestamps
+    print('\n🔹 Timestamps - الطوابع الزمنية:');
+    print('  Approved At: ${customer.approvedAt?.toString() ?? "N/A"}');
+    print('  Created At: ${customer.createdAt}');
+    print('  Updated At: ${customer.updatedAt}');
+    
+    print('\n$separator');
+    print('✅ Profile data printed successfully - تم طباعة بيانات البروفايل بنجاح');
+    print('$separator\n');
   }
 
   /// Update profile

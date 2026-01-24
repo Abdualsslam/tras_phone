@@ -1,6 +1,7 @@
 /// Product Details Screen - Shows detailed product information
 library;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -424,10 +425,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               ),
                             ),
                           )
-                        : Image.network(
-                            imageUrl,
+                        : CachedNetworkImage(
+                            imageUrl: imageUrl,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => Center(
+                            placeholder: (context, url) => Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Center(
                               child: Icon(
                                 Iconsax.image,
                                 size: 80.sp,
