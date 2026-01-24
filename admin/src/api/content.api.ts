@@ -54,17 +54,56 @@ export interface Page {
 
 export interface Banner {
     _id: string;
-    title: string;
-    titleAr?: string;
-    imageUrl: string;
-    linkUrl?: string;
+    nameAr: string;
+    nameEn: string;
+    type: string;
     position: string;
-    order: number;
-    isActive: boolean;
+    media: {
+        imageDesktopAr: string;
+        imageDesktopEn: string;
+        imageMobileAr?: string;
+        imageMobileEn?: string;
+        videoUrl?: string;
+        altTextAr?: string;
+        altTextEn?: string;
+    };
+    action: {
+        type: 'link' | 'product' | 'category' | 'brand' | 'page' | 'none';
+        url?: string;
+        refId?: string;
+        refModel?: string;
+        openInNewTab?: boolean;
+    };
+    content?: {
+        headingAr?: string;
+        headingEn?: string;
+        subheadingAr?: string;
+        subheadingEn?: string;
+        buttonTextAr?: string;
+        buttonTextEn?: string;
+        textColor?: string;
+        overlayColor?: string;
+        overlayOpacity?: number;
+    };
+    targeting?: {
+        customerSegments?: string[];
+        categories?: string[];
+        userTypes?: string[];
+        devices?: string[];
+    };
     startDate?: string;
     endDate?: string;
+    isActive: boolean;
+    sortOrder: number;
+    priority: number;
     impressions: number;
     clicks: number;
+    // Legacy fields for backward compatibility
+    title?: string;
+    titleAr?: string;
+    imageUrl?: string;
+    linkUrl?: string;
+    order?: number;
 }
 
 export interface Slider {

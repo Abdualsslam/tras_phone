@@ -30,7 +30,22 @@ export interface CreateCustomerDto {
 }
 
 export interface UpdateCustomerDto extends Partial<CreateCustomerDto> {
+    // User fields
+    phone?: string;
+    email?: string;
+    userStatus?: 'pending' | 'active' | 'suspended' | 'deleted';
+    
+    // Customer status (for approve/reject)
     status?: 'pending' | 'approved' | 'rejected' | 'suspended';
+    
+    // Additional Customer fields
+    walletBalance?: number;
+    loyaltyPoints?: number;
+    loyaltyTier?: 'bronze' | 'silver' | 'gold' | 'platinum';
+    assignedSalesRepId?: string;
+    riskScore?: number;
+    isFlagged?: boolean;
+    flagReason?: string;
 }
 
 export interface CustomersQueryParams {

@@ -288,20 +288,42 @@ export class CustomersService {
       throw new NotFoundException('Customer not found');
     }
 
+    // Update User if phone, email, or userStatus is provided
+    if (updateCustomerDto.phone || updateCustomerDto.email !== undefined || updateCustomerDto.userStatus) {
+      const userUpdateData: any = {};
+      if (updateCustomerDto.phone) {
+        userUpdateData.phone = updateCustomerDto.phone;
+      }
+      if (updateCustomerDto.email !== undefined) {
+        userUpdateData.email = updateCustomerDto.email || null;
+      }
+      if (updateCustomerDto.userStatus) {
+        userUpdateData.status = updateCustomerDto.userStatus;
+      }
+      
+      await this.usersService.update(
+        customer.userId.toString(),
+        userUpdateData,
+      );
+    }
+
+    // Separate User fields from Customer fields
+    const { phone, email, userStatus, ...customerUpdateData } = updateCustomerDto;
+
     // If price level is being changed, track history
     if (
-      updateCustomerDto.priceLevelId &&
-      updateCustomerDto.priceLevelId !== customer.priceLevelId.toString()
+      customerUpdateData.priceLevelId &&
+      customerUpdateData.priceLevelId !== customer.priceLevelId.toString()
     ) {
       await this.priceLevelHistoryModel.create({
         customerId: customer._id,
         fromPriceLevelId: customer.priceLevelId,
-        toPriceLevelId: updateCustomerDto.priceLevelId,
+        toPriceLevelId: customerUpdateData.priceLevelId,
         reason: 'Admin update',
       });
     }
 
-    Object.assign(customer, updateCustomerDto);
+    Object.assign(customer, customerUpdateData);
     await customer.save();
 
     return customer;

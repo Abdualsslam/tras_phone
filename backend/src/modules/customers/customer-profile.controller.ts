@@ -93,35 +93,48 @@ export class CustomerProfileController {
     // تحويل customer إلى plain object
     const customerObj = customer.toObject ? customer.toObject({ virtuals: true }) : JSON.parse(JSON.stringify(customer));
     
-    // إضافة name إلى userId
-    // إذا كان userId populated ككائن، أضف name إليه
-    // إذا كان userId string فقط، قم بتحميله يدوياً
-    if (customerObj.userId) {
-      if (typeof customerObj.userId === 'object' && !Array.isArray(customerObj.userId)) {
-        // userId هو كائن populated
-        if (customerObj.userId._id || customerObj.userId.id) {
-          customerObj.userId = {
-            ...customerObj.userId,
-            name: customerObj.responsiblePersonName,
-          };
-        }
-      } else if (typeof customerObj.userId === 'string') {
-        // userId هو string فقط، نحتاج لتحميله يدوياً
-        try {
-          const user = await this.usersService.findById(customerObj.userId);
-          const userObj = user.toObject ? user.toObject() : user;
-          customerObj.userId = {
-            _id: userObj._id || userObj.id,
-            phone: userObj.phone,
-            email: userObj.email,
-            userType: userObj.userType,
-            status: userObj.status,
-            name: customerObj.responsiblePersonName,
-          };
-        } catch (error) {
-          // إذا فشل تحميل user، نترك userId كما هو
-          console.error('Failed to load user:', error);
-        }
+    // تحميل userId يدوياً دائماً لضمان إرجاعه ككائن مع جميع الحقول
+    let userIdToLoad: string;
+    if (typeof customerObj.userId === 'object' && customerObj.userId?._id) {
+      // userId هو كائن populated
+      userIdToLoad = customerObj.userId._id.toString();
+    } else if (typeof customerObj.userId === 'string') {
+      // userId هو string
+      userIdToLoad = customerObj.userId;
+    } else if (customer.userId) {
+      // userId هو ObjectId مباشرة من document
+      userIdToLoad = customer.userId.toString();
+    } else {
+      // استخدام user.id كبديل
+      userIdToLoad = user.id;
+    }
+    
+    try {
+      const userDoc = await this.usersService.findById(userIdToLoad);
+      const userObj = userDoc.toObject ? userDoc.toObject() : JSON.parse(JSON.stringify(userDoc));
+      
+      // بناء userId object مع جميع الحقول المطلوبة
+      const userIdValue = userObj._id 
+        ? (typeof userObj._id === 'object' && userObj._id.toString ? userObj._id.toString() : userObj._id)
+        : userObj.id;
+      
+      customerObj.userId = {
+        _id: userIdValue,
+        phone: userObj.phone,
+        email: userObj.email,
+        userType: userObj.userType,
+        status: userObj.status,
+        name: customerObj.responsiblePersonName,
+      };
+    } catch (error) {
+      // إذا فشل تحميل user، نستخدم البيانات المتاحة
+      console.error('Failed to load user:', error);
+      // إذا كان userId موجود ككائن، نحتفظ به ونضيف name
+      if (customerObj.userId && typeof customerObj.userId === 'object') {
+        customerObj.userId = {
+          ...customerObj.userId,
+          name: customerObj.responsiblePersonName,
+        };
       }
     }
 
