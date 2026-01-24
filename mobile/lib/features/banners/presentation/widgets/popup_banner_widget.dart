@@ -1,6 +1,7 @@
 /// Popup Banner Widget
 library;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -83,10 +84,19 @@ class _PopupBannerContentState extends State<_PopupBannerContent> {
         // Banner Image
         ClipRRect(
           borderRadius: AppTheme.radiusLg,
-          child: Image.network(
-            imageUrl,
+          child: CachedNetworkImage(
+            imageUrl: imageUrl,
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
+            placeholder: (context, url) => Container(
+              height: 300.h,
+              color: Colors.grey.shade300,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
+            errorWidget: (context, url, error) {
               return Container(
                 height: 300.h,
                 color: Colors.grey.shade300,

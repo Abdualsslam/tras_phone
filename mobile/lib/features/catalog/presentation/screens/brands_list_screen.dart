@@ -2,6 +2,7 @@
 library;
 
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -177,10 +178,15 @@ class _BrandCard extends StatelessWidget {
                     ],
                   ),
                   child: brand.logo != null
-                      ? Image.network(
-                          brand.logo!,
+                      ? CachedNetworkImage(
+                          imageUrl: brand.logo!,
                           fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Icon(
+                          placeholder: (context, url) => Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Icon(
                             Iconsax.tag,
                             size: 28.sp,
                             color: AppColors.primary,

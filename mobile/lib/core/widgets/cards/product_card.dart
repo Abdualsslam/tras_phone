@@ -1,6 +1,7 @@
 /// ProductCard - Reusable product card widget with iOS aesthetics
 library;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
@@ -242,30 +243,23 @@ class ProductCard extends StatelessWidget {
       );
     }
 
-    return Image.network(
-      imageUrl!,
+    return CachedNetworkImage(
+      imageUrl: imageUrl!,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      errorBuilder: (_, __, ___) => Center(
+      placeholder: (context, url) => Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+        ),
+      ),
+      errorWidget: (context, url, error) => Center(
         child: Icon(
           Iconsax.image,
           size: 48.sp,
           color: AppColors.textTertiaryLight,
         ),
       ),
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            value: loadingProgress.expectedTotalBytes != null
-                ? loadingProgress.cumulativeBytesLoaded /
-                      loadingProgress.expectedTotalBytes!
-                : null,
-          ),
-        );
-      },
     );
   }
 

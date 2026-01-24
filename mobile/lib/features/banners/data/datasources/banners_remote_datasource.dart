@@ -36,11 +36,30 @@ class BannersRemoteDataSourceImpl implements BannersRemoteDataSource {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
 
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
+    // Handle nested response structure: response.data.data.data
+    // The API returns: { data: { success: true, data: [...] } }
+    final responseData = response.data['data'];
+    List<dynamic> list = [];
+    
+    if (responseData is Map) {
+      // If responseData is a Map, check if it has a 'data' key with a List
+      final innerData = responseData['data'];
+      if (innerData is List) {
+        list = innerData;
+      }
+    } else if (responseData is List) {
+      list = responseData;
+    } else if (response.data is List) {
+      list = response.data as List<dynamic>;
+    }
+
+    developer.log(
+      'Banners fetched: ${list.length} items',
+      name: 'BannersDataSource',
+    );
 
     return list
-        .map((json) => BannerModel.fromJson(json).toEntity())
+        .map((json) => BannerModel.fromJson(json as Map<String, dynamic>).toEntity())
         .toList();
   }
 

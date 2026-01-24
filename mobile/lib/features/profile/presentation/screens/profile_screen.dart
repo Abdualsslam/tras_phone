@@ -96,28 +96,37 @@ class ProfileScreen extends StatelessWidget {
                             _buildSectionTitle(theme, isDark, 'الإحصائيات'),
                             SizedBox(height: 12.h),
                             _buildStatsGrid(theme, isDark, customer),
-                            SizedBox(height: 24.h),
+                            SizedBox(height: 12.h),
 
                             // Business Info
                             _buildSectionTitle(theme, isDark, 'معلومات العمل'),
                             SizedBox(height: 12.h),
                             _buildBusinessInfoCard(theme, isDark, customer),
-                            SizedBox(height: 24.h),
+                            SizedBox(height: 12.h),
 
                             // Location Info
-                            if (customer.cityId != null || customer.address != null)
+                            if (customer.cityId != null ||
+                                customer.address != null)
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildSectionTitle(theme, isDark, 'الموقع'),
                                   SizedBox(height: 12.h),
-                                  _buildLocationInfoCard(theme, isDark, customer),
+                                  _buildLocationInfoCard(
+                                    theme,
+                                    isDark,
+                                    customer,
+                                  ),
                                   SizedBox(height: 24.h),
                                 ],
                               ),
 
                             // Wallet & Credit
-                            _buildSectionTitle(theme, isDark, 'المحفظة والائتمان'),
+                            _buildSectionTitle(
+                              theme,
+                              isDark,
+                              'المحفظة والائتمان',
+                            ),
                             SizedBox(height: 12.h),
                             _buildWalletCard(theme, isDark, customer),
                             SizedBox(height: 24.h),
@@ -133,23 +142,28 @@ class ProfileScreen extends StatelessWidget {
                               width: double.infinity,
                               child: OutlinedButton.icon(
                                 onPressed: () => _showLogoutDialog(context),
-                                icon: const Icon(Iconsax.logout,
-                                    color: AppColors.error),
+                                icon: const Icon(
+                                  Iconsax.logout,
+                                  color: AppColors.error,
+                                ),
                                 label: Text(
                                   AppLocalizations.of(context)!.logout,
-                                  style: const TextStyle(color: AppColors.error),
+                                  style: const TextStyle(
+                                    color: AppColors.error,
+                                  ),
                                 ),
                                 style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: AppColors.error),
-                                  padding:
-                                      EdgeInsets.symmetric(vertical: 16.h),
+                                  side: const BorderSide(
+                                    color: AppColors.error,
+                                  ),
+                                  padding: EdgeInsets.symmetric(vertical: 16.h),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(14.r),
                                   ),
                                 ),
                               ),
                             ),
-                            SizedBox(height: 100.h), // Extra space for nav bar
+                            SizedBox(height: 88.h), // Extra space for nav bar
                           ],
                         ),
                       ),
@@ -176,10 +190,7 @@ class ProfileScreen extends StatelessWidget {
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primary.withValues(alpha: 0.8),
-          ],
+          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -190,7 +201,7 @@ class ProfileScreen extends StatelessWidget {
           // Avatar
           Container(
             width: 70.w,
-            height: 70.w,
+            height: 70.h,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
@@ -297,6 +308,7 @@ class ProfileScreen extends StatelessWidget {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       crossAxisSpacing: 12.w,
       mainAxisSpacing: 12.h,
       childAspectRatio: 1.7,
@@ -462,9 +474,7 @@ class ProfileScreen extends StatelessWidget {
               Divider(
                 height: 1,
                 indent: 56.w,
-                color: isDark
-                    ? AppColors.dividerDark
-                    : AppColors.dividerLight,
+                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
               ),
               _buildInfoTile(
                 theme,
@@ -476,9 +486,7 @@ class ProfileScreen extends StatelessWidget {
               Divider(
                 height: 1,
                 indent: 56.w,
-                color: isDark
-                    ? AppColors.dividerDark
-                    : AppColors.dividerLight,
+                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
               ),
               _buildInfoTile(
                 theme,
@@ -490,9 +498,7 @@ class ProfileScreen extends StatelessWidget {
               Divider(
                 height: 1,
                 indent: 56.w,
-                color: isDark
-                    ? AppColors.dividerDark
-                    : AppColors.dividerLight,
+                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
               ),
               _buildInfoTile(
                 theme,
@@ -755,9 +761,7 @@ class ProfileScreen extends StatelessWidget {
               Divider(
                 height: 1,
                 indent: 56.w,
-                color: isDark
-                    ? AppColors.dividerDark
-                    : AppColors.dividerLight,
+                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
               ),
               _MenuItem(
                 icon: Iconsax.location,
@@ -767,9 +771,7 @@ class ProfileScreen extends StatelessWidget {
               Divider(
                 height: 1,
                 indent: 56.w,
-                color: isDark
-                    ? AppColors.dividerDark
-                    : AppColors.dividerLight,
+                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
               ),
               _MenuItem(
                 icon: Iconsax.box,
@@ -779,9 +781,7 @@ class ProfileScreen extends StatelessWidget {
               Divider(
                 height: 1,
                 indent: 56.w,
-                color: isDark
-                    ? AppColors.dividerDark
-                    : AppColors.dividerLight,
+                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
               ),
               _MenuItem(
                 icon: Iconsax.trash,
@@ -898,9 +898,9 @@ class ProfileScreen extends StatelessWidget {
                   : reasonController.text.trim();
               reasonController.dispose();
 
-              final success = await context
-                  .read<ProfileCubit>()
-                  .deleteAccount(reason: reason);
+              final success = await context.read<ProfileCubit>().deleteAccount(
+                reason: reason,
+              );
 
               if (ctx.mounted) {
                 Navigator.pop(ctx);
@@ -981,8 +981,8 @@ class _MenuItem extends StatelessWidget {
           color: isDestructive
               ? AppColors.error
               : (isDark
-                  ? AppColors.textPrimaryDark
-                  : AppColors.textPrimaryLight),
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight),
         ),
       ),
       trailing: Container(

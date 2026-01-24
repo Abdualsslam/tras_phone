@@ -1,6 +1,7 @@
 /// Product Offer Card - Card widget for products with offers
 library;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
@@ -107,29 +108,22 @@ class ProductOfferCard extends StatelessWidget {
           child: AspectRatio(
             aspectRatio: 1,
             child: product.mainImage != null
-                ? Image.network(
-                    product.mainImage!,
+                ? CachedNetworkImage(
+                    imageUrl: product.mainImage!,
                     fit: BoxFit.cover,
                     width: double.infinity,
-                    errorBuilder: (_, __, ___) => Center(
+                    placeholder: (context, url) => Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Center(
                       child: Icon(
                         Iconsax.image,
                         size: 48.sp,
                         color: AppColors.textTertiaryLight,
                       ),
                     ),
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                              : null,
-                        ),
-                      );
-                    },
                   )
                 : Container(
                     color: isDark

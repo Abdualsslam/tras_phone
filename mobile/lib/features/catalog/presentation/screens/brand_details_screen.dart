@@ -1,6 +1,7 @@
 /// Brand Details Screen - Brand info and products
 library;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -303,10 +304,15 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20.r),
                     child: brandLogoUrl != null && brandLogoUrl.isNotEmpty
-                        ? Image.network(
-                            brandLogoUrl,
+                        ? CachedNetworkImage(
+                            imageUrl: brandLogoUrl,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
+                            placeholder: (context, url) => Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            errorWidget: (context, url, error) =>
                                 _buildBrandInitial(brandName),
                           )
                         : _buildBrandInitial(brandName),

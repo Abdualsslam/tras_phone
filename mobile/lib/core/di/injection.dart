@@ -62,7 +62,6 @@ import '../../features/banners/data/services/banners_service.dart';
 import '../../features/banners/presentation/cubit/banners_cubit.dart';
 import '../cache/hive_cache_service.dart';
 import '../../features/home/data/services/home_cache_service.dart';
-import '../../features/home/presentation/cubit/home_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final getIt = GetIt.instance;
