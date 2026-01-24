@@ -27,13 +27,37 @@ type PageFormData = {
 };
 
 type BannerFormData = {
-  title: string;
-  titleAr: string;
-  imageUrl: string;
-  linkUrl: string;
+  nameAr: string;
+  nameEn: string;
+  type: string;
   position: string;
-  order: number;
+  // Media
+  imageDesktop: string; // Will be used for both imageDesktopAr and imageDesktopEn
+  imageMobile?: string; // Optional mobile image
+  altTextAr?: string;
+  altTextEn?: string;
+  // Action
+  actionType: 'link' | 'product' | 'category' | 'brand' | 'page' | 'none';
+  actionUrl?: string;
+  actionRefId?: string;
+  actionRefModel?: string;
+  openInNewTab?: boolean;
+  // Content
+  headingAr?: string;
+  headingEn?: string;
+  subheadingAr?: string;
+  subheadingEn?: string;
+  buttonTextAr?: string;
+  buttonTextEn?: string;
+  textColor?: string;
+  overlayColor?: string;
+  overlayOpacity?: number;
+  // Status
   isActive: boolean;
+  sortOrder: number;
+  priority: number;
+  startDate?: string;
+  endDate?: string;
 };
 
 type SliderFormData = {
@@ -128,7 +152,10 @@ import {
   FolderTree,
   ChevronDown,
   ChevronUp,
+  Upload,
+  X,
 } from "lucide-react";
+import { uploadsApi, isValidImageType, isValidFileSize } from "@/api/uploads.api";
 import { formatDate } from "@/lib/utils";
 
 // ══════════════════════════════════════════════════════════════
@@ -160,6 +187,11 @@ export function ContentPage() {
   const [expandedSliders, setExpandedSliders] = useState<
     Record<string, boolean>
   >({});
+  
+  // Banner upload states
+  const [isUploadingDesktopImage, setIsUploadingDesktopImage] = useState(false);
+  const [isUploadingMobileImage, setIsUploadingMobileImage] = useState(false);
+  const [bannerUploadError, setBannerUploadError] = useState<string | null>(null);
 
   // ─────────────────────────────────────────
   // Queries
@@ -241,23 +273,25 @@ export function ContentPage() {
   // ─────────────────────────────────────────
 
   const createBannerMutation = useMutation({
-    mutationFn: (data: Omit<Banner, "_id" | "impressions" | "clicks">) =>
+    mutationFn: (data: any) =>
       contentApi.createBanner(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["content-banners"] });
       setIsBannerDialogOpen(false);
+      setBannerUploadError(null);
       toast.success("تم إنشاء البنر بنجاح");
     },
     onError: () => toast.error("حدث خطأ"),
   });
 
   const updateBannerMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Banner> }) =>
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
       contentApi.updateBanner(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["content-banners"] });
       setIsBannerDialogOpen(false);
       setSelectedItem(null);
+      setBannerUploadError(null);
       toast.success("تم تحديث البنر بنجاح");
     },
     onError: () => toast.error("حدث خطأ"),
@@ -477,13 +511,31 @@ export function ContentPage() {
 
   const bannerForm = useForm<BannerFormData>({
     defaultValues: {
-      title: "",
-      titleAr: "",
-      imageUrl: "",
-      linkUrl: "",
-      position: "home",
-      order: 0,
+      nameAr: "",
+      nameEn: "",
+      type: "hero",
+      position: "home_top",
+      imageDesktop: "",
+      imageMobile: "",
+      altTextAr: "",
+      altTextEn: "",
+      actionType: "none",
+      actionUrl: "",
+      actionRefId: "",
+      actionRefModel: "",
+      openInNewTab: false,
+      headingAr: "",
+      headingEn: "",
+      subheadingAr: "",
+      subheadingEn: "",
+      buttonTextAr: "",
+      buttonTextEn: "",
+      textColor: "",
+      overlayColor: "",
+      overlayOpacity: 0.3,
       isActive: true,
+      sortOrder: 0,
+      priority: 0,
     },
   });
 
@@ -587,17 +639,80 @@ export function ContentPage() {
   // Handlers - Banners
   // ─────────────────────────────────────────
 
+  const handleDesktopImageUpload = async (file: File) => {
+    if (!isValidImageType(file)) {
+      setBannerUploadError("نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP");
+      return;
+    }
+    if (!isValidFileSize(file)) {
+      setBannerUploadError("حجم الملف كبير جداً. الحد الأقصى 10MB");
+      return;
+    }
+
+    setBannerUploadError(null);
+    setIsUploadingDesktopImage(true);
+    try {
+      const result = await uploadsApi.uploadSingle(file, "banners");
+      bannerForm.setValue("imageDesktop", result.url);
+    } catch (error: any) {
+      setBannerUploadError(error?.response?.data?.message || "فشل رفع الصورة");
+    } finally {
+      setIsUploadingDesktopImage(false);
+    }
+  };
+
+  const handleMobileImageUpload = async (file: File) => {
+    if (!isValidImageType(file)) {
+      setBannerUploadError("نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP");
+      return;
+    }
+    if (!isValidFileSize(file)) {
+      setBannerUploadError("حجم الملف كبير جداً. الحد الأقصى 10MB");
+      return;
+    }
+
+    setBannerUploadError(null);
+    setIsUploadingMobileImage(true);
+    try {
+      const result = await uploadsApi.uploadSingle(file, "banners");
+      bannerForm.setValue("imageMobile", result.url);
+    } catch (error: any) {
+      setBannerUploadError(error?.response?.data?.message || "فشل رفع الصورة");
+    } finally {
+      setIsUploadingMobileImage(false);
+    }
+  };
+
   const handleAddBanner = () => {
     setIsEditing(false);
     setSelectedItem(null);
+    setBannerUploadError(null);
     bannerForm.reset({
-      title: "",
-      titleAr: "",
-      imageUrl: "",
-      linkUrl: "",
-      position: "home",
-      order: 0,
+      nameAr: "",
+      nameEn: "",
+      type: "hero",
+      position: "home_top",
+      imageDesktop: "",
+      imageMobile: "",
+      altTextAr: "",
+      altTextEn: "",
+      actionType: "none",
+      actionUrl: "",
+      actionRefId: "",
+      actionRefModel: "",
+      openInNewTab: false,
+      headingAr: "",
+      headingEn: "",
+      subheadingAr: "",
+      subheadingEn: "",
+      buttonTextAr: "",
+      buttonTextEn: "",
+      textColor: "",
+      overlayColor: "",
+      overlayOpacity: 0.3,
       isActive: true,
+      sortOrder: 0,
+      priority: 0,
     });
     setIsBannerDialogOpen(true);
   };
@@ -605,23 +720,90 @@ export function ContentPage() {
   const handleEditBanner = (banner: Banner) => {
     setIsEditing(true);
     setSelectedItem(banner);
+    setBannerUploadError(null);
+    
+    // Handle backward compatibility with old banner format
+    const imageDesktop = banner.media?.imageDesktopAr || banner.media?.imageDesktopEn || banner.imageUrl || "";
+    const imageMobile = banner.media?.imageMobileAr || banner.media?.imageMobileEn || "";
+    
     bannerForm.reset({
-      title: banner.title,
-      titleAr: banner.titleAr || "",
-      imageUrl: banner.imageUrl,
-      linkUrl: banner.linkUrl || "",
-      position: banner.position,
-      order: banner.order,
+      nameAr: banner.nameAr || banner.titleAr || "",
+      nameEn: banner.nameEn || banner.title || "",
+      type: banner.type || "hero",
+      position: banner.position || "home_top",
+      imageDesktop: imageDesktop,
+      imageMobile: imageMobile,
+      altTextAr: banner.media?.altTextAr || "",
+      altTextEn: banner.media?.altTextEn || "",
+      actionType: banner.action?.type || "none",
+      actionUrl: banner.action?.url || banner.linkUrl || "",
+      actionRefId: banner.action?.refId || "",
+      actionRefModel: banner.action?.refModel || "",
+      openInNewTab: banner.action?.openInNewTab || false,
+      headingAr: banner.content?.headingAr || "",
+      headingEn: banner.content?.headingEn || "",
+      subheadingAr: banner.content?.subheadingAr || "",
+      subheadingEn: banner.content?.subheadingEn || "",
+      buttonTextAr: banner.content?.buttonTextAr || "",
+      buttonTextEn: banner.content?.buttonTextEn || "",
+      textColor: banner.content?.textColor || "",
+      overlayColor: banner.content?.overlayColor || "",
+      overlayOpacity: banner.content?.overlayOpacity || 0.3,
       isActive: banner.isActive,
+      sortOrder: banner.sortOrder || banner.order || 0,
+      priority: banner.priority || 0,
+      startDate: banner.startDate || "",
+      endDate: banner.endDate || "",
     });
     setIsBannerDialogOpen(true);
   };
 
   const onBannerSubmit = (data: BannerFormData) => {
+    // Convert form data to backend format
+    const bannerData: any = {
+      nameAr: data.nameAr,
+      nameEn: data.nameEn,
+      type: data.type,
+      position: data.position,
+      media: {
+        imageDesktopAr: data.imageDesktop,
+        imageDesktopEn: data.imageDesktop,
+        ...(data.imageMobile && {
+          imageMobileAr: data.imageMobile,
+          imageMobileEn: data.imageMobile,
+        }),
+        ...(data.altTextAr && { altTextAr: data.altTextAr }),
+        ...(data.altTextEn && { altTextEn: data.altTextEn }),
+      },
+      action: {
+        type: data.actionType,
+        ...(data.actionType === "link" && data.actionUrl && { url: data.actionUrl }),
+        ...(data.actionRefId && { refId: data.actionRefId }),
+        ...(data.actionRefModel && { refModel: data.actionRefModel }),
+        openInNewTab: data.openInNewTab || false,
+      },
+      content: {
+        ...(data.headingAr && { headingAr: data.headingAr }),
+        ...(data.headingEn && { headingEn: data.headingEn }),
+        ...(data.subheadingAr && { subheadingAr: data.subheadingAr }),
+        ...(data.subheadingEn && { subheadingEn: data.subheadingEn }),
+        ...(data.buttonTextAr && { buttonTextAr: data.buttonTextAr }),
+        ...(data.buttonTextEn && { buttonTextEn: data.buttonTextEn }),
+        ...(data.textColor && { textColor: data.textColor }),
+        ...(data.overlayColor && { overlayColor: data.overlayColor }),
+        ...(data.overlayOpacity !== undefined && { overlayOpacity: data.overlayOpacity }),
+      },
+      isActive: data.isActive,
+      sortOrder: data.sortOrder,
+      priority: data.priority,
+      ...(data.startDate && { startDate: new Date(data.startDate) }),
+      ...(data.endDate && { endDate: new Date(data.endDate) }),
+    };
+
     if (isEditing && selectedItem && "_id" in selectedItem) {
-      updateBannerMutation.mutate({ id: selectedItem._id, data });
+      updateBannerMutation.mutate({ id: selectedItem._id, data: bannerData });
     } else {
-      createBannerMutation.mutate(data);
+      createBannerMutation.mutate(bannerData);
     }
   };
 
@@ -1089,55 +1271,64 @@ export function ContentPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {banners.map((banner) => (
-                    <Card key={banner._id} className="overflow-hidden">
-                      <div className="aspect-video bg-muted relative">
-                        <img
-                          src={banner.imageUrl}
-                          alt={banner.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              "/placeholder.svg";
-                          }}
-                        />
-                        <Badge
-                          variant={banner.isActive ? "success" : "secondary"}
-                          className="absolute top-2 right-2"
-                        >
-                          {banner.isActive ? "نشط" : "غير نشط"}
-                        </Badge>
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-medium mb-2">{banner.title}</h3>
-                        <div className="flex justify-between items-center text-sm text-muted-foreground">
-                          <span>
-                            <Eye className="h-3 w-3 inline ml-1" />
-                            {banner.impressions}
-                          </span>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditBanner(banner)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                deleteBannerMutation.mutate(banner._id)
-                              }
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                  {banners.map((banner) => {
+                    // Handle backward compatibility and get image URL
+                    const imageUrl = banner.media?.imageDesktopAr || 
+                                    banner.media?.imageDesktopEn || 
+                                    banner.imageUrl || 
+                                    "/placeholder.svg";
+                    const bannerName = banner.nameAr || banner.nameEn || banner.titleAr || banner.title || "بدون اسم";
+                    
+                    return (
+                      <Card key={banner._id} className="overflow-hidden">
+                        <div className="aspect-video bg-muted relative">
+                          <img
+                            src={imageUrl}
+                            alt={bannerName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                "/placeholder.svg";
+                            }}
+                          />
+                          <Badge
+                            variant={banner.isActive ? "success" : "secondary"}
+                            className="absolute top-2 right-2"
+                          >
+                            {banner.isActive ? "نشط" : "غير نشط"}
+                          </Badge>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        <CardContent className="p-4">
+                          <h3 className="font-medium mb-2">{bannerName}</h3>
+                          <div className="flex justify-between items-center text-sm text-muted-foreground">
+                            <span>
+                              <Eye className="h-3 w-3 inline ml-1" />
+                              {banner.impressions || 0}
+                            </span>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditBanner(banner)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  deleteBannerMutation.mutate(banner._id)
+                                }
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -1706,7 +1897,7 @@ export function ContentPage() {
 
       {/* Banner Dialog */}
       <Dialog open={isBannerDialogOpen} onOpenChange={setIsBannerDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {isEditing ? "تعديل البنر" : "إضافة بنر جديد"}
@@ -1714,73 +1905,327 @@ export function ContentPage() {
           </DialogHeader>
           <form
             onSubmit={bannerForm.handleSubmit(onBannerSubmit)}
-            className="space-y-4"
+            className="space-y-6"
           >
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>العنوان (EN) *</Label>
-                <Input
-                  {...bannerForm.register("title")}
-                  placeholder="Banner Title"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>العنوان (AR)</Label>
-                <Input
-                  {...bannerForm.register("titleAr")}
-                  placeholder="عنوان البنر"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>رابط الصورة *</Label>
-              <Input
-                {...bannerForm.register("imageUrl")}
-                placeholder="https://..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>رابط الهدف</Label>
-              <Input
-                {...bannerForm.register("linkUrl")}
-                placeholder="https://..."
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>الموقع</Label>
-                <Input
-                  {...bannerForm.register("position")}
-                  placeholder="home"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>الترتيب</Label>
-                <Input
-                  type="number"
-                  {...bannerForm.register("order", { valueAsNumber: true })}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Controller
-                control={bannerForm.control}
-                name="isActive"
-                render={({ field }) => (
-                  <Switch
-                    id="bannerActive"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
+            {/* Basic Info */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                المعلومات الأساسية
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>الاسم (EN) *</Label>
+                  <Input
+                    {...bannerForm.register("nameEn", { required: true })}
+                    placeholder="Banner Name"
                   />
-                )}
-              />
-              <Label htmlFor="bannerActive">بنر نشط</Label>
+                </div>
+                <div className="space-y-2">
+                  <Label>الاسم (AR) *</Label>
+                  <Input
+                    {...bannerForm.register("nameAr", { required: true })}
+                    placeholder="اسم البنر"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>النوع *</Label>
+                  <select
+                    {...bannerForm.register("type", { required: true })}
+                    className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 px-3 text-sm"
+                  >
+                    <option value="hero">Hero</option>
+                    <option value="promotional">Promotional</option>
+                    <option value="category">Category</option>
+                    <option value="popup">Popup</option>
+                    <option value="sidebar">Sidebar</option>
+                    <option value="inline">Inline</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>الموقع *</Label>
+                  <select
+                    {...bannerForm.register("position", { required: true })}
+                    className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 px-3 text-sm"
+                  >
+                    <option value="home_top">Home Top</option>
+                    <option value="home_middle">Home Middle</option>
+                    <option value="home_bottom">Home Bottom</option>
+                    <option value="category_top">Category Top</option>
+                    <option value="product_top">Product Top</option>
+                    <option value="cart_top">Cart Top</option>
+                    <option value="checkout_top">Checkout Top</option>
+                    <option value="global_popup">Global Popup</option>
+                  </select>
+                </div>
+              </div>
             </div>
+
+            {/* Media */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                الصور
+              </h3>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>صورة الديسكتوب *</Label>
+                  {bannerForm.watch("imageDesktop") ? (
+                    <div className="relative w-full h-48 rounded-lg border overflow-hidden">
+                      <img
+                        src={bannerForm.watch("imageDesktop")}
+                        alt="Desktop preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => bannerForm.setValue("imageDesktop", "")}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-48 rounded-lg border-2 border-dashed border-gray-300 dark:border-slate-600 hover:border-primary-500 dark:hover:border-primary-500 cursor-pointer transition-colors bg-gray-50 dark:bg-slate-800">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={isUploadingDesktopImage}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) await handleDesktopImageUpload(file);
+                        }}
+                      />
+                      {isUploadingDesktopImage ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+                      ) : (
+                        <>
+                          <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                          <span className="text-sm text-gray-500">اختر صورة الديسكتوب</span>
+                        </>
+                      )}
+                    </label>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>صورة الموبايل (اختياري)</Label>
+                  {bannerForm.watch("imageMobile") ? (
+                    <div className="relative w-full h-32 rounded-lg border overflow-hidden">
+                      <img
+                        src={bannerForm.watch("imageMobile")}
+                        alt="Mobile preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => bannerForm.setValue("imageMobile", "")}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 rounded-lg border-2 border-dashed border-gray-300 dark:border-slate-600 hover:border-primary-500 dark:hover:border-primary-500 cursor-pointer transition-colors bg-gray-50 dark:bg-slate-800">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={isUploadingMobileImage}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) await handleMobileImageUpload(file);
+                        }}
+                      />
+                      {isUploadingMobileImage ? (
+                        <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
+                      ) : (
+                        <>
+                          <Upload className="h-6 w-6 text-gray-400 mb-2" />
+                          <span className="text-xs text-gray-500">اختر صورة الموبايل</span>
+                        </>
+                      )}
+                    </label>
+                  )}
+                </div>
+                {bannerUploadError && (
+                  <div className="text-sm text-red-600 dark:text-red-400">
+                    {bannerUploadError}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>نص بديل (AR)</Label>
+                    <Input
+                      {...bannerForm.register("altTextAr")}
+                      placeholder="وصف الصورة بالعربي"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>نص بديل (EN)</Label>
+                    <Input
+                      {...bannerForm.register("altTextEn")}
+                      placeholder="Image alt text"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                الإجراء عند النقر
+              </h3>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>نوع الإجراء</Label>
+                  <select
+                    {...bannerForm.register("actionType")}
+                    className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 px-3 text-sm"
+                  >
+                    <option value="none">لا يوجد</option>
+                    <option value="link">رابط</option>
+                    <option value="product">منتج</option>
+                    <option value="category">فئة</option>
+                    <option value="brand">علامة تجارية</option>
+                    <option value="page">صفحة</option>
+                  </select>
+                </div>
+                {bannerForm.watch("actionType") === "link" && (
+                  <div className="space-y-2">
+                    <Label>رابط URL</Label>
+                    <Input
+                      {...bannerForm.register("actionUrl")}
+                      placeholder="https://..."
+                    />
+                  </div>
+                )}
+                {(bannerForm.watch("actionType") === "product" ||
+                  bannerForm.watch("actionType") === "category" ||
+                  bannerForm.watch("actionType") === "brand" ||
+                  bannerForm.watch("actionType") === "page") && (
+                  <div className="space-y-2">
+                    <Label>معرف المرجع</Label>
+                    <Input
+                      {...bannerForm.register("actionRefId")}
+                      placeholder="ID"
+                    />
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Controller
+                    control={bannerForm.control}
+                    name="openInNewTab"
+                    render={({ field }) => (
+                      <Switch
+                        id="openInNewTab"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="openInNewTab">فتح في تبويب جديد</Label>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                المحتوى النصي (اختياري)
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>العنوان الرئيسي (AR)</Label>
+                  <Input
+                    {...bannerForm.register("headingAr")}
+                    placeholder="عنوان رئيسي"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>العنوان الرئيسي (EN)</Label>
+                  <Input
+                    {...bannerForm.register("headingEn")}
+                    placeholder="Heading"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>العنوان الفرعي (AR)</Label>
+                  <Input
+                    {...bannerForm.register("subheadingAr")}
+                    placeholder="عنوان فرعي"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>العنوان الفرعي (EN)</Label>
+                  <Input
+                    {...bannerForm.register("subheadingEn")}
+                    placeholder="Subheading"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>نص الزر (AR)</Label>
+                  <Input
+                    {...bannerForm.register("buttonTextAr")}
+                    placeholder="نص الزر"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>نص الزر (EN)</Label>
+                  <Input
+                    {...bannerForm.register("buttonTextEn")}
+                    placeholder="Button Text"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Settings */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                الإعدادات
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>ترتيب العرض</Label>
+                  <Input
+                    type="number"
+                    {...bannerForm.register("sortOrder", { valueAsNumber: true })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>الأولوية</Label>
+                  <Input
+                    type="number"
+                    {...bannerForm.register("priority", { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Controller
+                  control={bannerForm.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <Switch
+                      id="bannerActive"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+                <Label htmlFor="bannerActive">بنر نشط</Label>
+              </div>
+            </div>
+
             <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsBannerDialogOpen(false)}
+                onClick={() => {
+                  setIsBannerDialogOpen(false);
+                  setBannerUploadError(null);
+                }}
               >
                 إلغاء
               </Button>
@@ -1788,7 +2233,9 @@ export function ContentPage() {
                 type="submit"
                 disabled={
                   createBannerMutation.isPending ||
-                  updateBannerMutation.isPending
+                  updateBannerMutation.isPending ||
+                  isUploadingDesktopImage ||
+                  isUploadingMobileImage
                 }
               >
                 {(createBannerMutation.isPending ||

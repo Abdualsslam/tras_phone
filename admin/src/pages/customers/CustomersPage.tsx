@@ -43,6 +43,7 @@ import {
     Search,
     MoreHorizontal,
     Eye,
+    Edit,
     CheckCircle,
     XCircle,
     Loader2,
@@ -87,10 +88,11 @@ const statusLabels: Record<string, string> = {
 type AddMode = 'fromScratch' | 'convertUser';
 
 interface FormData {
-    // User fields (for fromScratch mode)
+    // User fields
     phone: string;
     email: string;
     password: string;
+    userStatus: string;
     // Customer fields
     selectedUserId: string;
     responsiblePersonName: string;
@@ -107,12 +109,21 @@ interface FormData {
     preferredPaymentMethod: string;
     preferredContactMethod: string;
     internalNotes: string;
+    // Additional Customer fields
+    walletBalance: string;
+    loyaltyPoints: string;
+    loyaltyTier: string;
+    assignedSalesRepId: string;
+    riskScore: string;
+    isFlagged: boolean;
+    flagReason: string;
 }
 
 const initialFormData: FormData = {
     phone: '',
     email: '',
     password: '',
+    userStatus: 'active',
     selectedUserId: '',
     responsiblePersonName: '',
     shopName: '',
@@ -128,6 +139,13 @@ const initialFormData: FormData = {
     preferredPaymentMethod: 'cod',
     preferredContactMethod: 'whatsapp',
     internalNotes: '',
+    walletBalance: '',
+    loyaltyPoints: '',
+    loyaltyTier: 'bronze',
+    assignedSalesRepId: '',
+    riskScore: '50',
+    isFlagged: false,
+    flagReason: '',
 };
 
 export function CustomersPage() {
@@ -138,6 +156,8 @@ export function CustomersPage() {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
     const [addMode, setAddMode] = useState<AddMode | null>(null);
     const [formData, setFormData] = useState<FormData>(initialFormData);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -159,13 +179,13 @@ export function CustomersPage() {
     const { data: cities = [] } = useQuery<City[]>({
         queryKey: ['cities'],
         queryFn: () => customersApi.getCities(),
-        enabled: isAddDialogOpen,
+        enabled: isAddDialogOpen || isEditDialogOpen,
     });
 
     const { data: priceLevels = [] } = useQuery<PriceLevel[]>({
         queryKey: ['priceLevels'],
         queryFn: () => customersApi.getPriceLevels(),
-        enabled: isAddDialogOpen,
+        enabled: isAddDialogOpen || isEditDialogOpen,
     });
 
     const { data: availableUsers = [] } = useQuery<AvailableUser[]>({
@@ -202,6 +222,21 @@ export function CustomersPage() {
         },
     });
 
+    // Update mutation
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) => customersApi.update(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['customers'] });
+            toast.success('تم تحديث العميل بنجاح');
+            setIsEditDialogOpen(false);
+            setEditingCustomer(null);
+            setFormData(initialFormData);
+        },
+        onError: (error: any) => {
+            toast.error(error.response?.data?.messageAr || error.response?.data?.message || 'حدث خطأ أثناء تحديث العميل');
+        },
+    });
+
     const handleViewDetails = async (customer: Customer) => {
         try {
             // Fetch full customer details from API
@@ -228,7 +263,55 @@ export function CustomersPage() {
         setFormData(initialFormData);
     };
 
-    const handleFormChange = (field: keyof FormData, value: string) => {
+    const handleOpenEditDialog = async (customer: Customer) => {
+        try {
+            const fullCustomer = await customersApi.getById(customer._id);
+            setEditingCustomer(fullCustomer);
+            
+            // ملء formData ببيانات العميل الحالية
+            const customerData = fullCustomer as any;
+            setFormData({
+                phone: customerData.phone || '',
+                email: customerData.email || '',
+                password: '',
+                userStatus: customerData.userId?.status || 'active',
+                selectedUserId: '',
+                responsiblePersonName: customerData.contactName || customerData.responsiblePersonName || '',
+                shopName: customerData.companyName || customerData.shopName || '',
+                shopNameAr: customerData.shopNameAr || '',
+                businessType: customerData.businessType || 'shop',
+                cityId: typeof customerData.cityId === 'object' ? customerData.cityId._id : customerData.cityId || '',
+                priceLevelId: typeof customerData.priceLevelId === 'object' ? customerData.priceLevelId._id : customerData.priceLevelId || '',
+                address: customerData.address || '',
+                commercialLicenseNumber: customerData.commercialRegister || customerData.commercialLicenseNumber || '',
+                taxNumber: customerData.taxNumber || '',
+                nationalId: customerData.nationalId || '',
+                creditLimit: customerData.creditLimit?.toString() || '',
+                preferredPaymentMethod: customerData.preferredPaymentMethod || 'cod',
+                preferredContactMethod: customerData.preferredContactMethod || 'whatsapp',
+                internalNotes: customerData.internalNotes || '',
+                walletBalance: customerData.walletBalance?.toString() || '',
+                loyaltyPoints: customerData.loyaltyPoints?.toString() || '',
+                loyaltyTier: customerData.loyaltyTier || 'bronze',
+                assignedSalesRepId: typeof customerData.assignedSalesRepId === 'object' ? customerData.assignedSalesRepId._id : customerData.assignedSalesRepId || '',
+                riskScore: customerData.riskScore?.toString() || '50',
+                isFlagged: customerData.isFlagged || false,
+                flagReason: customerData.flagReason || '',
+            });
+            setIsEditDialogOpen(true);
+        } catch (error) {
+            console.error('Error fetching customer details:', error);
+            toast.error('فشل تحميل بيانات العميل');
+        }
+    };
+
+    const handleCloseEditDialog = () => {
+        setIsEditDialogOpen(false);
+        setEditingCustomer(null);
+        setFormData(initialFormData);
+    };
+
+    const handleFormChange = (field: keyof FormData, value: string | boolean) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
@@ -297,6 +380,59 @@ export function CustomersPage() {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleUpdateSubmit = async () => {
+        if (!editingCustomer) return;
+
+        // Validation
+        if (!formData.responsiblePersonName || !formData.shopName || !formData.cityId || !formData.priceLevelId) {
+            toast.error('يرجى ملء جميع الحقول المطلوبة');
+            return;
+        }
+
+        const updateData: any = {
+            // User fields
+            phone: formData.phone || undefined,
+            email: formData.email || undefined,
+            userStatus: formData.userStatus || undefined,
+            // Customer fields
+            responsiblePersonName: formData.responsiblePersonName,
+            shopName: formData.shopName,
+            shopNameAr: formData.shopNameAr || undefined,
+            businessType: formData.businessType,
+            cityId: formData.cityId,
+            priceLevelId: formData.priceLevelId,
+            address: formData.address || undefined,
+            commercialLicenseNumber: formData.commercialLicenseNumber || undefined,
+            taxNumber: formData.taxNumber || undefined,
+            nationalId: formData.nationalId || undefined,
+            creditLimit: formData.creditLimit ? Number(formData.creditLimit) : undefined,
+            preferredPaymentMethod: formData.preferredPaymentMethod,
+            preferredContactMethod: formData.preferredContactMethod,
+            internalNotes: formData.internalNotes || undefined,
+            // Additional Customer fields
+            walletBalance: formData.walletBalance ? Number(formData.walletBalance) : undefined,
+            loyaltyPoints: formData.loyaltyPoints ? Number(formData.loyaltyPoints) : undefined,
+            loyaltyTier: formData.loyaltyTier || undefined,
+            assignedSalesRepId: formData.assignedSalesRepId || undefined,
+            riskScore: formData.riskScore ? Number(formData.riskScore) : undefined,
+            isFlagged: formData.isFlagged,
+            flagReason: formData.flagReason || undefined,
+        };
+
+        // Remove undefined and empty string values (but keep false for isFlagged)
+        Object.keys(updateData).forEach(key => {
+            if (key === 'isFlagged') {
+                // Keep isFlagged even if false
+                return;
+            }
+            if (updateData[key] === undefined || updateData[key] === '') {
+                delete updateData[key];
+            }
+        });
+
+        updateMutation.mutate({ id: editingCustomer._id, data: updateData });
     };
 
     const customers = data?.items || [];
@@ -463,6 +599,11 @@ export function CustomersPage() {
                                                         <Eye className="h-4 w-4" />
                                                         عرض التفاصيل
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleOpenEditDialog(customer)}>
+                                                        <Edit className="h-4 w-4" />
+                                                        تعديل
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
                                                     {customer.status === 'pending' && (
                                                         <>
                                                             <DropdownMenuSeparator />
@@ -1168,6 +1309,337 @@ export function CustomersPage() {
                                 إضافة العميل
                             </Button>
                         )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Customer Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>تعديل بيانات العميل</DialogTitle>
+                        <DialogDescription>
+                            تعديل معلومات العميل: {editingCustomer?.companyName || editingCustomer?.contactName}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6 py-4">
+                        {/* User Information Section */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 border-b pb-2">بيانات المستخدم</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <Label>رقم الهاتف</Label>
+                                    <Input
+                                        dir="ltr"
+                                        placeholder="+966501234567"
+                                        value={formData.phone}
+                                        onChange={(e) => handleFormChange('phone', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>البريد الإلكتروني</Label>
+                                    <Input
+                                        type="email"
+                                        dir="ltr"
+                                        placeholder="email@example.com"
+                                        value={formData.email}
+                                        onChange={(e) => handleFormChange('email', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>حالة المستخدم</Label>
+                                    <Select
+                                        value={formData.userStatus}
+                                        onValueChange={(value) => handleFormChange('userStatus', value)}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="pending">قيد الانتظار</SelectItem>
+                                            <SelectItem value="active">نشط</SelectItem>
+                                            <SelectItem value="suspended">موقوف</SelectItem>
+                                            <SelectItem value="deleted">محذوف</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Shop Info Section */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 border-b pb-2">بيانات المحل</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>اسم المسؤول <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        placeholder="أحمد محمد"
+                                        value={formData.responsiblePersonName}
+                                        onChange={(e) => handleFormChange('responsiblePersonName', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>اسم المحل (إنجليزي) <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        dir="ltr"
+                                        placeholder="Mobile Shop"
+                                        value={formData.shopName}
+                                        onChange={(e) => handleFormChange('shopName', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>اسم المحل (عربي)</Label>
+                                    <Input
+                                        placeholder="محل الجوالات"
+                                        value={formData.shopNameAr}
+                                        onChange={(e) => handleFormChange('shopNameAr', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>نوع العمل</Label>
+                                    <Select
+                                        value={formData.businessType}
+                                        onValueChange={(value) => handleFormChange('businessType', value)}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="shop">محل</SelectItem>
+                                            <SelectItem value="technician">فني</SelectItem>
+                                            <SelectItem value="distributor">موزع</SelectItem>
+                                            <SelectItem value="other">أخرى</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>المدينة <span className="text-red-500">*</span></Label>
+                                    <Select
+                                        value={formData.cityId || undefined}
+                                        onValueChange={(value) => handleFormChange('cityId', value)}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="اختر المدينة..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {cities.map((city) => (
+                                                <SelectItem key={city._id} value={city._id}>
+                                                    {city.nameAr || city.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>مستوى السعر <span className="text-red-500">*</span></Label>
+                                    <Select
+                                        value={formData.priceLevelId || undefined}
+                                        onValueChange={(value) => handleFormChange('priceLevelId', value)}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="اختر مستوى السعر..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {priceLevels.map((level) => (
+                                                <SelectItem key={level._id} value={level._id}>
+                                                    {level.nameAr || level.name} ({level.discountPercentage}%)
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label>العنوان</Label>
+                                    <Input
+                                        placeholder="الرياض، حي الملز، شارع الستين"
+                                        value={formData.address}
+                                        onChange={(e) => handleFormChange('address', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Financial & Loyalty Section */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 border-b pb-2">المالية والولاء</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="space-y-2">
+                                    <Label>حد الائتمان</Label>
+                                    <Input
+                                        type="number"
+                                        dir="ltr"
+                                        placeholder="0"
+                                        value={formData.creditLimit}
+                                        onChange={(e) => handleFormChange('creditLimit', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>رصيد المحفظة</Label>
+                                    <Input
+                                        type="number"
+                                        dir="ltr"
+                                        placeholder="0"
+                                        value={formData.walletBalance}
+                                        onChange={(e) => handleFormChange('walletBalance', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>نقاط الولاء</Label>
+                                    <Input
+                                        type="number"
+                                        dir="ltr"
+                                        placeholder="0"
+                                        value={formData.loyaltyPoints}
+                                        onChange={(e) => handleFormChange('loyaltyPoints', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>مستوى الولاء</Label>
+                                    <Select
+                                        value={formData.loyaltyTier}
+                                        onValueChange={(value) => handleFormChange('loyaltyTier', value)}
+                                    >
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="bronze">برونزي</SelectItem>
+                                            <SelectItem value="silver">فضي</SelectItem>
+                                            <SelectItem value="gold">ذهبي</SelectItem>
+                                            <SelectItem value="platinum">بلاتيني</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Documents Section */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 border-b pb-2">الوثائق</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <Label>رقم السجل التجاري</Label>
+                                    <Input
+                                        dir="ltr"
+                                        placeholder="1234567890"
+                                        value={formData.commercialLicenseNumber}
+                                        onChange={(e) => handleFormChange('commercialLicenseNumber', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>الرقم الضريبي</Label>
+                                    <Input
+                                        dir="ltr"
+                                        placeholder="300000000000003"
+                                        value={formData.taxNumber}
+                                        onChange={(e) => handleFormChange('taxNumber', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>رقم الهوية</Label>
+                                    <Input
+                                        dir="ltr"
+                                        placeholder="1234567890"
+                                        value={formData.nationalId}
+                                        onChange={(e) => handleFormChange('nationalId', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Preferences Section */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 border-b pb-2">التفضيلات</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>طريقة الدفع المفضلة</Label>
+                                    <select
+                                        value={formData.preferredPaymentMethod}
+                                        onChange={(e) => handleFormChange('preferredPaymentMethod', e.target.value)}
+                                        className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
+                                    >
+                                        <option value="cod">الدفع عند الاستلام</option>
+                                        <option value="bank_transfer">تحويل بنكي</option>
+                                        <option value="wallet">المحفظة</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>طريقة التواصل المفضلة</Label>
+                                    <select
+                                        value={formData.preferredContactMethod}
+                                        onChange={(e) => handleFormChange('preferredContactMethod', e.target.value)}
+                                        className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
+                                    >
+                                        <option value="whatsapp">واتساب</option>
+                                        <option value="phone">هاتف</option>
+                                        <option value="email">بريد إلكتروني</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Risk & Flags Section */}
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-gray-900 border-b pb-2">التقييم والتحذيرات</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <Label>درجة المخاطرة (0-100)</Label>
+                                    <Input
+                                        type="number"
+                                        dir="ltr"
+                                        min="0"
+                                        max="100"
+                                        placeholder="50"
+                                        value={formData.riskScore}
+                                        onChange={(e) => handleFormChange('riskScore', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2 flex items-end">
+                                    <div className="flex items-center space-x-2 space-x-reverse">
+                                        <input
+                                            type="checkbox"
+                                            id="isFlagged"
+                                            checked={formData.isFlagged}
+                                            onChange={(e) => handleFormChange('isFlagged', e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300"
+                                        />
+                                        <Label htmlFor="isFlagged" className="cursor-pointer">معلّم كتحذير</Label>
+                                    </div>
+                                </div>
+                                {formData.isFlagged && (
+                                    <div className="space-y-2 md:col-span-3">
+                                        <Label>سبب التحذير</Label>
+                                        <Input
+                                            placeholder="سبب وضع علامة التحذير..."
+                                            value={formData.flagReason}
+                                            onChange={(e) => handleFormChange('flagReason', e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Internal Notes */}
+                        <div className="space-y-2">
+                            <Label>ملاحظات داخلية</Label>
+                            <textarea
+                                placeholder="ملاحظات للإدارة فقط..."
+                                value={formData.internalNotes}
+                                onChange={(e) => handleFormChange('internalNotes', e.target.value)}
+                                className="w-full min-h-[80px] rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={handleCloseEditDialog}>
+                            إلغاء
+                        </Button>
+                        <Button onClick={handleUpdateSubmit} disabled={updateMutation.isPending}>
+                            {updateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+                            حفظ التعديلات
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
