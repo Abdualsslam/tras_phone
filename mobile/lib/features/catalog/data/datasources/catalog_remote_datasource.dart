@@ -42,6 +42,7 @@ abstract class CatalogRemoteDataSource {
   // Brands
   Future<List<BrandEntity>> getBrands({bool? featured});
   Future<BrandEntity?> getBrandBySlug(String slug);
+  Future<BrandEntity?> getBrandById(String id);
   Future<Map<String, dynamic>> getBrandProducts(
     String brandId, {
     int page = 1,
@@ -342,6 +343,39 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       return BrandModel.fromJson(data).toEntity();
     } catch (e) {
       developer.log('Brand not found: $slug', name: 'CatalogDataSource');
+      return null;
+    }
+  }
+
+  @override
+  Future<BrandEntity?> getBrandById(String id) async {
+    developer.log('Fetching brand by ID: $id', name: 'CatalogDataSource');
+
+    try {
+      // First, try to use ID as slug (in case backend supports it)
+      final endpoint = '${ApiEndpoints.brands}/$id';
+      _printApiUrl(endpoint);
+      
+      try {
+        final response = await _apiClient.get(endpoint);
+        final data = response.data['data'] ?? response.data;
+        return BrandModel.fromJson(data).toEntity();
+      } catch (e) {
+        // If that fails, search in all brands list
+        developer.log(
+          'Brand not found by ID as slug, searching in brands list',
+          name: 'CatalogDataSource',
+        );
+        
+        final brands = await getBrands();
+        final brand = brands.firstWhere(
+          (b) => b.id == id,
+          orElse: () => throw Exception('Brand not found'),
+        );
+        return brand;
+      }
+    } catch (e) {
+      developer.log('Brand not found by ID: $id', name: 'CatalogDataSource');
       return null;
     }
   }

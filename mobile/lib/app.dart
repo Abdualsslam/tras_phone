@@ -22,6 +22,7 @@ import 'features/locations/data/datasources/locations_remote_datasource.dart';
 import 'features/wallet/presentation/cubit/wallet_cubit.dart';
 import 'features/notifications/presentation/cubit/notifications_cubit.dart';
 import 'features/banners/presentation/cubit/banners_cubit.dart';
+import 'features/profile/presentation/cubit/profile_cubit.dart';
 import 'l10n/app_localizations.dart';
 import 'routes/app_router.dart';
 
@@ -79,6 +80,9 @@ class TrasPhoneApp extends StatelessWidget {
             ),
             BlocProvider(
               create: (_) => getIt<BannersCubit>(),
+            ),
+            BlocProvider(
+              create: (_) => getIt<ProfileCubit>(),
             ),
           ],
           child: BlocBuilder<LocaleCubit, LocaleState>(

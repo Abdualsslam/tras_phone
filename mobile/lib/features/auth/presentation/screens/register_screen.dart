@@ -132,6 +132,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               state.message.contains('ACCOUNT_REJECTED') ||
               state.message.contains('has been rejected');
           
+          // Check if this is a user already exists error
+          final isUserAlreadyExists = 
+              state.message.contains('phone or email already exists') ||
+              state.message.contains('User with this phone or email already exists') ||
+              state.message.contains('موجود بالفعل') ||
+              state.message.contains('CONFLICT') ||
+              state.message.contains('ConflictException') ||
+              state.message.contains('already exists');
+          
           final backgroundColor = isAccountUnderReview 
               ? AppColors.warning 
               : AppColors.error;
@@ -140,14 +149,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ? Iconsax.warning_2 
               : Iconsax.info_circle;
           
-          // Extract clean message (remove AppException prefix if present)
+          // Extract clean message (remove exception prefix if present)
           String cleanMessage = state.message;
+          // Remove AppException, ConflictException, or other exception prefixes
           if (cleanMessage.contains('AppException:')) {
             cleanMessage = cleanMessage.split('AppException:').last.trim();
-            // Remove code part if present
-            if (cleanMessage.contains('(code:')) {
-              cleanMessage = cleanMessage.split('(code:').first.trim();
-            }
+          } else if (cleanMessage.contains('ConflictException:')) {
+            cleanMessage = cleanMessage.split('ConflictException:').last.trim();
+          } else if (cleanMessage.contains('Exception:')) {
+            cleanMessage = cleanMessage.split('Exception:').last.trim();
+          }
+          // Remove code part if present
+          if (cleanMessage.contains('(code:')) {
+            cleanMessage = cleanMessage.split('(code:').first.trim();
           }
           
           // Use localized message for account under review
@@ -161,6 +175,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             cleanMessage = isArabic 
                 ? AccountRejectedException.arabicMessage
                 : AccountRejectedException.englishMessage;
+          }
+          // Use localized message for user already exists
+          else if (isUserAlreadyExists) {
+            cleanMessage = isArabic 
+                ? ConflictException.userAlreadyExistsAr
+                : ConflictException.userAlreadyExistsEn;
           }
           
           ScaffoldMessenger.of(context).showSnackBar(

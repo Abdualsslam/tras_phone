@@ -77,11 +77,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _instagramHandleController.text = customer.instagramHandle ?? '';
       _twitterHandleController.text = customer.twitterHandle ?? '';
 
-      _selectedBusinessType = customer.businessType.name;
+      _selectedBusinessType = customer.businessType.toString().split('.').last;
       _selectedCityId = customer.cityId;
       _selectedPaymentMethod = customer.preferredPaymentMethod?.value;
       _selectedShippingTime = customer.preferredShippingTime;
-      _selectedContactMethod = customer.preferredContactMethod.name;
+      _selectedContactMethod = customer.preferredContactMethod.toString().split('.').last;
 
       // Load cities if we have a country (assuming Saudi Arabia for now)
       if (_selectedCityId != null) {
@@ -228,7 +228,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     value: _selectedBusinessType,
                     items: BusinessType.values.map((type) {
                       return DropdownMenuItem<String>(
-                        value: type.name,
+                        value: type.toString().split('.').last,
                         child: Text(type.displayName),
                       );
                     }).toList(),
@@ -343,7 +343,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     value: _selectedContactMethod,
                     items: ContactMethod.values.map((method) {
                       return DropdownMenuItem<String>(
-                        value: method.name,
+                        value: method.toString().split('.').last,
                         child: Text(method.displayName),
                       );
                     }).toList(),

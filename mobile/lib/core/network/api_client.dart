@@ -236,6 +236,7 @@ class ApiClient {
       'Account suspended': 'الحساب معلق',
       'Email already exists': 'البريد الإلكتروني مستخدم بالفعل',
       'Phone number already exists': 'رقم الهاتف مستخدم بالفعل',
+      'User with this phone or email already exists': 'المستخدم موجود بالفعل. رقم الجوال أو البريد الإلكتروني مستخدم',
       'Invalid token': 'رمز غير صحيح',
       'Token expired': 'انتهت صلاحية الرمز',
       'Unauthorized': 'غير مصرح',
@@ -297,6 +298,17 @@ class ApiClient {
           messageAr.contains('تم رفض') ||
           messageAr.contains('رفض حسابك')));
     
+    // Check if this is a user already exists error (before choosing locale message)
+    final isUserAlreadyExists = 
+        (messageEn != null && (
+          messageEn == ConflictException.userAlreadyExistsEn ||
+          messageEn.contains('phone or email already exists') ||
+          messageEn.contains('already exists'))) ||
+        (messageAr != null && (
+          messageAr == ConflictException.userAlreadyExistsAr ||
+          messageAr.contains('موجود بالفعل') ||
+          messageAr.contains('مستخدم بالفعل')));
+    
     // Choose message based on locale: prefer messageAr for Arabic, message for others
     String message;
     if (data is Map) {
@@ -349,6 +361,16 @@ class ApiClient {
         return ForbiddenException(message: message);
       case 404:
         return NotFoundException(message: message);
+      case 409:
+        // Return ConflictException for user already exists
+        if (isUserAlreadyExists) {
+          return ConflictException(
+            message: locale == 'ar' 
+                ? ConflictException.userAlreadyExistsAr 
+                : ConflictException.userAlreadyExistsEn,
+          );
+        }
+        return ConflictException(message: message);
       case 422:
         final errors = data is Map
             ? (data['errors'] as Map<String, dynamic>?)?.map(

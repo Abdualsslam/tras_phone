@@ -109,6 +109,21 @@ class NotFoundException extends AppException {
   });
 }
 
+/// Conflict exception (409) - Resource already exists
+class ConflictException extends AppException {
+  const ConflictException({
+    super.message = 'البيانات موجودة بالفعل',
+    super.code = 'CONFLICT',
+    super.originalError,
+  });
+  
+  /// English message for user already exists
+  static const String userAlreadyExistsEn = 'User with this phone or email already exists';
+  
+  /// Arabic message for user already exists
+  static const String userAlreadyExistsAr = 'المستخدم موجود بالفعل. رقم الجوال أو البريد الإلكتروني مستخدم';
+}
+
 /// Validation exception (422)
 class ValidationException extends AppException {
   final Map<String, List<String>>? errors;

@@ -24,6 +24,9 @@ abstract class CatalogRepository {
   /// Get a single brand by its slug
   Future<Either<Failure, BrandEntity>> getBrandBySlug(String slug);
 
+  /// Get a single brand by its ID
+  Future<Either<Failure, BrandEntity>> getBrandById(String id);
+
   /// Get products for a brand by ID with pagination and filters
   Future<Either<Failure, Map<String, dynamic>>> getBrandProducts(
     String brandId, {

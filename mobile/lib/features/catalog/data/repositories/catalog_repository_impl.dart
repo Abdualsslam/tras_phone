@@ -49,6 +49,19 @@ class CatalogRepositoryImpl implements CatalogRepository {
   }
 
   @override
+  Future<Either<Failure, BrandEntity>> getBrandById(String id) async {
+    try {
+      final brand = await _remoteDataSource.getBrandById(id);
+      if (brand == null) {
+        return const Left(NotFoundFailure(message: 'العلامة التجارية غير موجودة'));
+      }
+      return Right(brand);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, Map<String, dynamic>>> getBrandProducts(
     String brandId, {
     int page = 1,

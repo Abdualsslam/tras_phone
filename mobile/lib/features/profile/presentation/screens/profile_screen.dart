@@ -9,7 +9,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
 import '../../presentation/cubit/profile_cubit.dart';
@@ -24,158 +23,150 @@ class ProfileScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return BlocProvider(
-      create: (context) => getIt<ProfileCubit>()..loadProfile(),
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context)!.profile),
-          actions: [
-            IconButton(
-              icon: const Icon(Iconsax.setting_2),
-              onPressed: () => context.push('/settings'),
-            ),
-          ],
-        ),
-        body: BlocBuilder<AuthCubit, AuthState>(
-          builder: (context, authState) {
-            if (authState is AuthAuthenticated) {
-              return BlocBuilder<ProfileCubit, ProfileState>(
-                builder: (context, profileState) {
-                  if (profileState is ProfileLoading) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (profileState is ProfileError) {
-                    return Center(
+    // Load profile when screen is first shown if not already loaded
+    final profileCubit = context.read<ProfileCubit>();
+    final currentState = profileCubit.state;
+    if (currentState is ProfileInitial) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        profileCubit.loadProfile();
+      });
+    }
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.profile),
+        actions: [
+          IconButton(
+            icon: const Icon(Iconsax.setting_2),
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
+      ),
+      body: BlocBuilder<AuthCubit, AuthState>(
+        builder: (context, authState) {
+          if (authState is AuthAuthenticated) {
+            return BlocBuilder<ProfileCubit, ProfileState>(
+              builder: (context, profileState) {
+                if (profileState is ProfileLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (profileState is ProfileError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Iconsax.warning_2,
+                          size: 64.sp,
+                          color: AppColors.error,
+                        ),
+                        SizedBox(height: 16.h),
+                        Text(
+                          profileState.message,
+                          style: theme.textTheme.bodyLarge,
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 16.h),
+                        ElevatedButton(
+                          onPressed: () =>
+                              context.read<ProfileCubit>().loadProfile(),
+                          child: const Text('إعادة المحاولة'),
+                        ),
+                      ],
+                    ),
+                  );
+                } else if (profileState is ProfileLoaded ||
+                    profileState is ProfileUpdated) {
+                  final customer = (profileState is ProfileLoaded
+                      ? profileState.customer
+                      : (profileState as ProfileUpdated).customer);
+
+                  return RefreshIndicator(
+                    onRefresh: () => context.read<ProfileCubit>().loadProfile(),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.all(16.w),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Iconsax.warning_2,
-                            size: 64.sp,
-                            color: AppColors.error,
+                          // Profile Header
+                          _buildProfileHeader(context, theme, isDark, customer),
+                          SizedBox(height: 24.h),
+
+                          // Statistics Grid
+                          _buildSectionTitle(theme, isDark, 'الإحصائيات'),
+                          SizedBox(height: 12.h),
+                          _buildStatsGrid(theme, isDark, customer),
+                          SizedBox(height: 12.h),
+
+                          // Business Info
+                          _buildSectionTitle(theme, isDark, 'معلومات العمل'),
+                          SizedBox(height: 12.h),
+                          _buildBusinessInfoCard(theme, isDark, customer),
+                          SizedBox(height: 12.h),
+
+                          // Location Info
+                          if (customer.cityId != null ||
+                              customer.address != null)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildSectionTitle(theme, isDark, 'الموقع'),
+                                SizedBox(height: 12.h),
+                                _buildLocationInfoCard(theme, isDark, customer),
+                                SizedBox(height: 24.h),
+                              ],
+                            ),
+
+                          // Wallet & Credit
+                          _buildSectionTitle(
+                            theme,
+                            isDark,
+                            'المحفظة والائتمان',
                           ),
-                          SizedBox(height: 16.h),
-                          Text(
-                            profileState.message,
-                            style: theme.textTheme.bodyLarge,
-                            textAlign: TextAlign.center,
+                          SizedBox(height: 12.h),
+                          _buildWalletCard(theme, isDark, customer),
+                          SizedBox(height: 24.h),
+
+                          // Actions
+                          _buildSectionTitle(theme, isDark, 'الإجراءات'),
+                          SizedBox(height: 12.h),
+                          _buildActionsSection(context, theme, isDark),
+                          SizedBox(height: 24.h),
+
+                          // Logout Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _showLogoutDialog(context),
+                              icon: const Icon(
+                                Iconsax.logout,
+                                color: AppColors.error,
+                              ),
+                              label: Text(
+                                AppLocalizations.of(context)!.logout,
+                                style: const TextStyle(color: AppColors.error),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: AppColors.error),
+                                padding: EdgeInsets.symmetric(vertical: 16.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14.r),
+                                ),
+                              ),
+                            ),
                           ),
-                          SizedBox(height: 16.h),
-                          ElevatedButton(
-                            onPressed: () =>
-                                context.read<ProfileCubit>().loadProfile(),
-                            child: const Text('إعادة المحاولة'),
-                          ),
+                          SizedBox(height: 88.h), // Extra space for nav bar
                         ],
                       ),
-                    );
-                  } else if (profileState is ProfileLoaded ||
-                      profileState is ProfileUpdated) {
-                    final customer = (profileState is ProfileLoaded
-                        ? profileState.customer
-                        : (profileState as ProfileUpdated).customer);
-
-                    return RefreshIndicator(
-                      onRefresh: () =>
-                          context.read<ProfileCubit>().loadProfile(),
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.all(16.w),
-                        child: Column(
-                          children: [
-                            // Profile Header
-                            _buildProfileHeader(
-                              context,
-                              theme,
-                              isDark,
-                              customer,
-                            ),
-                            SizedBox(height: 24.h),
-
-                            // Statistics Grid
-                            _buildSectionTitle(theme, isDark, 'الإحصائيات'),
-                            SizedBox(height: 12.h),
-                            _buildStatsGrid(theme, isDark, customer),
-                            SizedBox(height: 12.h),
-
-                            // Business Info
-                            _buildSectionTitle(theme, isDark, 'معلومات العمل'),
-                            SizedBox(height: 12.h),
-                            _buildBusinessInfoCard(theme, isDark, customer),
-                            SizedBox(height: 12.h),
-
-                            // Location Info
-                            if (customer.cityId != null ||
-                                customer.address != null)
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildSectionTitle(theme, isDark, 'الموقع'),
-                                  SizedBox(height: 12.h),
-                                  _buildLocationInfoCard(
-                                    theme,
-                                    isDark,
-                                    customer,
-                                  ),
-                                  SizedBox(height: 24.h),
-                                ],
-                              ),
-
-                            // Wallet & Credit
-                            _buildSectionTitle(
-                              theme,
-                              isDark,
-                              'المحفظة والائتمان',
-                            ),
-                            SizedBox(height: 12.h),
-                            _buildWalletCard(theme, isDark, customer),
-                            SizedBox(height: 24.h),
-
-                            // Actions
-                            _buildSectionTitle(theme, isDark, 'الإجراءات'),
-                            SizedBox(height: 12.h),
-                            _buildActionsSection(context, theme, isDark),
-                            SizedBox(height: 24.h),
-
-                            // Logout Button
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () => _showLogoutDialog(context),
-                                icon: const Icon(
-                                  Iconsax.logout,
-                                  color: AppColors.error,
-                                ),
-                                label: Text(
-                                  AppLocalizations.of(context)!.logout,
-                                  style: const TextStyle(
-                                    color: AppColors.error,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(
-                                    color: AppColors.error,
-                                  ),
-                                  padding: EdgeInsets.symmetric(vertical: 16.h),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14.r),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 88.h), // Extra space for nav bar
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  return const SizedBox();
-                },
-              );
-            }
-            return _buildUnauthenticatedContent(context, theme);
-          },
-        ),
+                    ),
+                  );
+                }
+                return const SizedBox();
+              },
+            );
+          }
+          return _buildUnauthenticatedContent(context, theme);
+        },
       ),
     );
   }
