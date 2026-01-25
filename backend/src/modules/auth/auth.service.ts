@@ -113,42 +113,49 @@ export class AuthService {
       shopName &&
       cityId
     ) {
-      try {
-        // Generate customer code
-        const customerCode = await this.generateCustomerCode();
+      const existingCustomer = await this.customerModel.findOne({
+        userId: user._id,
+      });
+      if (existingCustomer) {
+        // Defensive: should not happen for new user
+        // Continue without creating; do not fail registration
+      } else {
+        try {
+          const customerCode = await this.generateCustomerCode();
+          const defaultPriceLevel = await this.priceLevelModel.findOne({
+            isDefault: true,
+            isActive: true,
+          });
 
-        // Get default price level
-        const defaultPriceLevel = await this.priceLevelModel.findOne({
-          isDefault: true,
-          isActive: true,
-        });
+          if (!defaultPriceLevel) {
+            throw new BadRequestException(
+              'Default price level not found. Please contact support.',
+            );
+          }
 
-        if (!defaultPriceLevel) {
-          throw new BadRequestException(
-            'Default price level not found. Please contact support.',
-          );
+          await this.customerModel.create({
+            userId: user._id,
+            customerCode,
+            responsiblePersonName,
+            shopName,
+            shopNameAr,
+            cityId: new Types.ObjectId(cityId),
+            businessType: businessType || 'shop',
+            priceLevelId: defaultPriceLevel._id,
+            creditLimit: 0,
+            walletBalance: 0,
+            loyaltyPoints: 0,
+            loyaltyTier: 'bronze',
+            preferredContactMethod: 'whatsapp',
+          });
+        } catch (error: any) {
+          if (error?.code === 11000) {
+            throw new ConflictException(
+              'Customer already exists for this user',
+            );
+          }
+          console.error('Failed to create customer profile:', error);
         }
-
-        // Create customer profile
-        await this.customerModel.create({
-          userId: user._id,
-          customerCode,
-          responsiblePersonName,
-          shopName,
-          shopNameAr,
-          cityId: new Types.ObjectId(cityId),
-          businessType: businessType || 'shop',
-          priceLevelId: defaultPriceLevel._id,
-          creditLimit: 0,
-          walletBalance: 0,
-          loyaltyPoints: 0,
-          loyaltyTier: 'bronze',
-          preferredContactMethod: 'whatsapp',
-        });
-      } catch (error) {
-        // Log error but don't fail registration if customer creation fails
-        console.error('Failed to create customer profile:', error);
-        // Optionally, you could delete the user here if customer creation is critical
       }
     }
 

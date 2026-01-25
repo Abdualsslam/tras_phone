@@ -28,7 +28,10 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 import { CurrentUser } from '@decorators/current-user.decorator';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
-import { NotFoundException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -66,25 +69,28 @@ export class CustomerProfileController {
   })
   @ApiAuthErrorResponses()
   async getProfile(@CurrentUser() user: any) {
-    // Find customer by userId
     let customer = await this.customersService.findByUserId(user.id);
 
-    // إنشاء profile تلقائياً إذا لم يكن موجوداً
     if (!customer) {
-      // الحصول على default price level
-      const defaultPriceLevel = await this.productsService.getDefaultPriceLevel();
-
-      // إنشاء customer profile أساسي
-      await this.customersService.createAutoProfile(
-        user.id,
-        defaultPriceLevel._id.toString(),
-        user.phone || 'Customer',
-      );
-
-      // إعادة جلب customer مع populate
-      customer = await this.customersService.findByUserId(user.id);
-      
-      // إذا لم يتم العثور على customer بعد الإنشاء، إرجاع خطأ
+      try {
+        const defaultPriceLevel =
+          await this.productsService.getDefaultPriceLevel();
+        await this.customersService.createAutoProfile(
+          user.id,
+          defaultPriceLevel._id.toString(),
+          user.phone || 'Customer',
+        );
+        customer = await this.customersService.findByUserId(user.id);
+      } catch (e: any) {
+        const isConflict =
+          e instanceof ConflictException || e?.code === 11000;
+        if (isConflict) {
+          customer = await this.customersService.findByUserId(user.id);
+        }
+        if (!customer) {
+          throw e;
+        }
+      }
       if (!customer) {
         throw new NotFoundException('Customer profile not found');
       }

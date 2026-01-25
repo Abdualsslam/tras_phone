@@ -57,13 +57,18 @@ export class CustomersService {
     // Generate customer code
     const customerCode = await this.generateCustomerCode();
 
-    // Create customer
-    const customer = await this.customerModel.create({
-      ...createCustomerDto,
-      customerCode,
-    });
-
-    return customer;
+    try {
+      const customer = await this.customerModel.create({
+        ...createCustomerDto,
+        customerCode,
+      });
+      return customer;
+    } catch (e: any) {
+      if (e?.code === 11000) {
+        throw new ConflictException('Customer already exists for this user');
+      }
+      throw e;
+    }
   }
 
   /**
@@ -87,24 +92,28 @@ export class CustomersService {
     // Generate customer code
     const customerCode = await this.generateCustomerCode();
 
-    // Create customer with minimal required fields
-    // Note: cityId is optional and will be updated later
-    const customer = await this.customerModel.create({
-      userId,
-      customerCode,
-      responsiblePersonName,
-      shopName: 'My Shop',
-      businessType: 'shop',
-      // cityId is optional - will be updated later
-      priceLevelId,
-      creditLimit: 0,
-      walletBalance: 0,
-      loyaltyPoints: 0,
-      loyaltyTier: 'bronze',
-      preferredContactMethod: 'whatsapp',
-    });
-
-    return customer;
+    try {
+      const customer = await this.customerModel.create({
+        userId,
+        customerCode,
+        responsiblePersonName,
+        shopName: 'My Shop',
+        businessType: 'shop',
+        // cityId is optional - will be updated later
+        priceLevelId,
+        creditLimit: 0,
+        walletBalance: 0,
+        loyaltyPoints: 0,
+        loyaltyTier: 'bronze',
+        preferredContactMethod: 'whatsapp',
+      });
+      return customer;
+    } catch (e: any) {
+      if (e?.code === 11000) {
+        throw new ConflictException('Customer already exists for this user');
+      }
+      throw e;
+    }
   }
 
   /**

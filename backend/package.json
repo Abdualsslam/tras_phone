@@ -20,7 +20,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed:admin": "ts-node -r tsconfig-paths/register src/scripts/seed-admin.ts",
-    "seed:all": "ts-node -r tsconfig-paths/register src/scripts/seed-all.ts"
+    "seed:all": "ts-node -r tsconfig-paths/register src/scripts/seed-all.ts",
+    "dedupe:customers": "ts-node -r tsconfig-paths/register src/scripts/dedupe-customers.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",

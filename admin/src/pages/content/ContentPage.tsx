@@ -11,6 +11,9 @@ import {
   type FaqCategory,
   type Testimonial,
 } from "@/api/content.api";
+import { catalogApi } from "@/api/catalog.api";
+import type { CategoryTree } from "@/api/catalog.api";
+import { productsApi } from "@/api/products.api";
 
 // ══════════════════════════════════════════════════════════════
 // Form Types
@@ -103,6 +106,22 @@ type TestimonialFormData = {
   isApproved: boolean;
   isFeatured: boolean;
 };
+
+function flattenCategoryTree(
+  tree: CategoryTree[],
+  prefix = ""
+): { _id: string; name: string; nameAr: string; label: string }[] {
+  const result: { _id: string; name: string; nameAr: string; label: string }[] = [];
+  for (const node of tree) {
+    const label = (prefix ? prefix + " > " : "") + (node.nameAr || node.name);
+    result.push({ _id: node._id, name: node.name, nameAr: node.nameAr, label });
+    if (node.children?.length) {
+      result.push(...flattenCategoryTree(node.children, label));
+    }
+  }
+  return result;
+}
+
 import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -227,6 +246,26 @@ export function ContentPage() {
     queryKey: ["content-testimonials"],
     queryFn: () => contentApi.getTestimonials(),
   });
+
+  // Banner ref options (products, categories, brands) – enabled when banner dialog open
+  const { data: bannerProductsData } = useQuery({
+    queryKey: ["banner-products"],
+    queryFn: () => productsApi.getAll({ status: "active", limit: 100 }),
+    enabled: isBannerDialogOpen,
+  });
+  const { data: categoryTree = [] } = useQuery({
+    queryKey: ["banner-categories"],
+    queryFn: () => catalogApi.getCategoryTree(),
+    enabled: isBannerDialogOpen,
+  });
+  const { data: bannerBrands = [] } = useQuery({
+    queryKey: ["banner-brands"],
+    queryFn: () => catalogApi.getBrands(),
+    enabled: isBannerDialogOpen,
+  });
+
+  const bannerProducts = bannerProductsData?.items ?? [];
+  const bannerPages = Array.isArray(pages) ? pages : [];
 
   // Ensure arrays are arrays
   const safeFaqs = Array.isArray(faqs) ? faqs : [];
@@ -775,13 +814,25 @@ export function ContentPage() {
         ...(data.altTextAr && { altTextAr: data.altTextAr }),
         ...(data.altTextEn && { altTextEn: data.altTextEn }),
       },
-      action: {
-        type: data.actionType,
-        ...(data.actionType === "link" && data.actionUrl && { url: data.actionUrl }),
-        ...(data.actionRefId && { refId: data.actionRefId }),
-        ...(data.actionRefModel && { refModel: data.actionRefModel }),
-        openInNewTab: data.openInNewTab || false,
-      },
+      action: (() => {
+        const refModelMap = {
+          product: "Product" as const,
+          category: "Category" as const,
+          brand: "Brand" as const,
+          page: "Page" as const,
+        };
+        const refModel =
+          data.actionRefId && data.actionType in refModelMap
+            ? refModelMap[data.actionType as keyof typeof refModelMap]
+            : data.actionRefModel;
+        return {
+          type: data.actionType,
+          ...(data.actionType === "link" && data.actionUrl && { url: data.actionUrl }),
+          ...(data.actionRefId && { refId: data.actionRefId }),
+          ...(refModel && { refModel }),
+          openInNewTab: data.openInNewTab || false,
+        };
+      })(),
       content: {
         ...(data.headingAr && { headingAr: data.headingAr }),
         ...(data.headingEn && { headingEn: data.headingEn }),
@@ -2081,7 +2132,9 @@ export function ContentPage() {
                 <div className="space-y-2">
                   <Label>نوع الإجراء</Label>
                   <select
-                    {...bannerForm.register("actionType")}
+                    {...bannerForm.register("actionType", {
+                      onChange: () => bannerForm.setValue("actionRefId", ""),
+                    })}
                     className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 px-3 text-sm"
                   >
                     <option value="none">لا يوجد</option>
@@ -2106,11 +2159,47 @@ export function ContentPage() {
                   bannerForm.watch("actionType") === "brand" ||
                   bannerForm.watch("actionType") === "page") && (
                   <div className="space-y-2">
-                    <Label>معرف المرجع</Label>
-                    <Input
+                    <Label>
+                      {bannerForm.watch("actionType") === "product" && "المنتج"}
+                      {bannerForm.watch("actionType") === "category" && "الفئة"}
+                      {bannerForm.watch("actionType") === "brand" && "العلامة التجارية"}
+                      {bannerForm.watch("actionType") === "page" && "الصفحة"}
+                    </Label>
+                    <select
                       {...bannerForm.register("actionRefId")}
-                      placeholder="ID"
-                    />
+                      className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 px-3 text-sm"
+                    >
+                      <option value="">
+                        {bannerForm.watch("actionType") === "product" && "اختر المنتج..."}
+                        {bannerForm.watch("actionType") === "category" && "اختر الفئة..."}
+                        {bannerForm.watch("actionType") === "brand" && "اختر العلامة التجارية..."}
+                        {bannerForm.watch("actionType") === "page" && "اختر الصفحة..."}
+                      </option>
+                      {bannerForm.watch("actionType") === "product" &&
+                        bannerProducts.map((p) => (
+                          <option key={p._id} value={p._id}>
+                            {p.nameAr || p.name}
+                          </option>
+                        ))}
+                      {bannerForm.watch("actionType") === "category" &&
+                        flattenCategoryTree(categoryTree).map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.label}
+                          </option>
+                        ))}
+                      {bannerForm.watch("actionType") === "brand" &&
+                        bannerBrands.map((b) => (
+                          <option key={b._id} value={b._id}>
+                            {b.nameAr || b.name}
+                          </option>
+                        ))}
+                      {bannerForm.watch("actionType") === "page" &&
+                        bannerPages.map((p) => (
+                          <option key={p._id} value={p._id}>
+                            {p.titleAr || p.title}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
