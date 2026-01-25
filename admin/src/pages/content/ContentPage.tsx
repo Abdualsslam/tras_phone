@@ -250,7 +250,7 @@ export function ContentPage() {
   // Banner ref options (products, categories, brands) – enabled when banner dialog open
   const { data: bannerProductsData } = useQuery({
     queryKey: ["banner-products"],
-    queryFn: () => productsApi.getAll({ status: "active", limit: 1000 }),
+    queryFn: () => productsApi.getAll({ status: "active", limit: 100 }),
     enabled: isBannerDialogOpen,
   });
   const { data: categoryTree = [] } = useQuery({
