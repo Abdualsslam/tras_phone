@@ -47,5 +47,9 @@
 	<true/>
 	<key>GMSApiKey</key>
 	<string>AIzaSyAbWSDQBZUWjXU-CjXWHSV1ZC1t9rhceXs</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>نحتاج إلى الوصول إلى موقعك لتحديد موقع التوصيل على الخريطة</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>نحتاج إلى الوصول إلى موقعك لتحديد موقع التوصيل على الخريطة</string>
 </dict>
 </plist>

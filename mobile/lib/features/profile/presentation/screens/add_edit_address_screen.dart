@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/utils/extensions.dart';
@@ -42,7 +43,7 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     if (_isEditing) {
       final address = widget.address!;
       _labelController.text = address.label;
@@ -60,13 +61,13 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     // Load locations once when dependencies are available
     if (!_locationsLoaded) {
       _locationsLoaded = true;
       final locationsCubit = context.read<LocationsCubit>();
       locationsCubit.loadCountries();
-      
+
       // Load markets for the selected city if editing
       if (_isEditing && _selectedCityId != null) {
         locationsCubit.loadMarkets(_selectedCityId!);
@@ -107,7 +108,9 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
           listener: (context, state) {
             // Load markets when a city is selected
             if (state.selectedCity != null && state.markets.isEmpty) {
-              context.read<LocationsCubit>().loadMarkets(state.selectedCity!.id);
+              context.read<LocationsCubit>().loadMarkets(
+                state.selectedCity!.id,
+              );
             }
           },
         ),
@@ -176,7 +179,8 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
                 icon: Iconsax.location,
                 maxLines: 3,
                 validator: (value) {
-                  if (value?.isEmpty ?? true) return 'يرجى إدخال تفاصيل العنوان';
+                  if (value?.isEmpty ?? true)
+                    return 'يرجى إدخال تفاصيل العنوان';
                   return null;
                 },
               ),
@@ -318,23 +322,26 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
   Widget _buildCityDropdown(bool isDark) {
     return BlocBuilder<LocationsCubit, LocationsState>(
       builder: (context, locationsState) {
-        final isLoading = locationsState.status == LocationsStatus.loading &&
+        final isLoading =
+            locationsState.status == LocationsStatus.loading &&
             locationsState.cities.isEmpty;
-        
+
         CityModel? selectedCity;
         if (_selectedCityId != null) {
           selectedCity = locationsState.cities.firstWhere(
             (city) => city.id == _selectedCityId,
-            orElse: () => locationsState.cities.firstOrNull ?? CityModel(
-              id: _selectedCityId!,
-              name: '',
-              nameAr: '',
-              countryId: '',
-              shippingZoneId: '',
-              isActive: true,
-              isCapital: false,
-              displayOrder: 0,
-            ),
+            orElse: () =>
+                locationsState.cities.firstOrNull ??
+                CityModel(
+                  id: _selectedCityId!,
+                  name: '',
+                  nameAr: '',
+                  countryId: '',
+                  shippingZoneId: '',
+                  isActive: true,
+                  isCapital: false,
+                  displayOrder: 0,
+                ),
           );
         }
 
@@ -364,12 +371,21 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
                 return DropdownMenuItem<CityModel>(
                   value: city,
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       if (city.isCapital)
-                        Icon(Iconsax.star1, size: 16.sp, color: AppColors.warning),
+                        Icon(
+                          Iconsax.star1,
+                          size: 16.sp,
+                          color: AppColors.warning,
+                        ),
                       if (city.isCapital) SizedBox(width: 8.w),
-                      Expanded(
-                        child: Text(city.getName('ar')),
+                      Flexible(
+                        fit: FlexFit.loose,
+                        child: Text(
+                          city.getName('ar'),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
@@ -404,7 +420,8 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
           return const SizedBox.shrink();
         }
 
-        final isLoading = locationsState.status == LocationsStatus.loading &&
+        final isLoading =
+            locationsState.status == LocationsStatus.loading &&
             locationsState.markets.isEmpty &&
             _selectedCityId != null;
 
@@ -412,14 +429,16 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
         if (_selectedMarketId != null) {
           selectedMarket = locationsState.markets.firstWhere(
             (market) => market.id == _selectedMarketId,
-            orElse: () => locationsState.markets.firstOrNull ?? MarketModel(
-              id: _selectedMarketId!,
-              name: '',
-              nameAr: '',
-              cityId: _selectedCityId!,
-              isActive: true,
-              displayOrder: 0,
-            ),
+            orElse: () =>
+                locationsState.markets.firstOrNull ??
+                MarketModel(
+                  id: _selectedMarketId!,
+                  name: '',
+                  nameAr: '',
+                  cityId: _selectedCityId!,
+                  isActive: true,
+                  displayOrder: 0,
+                ),
           );
         }
 
@@ -466,13 +485,24 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
     );
   }
 
-  void _pickFromMap() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('ميزة الخريطة قيد التطوير'),
-        behavior: SnackBarBehavior.floating,
-      ),
+  Future<void> _pickFromMap() async {
+    final result = await context.push<Map<String, dynamic>?>(
+      '/map/location-picker',
+      extra: {'initialLatitude': _latitude, 'initialLongitude': _longitude},
     );
+
+    if (result != null) {
+      setState(() {
+        _latitude = result['latitude'] as double?;
+        _longitude = result['longitude'] as double?;
+
+        // Update address field if address is available
+        if (result['address'] != null &&
+            result['address'].toString().isNotEmpty) {
+          _addressController.text = result['address'].toString();
+        }
+      });
+    }
   }
 
   Future<void> _saveAddress() async {
@@ -518,7 +548,9 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        backgroundColor: isDark
+            ? AppColors.surfaceDark
+            : AppColors.surfaceLight,
         title: const Text('حذف العنوان'),
         content: const Text('هل أنت متأكد من حذف هذا العنوان؟'),
         actions: [

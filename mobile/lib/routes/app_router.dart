@@ -48,6 +48,7 @@ import '../features/support/presentation/screens/ticket_chat_screen.dart';
 import '../features/support/presentation/screens/create_ticket_screen.dart';
 import '../features/education/presentation/screens/faq_screen.dart';
 import '../features/education/presentation/screens/static_page_screen.dart';
+import '../features/locations/presentation/screens/map_location_picker_screen.dart';
 import '../features/education/presentation/screens/education_categories_screen.dart';
 import '../features/education/presentation/screens/education_list_screen.dart';
 import '../features/education/presentation/screens/education_details_screen.dart';
@@ -255,6 +256,16 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/addresses',
       builder: (context, state) => const AddressesListScreen(),
+    ),
+    GoRoute(
+      path: '/map/location-picker',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return MapLocationPickerScreen(
+          initialLatitude: extra?['initialLatitude'] as double?,
+          initialLongitude: extra?['initialLongitude'] as double?,
+        );
+      },
     ),
     GoRoute(
       path: '/edit-profile',
