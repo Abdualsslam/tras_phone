@@ -498,7 +498,7 @@ export class CustomersService {
    * Get customer addresses
    */
   async getAddresses(customerId: string): Promise<CustomerAddressDocument[]> {
-    return this.addressModel.find({ customerId }).populate('cityId marketId');
+    return this.addressModel.find({ customerId }).populate('cityId');
   }
 
   /**
@@ -508,10 +508,32 @@ export class CustomersService {
     customerId: string,
     createAddressDto: CreateAddressDto,
   ): Promise<CustomerAddressDocument> {
-    // Verify customer exists
-    const customer = await this.customerModel.findById(customerId);
+    // Verify customer exists and populate user data
+    const customer = await this.customerModel
+      .findById(customerId)
+      .populate('userId', 'phone email');
+    
     if (!customer) {
       throw new NotFoundException('Customer not found');
+    }
+
+    // Auto-fill recipientName and phone from customer profile if not provided
+    const addressData: any = {
+      customerId,
+      ...createAddressDto,
+    };
+
+    // Auto-fill recipientName from customer.responsiblePersonName if not provided
+    if (!addressData.recipientName && customer.responsiblePersonName) {
+      addressData.recipientName = customer.responsiblePersonName;
+    }
+
+    // Auto-fill phone from customer.user.phone if not provided
+    if (!addressData.phone && customer.userId && typeof customer.userId === 'object') {
+      const user = customer.userId as any;
+      if (user.phone) {
+        addressData.phone = user.phone;
+      }
     }
 
     // If this is set as default, unset others
@@ -519,10 +541,7 @@ export class CustomersService {
       await this.addressModel.updateMany({ customerId }, { isDefault: false });
     }
 
-    const address = await this.addressModel.create({
-      customerId,
-      ...createAddressDto,
-    });
+    const address = await this.addressModel.create(addressData);
 
     return address;
   }

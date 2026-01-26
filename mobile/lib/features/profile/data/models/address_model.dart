@@ -44,14 +44,15 @@ class AddressModel {
   final String? phone;
 
   @JsonKey(name: 'cityId', readValue: _readCityId)
-  final String cityId;
+  final String? cityId;
 
-  @JsonKey(name: 'marketId', readValue: _readOptionalId)
-  final String? marketId;
+  final String? cityName;
+  final String? marketName;
 
   final String addressLine;
-  final double? latitude;
-  final double? longitude;
+  final double latitude;
+  final double longitude;
+  final String? notes;
 
   @JsonKey(defaultValue: false)
   final bool isDefault;
@@ -69,11 +70,13 @@ class AddressModel {
     required this.label,
     this.recipientName,
     this.phone,
-    required this.cityId,
-    this.marketId,
+    this.cityId,
+    this.cityName,
+    this.marketName,
     required this.addressLine,
-    this.latitude,
-    this.longitude,
+    required this.latitude,
+    required this.longitude,
+    this.notes,
     this.isDefault = false,
     required this.createdAt,
     required this.updatedAt,
@@ -133,11 +136,13 @@ class AddressModel {
       label: json['label'] ?? '',
       recipientName: json['recipientName'] as String?,
       phone: json['phone'] as String?,
-      cityId: _readCityId(json, 'cityId')?.toString() ?? '',
-      marketId: _readOptionalId(json, 'marketId')?.toString(),
+      cityId: _readCityId(json, 'cityId')?.toString(),
+      cityName: json['cityName'] as String?,
+      marketName: json['marketName'] as String?,
       addressLine: json['addressLine'] ?? '',
-      latitude: (json['latitude'] as num?)?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble(),
+      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      notes: json['notes'] as String?,
       isDefault: json['isDefault'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
@@ -152,10 +157,12 @@ class AddressModel {
     'recipientName': recipientName,
     'phone': phone,
     'cityId': cityId,
-    'marketId': marketId,
+    'cityName': cityName,
+    'marketName': marketName,
     'addressLine': addressLine,
     'latitude': latitude,
     'longitude': longitude,
+    'notes': notes,
     'isDefault': isDefault,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
@@ -179,10 +186,12 @@ class AddressModel {
       recipientName: recipientName,
       phone: phone,
       cityId: cityId,
-      marketId: marketId,
+      cityName: cityName,
+      marketName: marketName,
       addressLine: addressLine,
       latitude: latitude,
       longitude: longitude,
+      notes: notes,
       isDefault: isDefault,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -199,22 +208,26 @@ class AddressRequest {
   final String label;
   final String? recipientName;
   final String? phone;
-  final String cityId;
-  final String? marketId;
+  final String? cityId;
+  final String? cityName;
+  final String? marketName;
   final String addressLine;
-  final double? latitude;
-  final double? longitude;
+  final double latitude;
+  final double longitude;
+  final String? notes;
   final bool isDefault;
 
   const AddressRequest({
     required this.label,
     this.recipientName,
     this.phone,
-    required this.cityId,
-    this.marketId,
+    this.cityId,
+    this.cityName,
+    this.marketName,
     required this.addressLine,
-    this.latitude,
-    this.longitude,
+    required this.latitude,
+    required this.longitude,
+    this.notes,
     this.isDefault = false,
   });
 

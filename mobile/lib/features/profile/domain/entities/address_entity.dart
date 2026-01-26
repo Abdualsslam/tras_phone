@@ -24,11 +24,13 @@ class AddressEntity {
   final String label;
   final String? recipientName;
   final String? phone;
-  final String cityId;
-  final String? marketId;
+  final String? cityId;
+  final String? cityName;
+  final String? marketName;
   final String addressLine;
-  final double? latitude;
-  final double? longitude;
+  final double latitude;
+  final double longitude;
+  final String? notes;
   final bool isDefault;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -40,11 +42,13 @@ class AddressEntity {
     required this.label,
     this.recipientName,
     this.phone,
-    required this.cityId,
-    this.marketId,
+    this.cityId,
+    this.cityName,
+    this.marketName,
     required this.addressLine,
-    this.latitude,
-    this.longitude,
+    required this.latitude,
+    required this.longitude,
+    this.notes,
     this.isDefault = false,
     required this.createdAt,
     required this.updatedAt,
@@ -67,10 +71,12 @@ class AddressEntity {
     String? recipientName,
     String? phone,
     String? cityId,
-    String? marketId,
+    String? cityName,
+    String? marketName,
     String? addressLine,
     double? latitude,
     double? longitude,
+    String? notes,
     bool? isDefault,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -83,10 +89,12 @@ class AddressEntity {
       recipientName: recipientName ?? this.recipientName,
       phone: phone ?? this.phone,
       cityId: cityId ?? this.cityId,
-      marketId: marketId ?? this.marketId,
+      cityName: cityName ?? this.cityName,
+      marketName: marketName ?? this.marketName,
       addressLine: addressLine ?? this.addressLine,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      notes: notes ?? this.notes,
       isDefault: isDefault ?? this.isDefault,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

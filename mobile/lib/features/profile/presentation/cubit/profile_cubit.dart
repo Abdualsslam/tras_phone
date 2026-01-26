@@ -209,13 +209,13 @@ class AddressesCubit extends Cubit<AddressesState> {
   /// Create new address
   Future<void> createAddress({
     required String label,
-    required String cityId,
     required String addressLine,
-    String? recipientName,
-    String? phone,
-    String? marketId,
-    double? latitude,
-    double? longitude,
+    required double latitude,
+    required double longitude,
+    String? cityId,
+    String? cityName,
+    String? marketName,
+    String? notes,
     bool isDefault = false,
   }) async {
     emit(AddressOperationLoading(_addresses));
@@ -223,12 +223,12 @@ class AddressesCubit extends Cubit<AddressesState> {
       final request = AddressRequest(
         label: label,
         cityId: cityId,
+        cityName: cityName,
+        marketName: marketName,
         addressLine: addressLine,
-        recipientName: recipientName,
-        phone: phone,
-        marketId: marketId,
         latitude: latitude,
         longitude: longitude,
+        notes: notes,
         isDefault: isDefault,
       );
 
@@ -255,11 +255,11 @@ class AddressesCubit extends Cubit<AddressesState> {
     String? label,
     String? addressLine,
     String? cityId,
-    String? recipientName,
-    String? phone,
-    String? marketId,
+    String? cityName,
+    String? marketName,
     double? latitude,
     double? longitude,
+    String? notes,
     bool? isDefault,
   }) async {
     emit(AddressOperationLoading(_addresses));
@@ -268,11 +268,11 @@ class AddressesCubit extends Cubit<AddressesState> {
       if (label != null) updates['label'] = label;
       if (addressLine != null) updates['addressLine'] = addressLine;
       if (cityId != null) updates['cityId'] = cityId;
-      if (recipientName != null) updates['recipientName'] = recipientName;
-      if (phone != null) updates['phone'] = phone;
-      if (marketId != null) updates['marketId'] = marketId;
+      if (cityName != null) updates['cityName'] = cityName;
+      if (marketName != null) updates['marketName'] = marketName;
       if (latitude != null) updates['latitude'] = latitude;
       if (longitude != null) updates['longitude'] = longitude;
+      if (notes != null) updates['notes'] = notes;
       if (isDefault != null) updates['isDefault'] = isDefault;
 
       final updated = await _repository.updateAddress(id, updates);

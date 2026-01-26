@@ -8,10 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/utils/extensions.dart';
-import '../../../locations/data/models/city_model.dart';
-import '../../../locations/data/models/market_model.dart';
-import '../../../locations/presentation/cubit/locations_cubit.dart';
-import '../../../locations/presentation/cubit/locations_state.dart';
 import '../../domain/entities/address_entity.dart';
 import '../cubit/profile_cubit.dart';
 import '../cubit/profile_state.dart';
@@ -28,17 +24,15 @@ class AddEditAddressScreen extends StatefulWidget {
 class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
   final _formKey = GlobalKey<FormState>();
   final _labelController = TextEditingController();
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
-  String? _selectedCityId;
-  String? _selectedMarketId;
-  double? _latitude;
-  double? _longitude;
+  final _cityNameController = TextEditingController();
+  final _marketNameController = TextEditingController();
+  final _notesController = TextEditingController();
+  final _latitudeController = TextEditingController();
+  final _longitudeController = TextEditingController();
   bool _isDefault = false;
 
   bool get _isEditing => widget.address != null;
-  bool _locationsLoaded = false;
 
   @override
   void initState() {
@@ -47,40 +41,26 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
     if (_isEditing) {
       final address = widget.address!;
       _labelController.text = address.label;
-      _nameController.text = address.recipientName ?? '';
-      _phoneController.text = address.phone ?? '';
       _addressController.text = address.addressLine;
-      _selectedCityId = address.cityId;
-      _selectedMarketId = address.marketId;
-      _latitude = address.latitude;
-      _longitude = address.longitude;
+      _cityNameController.text = address.cityName ?? '';
+      _marketNameController.text = address.marketName ?? '';
+      _notesController.text = address.notes ?? '';
+      _latitudeController.text = address.latitude.toString();
+      _longitudeController.text = address.longitude.toString();
       _isDefault = address.isDefault;
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    // Load locations once when dependencies are available
-    if (!_locationsLoaded) {
-      _locationsLoaded = true;
-      final locationsCubit = context.read<LocationsCubit>();
-      locationsCubit.loadCountries();
-
-      // Load markets for the selected city if editing
-      if (_isEditing && _selectedCityId != null) {
-        locationsCubit.loadMarkets(_selectedCityId!);
-      }
-    }
-  }
 
   @override
   void dispose() {
     _labelController.dispose();
-    _nameController.dispose();
-    _phoneController.dispose();
     _addressController.dispose();
+    _cityNameController.dispose();
+    _marketNameController.dispose();
+    _notesController.dispose();
+    _latitudeController.dispose();
+    _longitudeController.dispose();
     super.dispose();
   }
 
@@ -88,33 +68,19 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return MultiBlocListener(
-      listeners: [
-        BlocListener<AddressesCubit, AddressesState>(
-          listener: (context, state) {
-            if (state is AddressOperationSuccess) {
-              Navigator.pop(context);
-            } else if (state is AddressesError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: AppColors.error,
-                ),
-              );
-            }
-          },
-        ),
-        BlocListener<LocationsCubit, LocationsState>(
-          listener: (context, state) {
-            // Load markets when a city is selected
-            if (state.selectedCity != null && state.markets.isEmpty) {
-              context.read<LocationsCubit>().loadMarkets(
-                state.selectedCity!.id,
-              );
-            }
-          },
-        ),
-      ],
+    return BlocListener<AddressesCubit, AddressesState>(
+      listener: (context, state) {
+        if (state is AddressOperationSuccess) {
+          Navigator.pop(context);
+        } else if (state is AddressesError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      },
       child: Scaffold(
         appBar: AppBar(
           title: Text(_isEditing ? 'تعديل العنوان' : 'إضافة عنوان'),
@@ -134,7 +100,7 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
               // Label
               _buildTextField(
                 controller: _labelController,
-                label: 'تسمية العنوان',
+                label: 'تسمية العنوان *',
                 hint: 'مثال: المنزل، العمل',
                 icon: Iconsax.tag,
                 validator: (value) {
@@ -144,43 +110,80 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
               ),
               SizedBox(height: 16.h),
 
-              // Recipient Name
+              // City Name (text field)
               _buildTextField(
-                controller: _nameController,
-                label: 'اسم المستلم',
-                hint: 'الاسم الكامل',
-                icon: Iconsax.user,
+                controller: _cityNameController,
+                label: 'المدينة',
+                hint: 'اسم المدينة (اختياري)',
+                icon: Iconsax.buildings,
               ),
               SizedBox(height: 16.h),
 
-              // Phone
+              // Market/Area Name (text field)
               _buildTextField(
-                controller: _phoneController,
-                label: 'رقم الهاتف',
-                hint: '05xxxxxxxx',
-                icon: Iconsax.call,
-                keyboardType: TextInputType.phone,
+                controller: _marketNameController,
+                label: 'السوق / الحي',
+                hint: 'اسم السوق أو الحي (اختياري)',
+                icon: Iconsax.shop,
               ),
-              SizedBox(height: 16.h),
-
-              // City Dropdown
-              _buildCityDropdown(isDark),
-              SizedBox(height: 16.h),
-
-              // Market Dropdown
-              _buildMarketDropdown(isDark),
               SizedBox(height: 16.h),
 
               // Address Details
               _buildTextField(
                 controller: _addressController,
-                label: 'تفاصيل العنوان',
+                label: 'تفاصيل العنوان *',
                 hint: 'الحي، الشارع، رقم المبنى',
                 icon: Iconsax.location,
                 maxLines: 3,
                 validator: (value) {
                   if (value?.isEmpty ?? true)
                     return 'يرجى إدخال تفاصيل العنوان';
+                  return null;
+                },
+              ),
+              SizedBox(height: 16.h),
+
+              // Latitude
+              _buildTextField(
+                controller: _latitudeController,
+                label: 'خط العرض *',
+                hint: 'مثال: 24.7136',
+                icon: Iconsax.location,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                validator: (value) {
+                  if (value?.isEmpty ?? true) {
+                    return 'يرجى إدخال خط العرض';
+                  }
+                  final lat = double.tryParse(value!);
+                  if (lat == null) {
+                    return 'يرجى إدخال رقم صحيح';
+                  }
+                  if (lat < -90 || lat > 90) {
+                    return 'خط العرض يجب أن يكون بين -90 و 90';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16.h),
+
+              // Longitude
+              _buildTextField(
+                controller: _longitudeController,
+                label: 'خط الطول *',
+                hint: 'مثال: 46.6753',
+                icon: Iconsax.location,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                validator: (value) {
+                  if (value?.isEmpty ?? true) {
+                    return 'يرجى إدخال خط الطول';
+                  }
+                  final lng = double.tryParse(value!);
+                  if (lng == null) {
+                    return 'يرجى إدخال رقم صحيح';
+                  }
+                  if (lng < -180 || lng > 180) {
+                    return 'خط الطول يجب أن يكون بين -180 و 180';
+                  }
                   return null;
                 },
               ),
@@ -194,6 +197,16 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
                 style: OutlinedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                 ),
+              ),
+              SizedBox(height: 16.h),
+
+              // Notes
+              _buildTextField(
+                controller: _notesController,
+                label: 'ملاحظات',
+                hint: 'مثال: التوصيل نهاراً، الطابق الثاني',
+                icon: Iconsax.note,
+                maxLines: 3,
               ),
               SizedBox(height: 24.h),
 
@@ -319,182 +332,30 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
     );
   }
 
-  Widget _buildCityDropdown(bool isDark) {
-    return BlocBuilder<LocationsCubit, LocationsState>(
-      builder: (context, locationsState) {
-        final isLoading =
-            locationsState.status == LocationsStatus.loading &&
-            locationsState.cities.isEmpty;
-
-        CityModel? selectedCity;
-        if (_selectedCityId != null) {
-          selectedCity = locationsState.cities.firstWhere(
-            (city) => city.id == _selectedCityId,
-            orElse: () =>
-                locationsState.cities.firstOrNull ??
-                CityModel(
-                  id: _selectedCityId!,
-                  name: '',
-                  nameAr: '',
-                  countryId: '',
-                  shippingZoneId: '',
-                  isActive: true,
-                  isCapital: false,
-                  displayOrder: 0,
-                ),
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'المدينة *',
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            DropdownButtonFormField<CityModel>(
-              value: selectedCity,
-              decoration: InputDecoration(
-                prefixIcon: Icon(Iconsax.buildings, size: 20.sp),
-              ),
-              hint: isLoading
-                  ? const Text('جاري التحميل...')
-                  : const Text('اختر المدينة'),
-              items: locationsState.cities.map((city) {
-                return DropdownMenuItem<CityModel>(
-                  value: city,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (city.isCapital)
-                        Icon(
-                          Iconsax.star1,
-                          size: 16.sp,
-                          color: AppColors.warning,
-                        ),
-                      if (city.isCapital) SizedBox(width: 8.w),
-                      Flexible(
-                        fit: FlexFit.loose,
-                        child: Text(
-                          city.getName('ar'),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: (city) {
-                if (city != null) {
-                  setState(() {
-                    _selectedCityId = city.id;
-                    _selectedMarketId = null; // Reset market when city changes
-                  });
-                  context.read<LocationsCubit>().selectCity(city);
-                  context.read<LocationsCubit>().loadMarkets(city.id);
-                }
-              },
-              validator: (value) {
-                if (value == null) return 'يرجى اختيار المدينة';
-                return null;
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildMarketDropdown(bool isDark) {
-    return BlocBuilder<LocationsCubit, LocationsState>(
-      builder: (context, locationsState) {
-        // Only show market dropdown if a city is selected
-        if (_selectedCityId == null) {
-          return const SizedBox.shrink();
-        }
-
-        final isLoading =
-            locationsState.status == LocationsStatus.loading &&
-            locationsState.markets.isEmpty &&
-            _selectedCityId != null;
-
-        MarketModel? selectedMarket;
-        if (_selectedMarketId != null) {
-          selectedMarket = locationsState.markets.firstWhere(
-            (market) => market.id == _selectedMarketId,
-            orElse: () =>
-                locationsState.markets.firstOrNull ??
-                MarketModel(
-                  id: _selectedMarketId!,
-                  name: '',
-                  nameAr: '',
-                  cityId: _selectedCityId!,
-                  isActive: true,
-                  displayOrder: 0,
-                ),
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'السوق / الحي',
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            DropdownButtonFormField<MarketModel>(
-              value: selectedMarket,
-              decoration: InputDecoration(
-                prefixIcon: Icon(Iconsax.shop, size: 20.sp),
-              ),
-              hint: isLoading
-                  ? const Text('جاري التحميل...')
-                  : const Text('اختر السوق (اختياري)'),
-              items: locationsState.markets.map((market) {
-                return DropdownMenuItem<MarketModel>(
-                  value: market,
-                  child: Text(market.getName('ar')),
-                );
-              }).toList(),
-              onChanged: (market) {
-                setState(() {
-                  _selectedMarketId = market?.id;
-                });
-                if (market != null) {
-                  context.read<LocationsCubit>().selectMarket(market);
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   Future<void> _pickFromMap() async {
+    final currentLat = double.tryParse(_latitudeController.text);
+    final currentLng = double.tryParse(_longitudeController.text);
+    
     final result = await context.push<Map<String, dynamic>?>(
       '/map/location-picker',
-      extra: {'initialLatitude': _latitude, 'initialLongitude': _longitude},
+      extra: {
+        'initialLatitude': currentLat,
+        'initialLongitude': currentLng,
+      },
     );
 
     if (result != null) {
       setState(() {
-        _latitude = result['latitude'] as double?;
-        _longitude = result['longitude'] as double?;
+        final lat = result['latitude'] as double?;
+        final lng = result['longitude'] as double?;
+        
+        if (lat != null) {
+          _latitudeController.text = lat.toString();
+        }
+        if (lng != null) {
+          _longitudeController.text = lng.toString();
+        }
 
         // Update address field if address is available
         if (result['address'] != null &&
@@ -509,34 +370,40 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final cubit = context.read<AddressesCubit>();
+    
+    final latitude = double.parse(_latitudeController.text);
+    final longitude = double.parse(_longitudeController.text);
+    final cityName = _cityNameController.text.trim().isEmpty 
+        ? null 
+        : _cityNameController.text.trim();
+    final marketName = _marketNameController.text.trim().isEmpty 
+        ? null 
+        : _marketNameController.text.trim();
+    final notes = _notesController.text.trim().isEmpty 
+        ? null 
+        : _notesController.text.trim();
 
     if (_isEditing) {
       await cubit.updateAddress(
         id: widget.address!.id,
         label: _labelController.text,
-        recipientName: _nameController.text.isNotEmpty
-            ? _nameController.text
-            : null,
-        phone: _phoneController.text.isNotEmpty ? _phoneController.text : null,
-        cityId: _selectedCityId,
-        marketId: _selectedMarketId,
         addressLine: _addressController.text,
-        latitude: _latitude,
-        longitude: _longitude,
+        cityName: cityName,
+        marketName: marketName,
+        latitude: latitude,
+        longitude: longitude,
+        notes: notes,
         isDefault: _isDefault,
       );
     } else {
       await cubit.createAddress(
         label: _labelController.text,
-        cityId: _selectedCityId!,
         addressLine: _addressController.text,
-        recipientName: _nameController.text.isNotEmpty
-            ? _nameController.text
-            : null,
-        phone: _phoneController.text.isNotEmpty ? _phoneController.text : null,
-        marketId: _selectedMarketId,
-        latitude: _latitude,
-        longitude: _longitude,
+        cityName: cityName,
+        marketName: marketName,
+        latitude: latitude,
+        longitude: longitude,
+        notes: notes,
         isDefault: _isDefault,
       );
     }

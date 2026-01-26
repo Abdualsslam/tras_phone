@@ -25,20 +25,26 @@ export class CustomerAddress {
     @Prop()
     phone?: string;
 
-    @Prop({ type: Types.ObjectId, ref: 'City', required: true })
-    cityId: Types.ObjectId;
+    @Prop({ type: Types.ObjectId, ref: 'City' })
+    cityId?: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'Market' })
-    marketId?: Types.ObjectId;
+    @Prop()
+    cityName?: string;
+
+    @Prop()
+    marketName?: string;
 
     @Prop({ required: true, type: String })
     addressLine: string;
 
-    @Prop({ type: Number })
-    latitude?: number;
+    @Prop({ type: Number, required: true })
+    latitude: number;
 
-    @Prop({ type: Number })
-    longitude?: number;
+    @Prop({ type: Number, required: true })
+    longitude: number;
+
+    @Prop()
+    notes?: string;
 
     @Prop({ default: false })
     isDefault: boolean;
