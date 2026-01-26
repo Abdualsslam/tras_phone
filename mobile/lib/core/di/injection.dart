@@ -233,7 +233,7 @@ Future<void> setupDependencies() async {
     () => ProfileCubit(repository: getIt<ProfileRepository>()),
   );
 
-  getIt.registerFactory<AddressesCubit>(
+  getIt.registerLazySingleton<AddressesCubit>(
     () => AddressesCubit(repository: getIt<ProfileRepository>()),
   );
 

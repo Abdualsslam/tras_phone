@@ -7,7 +7,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/address_entity.dart';
 import '../cubit/profile_cubit.dart';
@@ -19,10 +18,12 @@ class AddressesListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<AddressesCubit>()..loadAddresses(),
-      child: const _AddressesListView(),
-    );
+    // Use the global AddressesCubit instance from app.dart
+    // This ensures synchronization with profile_screen
+    final addressesCubit = context.read<AddressesCubit>();
+    addressesCubit.loadAddresses();
+
+    return const _AddressesListView();
   }
 }
 
