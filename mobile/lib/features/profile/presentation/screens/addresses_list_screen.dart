@@ -9,7 +9,6 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../locations/presentation/cubit/locations_cubit.dart';
 import '../../domain/entities/address_entity.dart';
 import '../cubit/profile_cubit.dart';
 import '../cubit/profile_state.dart';
@@ -102,11 +101,8 @@ class _AddressesListView extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => MultiBlocProvider(
-          providers: [
-            BlocProvider.value(value: context.read<AddressesCubit>()),
-            BlocProvider.value(value: context.read<LocationsCubit>()),
-          ],
+        builder: (_) => BlocProvider.value(
+          value: context.read<AddressesCubit>(),
           child: const AddEditAddressScreen(),
         ),
       ),
@@ -117,11 +113,8 @@ class _AddressesListView extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => MultiBlocProvider(
-          providers: [
-            BlocProvider.value(value: context.read<AddressesCubit>()),
-            BlocProvider.value(value: context.read<LocationsCubit>()),
-          ],
+        builder: (_) => BlocProvider.value(
+          value: context.read<AddressesCubit>(),
           child: AddEditAddressScreen(address: address),
         ),
       ),
@@ -256,36 +249,34 @@ class _AddressesListView extends StatelessWidget {
               ),
             ],
           ),
-          if (address.recipientName != null || address.phone != null) ...[
+          // Notes
+          if (address.notes != null && address.notes!.isNotEmpty) ...[
+            SizedBox(height: 12.h),
+            Divider(
+              height: 1,
+              color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+            ),
             SizedBox(height: 8.h),
-            if (address.recipientName != null)
-              Row(
-                children: [
-                  Icon(Iconsax.user, size: 14.sp, color: AppColors.textTertiaryLight),
-                  SizedBox(width: 4.w),
-                  Text(
-                    address.recipientName!,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Iconsax.note,
+                  size: 16.sp,
+                  color: AppColors.textTertiaryLight,
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    address.notes!,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondaryLight,
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
-                ],
-              ),
-            if (address.recipientName != null && address.phone != null)
-              SizedBox(height: 4.h),
-            if (address.phone != null)
-              Row(
-                children: [
-                  Icon(Iconsax.call, size: 14.sp, color: AppColors.textTertiaryLight),
-                  SizedBox(width: 4.w),
-                  Text(
-                    address.phone!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
+            ),
           ],
         ],
       ),

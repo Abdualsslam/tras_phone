@@ -14,10 +14,10 @@ import '../../../../core/widgets/widgets.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../locations/presentation/cubit/locations_cubit.dart';
-import '../../../locations/presentation/cubit/locations_state.dart';
-import '../../../locations/data/models/city_model.dart';
-import '../../../locations/data/models/country_model.dart';
+import '../../../address/presentation/cubit/locations_cubit.dart';
+import '../../../address/presentation/cubit/locations_state.dart';
+import '../../../address/data/models/city_model.dart';
+import '../../../address/data/models/country_model.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -64,11 +64,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
         return;
       }
-      
+
       // Log cityId for debugging
       final cityIdValue = _selectedCity!.id;
-      developer.log('Selected city: ${_selectedCity!.nameAr} (id: $cityIdValue, type: ${cityIdValue.runtimeType})', name: 'RegisterScreen');
-      
+      developer.log(
+        'Selected city: ${_selectedCity!.nameAr} (id: $cityIdValue, type: ${cityIdValue.runtimeType})',
+        name: 'RegisterScreen',
+      );
+
       context.read<AuthCubit>().register(
         phone: _phoneController.text.trim(),
         password: _passwordController.text,
@@ -98,7 +101,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             // Show success banner for pending registration
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('تم إرسال طلب تسجيل الحساب بنجاح... انتظر حتى يتم قبولك'),
+                content: const Text(
+                  'تم إرسال طلب تسجيل الحساب بنجاح... انتظر حتى يتم قبولك',
+                ),
                 backgroundColor: AppColors.success,
                 behavior: SnackBarBehavior.floating,
               ),
@@ -117,38 +122,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Get current locale
           final locale = Localizations.localeOf(context);
           final isArabic = locale.languageCode == 'ar';
-          
+
           // Check if this is an account under review error
-          final isAccountUnderReview = 
+          final isAccountUnderReview =
               state.message.contains('account is under review') ||
               state.message.contains('قيد المراجعة') ||
               state.message.contains('ACCOUNT_UNDER_REVIEW') ||
               state.message.contains('under review');
-          
+
           // Check if this is an account rejected error
-          final isAccountRejected = 
+          final isAccountRejected =
               state.message.contains('account has been rejected') ||
               state.message.contains('تم رفض') ||
               state.message.contains('ACCOUNT_REJECTED') ||
               state.message.contains('has been rejected');
-          
+
           // Check if this is a user already exists error
-          final isUserAlreadyExists = 
+          final isUserAlreadyExists =
               state.message.contains('phone or email already exists') ||
-              state.message.contains('User with this phone or email already exists') ||
+              state.message.contains(
+                'User with this phone or email already exists',
+              ) ||
               state.message.contains('موجود بالفعل') ||
               state.message.contains('CONFLICT') ||
               state.message.contains('ConflictException') ||
               state.message.contains('already exists');
-          
-          final backgroundColor = isAccountUnderReview 
-              ? AppColors.warning 
+
+          final backgroundColor = isAccountUnderReview
+              ? AppColors.warning
               : AppColors.error;
-          
-          final icon = isAccountUnderReview 
-              ? Iconsax.warning_2 
+
+          final icon = isAccountUnderReview
+              ? Iconsax.warning_2
               : Iconsax.info_circle;
-          
+
           // Extract clean message (remove exception prefix if present)
           String cleanMessage = state.message;
           // Remove AppException, ConflictException, or other exception prefixes
@@ -163,35 +170,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
           if (cleanMessage.contains('(code:')) {
             cleanMessage = cleanMessage.split('(code:').first.trim();
           }
-          
+
           // Use localized message for account under review
           if (isAccountUnderReview) {
-            cleanMessage = isArabic 
+            cleanMessage = isArabic
                 ? AccountUnderReviewException.arabicMessage
                 : AccountUnderReviewException.englishMessage;
           }
           // Use localized message for account rejected
           else if (isAccountRejected) {
-            cleanMessage = isArabic 
+            cleanMessage = isArabic
                 ? AccountRejectedException.arabicMessage
                 : AccountRejectedException.englishMessage;
           }
           // Use localized message for user already exists
           else if (isUserAlreadyExists) {
-            cleanMessage = isArabic 
+            cleanMessage = isArabic
                 ? ConflictException.userAlreadyExistsAr
                 : ConflictException.userAlreadyExistsEn;
           }
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Row(
                 children: [
-                  Icon(
-                    icon,
-                    color: Colors.white,
-                    size: 20.sp,
-                  ),
+                  Icon(icon, color: Colors.white, size: 20.sp),
                   SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
@@ -201,7 +204,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         fontWeight: FontWeight.w500,
                         color: Colors.white,
                       ),
-                      textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+                      textDirection: isArabic
+                          ? TextDirection.rtl
+                          : TextDirection.ltr,
                       textAlign: isArabic ? TextAlign.right : TextAlign.left,
                     ),
                   ),
@@ -316,7 +321,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     BlocConsumer<LocationsCubit, LocationsState>(
                       listener: (context, locationsState) {
                         // Auto-select first city when cities are loaded for the first time
-                        if (locationsState.cities.isNotEmpty && _selectedCity == null) {
+                        if (locationsState.cities.isNotEmpty &&
+                            _selectedCity == null) {
                           if (mounted) {
                             setState(() {
                               _selectedCity = locationsState.cities.first;
@@ -327,7 +333,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         if (locationsState.selectedCountry != null) {
                           // Check if current city belongs to different country
                           if (_selectedCity != null &&
-                              _selectedCity!.countryId != locationsState.selectedCountry!.id) {
+                              _selectedCity!.countryId !=
+                                  locationsState.selectedCountry!.id) {
                             // Reset city and select first city of new country
                             if (locationsState.cities.isNotEmpty) {
                               if (mounted) {
@@ -414,7 +421,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           }).toList(),
                           onChanged: (country) {
                             if (country != null) {
-                              context.read<LocationsCubit>().selectCountry(country);
+                              context.read<LocationsCubit>().selectCountry(
+                                country,
+                              );
                             }
                           },
                         );

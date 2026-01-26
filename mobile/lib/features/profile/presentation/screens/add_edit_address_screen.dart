@@ -7,7 +7,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/utils/extensions.dart';
 import '../../domain/entities/address_entity.dart';
 import '../cubit/profile_cubit.dart';
 import '../cubit/profile_state.dart';
@@ -25,11 +24,9 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
   final _formKey = GlobalKey<FormState>();
   final _labelController = TextEditingController();
   final _addressController = TextEditingController();
-  final _cityNameController = TextEditingController();
-  final _marketNameController = TextEditingController();
   final _notesController = TextEditingController();
-  final _latitudeController = TextEditingController();
-  final _longitudeController = TextEditingController();
+  double? _latitude;
+  double? _longitude;
   bool _isDefault = false;
 
   bool get _isEditing => widget.address != null;
@@ -42,25 +39,18 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
       final address = widget.address!;
       _labelController.text = address.label;
       _addressController.text = address.addressLine;
-      _cityNameController.text = address.cityName ?? '';
-      _marketNameController.text = address.marketName ?? '';
       _notesController.text = address.notes ?? '';
-      _latitudeController.text = address.latitude.toString();
-      _longitudeController.text = address.longitude.toString();
+      _latitude = address.latitude;
+      _longitude = address.longitude;
       _isDefault = address.isDefault;
     }
   }
-
 
   @override
   void dispose() {
     _labelController.dispose();
     _addressController.dispose();
-    _cityNameController.dispose();
-    _marketNameController.dispose();
     _notesController.dispose();
-    _latitudeController.dispose();
-    _longitudeController.dispose();
     super.dispose();
   }
 
@@ -110,24 +100,6 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
               ),
               SizedBox(height: 16.h),
 
-              // City Name (text field)
-              _buildTextField(
-                controller: _cityNameController,
-                label: 'المدينة',
-                hint: 'اسم المدينة (اختياري)',
-                icon: Iconsax.buildings,
-              ),
-              SizedBox(height: 16.h),
-
-              // Market/Area Name (text field)
-              _buildTextField(
-                controller: _marketNameController,
-                label: 'السوق / الحي',
-                hint: 'اسم السوق أو الحي (اختياري)',
-                icon: Iconsax.shop,
-              ),
-              SizedBox(height: 16.h),
-
               // Address Details
               _buildTextField(
                 controller: _addressController,
@@ -138,52 +110,6 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
                 validator: (value) {
                   if (value?.isEmpty ?? true)
                     return 'يرجى إدخال تفاصيل العنوان';
-                  return null;
-                },
-              ),
-              SizedBox(height: 16.h),
-
-              // Latitude
-              _buildTextField(
-                controller: _latitudeController,
-                label: 'خط العرض *',
-                hint: 'مثال: 24.7136',
-                icon: Iconsax.location,
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                validator: (value) {
-                  if (value?.isEmpty ?? true) {
-                    return 'يرجى إدخال خط العرض';
-                  }
-                  final lat = double.tryParse(value!);
-                  if (lat == null) {
-                    return 'يرجى إدخال رقم صحيح';
-                  }
-                  if (lat < -90 || lat > 90) {
-                    return 'خط العرض يجب أن يكون بين -90 و 90';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16.h),
-
-              // Longitude
-              _buildTextField(
-                controller: _longitudeController,
-                label: 'خط الطول *',
-                hint: 'مثال: 46.6753',
-                icon: Iconsax.location,
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                validator: (value) {
-                  if (value?.isEmpty ?? true) {
-                    return 'يرجى إدخال خط الطول';
-                  }
-                  final lng = double.tryParse(value!);
-                  if (lng == null) {
-                    return 'يرجى إدخال رقم صحيح';
-                  }
-                  if (lng < -180 || lng > 180) {
-                    return 'خط الطول يجب أن يكون بين -180 و 180';
-                  }
                   return null;
                 },
               ),
@@ -332,29 +258,22 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
     );
   }
 
-
   Future<void> _pickFromMap() async {
-    final currentLat = double.tryParse(_latitudeController.text);
-    final currentLng = double.tryParse(_longitudeController.text);
-    
     final result = await context.push<Map<String, dynamic>?>(
       '/map/location-picker',
-      extra: {
-        'initialLatitude': currentLat,
-        'initialLongitude': currentLng,
-      },
+      extra: {'initialLatitude': _latitude, 'initialLongitude': _longitude},
     );
 
     if (result != null) {
       setState(() {
         final lat = result['latitude'] as double?;
         final lng = result['longitude'] as double?;
-        
+
         if (lat != null) {
-          _latitudeController.text = lat.toString();
+          _latitude = lat;
         }
         if (lng != null) {
-          _longitudeController.text = lng.toString();
+          _longitude = lng;
         }
 
         // Update address field if address is available
@@ -369,18 +288,21 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
   Future<void> _saveAddress() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validate that coordinates are set (from map picker)
+    if (_latitude == null || _longitude == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى تحديد الموقع على الخريطة'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     final cubit = context.read<AddressesCubit>();
-    
-    final latitude = double.parse(_latitudeController.text);
-    final longitude = double.parse(_longitudeController.text);
-    final cityName = _cityNameController.text.trim().isEmpty 
-        ? null 
-        : _cityNameController.text.trim();
-    final marketName = _marketNameController.text.trim().isEmpty 
-        ? null 
-        : _marketNameController.text.trim();
-    final notes = _notesController.text.trim().isEmpty 
-        ? null 
+
+    final notes = _notesController.text.trim().isEmpty
+        ? null
         : _notesController.text.trim();
 
     if (_isEditing) {
@@ -388,10 +310,8 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
         id: widget.address!.id,
         label: _labelController.text,
         addressLine: _addressController.text,
-        cityName: cityName,
-        marketName: marketName,
-        latitude: latitude,
-        longitude: longitude,
+        latitude: _latitude!,
+        longitude: _longitude!,
         notes: notes,
         isDefault: _isDefault,
       );
@@ -399,10 +319,8 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
       await cubit.createAddress(
         label: _labelController.text,
         addressLine: _addressController.text,
-        cityName: cityName,
-        marketName: marketName,
-        latitude: latitude,
-        longitude: longitude,
+        latitude: _latitude!,
+        longitude: _longitude!,
         notes: notes,
         isDefault: _isDefault,
       );
