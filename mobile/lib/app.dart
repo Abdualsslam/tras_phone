@@ -84,6 +84,9 @@ class TrasPhoneApp extends StatelessWidget {
             BlocProvider(
               create: (_) => getIt<ProfileCubit>(),
             ),
+            BlocProvider(
+              create: (_) => getIt<AddressesCubit>(),
+            ),
           ],
           child: BlocBuilder<LocaleCubit, LocaleState>(
             builder: (context, localeState) {

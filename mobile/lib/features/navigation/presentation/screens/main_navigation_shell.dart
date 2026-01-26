@@ -5,9 +5,12 @@ library;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../cart/presentation/cubit/cart_cubit.dart';
+import '../../../cart/presentation/cubit/cart_state.dart';
 import '../../../cart/presentation/screens/cart_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 import '../../../orders/presentation/screens/orders_list_screen.dart';
@@ -303,39 +306,60 @@ class _MainNavigationShellState extends State<MainNavigationShell>
               ),
             ),
             // Cart badge
-            Positioned(
-              right: -2.w,
-              top: -2.h,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6B6B), Color(0xFFFF4757)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(
-                    color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFF4757).withValues(alpha: 0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+            BlocBuilder<CartCubit, CartState>(
+              builder: (context, cartState) {
+                int cartCount = 0;
+                
+                if (cartState is CartLoaded) {
+                  cartCount = cartState.cart.itemsCount;
+                } else if (cartState is CartUpdating) {
+                  cartCount = cartState.cart.itemsCount;
+                } else if (cartState is CartError && cartState.previousCart != null) {
+                  cartCount = cartState.previousCart!.itemsCount;
+                } else if (cartState is CartSyncing && cartState.currentCart != null) {
+                  cartCount = cartState.currentCart!.itemsCount;
+                }
+                
+                // Only show badge if count > 0
+                if (cartCount <= 0) {
+                  return const SizedBox.shrink();
+                }
+                
+                return Positioned(
+                  right: -2.w,
+                  top: -2.h,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF6B6B), Color(0xFFFF4757)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF4757).withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Text(
-                  '3',
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    child: Text(
+                      cartCount > 99 ? '99+' : cartCount.toString(),
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),

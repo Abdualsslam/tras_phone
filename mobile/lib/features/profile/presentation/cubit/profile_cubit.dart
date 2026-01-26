@@ -300,8 +300,29 @@ class AddressesCubit extends Cubit<AddressesState> {
   Future<void> deleteAddress(String id) async {
     emit(AddressOperationLoading(_addresses));
     try {
+      // Check if the address being deleted is the default
+      final addressToDelete = _addresses.firstWhere(
+        (a) => a.id == id,
+        orElse: () => throw Exception('Address not found'),
+      );
+      final wasDefault = addressToDelete.isDefault;
+
+      // Delete the address
       await _repository.deleteAddress(id);
       _addresses.removeWhere((a) => a.id == id);
+
+      // If deleted address was default and there are remaining addresses,
+      // set the last address as default
+      if (wasDefault && _addresses.isNotEmpty) {
+        final lastAddress = _addresses.last;
+        await _repository.setDefaultAddress(lastAddress.id);
+
+        // Update local list
+        _addresses = _addresses.map((a) {
+          return a.copyWith(isDefault: a.id == lastAddress.id);
+        }).toList();
+      }
+
       emit(AddressOperationSuccess(_addresses, 'تم حذف العنوان بنجاح'));
     } catch (e) {
       developer.log('Error deleting address: $e', name: 'AddressesCubit');
