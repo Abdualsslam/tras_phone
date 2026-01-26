@@ -77,35 +77,8 @@ class BannerModel {
     required this.updatedAt,
   });
 
-  factory BannerModel.fromJson(Map<String, dynamic> json) {
-    return BannerModel(
-      id: json['_id']?.toString(),
-      idAlt: json['id']?.toString(),
-      nameAr: json['nameAr'] ?? '',
-      nameEn: json['nameEn'] ?? '',
-      type: json['type'] ?? 'promotional',
-      position: json['position'] ?? 'home_top',
-      media: BannerMediaModel.fromJson(json['media'] ?? {}),
-      action: json['action'] != null
-          ? BannerActionModel.fromJson(json['action'])
-          : null,
-      content: json['content'] != null
-          ? BannerContentModel.fromJson(json['content'])
-          : null,
-      targeting: json['targeting'] != null
-          ? BannerTargetingModel.fromJson(json['targeting'])
-          : null,
-      startDate: json['startDate'],
-      endDate: json['endDate'],
-      isActive: json['isActive'] ?? true,
-      sortOrder: json['sortOrder'] ?? 0,
-      priority: json['priority'] ?? 0,
-      impressions: json['impressions'] ?? 0,
-      clicks: json['clicks'] ?? 0,
-      createdAt: json['createdAt'] ?? DateTime.now().toIso8601String(),
-      updatedAt: json['updatedAt'] ?? DateTime.now().toIso8601String(),
-    );
-  }
+  factory BannerModel.fromJson(Map<String, dynamic> json) =>
+      _$BannerModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$BannerModelToJson(this);
 

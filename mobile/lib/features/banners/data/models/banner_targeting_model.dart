@@ -24,16 +24,8 @@ class BannerTargetingModel {
     this.devices = const [],
   });
 
-  factory BannerTargetingModel.fromJson(Map<String, dynamic> json) {
-    return BannerTargetingModel(
-      customerSegments: List<String>.from(json['customerSegments'] ?? []),
-      categories: json['categories'] != null
-          ? List<String>.from(json['categories'])
-          : null,
-      userTypes: List<String>.from(json['userTypes'] ?? ['all']),
-      devices: List<String>.from(json['devices'] ?? []),
-    );
-  }
+  factory BannerTargetingModel.fromJson(Map<String, dynamic> json) =>
+      _$BannerTargetingModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$BannerTargetingModelToJson(this);
 

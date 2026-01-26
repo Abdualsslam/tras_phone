@@ -40,19 +40,8 @@ class BannerContentModel {
     this.overlayOpacity,
   });
 
-  factory BannerContentModel.fromJson(Map<String, dynamic> json) {
-    return BannerContentModel(
-      headingAr: json['headingAr'],
-      headingEn: json['headingEn'],
-      subheadingAr: json['subheadingAr'],
-      subheadingEn: json['subheadingEn'],
-      buttonTextAr: json['buttonTextAr'],
-      buttonTextEn: json['buttonTextEn'],
-      textColor: json['textColor'],
-      overlayColor: json['overlayColor'],
-      overlayOpacity: (json['overlayOpacity'] as num?)?.toDouble(),
-    );
-  }
+  factory BannerContentModel.fromJson(Map<String, dynamic> json) =>
+      _$BannerContentModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$BannerContentModelToJson(this);
 

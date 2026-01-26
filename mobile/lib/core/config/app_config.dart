@@ -1,6 +1,8 @@
 /// App Configuration - Environment and global settings
 library;
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class AppConfig {
   AppConfig._();
 
@@ -14,6 +16,18 @@ class AppConfig {
   static const String baseUrl = 'https://api-trasphone.smartagency-ye.com/api/v1';
   static const String apiVersion = 'v1';
   static const Duration apiTimeout = Duration(seconds: 30);
+
+  // Google Maps API Key (loaded from .env)
+  static String get googleMapsApiKey {
+    final key = dotenv.env['GOOGLE_MAPS_API_KEY'];
+    if (key == null || key.isEmpty) {
+      throw Exception(
+        'GOOGLE_MAPS_API_KEY is not set in .env file. '
+        'Please create .env file from .env.example and add your API key.',
+      );
+    }
+    return key;
+  }
 
   // Pagination
   static const int defaultPageSize = 20;
