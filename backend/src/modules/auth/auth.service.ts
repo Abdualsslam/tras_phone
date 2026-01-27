@@ -64,6 +64,45 @@ export class AuthService {
   ) {}
 
   /**
+   * Normalize phone number for consistent comparison
+   * Converts various formats to standard format: +966XXXXXXXXX
+   */
+  private normalizePhone(phone: string): string {
+    if (!phone) return phone;
+    
+    // Remove all whitespace and special characters except + and digits
+    let normalized = phone.replace(/[\s\-\(\)\.]/g, '');
+    
+    // Remove all non-digit characters except +
+    normalized = normalized.replace(/[^\d+]/g, '');
+    
+    // Handle different formats:
+    // 1. If it starts with +966, keep it as is
+    // 2. If it starts with 966 (without +), add +
+    // 3. If it starts with 0, replace with +966
+    // 4. If it's 9 digits, add +966
+    if (normalized.startsWith('+966')) {
+      // Already in correct format
+      return normalized;
+    } else if (normalized.startsWith('966')) {
+      // Has country code but missing +
+      return '+' + normalized;
+    } else if (normalized.startsWith('0') && normalized.length === 10) {
+      // Local format: 05XXXXXXXX
+      return '+966' + normalized.substring(1);
+    } else if (normalized.length === 9) {
+      // 9 digits without country code
+      return '+966' + normalized;
+    } else if (normalized.length === 12 && normalized.startsWith('966')) {
+      // 12 digits with country code but no +
+      return '+' + normalized;
+    }
+    
+    // Return as is if format is unclear (should not happen with validation)
+    return normalized;
+  }
+
+  /**
    * Register new user
    */
   async register(registerDto: RegisterDto) {
@@ -79,31 +118,99 @@ export class AuthService {
       businessType,
     } = registerDto;
 
+    // Normalize phone number for consistent comparison
+    const normalizedPhone = this.normalizePhone(phone);
+    
     // Check if user already exists (including deleted users to handle restoration)
-    const existingUser = await this.userModel.findOne({
-      $or: [{ phone }, ...(email ? [{ email }] : [])],
+    // Search with both original and normalized phone to catch any format variations
+    const phoneVariations = [
+      normalizedPhone,
+      phone.trim(),
+      phone.replace(/\s+/g, ''), // Remove spaces
+      phone.replace(/[^\d+]/g, ''), // Remove all non-digit except +
+    ];
+    
+    // Remove duplicates
+    const uniquePhoneVariations = [...new Set(phoneVariations)];
+    
+    console.log('[AuthService] Register attempt:', {
+      originalPhone: phone,
+      normalizedPhone,
+      phoneVariations: uniquePhoneVariations,
+      email: email?.trim().toLowerCase(),
+    });
+    
+    // Debug: Check all users with similar phone numbers (for debugging)
+    const allUsersWithPhone = await this.userModel.find({
+      phone: { $in: uniquePhoneVariations },
+    }).select('_id phone email status deletedAt').lean();
+    
+    console.log('[AuthService] DEBUG - All users found with phone variations:', {
+      count: allUsersWithPhone.length,
+      users: allUsersWithPhone.map((u: any) => ({
+        id: u._id.toString(),
+        phone: u.phone,
+        email: u.email,
+        status: u.status,
+        deletedAt: u.deletedAt,
+      })),
+    });
+    
+    // First, check for non-deleted users only
+    // Find users with matching phone (email is optional, so only check phone)
+    const activeUser = await this.userModel.findOne({
+      $and: [
+        {
+          phone: { $in: uniquePhoneVariations },
+        },
+        {
+          $or: [
+            { deletedAt: null },
+            { deletedAt: { $exists: false } },
+          ],
+        },
+      ],
+    });
+    
+    if (activeUser) {
+      console.log('[AuthService] Found active (non-deleted) user:', {
+        userId: activeUser._id,
+        phone: activeUser.phone,
+        email: activeUser.email,
+        status: activeUser.status,
+        deletedAt: activeUser.deletedAt,
+      });
+      throw new ConflictException(
+        'User with this phone already exists',
+      );
+    }
+    
+    // Check for soft-deleted users that can be restored
+    const deletedUser = await this.userModel.findOne({
+      phone: { $in: uniquePhoneVariations },
+      deletedAt: { $ne: null, $exists: true },
+    });
+    
+    console.log('[AuthService] User search results:', {
+      activeUser: activeUser ? activeUser._id.toString() : null,
+      deletedUser: deletedUser ? deletedUser._id.toString() : null,
+      deletedUserDeletedAt: deletedUser?.deletedAt,
     });
 
     let user;
     let isRestoredUser = false;
-    if (existingUser) {
-      // If user is deleted, we can restore it
-      if (existingUser.deletedAt) {
-        // Restore the deleted user
-        existingUser.deletedAt = undefined;
-        existingUser.status = 'pending';
-        existingUser.password = await this.hashPassword(password);
-        if (email) existingUser.email = email;
-        existingUser.userType = userType;
-        await existingUser.save();
-        user = existingUser;
-        isRestoredUser = true;
-      } else {
-        // User exists and is not deleted
-        throw new ConflictException(
-          'User with this phone or email already exists',
-        );
-      }
+    if (deletedUser) {
+      // Restore the deleted user
+      console.log('[AuthService] Restoring deleted user:', deletedUser._id);
+      deletedUser.deletedAt = undefined;
+      deletedUser.status = 'pending';
+      deletedUser.password = await this.hashPassword(password);
+      if (email) deletedUser.email = email.trim().toLowerCase();
+      deletedUser.userType = userType;
+      await deletedUser.save();
+      user = deletedUser;
+      isRestoredUser = true;
+      console.log('[AuthService] User restored successfully');
     } else {
       // Hash password
       const hashedPassword = await this.hashPassword(password);
@@ -111,10 +218,10 @@ export class AuthService {
       // Generate referral code
       const referralCode = this.generateReferralCode();
 
-      // Create new user
+      // Create new user with normalized phone
       user = await this.userModel.create({
-        phone,
-        email,
+        phone: normalizedPhone,
+        email: email?.trim().toLowerCase(),
         password: hashedPassword,
         userType,
         referralCode,
@@ -129,9 +236,14 @@ export class AuthService {
       shopName &&
       cityId
     ) {
-      // Check if customer already exists
+      // Check if customer already exists for this user
       const existingCustomer = await this.customerModel.findOne({
         userId: user._id,
+      });
+      
+      console.log('[AuthService] Customer check:', {
+        userId: user._id.toString(),
+        existingCustomer: existingCustomer ? existingCustomer._id.toString() : null,
       });
       
       if (existingCustomer) {
@@ -180,6 +292,13 @@ export class AuthService {
             preferredContactMethod: 'whatsapp',
           });
         } catch (error: any) {
+          console.error('[AuthService] Error creating customer:', {
+            error: error.message,
+            errorCode: error?.code,
+            userId: user._id.toString(),
+            isRestoredUser,
+          });
+          
           // Rollback: delete the user if customer creation fails (only if it's a new user, not restored)
           if (!isRestoredUser) {
             await this.userModel.deleteOne({ _id: user._id });
@@ -188,10 +307,12 @@ export class AuthService {
           if (error?.code === 11000) {
             // Duplicate key error - customer was created between check and create
             // This is a race condition, but we can handle it by updating instead
+            console.log('[AuthService] Duplicate key error (11000), checking for race condition customer');
             const raceConditionCustomer = await this.customerModel.findOne({
               userId: user._id,
             });
             if (raceConditionCustomer) {
+              console.log('[AuthService] Found race condition customer, updating instead');
               // Update existing customer
               raceConditionCustomer.responsiblePersonName = responsiblePersonName;
               raceConditionCustomer.shopName = shopName;
@@ -200,6 +321,7 @@ export class AuthService {
               if (businessType) raceConditionCustomer.businessType = businessType;
               await raceConditionCustomer.save();
             } else {
+              console.error('[AuthService] Duplicate key error but no customer found - data inconsistency');
               throw new ConflictException(
                 'Customer already exists for this user. Please try again.',
               );

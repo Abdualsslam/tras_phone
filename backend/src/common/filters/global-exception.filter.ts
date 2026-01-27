@@ -36,11 +36,23 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             message = exception.message;
         }
 
-        // Log error
-        this.logger.error(
-            `${request.method} ${request.url} - ${status} - ${message}`,
-            exception instanceof Error ? exception.stack : undefined
-        );
+        // Filter out noisy 404 errors for /api (without /v1)
+        // These are typically health checks or incorrect client requests
+        const isNoisy404 = 
+            status === HttpStatus.NOT_FOUND && 
+            (request.url === '/api' || request.url.startsWith('/api/') && !request.url.startsWith('/api/v1'));
+
+        // Log error (skip noisy 404s or log them at debug level)
+        if (isNoisy404) {
+            this.logger.debug(
+                `${request.method} ${request.url} - ${status} - ${message} (filtered)`
+            );
+        } else {
+            this.logger.error(
+                `${request.method} ${request.url} - ${status} - ${message}`,
+                exception instanceof Error ? exception.stack : undefined
+            );
+        }
 
         const errorResponse = {
             success: false,

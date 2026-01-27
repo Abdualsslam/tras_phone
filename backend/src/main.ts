@@ -20,6 +20,17 @@ async function bootstrap() {
   expressApp.use(express.json({ limit: '50mb' }));
   expressApp.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+  // Handle /api requests (without /v1) to prevent 404 noise
+  expressApp.get('/api', (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: 'TRAS Phone API - Please use /api/v1 for API endpoints',
+      version: '1.0.0',
+      docs: '/api/docs',
+      apiBase: '/api/v1',
+    });
+  });
+
   const app = await NestFactory.create(
     AppModule,
     new ExpressAdapter(expressApp),
