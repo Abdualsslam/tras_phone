@@ -262,84 +262,110 @@ export class AuthService {
         await existingCustomer.save();
       } else {
         // Create new customer profile
-        try {
-          const customerCode = await this.generateCustomerCode();
-          const defaultPriceLevel = await this.priceLevelModel.findOne({
-            isDefault: true,
-            isActive: true,
-          });
+        // Use retry mechanism to handle race conditions with customerCode
+        let customerCreated = false;
+        let retryCount = 0;
+        const maxRetries = 5;
 
-          if (!defaultPriceLevel) {
-            // Rollback: delete the user if price level not found (only if it's a new user, not restored)
-            if (!isRestoredUser) {
-              await this.userModel.deleteOne({ _id: user._id });
-            }
-            throw new BadRequestException(
-              'Default price level not found. Please contact support.',
-            );
-          }
-
-          await this.customerModel.create({
-            userId: user._id,
-            customerCode,
-            responsiblePersonName,
-            shopName,
-            shopNameAr,
-            cityId: new Types.ObjectId(cityId),
-            businessType: businessType || 'shop',
-            priceLevelId: defaultPriceLevel._id,
-            creditLimit: 0,
-            walletBalance: 0,
-            loyaltyPoints: 0,
-            loyaltyTier: 'bronze',
-            preferredContactMethod: 'whatsapp',
-          });
-        } catch (error: any) {
-          console.error('[AuthService] Error creating customer:', {
-            error: error.message,
-            errorCode: error?.code,
-            userId: user._id.toString(),
-            isRestoredUser,
-          });
-
-          // Rollback: delete the user if customer creation fails (only if it's a new user, not restored)
-          if (!isRestoredUser) {
-            await this.userModel.deleteOne({ _id: user._id });
-          }
-
-          if (error?.code === 11000) {
-            // Duplicate key error - customer was created between check and create
-            // This is a race condition, but we can handle it by updating instead
-            console.log(
-              '[AuthService] Duplicate key error (11000), checking for race condition customer',
-            );
-            const raceConditionCustomer = await this.customerModel.findOne({
-              userId: user._id,
+        while (!customerCreated && retryCount < maxRetries) {
+          try {
+            const customerCode = await this.generateCustomerCode();
+            const defaultPriceLevel = await this.priceLevelModel.findOne({
+              isDefault: true,
+              isActive: true,
             });
-            if (raceConditionCustomer) {
-              console.log(
-                '[AuthService] Found race condition customer, updating instead',
-              );
-              // Update existing customer
-              raceConditionCustomer.responsiblePersonName =
-                responsiblePersonName;
-              raceConditionCustomer.shopName = shopName;
-              if (shopNameAr) raceConditionCustomer.shopNameAr = shopNameAr;
-              raceConditionCustomer.cityId = new Types.ObjectId(cityId);
-              if (businessType)
-                raceConditionCustomer.businessType = businessType;
-              await raceConditionCustomer.save();
-            } else {
-              console.error(
-                '[AuthService] Duplicate key error but no customer found - data inconsistency',
-              );
-              throw new ConflictException(
-                'Customer already exists for this user. Please try again.',
+
+            if (!defaultPriceLevel) {
+              // Rollback: delete the user if price level not found (only if it's a new user, not restored)
+              if (!isRestoredUser) {
+                await this.userModel.deleteOne({ _id: user._id });
+              }
+              throw new BadRequestException(
+                'Default price level not found. Please contact support.',
               );
             }
-          } else {
-            // Re-throw other errors (like BadRequestException)
-            throw error;
+
+            await this.customerModel.create({
+              userId: user._id,
+              customerCode,
+              responsiblePersonName,
+              shopName,
+              shopNameAr,
+              cityId: new Types.ObjectId(cityId),
+              businessType: businessType || 'shop',
+              priceLevelId: defaultPriceLevel._id,
+              creditLimit: 0,
+              walletBalance: 0,
+              loyaltyPoints: 0,
+              loyaltyTier: 'bronze',
+              preferredContactMethod: 'whatsapp',
+            });
+
+            customerCreated = true;
+            console.log(
+              `[AuthService] Customer created successfully with code: ${customerCode}`,
+            );
+          } catch (error: any) {
+            console.error('[AuthService] Error creating customer:', {
+              error: error.message,
+              errorCode: error?.code,
+              userId: user._id.toString(),
+              isRestoredUser,
+              retryCount,
+            });
+
+            // Check if it's a duplicate key error
+            if (error?.code === 11000) {
+              // Check if duplicate is in userId (customer already exists for this user)
+              const existingCustomerByUserId = await this.customerModel.findOne(
+                {
+                  userId: user._id,
+                },
+              );
+
+              if (existingCustomerByUserId) {
+                // Customer already exists for this user - update it
+                console.log(
+                  '[AuthService] Customer already exists for this user, updating instead',
+                );
+                existingCustomerByUserId.responsiblePersonName =
+                  responsiblePersonName;
+                existingCustomerByUserId.shopName = shopName;
+                if (shopNameAr)
+                  existingCustomerByUserId.shopNameAr = shopNameAr;
+                existingCustomerByUserId.cityId = new Types.ObjectId(cityId);
+                if (businessType)
+                  existingCustomerByUserId.businessType = businessType;
+                await existingCustomerByUserId.save();
+                customerCreated = true;
+                break;
+              } else {
+                // Duplicate is in customerCode (race condition) - retry with new code
+                retryCount++;
+                console.log(
+                  `[AuthService] Duplicate customerCode detected, retrying (${retryCount}/${maxRetries})...`,
+                );
+
+                if (retryCount >= maxRetries) {
+                  // Rollback: delete the user if max retries reached
+                  if (!isRestoredUser) {
+                    await this.userModel.deleteOne({ _id: user._id });
+                  }
+                  throw new ConflictException(
+                    'Failed to create customer after multiple attempts. Please try again.',
+                  );
+                }
+                // Wait a bit before retrying to avoid immediate collision
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                continue;
+              }
+            } else {
+              // Other errors - rollback and throw
+              if (!isRestoredUser) {
+                await this.userModel.deleteOne({ _id: user._id });
+              }
+              throw error;
+            }
           }
         }
       }
@@ -769,23 +795,45 @@ export class AuthService {
 
   /**
    * Generate unique customer code
+   * Uses retry mechanism to handle race conditions
    */
-  private async generateCustomerCode(): Promise<string> {
+  private async generateCustomerCode(maxRetries: number = 10): Promise<string> {
     const prefix = 'CUS';
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
 
-    // Get count of customers created this month
-    const count = await this.customerModel.countDocuments({
-      createdAt: {
-        $gte: new Date(date.getFullYear(), date.getMonth(), 1),
-      },
-    });
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      // Get count of customers created this month
+      const count = await this.customerModel.countDocuments({
+        createdAt: {
+          $gte: new Date(date.getFullYear(), date.getMonth(), 1),
+        },
+      });
 
-    const sequence = (count + 1).toString().padStart(4, '0');
+      // Generate sequence with attempt offset to handle race conditions
+      const sequence = (count + 1 + attempt).toString().padStart(4, '0');
+      const customerCode = `${prefix}${year}${month}${sequence}`;
 
-    return `${prefix}${year}${month}${sequence}`;
+      // Check if code already exists
+      const existingCustomer = await this.customerModel.findOne({
+        customerCode,
+      });
+
+      if (!existingCustomer) {
+        return customerCode;
+      }
+
+      // If code exists, try next sequence number
+      console.log(
+        `[AuthService] Customer code ${customerCode} already exists, trying next...`,
+      );
+    }
+
+    // If all retries failed, throw error
+    throw new Error(
+      'Failed to generate unique customer code after multiple attempts',
+    );
   }
 
   /**
