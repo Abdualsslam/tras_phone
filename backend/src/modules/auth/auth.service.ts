@@ -79,47 +79,74 @@ export class AuthService {
       businessType,
     } = registerDto;
 
-    // Check if user already exists
+    // Check if user already exists (including deleted users to handle restoration)
     const existingUser = await this.userModel.findOne({
       $or: [{ phone }, ...(email ? [{ email }] : [])],
     });
 
+    let user;
+    let isRestoredUser = false;
     if (existingUser) {
-      throw new ConflictException(
-        'User with this phone or email already exists',
-      );
+      // If user is deleted, we can restore it
+      if (existingUser.deletedAt) {
+        // Restore the deleted user
+        existingUser.deletedAt = undefined;
+        existingUser.status = 'pending';
+        existingUser.password = await this.hashPassword(password);
+        if (email) existingUser.email = email;
+        existingUser.userType = userType;
+        await existingUser.save();
+        user = existingUser;
+        isRestoredUser = true;
+      } else {
+        // User exists and is not deleted
+        throw new ConflictException(
+          'User with this phone or email already exists',
+        );
+      }
+    } else {
+      // Hash password
+      const hashedPassword = await this.hashPassword(password);
+
+      // Generate referral code
+      const referralCode = this.generateReferralCode();
+
+      // Create new user
+      user = await this.userModel.create({
+        phone,
+        email,
+        password: hashedPassword,
+        userType,
+        referralCode,
+        status: 'pending', // Will be activated after admin approval
+      });
     }
 
-    // Hash password
-    const hashedPassword = await this.hashPassword(password);
-
-    // Generate referral code
-    const referralCode = this.generateReferralCode();
-
-    // Create user
-    const user = await this.userModel.create({
-      phone,
-      email,
-      password: hashedPassword,
-      userType,
-      referralCode,
-      status: 'pending', // Will be activated after admin approval
-    });
-
-    // If customer type and customer profile data is provided, create customer profile
+    // If customer type and customer profile data is provided, create or update customer profile
     if (
       userType === 'customer' &&
       responsiblePersonName &&
       shopName &&
       cityId
     ) {
+      // Check if customer already exists
       const existingCustomer = await this.customerModel.findOne({
         userId: user._id,
       });
+      
       if (existingCustomer) {
-        // Defensive: should not happen for new user
-        // Continue without creating; do not fail registration
+        // Customer already exists - this can happen if:
+        // 1. User was restored from deleted state
+        // 2. Previous registration attempt partially succeeded
+        // Update the customer profile with new data
+        existingCustomer.responsiblePersonName = responsiblePersonName;
+        existingCustomer.shopName = shopName;
+        if (shopNameAr) existingCustomer.shopNameAr = shopNameAr;
+        existingCustomer.cityId = new Types.ObjectId(cityId);
+        if (businessType) existingCustomer.businessType = businessType;
+        await existingCustomer.save();
       } else {
+        // Create new customer profile
         try {
           const customerCode = await this.generateCustomerCode();
           const defaultPriceLevel = await this.priceLevelModel.findOne({
@@ -128,6 +155,10 @@ export class AuthService {
           });
 
           if (!defaultPriceLevel) {
+            // Rollback: delete the user if price level not found (only if it's a new user, not restored)
+            if (!isRestoredUser) {
+              await this.userModel.deleteOne({ _id: user._id });
+            }
             throw new BadRequestException(
               'Default price level not found. Please contact support.',
             );
@@ -149,12 +180,34 @@ export class AuthService {
             preferredContactMethod: 'whatsapp',
           });
         } catch (error: any) {
-          if (error?.code === 11000) {
-            throw new ConflictException(
-              'Customer already exists for this user',
-            );
+          // Rollback: delete the user if customer creation fails (only if it's a new user, not restored)
+          if (!isRestoredUser) {
+            await this.userModel.deleteOne({ _id: user._id });
           }
-          console.error('Failed to create customer profile:', error);
+          
+          if (error?.code === 11000) {
+            // Duplicate key error - customer was created between check and create
+            // This is a race condition, but we can handle it by updating instead
+            const raceConditionCustomer = await this.customerModel.findOne({
+              userId: user._id,
+            });
+            if (raceConditionCustomer) {
+              // Update existing customer
+              raceConditionCustomer.responsiblePersonName = responsiblePersonName;
+              raceConditionCustomer.shopName = shopName;
+              if (shopNameAr) raceConditionCustomer.shopNameAr = shopNameAr;
+              raceConditionCustomer.cityId = new Types.ObjectId(cityId);
+              if (businessType) raceConditionCustomer.businessType = businessType;
+              await raceConditionCustomer.save();
+            } else {
+              throw new ConflictException(
+                'Customer already exists for this user. Please try again.',
+              );
+            }
+          } else {
+            // Re-throw other errors (like BadRequestException)
+            throw error;
+          }
         }
       }
     }
