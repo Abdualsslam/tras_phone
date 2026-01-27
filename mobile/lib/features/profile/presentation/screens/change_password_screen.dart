@@ -61,7 +61,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ),
             ),
           );
-          context.pop();
+          // Logout and navigate to login screen
+          context.read<AuthCubit>().logout().then((_) {
+            if (context.mounted) {
+              context.go('/login');
+            }
+          });
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

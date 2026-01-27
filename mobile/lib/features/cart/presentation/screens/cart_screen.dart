@@ -102,13 +102,7 @@ class _CartScreenState extends State<CartScreen> {
           if (state is CartSyncCompleted) {
             // After sync, reload the cart to show updated state
             final cart = state.syncResult.syncedCart;
-            return _buildCartContent(
-              context,
-              theme,
-              isDark,
-              cart,
-              false,
-            );
+            return _buildCartContent(context, theme, isDark, cart, false);
           }
 
           final cart = state is CartLoaded
@@ -155,15 +149,6 @@ class _CartScreenState extends State<CartScreen> {
             'استعرض المنتجات وأضفها إلى سلتك',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: AppColors.textTertiaryLight,
-            ),
-          ),
-          SizedBox(height: 32.h),
-          ElevatedButton.icon(
-            onPressed: () => context.go('/home'),
-            icon: const Icon(Iconsax.shop),
-            label: Text(AppLocalizations.of(context)!.products),
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
             ),
           ),
         ],
@@ -381,9 +366,7 @@ class _CartScreenState extends State<CartScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
     );
 
     try {

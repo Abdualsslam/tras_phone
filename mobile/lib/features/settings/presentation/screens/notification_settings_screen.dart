@@ -6,6 +6,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/storage/local_storage.dart';
+import '../../../../core/constants/storage_keys.dart';
+import '../../../notifications/presentation/cubit/notifications_cubit.dart';
+import '../../../notifications/data/models/notification_model.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -17,6 +22,7 @@ class NotificationSettingsScreen extends StatefulWidget {
 
 class _NotificationSettingsScreenState
     extends State<NotificationSettingsScreen> {
+  bool _isLoading = true;
   bool _pushEnabled = true;
   bool _orderUpdates = true;
   bool _promotions = true;
@@ -27,13 +33,143 @@ class _NotificationSettingsScreenState
   bool _emailNotifications = false;
   bool _smsNotifications = false;
 
+  final NotificationsCubit _notificationsCubit = getIt<NotificationsCubit>();
+  final LocalStorage _localStorage = getIt<LocalStorage>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    setState(() => _isLoading = true);
+
+    // Try to load from local storage first
+    final savedSettings = _localStorage.getObject(StorageKeys.notificationSettings);
+    if (savedSettings != null) {
+      try {
+        final settings = NotificationSettingsModel.fromJson(savedSettings);
+        if (mounted) {
+          setState(() {
+            _pushEnabled = settings.pushEnabled;
+            _orderUpdates = settings.orderUpdates;
+            _promotions = settings.promotions;
+            _walletAlerts = settings.stockAlerts; // Using stockAlerts as walletAlerts is not in the model
+            _stockAlerts = settings.stockAlerts;
+            _newProducts = settings.newArrivals;
+            _priceDrops = settings.priceDrops;
+            _emailNotifications = settings.emailEnabled;
+            _smsNotifications = settings.smsEnabled;
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        // If parsing fails, load from API
+      }
+    }
+
+    // Load from API
+    final settings = await _notificationsCubit.getSettings();
+    if (settings != null && mounted) {
+      setState(() {
+        _pushEnabled = settings.pushEnabled;
+        _orderUpdates = settings.orderUpdates;
+        _promotions = settings.promotions;
+        _walletAlerts = settings.stockAlerts;
+        _stockAlerts = settings.stockAlerts;
+        _newProducts = settings.newArrivals;
+        _priceDrops = settings.priceDrops;
+        _emailNotifications = settings.emailEnabled;
+        _smsNotifications = settings.smsEnabled;
+        _isLoading = false;
+      });
+
+      // Save to local storage
+      await _localStorage.setObject(
+        StorageKeys.notificationSettings,
+        settings.toJson(),
+      );
+    } else if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateSetting(String key, bool value) async {
+    // Update local state immediately
+    setState(() {
+      switch (key) {
+        case 'pushEnabled':
+          _pushEnabled = value;
+          break;
+        case 'orderUpdates':
+          _orderUpdates = value;
+          break;
+        case 'promotions':
+          _promotions = value;
+          break;
+        case 'walletAlerts':
+          _walletAlerts = value;
+          break;
+        case 'stockAlerts':
+          _stockAlerts = value;
+          break;
+        case 'newProducts':
+          _newProducts = value;
+          break;
+        case 'priceDrops':
+          _priceDrops = value;
+          break;
+        case 'emailNotifications':
+          _emailNotifications = value;
+          break;
+        case 'smsNotifications':
+          _smsNotifications = value;
+          break;
+      }
+    });
+
+    // Create updated settings model
+    final updatedSettings = NotificationSettingsModel(
+      pushEnabled: _pushEnabled,
+      orderUpdates: _orderUpdates,
+      promotions: _promotions,
+      stockAlerts: _stockAlerts,
+      newArrivals: _newProducts,
+      priceDrops: _priceDrops,
+      emailEnabled: _emailNotifications,
+      smsEnabled: _smsNotifications,
+    );
+
+    // Save to local storage
+    await _localStorage.setObject(
+      StorageKeys.notificationSettings,
+      updatedSettings.toJson(),
+    );
+
+    // Sync with API
+    final success = await _notificationsCubit.updateSettings(updatedSettings);
+    if (!success && mounted) {
+      // Revert on failure
+      _loadSettings();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('فشل تحديث الإعدادات'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(title: const Text('إعدادات الإشعارات')),
-      body: ListView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
         padding: EdgeInsets.all(16.w),
         children: [
           // Push Notifications Master Toggle
@@ -91,7 +227,7 @@ class _NotificationSettingsScreenState
                 ),
                 Switch(
                   value: _pushEnabled,
-                  onChanged: (v) => setState(() => _pushEnabled = v),
+                  onChanged: (v) => _updateSetting('pushEnabled', v),
                   activeThumbColor: Colors.white,
                   activeTrackColor: Colors.white24,
                 ),
@@ -111,7 +247,7 @@ class _NotificationSettingsScreenState
             'حالة الطلب، الشحن، التوصيل',
             Iconsax.box,
             _orderUpdates,
-            (v) => setState(() => _orderUpdates = v),
+            (v) => _updateSetting('orderUpdates', v),
             isDark,
           ),
           _buildSettingItem(
@@ -119,7 +255,7 @@ class _NotificationSettingsScreenState
             'كوبونات، عروض خاصة',
             Iconsax.discount_shape,
             _promotions,
-            (v) => setState(() => _promotions = v),
+            (v) => _updateSetting('promotions', v),
             isDark,
           ),
           _buildSettingItem(
@@ -127,7 +263,7 @@ class _NotificationSettingsScreenState
             'الرصيد، المعاملات',
             Iconsax.wallet_3,
             _walletAlerts,
-            (v) => setState(() => _walletAlerts = v),
+            (v) => _updateSetting('walletAlerts', v),
             isDark,
           ),
           _buildSettingItem(
@@ -135,7 +271,7 @@ class _NotificationSettingsScreenState
             'توفر المنتجات مجدداً',
             Iconsax.box_time,
             _stockAlerts,
-            (v) => setState(() => _stockAlerts = v),
+            (v) => _updateSetting('stockAlerts', v),
             isDark,
           ),
           _buildSettingItem(
@@ -143,7 +279,7 @@ class _NotificationSettingsScreenState
             'وصول منتجات جديدة',
             Iconsax.box_add,
             _newProducts,
-            (v) => setState(() => _newProducts = v),
+            (v) => _updateSetting('newProducts', v),
             isDark,
           ),
           _buildSettingItem(
@@ -151,7 +287,7 @@ class _NotificationSettingsScreenState
             'تخفيضات على منتجات المفضلة',
             Iconsax.tag,
             _priceDrops,
-            (v) => setState(() => _priceDrops = v),
+            (v) => _updateSetting('priceDrops', v),
             isDark,
           ),
           SizedBox(height: 24.h),
@@ -167,7 +303,7 @@ class _NotificationSettingsScreenState
             'إشعارات عبر الإيميل',
             Iconsax.sms,
             _emailNotifications,
-            (v) => setState(() => _emailNotifications = v),
+            (v) => _updateSetting('emailNotifications', v),
             isDark,
           ),
           _buildSettingItem(
@@ -175,7 +311,7 @@ class _NotificationSettingsScreenState
             'إشعارات عبر SMS',
             Iconsax.message_text,
             _smsNotifications,
-            (v) => setState(() => _smsNotifications = v),
+            (v) => _updateSetting('smsNotifications', v),
             isDark,
           ),
         ],

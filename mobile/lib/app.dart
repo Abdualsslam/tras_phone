@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/config/theme/app_theme.dart';
 import 'core/cubit/locale_cubit.dart';
+import 'core/cubit/theme_cubit.dart';
 import 'core/di/injection.dart';
 import 'core/storage/local_storage.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
@@ -42,6 +43,9 @@ class TrasPhoneApp extends StatelessWidget {
               create: (_) =>
                   LocaleCubit(localStorage: getIt<LocalStorage>())
                     ..loadSavedLocale(),
+            ),
+            BlocProvider.value(
+              value: getIt<ThemeCubit>(),
             ),
             BlocProvider(create: (_) => getIt<AuthCubit>()),
             BlocProvider(
@@ -90,32 +94,36 @@ class TrasPhoneApp extends StatelessWidget {
           ],
           child: BlocBuilder<LocaleCubit, LocaleState>(
             builder: (context, localeState) {
-              return MaterialApp.router(
-                title: 'تراس فون',
-                debugShowCheckedModeBanner: false,
+              return BlocBuilder<ThemeCubit, ThemeState>(
+                builder: (context, themeState) {
+                  return MaterialApp.router(
+                    title: 'تراس فون',
+                    debugShowCheckedModeBanner: false,
 
-                // Theme
-                theme: AppTheme.lightTheme,
-                darkTheme: AppTheme.darkTheme,
-                themeMode: ThemeMode.system,
+                    // Theme
+                    theme: AppTheme.lightTheme,
+                    darkTheme: AppTheme.darkTheme,
+                    themeMode: themeState.themeMode,
 
-                // Localization
-                locale: localeState.locale,
-                supportedLocales: AppLocalizations.supportedLocales,
-                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                    // Localization
+                    locale: localeState.locale,
+                    supportedLocales: AppLocalizations.supportedLocales,
+                    localizationsDelegates: AppLocalizations.localizationsDelegates,
 
-                // Router
-                routerConfig: appRouter,
+                    // Router
+                    routerConfig: appRouter,
 
-                // Builder for global modifications
-                builder: (context, child) {
-                  // Dynamically set text direction based on locale
-                  final isRtl = localeState.locale.languageCode == 'ar';
-                  return Directionality(
-                    textDirection: isRtl
-                        ? TextDirection.rtl
-                        : TextDirection.ltr,
-                    child: child ?? const SizedBox.shrink(),
+                    // Builder for global modifications
+                    builder: (context, child) {
+                      // Dynamically set text direction based on locale
+                      final isRtl = localeState.locale.languageCode == 'ar';
+                      return Directionality(
+                        textDirection: isRtl
+                            ? TextDirection.rtl
+                            : TextDirection.ltr,
+                        child: child ?? const SizedBox.shrink(),
+                      );
+                    },
                   );
                 },
               );

@@ -2,9 +2,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/cubit/locale_cubit.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class LanguageSettingsScreen extends StatefulWidget {
   const LanguageSettingsScreen({super.key});
@@ -14,8 +17,6 @@ class LanguageSettingsScreen extends StatefulWidget {
 }
 
 class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
-  String _selectedLanguage = 'ar';
-
   final List<Map<String, String>> _languages = [
     {'code': 'ar', 'name': 'العربية', 'nativeName': 'العربية', 'flag': '🇸🇦'},
     {
@@ -31,7 +32,9 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('اللغة')),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)?.language ?? 'اللغة'),
+      ),
       body: ListView(
         padding: EdgeInsets.all(16.w),
         children: [
@@ -68,9 +71,11 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
   }
 
   Widget _buildLanguageOption(Map<String, String> lang, bool isDark) {
-    final isSelected = _selectedLanguage == lang['code'];
-    return GestureDetector(
-      onTap: () => _changeLanguage(lang['code']!),
+    return BlocBuilder<LocaleCubit, LocaleState>(
+      builder: (context, localeState) {
+        final isSelected = localeState.locale.languageCode == lang['code'];
+        return GestureDetector(
+          onTap: () => _changeLanguage(context, lang['code']!),
       child: Container(
         margin: EdgeInsets.only(bottom: 12.h),
         padding: EdgeInsets.all(16.w),
@@ -119,31 +124,52 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
         ),
       ),
     );
+      },
+    );
   }
 
-  void _changeLanguage(String code) {
-    if (code == _selectedLanguage) return;
+  void _changeLanguage(BuildContext context, String code) {
+    final currentLocale = context.read<LocaleCubit>().state.locale;
+    if (code == currentLocale.languageCode) return;
+
+    final localizations = AppLocalizations.of(context);
+    final currentLanguageCode = Localizations.localeOf(context).languageCode;
+    final languageName = code == 'ar'
+        ? (localizations?.arabic ?? 'العربية')
+        : (localizations?.english ?? 'English');
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تغيير اللغة'),
+      builder: (ctx) => AlertDialog(
+        title: Text(localizations?.language ?? 'تغيير اللغة'),
         content: Text(
-          'سيتم إعادة تشغيل التطبيق لتطبيق اللغة ${code == 'ar' ? 'العربية' : 'الإنجليزية'}',
+          currentLanguageCode == 'ar'
+              ? 'سيتم تغيير اللغة إلى $languageName'
+              : 'Language will be changed to $languageName',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(localizations?.cancel ?? 'إلغاء'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              setState(() => _selectedLanguage = code);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('تم تغيير اللغة')));
+              Navigator.pop(ctx);
+              context.read<LocaleCubit>().changeLocale(Locale(code));
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      currentLanguageCode == 'ar'
+                          ? 'تم تغيير اللغة'
+                          : 'Language changed',
+                    ),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
             },
-            child: const Text('تأكيد'),
+            child: Text(currentLanguageCode == 'ar' ? 'تأكيد' : 'Confirm'),
           ),
         ],
       ),
