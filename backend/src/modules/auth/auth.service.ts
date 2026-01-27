@@ -69,13 +69,13 @@ export class AuthService {
    */
   private normalizePhone(phone: string): string {
     if (!phone) return phone;
-    
+
     // Remove all whitespace and special characters except + and digits
     let normalized = phone.replace(/[\s\-\(\)\.]/g, '');
-    
+
     // Remove all non-digit characters except +
     normalized = normalized.replace(/[^\d+]/g, '');
-    
+
     // Handle different formats:
     // 1. If it starts with +966, keep it as is
     // 2. If it starts with 966 (without +), add +
@@ -97,7 +97,7 @@ export class AuthService {
       // 12 digits with country code but no +
       return '+' + normalized;
     }
-    
+
     // Return as is if format is unclear (should not happen with validation)
     return normalized;
   }
@@ -120,7 +120,7 @@ export class AuthService {
 
     // Normalize phone number for consistent comparison
     const normalizedPhone = this.normalizePhone(phone);
-    
+
     // Check if user already exists (including deleted users to handle restoration)
     // Search with both original and normalized phone to catch any format variations
     const phoneVariations = [
@@ -129,49 +129,52 @@ export class AuthService {
       phone.replace(/\s+/g, ''), // Remove spaces
       phone.replace(/[^\d+]/g, ''), // Remove all non-digit except +
     ];
-    
+
     // Remove duplicates
     const uniquePhoneVariations = [...new Set(phoneVariations)];
-    
+
     console.log('[AuthService] Register attempt:', {
       originalPhone: phone,
       normalizedPhone,
       phoneVariations: uniquePhoneVariations,
       email: email?.trim().toLowerCase(),
     });
-    
+
     // Debug: Check all users with similar phone numbers (for debugging)
-    const allUsersWithPhone = await this.userModel.find({
-      phone: { $in: uniquePhoneVariations },
-    }).select('_id phone email status deletedAt').lean();
-    
-    console.log('[AuthService] DEBUG - All users found with phone variations:', {
-      count: allUsersWithPhone.length,
-      users: allUsersWithPhone.map((u: any) => ({
-        id: u._id.toString(),
-        phone: u.phone,
-        email: u.email,
-        status: u.status,
-        deletedAt: u.deletedAt,
-      })),
-    });
-    
+    const allUsersWithPhone = await this.userModel
+      .find({
+        phone: { $in: uniquePhoneVariations },
+      })
+      .select('_id phone email status deletedAt')
+      .lean();
+
+    console.log(
+      '[AuthService] DEBUG - All users found with phone variations:',
+      {
+        count: allUsersWithPhone.length,
+        users: allUsersWithPhone.map((u: any) => ({
+          id: u._id.toString(),
+          phone: u.phone,
+          email: u.email,
+          status: u.status,
+          deletedAt: u.deletedAt,
+        })),
+      },
+    );
+
     // First, check for non-deleted users only
     // Find users with matching phone (email is optional, so only check phone)
-    const activeUser = await this.userModel.findOne({
+    const activeUser: UserDocument | null = await this.userModel.findOne({
       $and: [
         {
           phone: { $in: uniquePhoneVariations },
         },
         {
-          $or: [
-            { deletedAt: null },
-            { deletedAt: { $exists: false } },
-          ],
+          $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }],
         },
       ],
     });
-    
+
     if (activeUser) {
       console.log('[AuthService] Found active (non-deleted) user:', {
         userId: activeUser._id,
@@ -180,19 +183,17 @@ export class AuthService {
         status: activeUser.status,
         deletedAt: activeUser.deletedAt,
       });
-      throw new ConflictException(
-        'User with this phone already exists',
-      );
+      throw new ConflictException('User with this phone already exists');
     }
-    
+
     // Check for soft-deleted users that can be restored
     const deletedUser = await this.userModel.findOne({
       phone: { $in: uniquePhoneVariations },
       deletedAt: { $ne: null, $exists: true },
     });
-    
+
     console.log('[AuthService] User search results:', {
-      activeUser: activeUser?._id?.toString() ?? null,
+      activeUser: (activeUser as UserDocument | null)?._id?.toString() ?? null,
       deletedUser: deletedUser?._id?.toString() ?? null,
       deletedUserDeletedAt: deletedUser?.deletedAt,
     });
@@ -240,12 +241,14 @@ export class AuthService {
       const existingCustomer = await this.customerModel.findOne({
         userId: user._id,
       });
-      
+
       console.log('[AuthService] Customer check:', {
         userId: user._id.toString(),
-        existingCustomer: existingCustomer ? existingCustomer._id.toString() : null,
+        existingCustomer: existingCustomer
+          ? existingCustomer._id.toString()
+          : null,
       });
-      
+
       if (existingCustomer) {
         // Customer already exists - this can happen if:
         // 1. User was restored from deleted state
@@ -298,30 +301,38 @@ export class AuthService {
             userId: user._id.toString(),
             isRestoredUser,
           });
-          
+
           // Rollback: delete the user if customer creation fails (only if it's a new user, not restored)
           if (!isRestoredUser) {
             await this.userModel.deleteOne({ _id: user._id });
           }
-          
+
           if (error?.code === 11000) {
             // Duplicate key error - customer was created between check and create
             // This is a race condition, but we can handle it by updating instead
-            console.log('[AuthService] Duplicate key error (11000), checking for race condition customer');
+            console.log(
+              '[AuthService] Duplicate key error (11000), checking for race condition customer',
+            );
             const raceConditionCustomer = await this.customerModel.findOne({
               userId: user._id,
             });
             if (raceConditionCustomer) {
-              console.log('[AuthService] Found race condition customer, updating instead');
+              console.log(
+                '[AuthService] Found race condition customer, updating instead',
+              );
               // Update existing customer
-              raceConditionCustomer.responsiblePersonName = responsiblePersonName;
+              raceConditionCustomer.responsiblePersonName =
+                responsiblePersonName;
               raceConditionCustomer.shopName = shopName;
               if (shopNameAr) raceConditionCustomer.shopNameAr = shopNameAr;
               raceConditionCustomer.cityId = new Types.ObjectId(cityId);
-              if (businessType) raceConditionCustomer.businessType = businessType;
+              if (businessType)
+                raceConditionCustomer.businessType = businessType;
               await raceConditionCustomer.save();
             } else {
-              console.error('[AuthService] Duplicate key error but no customer found - data inconsistency');
+              console.error(
+                '[AuthService] Duplicate key error but no customer found - data inconsistency',
+              );
               throw new ConflictException(
                 'Customer already exists for this user. Please try again.',
               );
@@ -1007,12 +1018,7 @@ export class AuthService {
     page?: number;
     limit?: number;
   }): Promise<{ data: PasswordResetRequestDocument[]; total: number }> {
-    const {
-      page = 1,
-      limit = 20,
-      status,
-      customerId,
-    } = filters || {};
+    const { page = 1, limit = 20, status, customerId } = filters || {};
 
     const query: any = {};
     if (status) query.status = status;
@@ -1057,7 +1063,10 @@ export class AuthService {
     requestId: string,
     adminId: string,
     adminNotes?: string,
-  ): Promise<{ request: PasswordResetRequestDocument; temporaryPassword: string }> {
+  ): Promise<{
+    request: PasswordResetRequestDocument;
+    temporaryPassword: string;
+  }> {
     const request = await this.passwordResetRequestModel.findById(requestId);
 
     if (!request) {
@@ -1161,21 +1170,24 @@ export class AuthService {
     const lowercase = 'abcdefghijklmnopqrstuvwxyz';
     const numbers = '0123456789';
     const special = '@$!%*?&';
-    
+
     // Ensure at least one of each required character type
     let password = '';
     password += uppercase[Math.floor(Math.random() * uppercase.length)];
     password += lowercase[Math.floor(Math.random() * lowercase.length)];
     password += numbers[Math.floor(Math.random() * numbers.length)];
     password += special[Math.floor(Math.random() * special.length)];
-    
+
     // Fill the rest randomly
     const allChars = uppercase + lowercase + numbers + special;
     for (let i = password.length; i < 12; i++) {
       password += allChars[Math.floor(Math.random() * allChars.length)];
     }
-    
+
     // Shuffle the password
-    return password.split('').sort(() => Math.random() - 0.5).join('');
+    return password
+      .split('')
+      .sort(() => Math.random() - 0.5)
+      .join('');
   }
 }
