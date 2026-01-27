@@ -62,7 +62,11 @@ import '../../features/banners/data/services/banners_service.dart';
 import '../../features/banners/presentation/cubit/banners_cubit.dart';
 import '../cache/hive_cache_service.dart';
 import '../../features/home/data/services/home_cache_service.dart';
+import '../cubit/theme_cubit.dart';
+import '../services/biometric_service.dart';
+import '../services/share_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:local_auth/local_auth.dart';
 
 final getIt = GetIt.instance;
 
@@ -434,6 +438,29 @@ Future<void> setupDependencies() async {
   // Cubit
   getIt.registerFactory<BannersCubit>(
     () => BannersCubit(service: getIt<BannersService>()),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SETTINGS FEATURE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Theme Cubit
+  getIt.registerLazySingleton<ThemeCubit>(
+    () => ThemeCubit(localStorage: getIt<LocalStorage>())
+      ..loadSavedTheme(),
+  );
+
+  // Biometric Service
+  getIt.registerLazySingleton<BiometricService>(
+    () => BiometricService(
+      localAuth: LocalAuthentication(),
+      localStorage: getIt<LocalStorage>(),
+    ),
+  );
+
+  // Share Service
+  getIt.registerLazySingleton<ShareService>(
+    () => ShareService(),
   );
 }
 

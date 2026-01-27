@@ -317,4 +317,46 @@ class NotificationsCubit extends Cubit<NotificationsState> {
       },
     );
   }
+
+  /// Get notification settings
+  Future<NotificationSettingsModel?> getSettings() async {
+    developer.log(
+      'Loading notification settings',
+      name: 'NotificationsCubit',
+    );
+
+    final result = await _repository.getSettings();
+
+    return result.fold(
+      (failure) {
+        developer.log(
+          'Failed to get settings: ${failure.message}',
+          name: 'NotificationsCubit',
+        );
+        return null;
+      },
+      (settings) => settings,
+    );
+  }
+
+  /// Update notification settings
+  Future<bool> updateSettings(NotificationSettingsModel settings) async {
+    developer.log(
+      'Updating notification settings',
+      name: 'NotificationsCubit',
+    );
+
+    final result = await _repository.updateSettings(settings);
+
+    return result.fold(
+      (failure) {
+        developer.log(
+          'Failed to update settings: ${failure.message}',
+          name: 'NotificationsCubit',
+        );
+        return false;
+      },
+      (_) => true,
+    );
+  }
 }

@@ -8,7 +8,10 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/cubit/locale_cubit.dart';
+import '../../../../core/cubit/theme_cubit.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/services/biometric_service.dart';
+import '../../../../core/services/share_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../profile/presentation/cubit/profile_cubit.dart';
@@ -23,7 +26,35 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricAvailability();
+    _loadBiometricStatus();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final biometricService = getIt<BiometricService>();
+    final isAvailable = await biometricService.isAvailable();
+    if (mounted) {
+      setState(() {
+        _biometricAvailable = isAvailable;
+      });
+    }
+  }
+
+  Future<void> _loadBiometricStatus() async {
+    final biometricService = getIt<BiometricService>();
+    final isEnabled = await biometricService.isEnabled();
+    if (mounted) {
+      setState(() {
+        _biometricEnabled = isEnabled;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,14 +78,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Appearance Section
             _buildSectionTitle(theme, AppLocalizations.of(context)!.settings),
             _buildSettingsCard(isDark, [
-              _buildSwitchTile(
-                theme,
-                icon: Iconsax.moon,
-                title: 'الوضع الداكن',
-                subtitle: 'تفعيل المظهر الداكن',
-                value: _darkModeEnabled,
-                onChanged: (value) {
-                  setState(() => _darkModeEnabled = value);
+              BlocBuilder<ThemeCubit, ThemeState>(
+                builder: (context, themeState) {
+                  return _buildNavigationTile(
+                    theme,
+                    icon: Iconsax.moon,
+                    title: 'المظهر',
+                    subtitle: _getThemeName(themeState.themeMode),
+                    onTap: () => _showThemeDialog(context),
+                  );
                 },
               ),
               _buildDivider(),
@@ -107,16 +139,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => context.push('/change-password'),
               ),
               _buildDivider(),
-              _buildNavigationTile(
-                theme,
-                icon: Iconsax.finger_scan,
-                title: 'البصمة / Face ID',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('ميزة قيد التطوير')),
-                  );
-                },
-              ),
+              if (_biometricAvailable)
+                _buildSwitchTile(
+                  theme,
+                  icon: Iconsax.finger_scan,
+                  title: 'البصمة / Face ID',
+                  subtitle: 'استخدام البصمة أو Face ID لتسجيل الدخول',
+                  value: _biometricEnabled,
+                  onChanged: (value) async {
+                    final biometricService = getIt<BiometricService>();
+                    if (value) {
+                      // Test authentication before enabling
+                      final authenticated = await biometricService.authenticate(
+                        localizedReason: 'يرجى التحقق من هويتك لتفعيل البصمة',
+                      );
+                      if (authenticated) {
+                        await biometricService.setEnabled(true);
+                        if (mounted) {
+                          setState(() {
+                            _biometricEnabled = true;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('تم تفعيل البصمة بنجاح'),
+                              backgroundColor: AppColors.success,
+                            ),
+                          );
+                        }
+                      } else {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('فشل التحقق من الهوية'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                      }
+                    } else {
+                      await biometricService.setEnabled(false);
+                      if (mounted) {
+                        setState(() {
+                          _biometricEnabled = false;
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('تم إلغاء تفعيل البصمة'),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
               _buildDivider(),
               _buildNavigationTile(
                 theme,
@@ -140,23 +214,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildDivider(),
               _buildNavigationTile(
                 theme,
-                icon: Iconsax.star,
-                title: 'قيّم التطبيق',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('شكراً لتقييمك!')),
-                  );
-                },
-              ),
-              _buildDivider(),
-              _buildNavigationTile(
-                theme,
                 icon: Iconsax.share,
                 title: 'شارك التطبيق',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('جاري فتح المشاركة...')),
-                  );
+                onTap: () async {
+                  try {
+                    final shareService = getIt<ShareService>();
+                    await shareService.shareApp(context: context);
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('حدث خطأ أثناء المشاركة: $e'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
             ]),
@@ -463,6 +536,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  String _getThemeName(ThemeMode themeMode) {
+    switch (themeMode) {
+      case ThemeMode.light:
+        return 'الوضع النهاري';
+      case ThemeMode.dark:
+        return 'الوضع الليلي';
+      case ThemeMode.system:
+        return 'وضع الهاتف';
+    }
+  }
+
+  void _showThemeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => BlocBuilder<ThemeCubit, ThemeState>(
+        builder: (context, themeState) {
+          return AlertDialog(
+            title: const Text('اختر المظهر'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildThemeOption(
+                  ctx,
+                  context,
+                  'وضع الهاتف',
+                  'يتبع إعدادات الهاتف',
+                  Iconsax.mobile,
+                  ThemeMode.system,
+                  themeState.themeMode == ThemeMode.system,
+                ),
+                _buildThemeOption(
+                  ctx,
+                  context,
+                  'الوضع النهاري',
+                  'مظهر فاتح',
+                  Iconsax.sun_1,
+                  ThemeMode.light,
+                  themeState.themeMode == ThemeMode.light,
+                ),
+                _buildThemeOption(
+                  ctx,
+                  context,
+                  'الوضع الليلي',
+                  'مظهر داكن',
+                  Iconsax.moon,
+                  ThemeMode.dark,
+                  themeState.themeMode == ThemeMode.dark,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(
+    BuildContext dialogContext,
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    ThemeMode themeMode,
+    bool isSelected,
+  ) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: isSelected ? AppColors.primary : AppColors.textSecondaryLight,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          color: isSelected ? AppColors.primary : null,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: 12.sp,
+          color: AppColors.textTertiaryLight,
+        ),
+      ),
+      trailing: isSelected
+          ? const Icon(Iconsax.tick_circle, color: AppColors.primary)
+          : null,
+      onTap: () {
+        context.read<ThemeCubit>().changeTheme(themeMode);
+        Navigator.pop(dialogContext);
+      },
     );
   }
 }

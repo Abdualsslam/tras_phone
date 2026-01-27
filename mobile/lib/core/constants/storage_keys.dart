@@ -19,6 +19,8 @@ class StorageKeys {
   static const String locale = 'locale';
   static const String themeMode = 'theme_mode';
   static const String notificationsEnabled = 'notifications_enabled';
+  static const String biometricEnabled = 'biometric_enabled';
+  static const String notificationSettings = 'notification_settings';
 
   // Cart
   static const String cartItems = 'cart_items';
