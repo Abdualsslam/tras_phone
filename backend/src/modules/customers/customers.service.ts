@@ -193,34 +193,37 @@ export class CustomersService {
           retryCount,
         });
 
+        // Always check if customer exists before throwing error
+        // This handles race conditions where customer was created by another request
+        // This is especially important when approve/reject updates user status
+        // and triggers getProfile which may call createAutoProfile
+        const existingCustomer = await this.customerModel.findOne({
+          userId,
+        });
+
+        if (existingCustomer) {
+          // Customer was created by another request - return it
+          console.log(
+            '[CustomersService] Customer exists, returning existing customer',
+          );
+          return existingCustomer;
+        }
+
         if (e?.code === 11000) {
-          // Duplicate key error - check if customer was created
-          const raceConditionCustomer = await this.customerModel.findOne({
-            userId,
-          });
+          // Duplicate key error - duplicate is in customerCode (race condition) - retry with new code
+          retryCount++;
+          console.log(
+            `[CustomersService] Duplicate customerCode detected, retrying (${retryCount}/${maxRetries})...`,
+          );
 
-          if (raceConditionCustomer) {
-            // Customer was created by another request - return it
-            console.log(
-              '[CustomersService] Customer created by race condition, returning existing customer',
+          if (retryCount >= maxRetries) {
+            throw new ConflictException(
+              'Failed to create customer profile after multiple attempts. Please try again.',
             );
-            return raceConditionCustomer;
-          } else {
-            // Duplicate is in customerCode (race condition) - retry with new code
-            retryCount++;
-            console.log(
-              `[CustomersService] Duplicate customerCode detected, retrying (${retryCount}/${maxRetries})...`,
-            );
-
-            if (retryCount >= maxRetries) {
-              throw new ConflictException(
-                'Failed to create customer profile after multiple attempts. Please try again.',
-              );
-            }
-            // Wait a bit before retrying to avoid immediate collision
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            continue;
           }
+          // Wait a bit before retrying to avoid immediate collision
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          continue;
         } else {
           // Other errors - throw them
           throw e;
