@@ -48,7 +48,7 @@ import '../features/support/presentation/screens/ticket_chat_screen.dart';
 import '../features/support/presentation/screens/create_ticket_screen.dart';
 import '../features/education/presentation/screens/faq_screen.dart';
 import '../features/education/presentation/screens/static_page_screen.dart';
-import '../features/locations/presentation/screens/map_location_picker_screen.dart';
+import '../features/address/presentation/screens/map_location_picker_screen.dart';
 import '../features/education/presentation/screens/education_categories_screen.dart';
 import '../features/education/presentation/screens/education_list_screen.dart';
 import '../features/education/presentation/screens/education_details_screen.dart';

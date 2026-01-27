@@ -11,6 +11,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../domain/entities/address_entity.dart';
 import '../../presentation/cubit/profile_cubit.dart';
 import '../../presentation/cubit/profile_state.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -104,18 +105,20 @@ class ProfileScreen extends StatelessWidget {
                           _buildBusinessInfoCard(theme, isDark, customer),
                           SizedBox(height: 12.h),
 
-                          // Location Info
-                          if (customer.cityId != null ||
-                              customer.address != null)
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildSectionTitle(theme, isDark, 'الموقع'),
-                                SizedBox(height: 12.h),
-                                _buildLocationInfoCard(theme, isDark, customer),
-                                SizedBox(height: 24.h),
-                              ],
-                            ),
+                          // Location Info - Default Address
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              _buildSectionTitle(
+                                theme,
+                                isDark,
+                                'عناوين التوصيل',
+                              ),
+                              SizedBox(height: 12.h),
+                              _buildLocationInfoCard(context, theme, isDark),
+                              SizedBox(height: 24.h),
+                            ],
+                          ),
 
                           // Wallet & Credit
                           _buildSectionTitle(
@@ -125,12 +128,6 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           SizedBox(height: 12.h),
                           _buildWalletCard(theme, isDark, customer),
-                          SizedBox(height: 24.h),
-
-                          // Actions
-                          _buildSectionTitle(theme, isDark, 'الإجراءات'),
-                          SizedBox(height: 12.h),
-                          _buildActionsSection(context, theme, isDark),
                           SizedBox(height: 24.h),
 
                           // Logout Button
@@ -550,48 +547,294 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLocationInfoCard(ThemeData theme, bool isDark, customer) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18.r),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [
-                      Colors.white.withValues(alpha: 0.08),
-                      Colors.white.withValues(alpha: 0.04),
-                    ]
-                  : [
-                      Colors.white.withValues(alpha: 0.9),
-                      Colors.white.withValues(alpha: 0.75),
-                    ],
-            ),
-            borderRadius: BorderRadius.circular(18.r),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : AppColors.primary.withValues(alpha: 0.1),
-              width: 1.5,
-            ),
-          ),
-          child: Column(
-            children: [
-              if (customer.address != null)
-                _buildInfoTile(
-                  theme,
-                  isDark,
-                  Iconsax.location,
-                  'العنوان',
-                  customer.address!,
+  Widget _buildLocationInfoCard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    return BlocConsumer<AddressesCubit, AddressesState>(
+      listener: (context, addressesState) {
+        // Ensure UI updates when addresses change
+        // The builder will automatically rebuild when state changes
+      },
+      builder: (context, addressesState) {
+        // Get list of addresses
+        List<AddressEntity> addresses = [];
+        if (addressesState is AddressesLoaded) {
+          addresses = addressesState.addresses;
+        } else if (addressesState is AddressOperationLoading) {
+          addresses = addressesState.addresses;
+        } else if (addressesState is AddressOperationSuccess) {
+          addresses = addressesState.addresses;
+        }
+
+        // Get default address
+        AddressEntity? defaultAddress = addresses
+            .where((a) => a.isDefault)
+            .firstOrNull;
+
+        // If no default address but there are addresses, set the last one as default
+        if (defaultAddress == null && addresses.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            try {
+              final lastAddress = addresses.last;
+              context.read<AddressesCubit>().setDefaultAddress(lastAddress.id);
+            } catch (e) {
+              // AddressesCubit not available, ignore
+            }
+          });
+        }
+
+        // Load addresses if not loaded yet
+        if (addressesState is AddressesInitial) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            try {
+              context.read<AddressesCubit>().loadAddresses();
+            } catch (e) {
+              // AddressesCubit not available, ignore
+            }
+          });
+        }
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(18.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          Colors.white.withValues(alpha: 0.08),
+                          Colors.white.withValues(alpha: 0.04),
+                        ]
+                      : [
+                          Colors.white.withValues(alpha: 0.9),
+                          Colors.white.withValues(alpha: 0.75),
+                        ],
                 ),
-            ],
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : AppColors.primary.withValues(alpha: 0.1),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                children: [
+                  if (addressesState is AddressesLoading)
+                    Padding(
+                      padding: EdgeInsets.all(16.w),
+                      child: const Center(child: CircularProgressIndicator()),
+                    )
+                  else if (defaultAddress != null) ...[
+                    _buildInfoTile(
+                      theme,
+                      isDark,
+                      Iconsax.location,
+                      defaultAddress.label,
+                      defaultAddress.fullAddress,
+                    ),
+                    if (defaultAddress.notes != null &&
+                        defaultAddress.notes!.isNotEmpty) ...[
+                      Divider(
+                        height: 1,
+                        indent: 56.w,
+                        color: isDark
+                            ? AppColors.dividerDark
+                            : AppColors.dividerLight,
+                      ),
+                      ListTile(
+                        leading: Container(
+                          width: 42.w,
+                          height: 42.w,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                AppColors.primary.withValues(alpha: 0.15),
+                                AppColors.primaryLight.withValues(alpha: 0.08),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Icon(
+                            Iconsax.note,
+                            size: 20.sp,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        title: Text(
+                          'ملاحظات',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
+                          ),
+                        ),
+                        subtitle: Text(
+                          defaultAddress.notes!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimaryLight,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 6.h,
+                        ),
+                      ),
+                    ],
+                    Divider(
+                      height: 1,
+                      indent: 56.w,
+                      color: isDark
+                          ? AppColors.dividerDark
+                          : AppColors.dividerLight,
+                    ),
+                    ListTile(
+                      onTap: () => context.push('/addresses'),
+                      leading: Container(
+                        width: 42.w,
+                        height: 42.w,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.15),
+                              AppColors.primaryLight.withValues(alpha: 0.08),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Icon(
+                          Iconsax.location_add,
+                          size: 20.sp,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      title: Text(
+                        'إدارة العناوين',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight,
+                        ),
+                      ),
+                      trailing: Icon(
+                        Iconsax.arrow_left_2,
+                        size: 20.sp,
+                        color: AppColors.primary,
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 6.h,
+                      ),
+                    ),
+                  ] else ...[
+                    ListTile(
+                      leading: Container(
+                        width: 42.w,
+                        height: 42.w,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.15),
+                              AppColors.primaryLight.withValues(alpha: 0.08),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Icon(
+                          Iconsax.location,
+                          size: 20.sp,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      title: Text(
+                        'لا يوجد عنوان افتراضي',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'أضف عنواناً لتسهيل عملية التوصيل',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isDark
+                              ? AppColors.textTertiaryDark
+                              : AppColors.textTertiaryLight,
+                        ),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 6.h,
+                      ),
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 56.w,
+                      color: isDark
+                          ? AppColors.dividerDark
+                          : AppColors.dividerLight,
+                    ),
+                    ListTile(
+                      onTap: () => context.push('/addresses'),
+                      leading: Container(
+                        width: 42.w,
+                        height: 42.w,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.15),
+                              AppColors.primaryLight.withValues(alpha: 0.08),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Icon(
+                          Iconsax.location_add,
+                          size: 20.sp,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      title: Text(
+                        'إضافة عنوان',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      trailing: Icon(
+                        Iconsax.arrow_left_2,
+                        size: 20.sp,
+                        color: AppColors.primary,
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 6.h,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -710,83 +953,6 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionsSection(
-    BuildContext context,
-    ThemeData theme,
-    bool isDark,
-  ) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18.r),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [
-                      Colors.white.withValues(alpha: 0.08),
-                      Colors.white.withValues(alpha: 0.04),
-                    ]
-                  : [
-                      Colors.white.withValues(alpha: 0.9),
-                      Colors.white.withValues(alpha: 0.75),
-                    ],
-            ),
-            borderRadius: BorderRadius.circular(18.r),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : AppColors.primary.withValues(alpha: 0.1),
-              width: 1.5,
-            ),
-          ),
-          child: Column(
-            children: [
-              _MenuItem(
-                icon: Iconsax.user_edit,
-                title: AppLocalizations.of(context)!.editProfile,
-                onTap: () => context.push('/edit-profile'),
-              ),
-              Divider(
-                height: 1,
-                indent: 56.w,
-                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-              ),
-              _MenuItem(
-                icon: Iconsax.location,
-                title: AppLocalizations.of(context)!.addresses,
-                onTap: () => context.push('/addresses'),
-              ),
-              Divider(
-                height: 1,
-                indent: 56.w,
-                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-              ),
-              _MenuItem(
-                icon: Iconsax.box,
-                title: AppLocalizations.of(context)!.orders,
-                onTap: () => context.push('/orders'),
-              ),
-              Divider(
-                height: 1,
-                indent: 56.w,
-                color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-              ),
-              _MenuItem(
-                icon: Iconsax.trash,
-                title: 'حذف الحساب',
-                onTap: () => _showDeleteAccountDialog(context),
-                isDestructive: true,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildUnauthenticatedContent(BuildContext context, ThemeData theme) {
     return Center(
       child: Column(
@@ -846,150 +1012,6 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  void _showDeleteAccountDialog(BuildContext context) {
-    final reasonController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('حذف الحساب'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'هل أنت متأكد من حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.',
-            ),
-            SizedBox(height: 16.h),
-            TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                labelText: 'السبب (اختياري)',
-                hintText: 'أخبرنا لماذا تريد حذف حسابك...',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              reasonController.dispose();
-              Navigator.pop(ctx);
-            },
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final reason = reasonController.text.trim().isEmpty
-                  ? null
-                  : reasonController.text.trim();
-              reasonController.dispose();
-
-              final success = await context.read<ProfileCubit>().deleteAccount(
-                reason: reason,
-              );
-
-              if (ctx.mounted) {
-                Navigator.pop(ctx);
-                if (success) {
-                  context.read<AuthCubit>().logout();
-                  context.go('/login');
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('فشل حذف الحساب'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('حذف'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MenuItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-  final bool isDestructive;
-
-  const _MenuItem({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.isDestructive = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return ListTile(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      leading: Container(
-        width: 42.w,
-        height: 42.w,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDestructive
-                ? [
-                    AppColors.error.withValues(alpha: 0.15),
-                    AppColors.error.withValues(alpha: 0.08),
-                  ]
-                : [
-                    AppColors.primary.withValues(alpha: 0.15),
-                    AppColors.primaryLight.withValues(alpha: 0.08),
-                  ],
-          ),
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Icon(
-          icon,
-          size: 20.sp,
-          color: isDestructive ? AppColors.error : AppColors.primary,
-        ),
-      ),
-      title: Text(
-        title,
-        style: theme.textTheme.bodyLarge?.copyWith(
-          fontWeight: FontWeight.w500,
-          color: isDestructive
-              ? AppColors.error
-              : (isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight),
-        ),
-      ),
-      trailing: Container(
-        width: 28.w,
-        height: 28.w,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Icon(
-          Iconsax.arrow_left_2,
-          size: 16.sp,
-          color: AppColors.primary,
-        ),
-      ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
     );
   }
 }

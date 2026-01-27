@@ -42,8 +42,8 @@ import '../../features/reviews/data/datasources/reviews_remote_datasource.dart';
 import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/presentation/cubit/profile_cubit.dart';
-import '../../features/locations/data/datasources/locations_remote_datasource.dart';
-import '../../features/locations/presentation/cubit/locations_cubit.dart';
+import '../../features/address/data/datasources/locations_remote_datasource.dart';
+import '../../features/address/presentation/cubit/locations_cubit.dart';
 import '../../features/promotions/data/datasources/promotions_remote_datasource.dart';
 import '../../features/promotions/presentation/cubit/promotions_cubit.dart';
 import '../../features/education/data/datasources/education_remote_datasource.dart';
@@ -233,7 +233,7 @@ Future<void> setupDependencies() async {
     () => ProfileCubit(repository: getIt<ProfileRepository>()),
   );
 
-  getIt.registerFactory<AddressesCubit>(
+  getIt.registerLazySingleton<AddressesCubit>(
     () => AddressesCubit(repository: getIt<ProfileRepository>()),
   );
 
