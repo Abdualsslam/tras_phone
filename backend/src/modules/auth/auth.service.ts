@@ -192,8 +192,8 @@ export class AuthService {
     });
     
     console.log('[AuthService] User search results:', {
-      activeUser: activeUser ? activeUser._id.toString() : null,
-      deletedUser: deletedUser ? deletedUser._id.toString() : null,
+      activeUser: activeUser?._id?.toString() ?? null,
+      deletedUser: deletedUser?._id?.toString() ?? null,
       deletedUserDeletedAt: deletedUser?.deletedAt,
     });
 
