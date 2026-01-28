@@ -40,139 +40,142 @@ export class CustomersService {
   ) {}
 
   /**
+   * Helper method for retry logic with exponential backoff
+   */
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 100,
+  ): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+
+        // Only retry on duplicate key errors (11000)
+        if (error?.code !== 11000) {
+          throw error;
+        }
+
+        // Don't retry on the last attempt
+        if (attempt === maxRetries - 1) {
+          throw error;
+        }
+
+        // Calculate exponential backoff delay
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.log(
+          `[CustomersService] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`,
+        );
+
+        // Wait before retrying
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
    * Create new customer
+   * Uses findOneAndUpdate with upsert to prevent race conditions
    */
   async create(
     createCustomerDto: CreateCustomerDto,
   ): Promise<CustomerDocument> {
-    // Check if customer already exists for this user
-    const existingCustomer = await this.customerModel.findOne({
-      userId: createCustomerDto.userId,
-    });
+    return this.retryWithBackoff(async () => {
+      // Use findOneAndUpdate with upsert for atomic operation
+      const customer = await this.customerModel.findOneAndUpdate(
+        { userId: createCustomerDto.userId },
+        { $setOnInsert: createCustomerDto },
+        {
+          new: true,
+          upsert: true,
+          runValidators: true,
+          setDefaultsOnInsert: true,
+        },
+      );
 
-    if (existingCustomer) {
-      throw new ConflictException('Customer already exists for this user');
-    }
+      if (!customer) {
+        throw new ConflictException('Failed to create customer');
+      }
 
-    // Check again before creating (race condition check)
-    const checkCustomer = await this.customerModel.findOne({
-      userId: createCustomerDto.userId,
-    });
+      // Check if this was an insert (new customer) or update (existing)
+      const isNewCustomer = customer.get('wasNew', false);
 
-    if (checkCustomer) {
-      throw new ConflictException('Customer already exists for this user');
-    }
-
-    try {
-      const customer = await this.customerModel.create({
-        ...createCustomerDto,
-      });
+      if (!isNewCustomer) {
+        // Customer already existed
+        throw new ConflictException('Customer already exists for this user');
+      }
 
       console.log(
         `[CustomersService] Customer created successfully for user: ${createCustomerDto.userId}`,
       );
+
       return customer;
-    } catch (e: any) {
-      if (e instanceof ConflictException) {
-        // Re-throw ConflictException as-is
-        throw e;
-      }
-
-      if (e?.code === 11000) {
-        // Duplicate key error - check if customer was created
-        const raceConditionCustomer = await this.customerModel.findOne({
-          userId: createCustomerDto.userId,
-        });
-
-        if (raceConditionCustomer) {
-          throw new ConflictException('Customer already exists for this user');
-        } else {
-          // Other duplicate key error
-          throw new ConflictException(
-            'Failed to create customer. Please try again.',
-          );
-        }
-      } else {
-        // Other errors - throw them
-        throw e;
-      }
-    }
+    });
   }
 
   /**
    * Create customer profile automatically (for auto-creation when profile is missing)
    * This method allows cityId to be optional/null
+   * Uses findOneAndUpdate with upsert to prevent race conditions
    */
   async createAutoProfile(
     userId: string,
     priceLevelId: string,
     responsiblePersonName: string = 'Customer',
   ): Promise<CustomerDocument> {
-    // Check if customer already exists for this user
-    const existingCustomer = await this.customerModel.findOne({
-      userId,
-    });
-
-    if (existingCustomer) {
-      // Customer already exists - return it instead of throwing error
-      return existingCustomer;
-    }
-
-    // Check again before creating (race condition check)
-    const checkCustomer = await this.customerModel.findOne({
-      userId,
-    });
-
-    if (checkCustomer) {
-      // Customer was created by another request - return it
-      return checkCustomer;
-    }
-
-    try {
-      const customer = await this.customerModel.create({
-        userId,
-        responsiblePersonName,
-        shopName: 'My Shop',
-        businessType: 'shop',
-        // cityId is optional - will be updated later
-        priceLevelId,
-        creditLimit: 0,
-        walletBalance: 0,
-        loyaltyPoints: 0,
-        loyaltyTier: 'bronze',
-        preferredContactMethod: 'whatsapp',
-      });
-
-      console.log(
-        `[CustomersService] Auto profile created successfully for user: ${userId}`,
+    return this.retryWithBackoff(async () => {
+      // Use findOneAndUpdate with upsert for atomic operation
+      const customer = await this.customerModel.findOneAndUpdate(
+        { userId },
+        {
+          $setOnInsert: {
+            userId,
+            responsiblePersonName,
+            shopName: 'My Shop',
+            businessType: 'shop',
+            // cityId is optional - will be updated later
+            priceLevelId,
+            creditLimit: 0,
+            walletBalance: 0,
+            loyaltyPoints: 0,
+            loyaltyTier: 'bronze',
+            preferredContactMethod: 'whatsapp',
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          runValidators: true,
+          setDefaultsOnInsert: true,
+        },
       );
-      return customer;
-    } catch (e: any) {
-      console.error('[CustomersService] Error creating auto profile:', {
-        error: e.message,
-        errorCode: e?.code,
-        userId,
-      });
 
-      // Always check if customer exists before throwing error
-      // This handles race conditions where customer was created by another request
-      // This is especially important when approve/reject updates user status
-      // and triggers getProfile which may call createAutoProfile
-      const existingCustomer = await this.customerModel.findOne({
-        userId,
-      });
-
-      if (existingCustomer) {
-        // Customer was created by another request - return it
-        console.log(
-          '[CustomersService] Customer exists, returning existing customer',
-        );
-        return existingCustomer;
+      if (!customer) {
+        throw new ConflictException('Failed to create customer profile');
       }
 
-      // Other errors - throw them
-      throw e;
-    }
+      // Check if this was an insert (new customer) or update (existing)
+      const isNewCustomer = customer.get('wasNew', false);
+
+      if (!isNewCustomer) {
+        // Customer already existed - return it
+        console.log(
+          '[CustomersService] Customer already exists, returning existing customer',
+        );
+      } else {
+        console.log(
+          `[CustomersService] Auto profile created successfully for user: ${userId}`,
+        );
+      }
+
+      return customer;
+    });
   }
 
   /**

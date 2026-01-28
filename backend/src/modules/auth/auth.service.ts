@@ -64,6 +64,46 @@ export class AuthService {
   ) {}
 
   /**
+   * Helper method for retry logic with exponential backoff
+   */
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 100,
+  ): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+
+        // Only retry on duplicate key errors (11000)
+        if (error?.code !== 11000) {
+          throw error;
+        }
+
+        // Don't retry on the last attempt
+        if (attempt === maxRetries - 1) {
+          throw error;
+        }
+
+        // Calculate exponential backoff delay
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.log(
+          `[AuthService] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`,
+        );
+
+        // Wait before retrying
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
    * Normalize phone number for consistent comparison
    * Converts various formats to standard format: +966XXXXXXXXX
    */
@@ -237,107 +277,101 @@ export class AuthService {
       shopName &&
       cityId
     ) {
-      // Check if customer already exists for this user
-      const existingCustomer = await this.customerModel.findOne({
-        userId: user._id,
-      });
+      try {
+        // Get default price level
+        const defaultPriceLevel = await this.priceLevelModel.findOne({
+          isDefault: true,
+          isActive: true,
+        });
 
-      console.log('[AuthService] Customer check:', {
-        userId: user._id.toString(),
-        existingCustomer: existingCustomer
-          ? existingCustomer._id.toString()
-          : null,
-      });
+        if (!defaultPriceLevel) {
+          // Rollback: delete the user if price level not found (only if it's a new user, not restored)
+          if (!isRestoredUser) {
+            await this.userModel.deleteOne({ _id: user._id });
+          }
+          throw new BadRequestException(
+            'Default price level not found. Please contact support.',
+          );
+        }
 
-      if (existingCustomer) {
-        // Customer already exists - this can happen if:
-        // 1. User was restored from deleted state
-        // 2. Previous registration attempt partially succeeded
-        // Update the customer profile with new data
-        existingCustomer.responsiblePersonName = responsiblePersonName;
-        existingCustomer.shopName = shopName;
-        if (shopNameAr) existingCustomer.shopNameAr = shopNameAr;
-        existingCustomer.cityId = new Types.ObjectId(cityId);
-        if (businessType) existingCustomer.businessType = businessType;
-        await existingCustomer.save();
-      } else {
-        // Create new customer profile
-        try {
-          const defaultPriceLevel = await this.priceLevelModel.findOne({
-            isDefault: true,
-            isActive: true,
-          });
+        // Use retry with backoff for customer creation
+        const customer = await this.retryWithBackoff(async () => {
+          // Use findOneAndUpdate with upsert for atomic operation
+          const customerDoc = await this.customerModel.findOneAndUpdate(
+            { userId: user._id },
+            {
+              $setOnInsert: {
+                userId: user._id,
+                responsiblePersonName,
+                shopName,
+                shopNameAr,
+                cityId: new Types.ObjectId(cityId),
+                businessType: businessType || 'shop',
+                priceLevelId: defaultPriceLevel._id,
+                creditLimit: 0,
+                walletBalance: 0,
+                loyaltyPoints: 0,
+                loyaltyTier: 'bronze',
+                preferredContactMethod: 'whatsapp',
+              },
+            },
+            {
+              new: true,
+              upsert: true,
+              runValidators: true,
+              setDefaultsOnInsert: true,
+            },
+          );
 
-          if (!defaultPriceLevel) {
-            // Rollback: delete the user if price level not found (only if it's a new user, not restored)
-            if (!isRestoredUser) {
-              await this.userModel.deleteOne({ _id: user._id });
-            }
-            throw new BadRequestException(
-              'Default price level not found. Please contact support.',
-            );
+          if (!customerDoc) {
+            throw new ConflictException('Failed to create customer profile');
           }
 
-          await this.customerModel.create({
-            userId: user._id,
-            responsiblePersonName,
-            shopName,
-            shopNameAr,
-            cityId: new Types.ObjectId(cityId),
-            businessType: businessType || 'shop',
-            priceLevelId: defaultPriceLevel._id,
-            creditLimit: 0,
-            walletBalance: 0,
-            loyaltyPoints: 0,
-            loyaltyTier: 'bronze',
-            preferredContactMethod: 'whatsapp',
-          });
+          return customerDoc;
+        });
 
+        // Check if this was an insert (new customer) or update (existing)
+        const isNewCustomer = customer.get('wasNew', false);
+
+        console.log('[AuthService] Customer operation:', {
+          userId: user._id.toString(),
+          isNewCustomer,
+          customerId: customer._id.toString(),
+        });
+
+        if (!isNewCustomer) {
+          // Customer already existed - this can happen if:
+          // 1. User was restored from deleted state
+          // 2. Previous registration attempt partially succeeded
+          // Update the customer profile with new data
+          customer.responsiblePersonName = responsiblePersonName;
+          customer.shopName = shopName;
+          if (shopNameAr) customer.shopNameAr = shopNameAr;
+          customer.cityId = new Types.ObjectId(cityId);
+          if (businessType) customer.businessType = businessType;
+          await customer.save();
+
+          console.log(
+            '[AuthService] Customer already existed, updated with new data',
+          );
+        } else {
           console.log(
             `[AuthService] Customer created successfully for user: ${user._id}`,
           );
-        } catch (error: any) {
-          console.error('[AuthService] Error creating customer:', {
-            error: error.message,
-            errorCode: error?.code,
-            userId: user._id.toString(),
-            isRestoredUser,
-          });
-
-          // Check if it's a duplicate key error (userId already exists)
-          if (error?.code === 11000) {
-            const existingCustomerByUserId = await this.customerModel.findOne({
-              userId: user._id,
-            });
-
-            if (existingCustomerByUserId) {
-              // Customer already exists for this user - update it
-              console.log(
-                '[AuthService] Customer already exists for this user, updating instead',
-              );
-              existingCustomerByUserId.responsiblePersonName =
-                responsiblePersonName;
-              existingCustomerByUserId.shopName = shopName;
-              if (shopNameAr) existingCustomerByUserId.shopNameAr = shopNameAr;
-              existingCustomerByUserId.cityId = new Types.ObjectId(cityId);
-              if (businessType)
-                existingCustomerByUserId.businessType = businessType;
-              await existingCustomerByUserId.save();
-            } else {
-              // Other duplicate key error - rollback and throw
-              if (!isRestoredUser) {
-                await this.userModel.deleteOne({ _id: user._id });
-              }
-              throw error;
-            }
-          } else {
-            // Other errors - rollback and throw
-            if (!isRestoredUser) {
-              await this.userModel.deleteOne({ _id: user._id });
-            }
-            throw error;
-          }
         }
+      } catch (error: any) {
+        console.error('[AuthService] Error creating/updating customer:', {
+          error: error.message,
+          errorCode: error?.code,
+          userId: user._id.toString(),
+          isRestoredUser,
+        });
+
+        // Rollback: delete the user if error occurred (only if it's a new user, not restored)
+        if (!isRestoredUser) {
+          await this.userModel.deleteOne({ _id: user._id });
+        }
+        throw error;
       }
     }
 

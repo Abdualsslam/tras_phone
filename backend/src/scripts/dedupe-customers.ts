@@ -11,11 +11,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Customer, CustomerDocument } from '../modules/customers/schemas/customer.schema';
+import {
+  Customer,
+  CustomerDocument,
+} from '../modules/customers/schemas/customer.schema';
 import { Types } from 'mongoose';
 
 const EXECUTE = process.argv.includes('--execute');
-const VERBOSE = process.argv.includes('--verbose') || process.argv.includes('-v');
+const VERBOSE =
+  process.argv.includes('--verbose') || process.argv.includes('-v');
 
 async function dedupeCustomers() {
   console.log('Dedupe customers by userId\n');
@@ -26,15 +30,21 @@ async function dedupeCustomers() {
   const app = await NestFactory.createApplicationContext(AppModule);
 
   try {
-    const customerModel = app.get<Model<CustomerDocument>>(getModelToken(Customer.name));
+    const customerModel = app.get<Model<CustomerDocument>>(
+      getModelToken(Customer.name),
+    );
     const conn = customerModel.db as any;
     const db = conn?.db ?? customerModel.collection?.db;
     const coll = db?.collection('customers') ?? customerModel.collection;
 
     console.log(`DB: ${db?.databaseName ?? 'unknown'}, collection: customers`);
-    console.log('(Use same MONGODB_URI as your API to dedupe the correct database.)\n');
+    console.log(
+      '(Use same MONGODB_URI as your API to dedupe the correct database.)\n',
+    );
     if (!db || !coll) {
-      throw new Error('Could not access customers collection. Check DB connection.');
+      throw new Error(
+        'Could not access customers collection. Check DB connection.',
+      );
     }
 
     const total = await coll.countDocuments();
@@ -43,14 +53,30 @@ async function dedupeCustomers() {
     const dupes = (await coll
       .aggregate([
         { $addFields: { userIdStr: { $toString: '$userId' } } },
-        { $group: { _id: '$userIdStr', userId: { $first: '$userId' }, count: { $sum: 1 }, ids: { $push: '$_id' } } },
+        {
+          $group: {
+            _id: '$userIdStr',
+            userId: { $first: '$userId' },
+            count: { $sum: 1 },
+            ids: { $push: '$_id' },
+          },
+        },
         { $match: { count: { $gt: 1 } } },
       ])
-      .toArray()) as { _id: string; userId: Types.ObjectId; count: number; ids: Types.ObjectId[] }[];
+      .toArray()) as {
+      _id: string;
+      userId: Types.ObjectId;
+      count: number;
+      ids: Types.ObjectId[];
+    }[];
 
     if (VERBOSE && dupes.length > 0) {
       console.log('Duplicate groups (userId -> count, ids):');
-      dupes.forEach((g) => console.log(`  ${g.userId ?? g._id} -> ${g.count}, ids: ${g.ids.map((id) => id.toString()).join(', ')}`));
+      dupes.forEach((g) =>
+        console.log(
+          `  ${g.userId ?? g._id} -> ${g.count}, ids: ${g.ids.map((id) => id.toString()).join(', ')}`,
+        ),
+      );
       console.log('');
     }
 
@@ -89,13 +115,19 @@ async function dedupeCustomers() {
       const [keep, ...toRemove] = customers;
       if (!keep) continue;
 
-      console.log(`userId ${userId}: keep ${keep._id}, remove ${toRemove.length}`);
+      console.log(
+        `userId ${userId}: keep ${keep._id}, remove ${toRemove.length}`,
+      );
 
       for (const c of toRemove) {
-        const ordersCount = await db!.collection('orders').countDocuments({ customerId: c._id });
-        const addressesCount = await db!.collection('customer_addresses').countDocuments({
-          customerId: c._id,
-        });
+        const ordersCount = await db!
+          .collection('orders')
+          .countDocuments({ customerId: c._id });
+        const addressesCount = await db!
+          .collection('customer_addresses')
+          .countDocuments({
+            customerId: c._id,
+          });
         const hasRefs = ordersCount > 0 || addressesCount > 0;
 
         if (hasRefs) {
