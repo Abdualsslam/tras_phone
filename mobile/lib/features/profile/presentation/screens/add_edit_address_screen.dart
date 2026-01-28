@@ -61,7 +61,8 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
     return BlocListener<AddressesCubit, AddressesState>(
       listener: (context, state) {
         if (state is AddressOperationSuccess) {
-          Navigator.pop(context);
+          // Return true to indicate success when using context.push
+          context.pop(true);
         } else if (state is AddressesError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

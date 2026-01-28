@@ -23,6 +23,7 @@ import '../../features/cart/data/datasources/cart_local_datasource.dart';
 import '../../features/cart/presentation/cubit/cart_cubit.dart';
 import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 import '../../features/orders/presentation/cubit/orders_cubit.dart';
+import '../../features/orders/presentation/cubit/payment_methods_cubit.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
 import '../../features/wishlist/data/datasources/wishlist_remote_datasource.dart';
 import '../../features/notifications/data/datasources/notifications_remote_datasource.dart';
@@ -218,9 +219,13 @@ Future<void> setupDependencies() async {
     () => OrdersRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
 
-  // Cubit
+  // Cubits
   getIt.registerFactory<OrdersCubit>(
     () => OrdersCubit(dataSource: getIt<OrdersRemoteDataSource>()),
+  );
+
+  getIt.registerFactory<PaymentMethodsCubit>(
+    () => PaymentMethodsCubit(dataSource: getIt<OrdersRemoteDataSource>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════

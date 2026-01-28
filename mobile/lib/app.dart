@@ -15,6 +15,7 @@ import 'features/home/presentation/cubit/home_cubit.dart';
 import 'features/home/data/services/home_cache_service.dart';
 import 'features/catalog/data/datasources/catalog_remote_datasource.dart';
 import 'features/orders/presentation/cubit/orders_cubit.dart';
+import 'features/orders/presentation/cubit/payment_methods_cubit.dart';
 import 'features/orders/data/datasources/orders_remote_datasource.dart';
 import 'features/promotions/presentation/cubit/promotions_cubit.dart';
 import 'features/promotions/data/datasources/promotions_remote_datasource.dart';
@@ -44,9 +45,7 @@ class TrasPhoneApp extends StatelessWidget {
                   LocaleCubit(localStorage: getIt<LocalStorage>())
                     ..loadSavedLocale(),
             ),
-            BlocProvider.value(
-              value: getIt<ThemeCubit>(),
-            ),
+            BlocProvider.value(value: getIt<ThemeCubit>()),
             BlocProvider(create: (_) => getIt<AuthCubit>()),
             BlocProvider(
               create: (_) => HomeCubit(
@@ -54,9 +53,7 @@ class TrasPhoneApp extends StatelessWidget {
                 cacheService: getIt<HomeCacheService>(),
               ),
             ),
-            BlocProvider.value(
-              value: getIt<CartCubit>(),
-            ),
+            BlocProvider.value(value: getIt<CartCubit>()),
             BlocProvider(
               create: (_) =>
                   OrdersCubit(dataSource: getIt<OrdersRemoteDataSource>()),
@@ -66,12 +63,11 @@ class TrasPhoneApp extends StatelessWidget {
                   PromotionsCubit(getIt<PromotionsRemoteDataSource>()),
             ),
             BlocProvider(
-              create: (_) =>
-                  LocationsCubit(dataSource: getIt<LocationsRemoteDataSource>()),
+              create: (_) => LocationsCubit(
+                dataSource: getIt<LocationsRemoteDataSource>(),
+              ),
             ),
-            BlocProvider(
-              create: (_) => getIt<WalletCubit>(),
-            ),
+            BlocProvider(create: (_) => getIt<WalletCubit>()),
             BlocProvider(
               create: (_) {
                 try {
@@ -82,15 +78,10 @@ class TrasPhoneApp extends StatelessWidget {
                 }
               },
             ),
-            BlocProvider(
-              create: (_) => getIt<BannersCubit>(),
-            ),
-            BlocProvider(
-              create: (_) => getIt<ProfileCubit>(),
-            ),
-            BlocProvider(
-              create: (_) => getIt<AddressesCubit>(),
-            ),
+            BlocProvider(create: (_) => getIt<BannersCubit>()),
+            BlocProvider(create: (_) => getIt<ProfileCubit>()),
+            BlocProvider(create: (_) => getIt<AddressesCubit>()),
+            BlocProvider(create: (_) => getIt<PaymentMethodsCubit>()),
           ],
           child: BlocBuilder<LocaleCubit, LocaleState>(
             builder: (context, localeState) {
@@ -108,7 +99,8 @@ class TrasPhoneApp extends StatelessWidget {
                     // Localization
                     locale: localeState.locale,
                     supportedLocales: AppLocalizations.supportedLocales,
-                    localizationsDelegates: AppLocalizations.localizationsDelegates,
+                    localizationsDelegates:
+                        AppLocalizations.localizationsDelegates,
 
                     // Router
                     routerConfig: appRouter,

@@ -15,8 +15,14 @@ import '../../domain/entities/cart_entity.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/cart_state.dart';
 import '../../../orders/presentation/cubit/orders_cubit.dart';
+import '../../../orders/presentation/cubit/payment_methods_cubit.dart';
+import '../../../orders/presentation/cubit/payment_methods_state.dart';
 import '../../../orders/domain/enums/order_enums.dart';
+import '../../../orders/domain/entities/payment_method_entity.dart';
 import '../../../orders/data/models/shipping_address_model.dart';
+import '../../../profile/presentation/cubit/profile_cubit.dart';
+import '../../../profile/presentation/cubit/profile_state.dart';
+import '../../../profile/domain/entities/address_entity.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -26,53 +32,18 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  int _selectedAddressIndex = 0;
-  int _selectedPaymentIndex = 0;
+  String? _selectedAddressId;
+  String? _selectedPaymentMethodId;
   CouponValidation? _appliedCoupon;
-
-  final _addresses = [
-    _Address(
-      id: 1,
-      title: 'المنزل',
-      address: 'الرياض - حي الملز - شارع الأمير سلطان',
-      phone: '0555123456',
-      isDefault: true,
-    ),
-    _Address(
-      id: 2,
-      title: 'العمل',
-      address: 'الرياض - حي العليا - برج المملكة',
-      phone: '0555123456',
-      isDefault: false,
-    ),
-  ];
-
-  final _paymentMethods = [
-    _PaymentMethod(
-      id: 1,
-      title: 'الدفع عند الاستلام',
-      icon: Iconsax.money,
-      description: 'ادفع نقداً عند استلام الطلب',
-    ),
-    _PaymentMethod(
-      id: 2,
-      title: 'المحفظة',
-      icon: Iconsax.wallet,
-      description: 'الرصيد المتاح: 500 ر.س',
-    ),
-    _PaymentMethod(
-      id: 3,
-      title: 'تحويل بنكي',
-      icon: Iconsax.bank,
-      description: 'تحويل إلى حساب الشركة',
-    ),
-  ];
 
   @override
   void initState() {
     super.initState();
     // Load local cart when entering checkout
     context.read<CartCubit>().loadLocalCart();
+    // Load addresses and payment methods
+    context.read<AddressesCubit>().loadAddresses();
+    context.read<PaymentMethodsCubit>().loadPaymentMethods();
   }
 
   @override
@@ -80,92 +51,339 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.checkout),
-        leading: IconButton(
-          icon: const Icon(Iconsax.arrow_right_3),
-          onPressed: () => context.pop(),
+    return BlocListener<AddressesCubit, AddressesState>(
+      listener: (context, state) {
+        // Reload addresses after successful add/edit/delete
+        if (state is AddressOperationSuccess) {
+          // Auto-select the newly added address if it's the only one
+          if (state.addresses.isNotEmpty && _selectedAddressId == null) {
+            final defaultAddress = state.addresses.firstWhere(
+              (a) => a.isDefault,
+              orElse: () => state.addresses.first,
+            );
+            setState(() => _selectedAddressId = defaultAddress.id);
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.checkout),
+          leading: IconButton(
+            icon: const Icon(Iconsax.arrow_right_3),
+            onPressed: () => context.pop(),
+          ),
         ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(16.w),
-              physics: const ClampingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-            // Address Section
-            _buildSectionTitle(theme, AppLocalizations.of(context)!.addresses),
-            SizedBox(height: 12.h),
-            ..._addresses.asMap().entries.map((entry) {
-              return _buildAddressCard(theme, isDark, entry.key, entry.value);
-            }),
-            TextButton.icon(
-              onPressed: () {},
-              icon: const Icon(Iconsax.add),
-              label: Text(AppLocalizations.of(context)!.addAddress),
-            ),
-            SizedBox(height: 24.h),
-
-            // Payment Section
-            _buildSectionTitle(
-              theme,
-              AppLocalizations.of(context)!.paymentMethod,
-            ),
-            SizedBox(height: 12.h),
-            ..._paymentMethods.asMap().entries.map((entry) {
-              return _buildPaymentCard(theme, isDark, entry.key, entry.value);
-            }),
-            SizedBox(height: 24.h),
-
-            // Coupon Section
-            BlocBuilder<CartCubit, CartState>(
-              builder: (context, cartState) {
-                final cart = cartState is CartLoaded ? cartState.cart : null;
-                final orderTotal = cart?.subtotal ?? 0.0;
-                
-                return Column(
+        body: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(16.w),
+                physics: const ClampingScrollPhysics(),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildSectionTitle(theme, 'كود الخصم'),
+                    // Address Section
+                    _buildSectionTitle(
+                      theme,
+                      AppLocalizations.of(context)!.addresses,
+                    ),
                     SizedBox(height: 12.h),
-                    CouponInput(
-                      orderTotal: orderTotal,
-                      onCouponApplied: (validation) {
-                        setState(() => _appliedCoupon = validation);
-                      },
-                      onCouponRemoved: () {
-                        setState(() => _appliedCoupon = null);
+                    BlocBuilder<AddressesCubit, AddressesState>(
+                      builder: (context, addressesState) {
+                        if (addressesState is AddressesLoading) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(24.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+
+                        if (addressesState is AddressesError) {
+                          return Container(
+                            padding: EdgeInsets.all(16.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Iconsax.info_circle,
+                                  color: AppColors.error,
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Text(
+                                    addressesState.message,
+                                    style: TextStyle(color: AppColors.error),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        if (addressesState is AddressesLoaded ||
+                            addressesState is AddressOperationLoading ||
+                            addressesState is AddressOperationSuccess) {
+                          final addresses = addressesState is AddressesLoaded
+                              ? addressesState.addresses
+                              : addressesState is AddressOperationLoading
+                              ? addressesState.addresses
+                              : (addressesState as AddressOperationSuccess)
+                                    .addresses;
+
+                          // Set default address if not selected
+                          if (_selectedAddressId == null &&
+                              addresses.isNotEmpty) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              final defaultAddress = addresses.firstWhere(
+                                (a) => a.isDefault,
+                                orElse: () => addresses.first,
+                              );
+                              setState(
+                                () => _selectedAddressId = defaultAddress.id,
+                              );
+                            });
+                          }
+
+                          if (addresses.isEmpty) {
+                            return Container(
+                              padding: EdgeInsets.all(16.w),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppColors.cardDark
+                                    : AppColors.cardLight,
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Iconsax.location,
+                                    size: 48.sp,
+                                    color: AppColors.textSecondaryLight,
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  Text(
+                                    'لا توجد عناوين متاحة',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  ElevatedButton.icon(
+                                    onPressed: () async {
+                                      final result = await context.push(
+                                        '/address/add',
+                                      );
+                                      if (result == true && mounted) {
+                                        // Reload addresses after adding
+                                        context
+                                            .read<AddressesCubit>()
+                                            .loadAddresses();
+                                      }
+                                    },
+                                    icon: const Icon(Iconsax.add, size: 18),
+                                    label: Text(
+                                      AppLocalizations.of(context)!.addAddress,
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 24.w,
+                                        vertical: 12.h,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: [
+                              ...addresses.map((address) {
+                                return _buildAddressCard(
+                                  theme,
+                                  isDark,
+                                  address,
+                                  isSelected: _selectedAddressId == address.id,
+                                );
+                              }),
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final result = await context.push(
+                                    '/address/add',
+                                  );
+                                  if (result == true && mounted) {
+                                    // Reload addresses after adding
+                                    context
+                                        .read<AddressesCubit>()
+                                        .loadAddresses();
+                                  }
+                                },
+                                icon: const Icon(Iconsax.add),
+                                label: Text(
+                                  AppLocalizations.of(context)!.addAddress,
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+
+                        return const SizedBox.shrink();
                       },
                     ),
-                  ],
-                );
-              },
-            ),
-            SizedBox(height: 24.h),
+                    SizedBox(height: 24.h),
 
-            // Order Summary
-            BlocBuilder<CartCubit, CartState>(
-              builder: (context, cartState) {
-                final cart = cartState is CartLoaded ? cartState.cart : null;
-                if (cart == null) {
-                  return SizedBox.shrink();
-                }
-                return _buildOrderSummary(theme, isDark, cart);
-              },
-            ),
-            SizedBox(height: 100.h),
-                ],
+                    // Payment Section
+                    _buildSectionTitle(
+                      theme,
+                      AppLocalizations.of(context)!.paymentMethod,
+                    ),
+                    SizedBox(height: 12.h),
+                    BlocBuilder<PaymentMethodsCubit, PaymentMethodsState>(
+                      builder: (context, paymentState) {
+                        if (paymentState is PaymentMethodsLoading) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(24.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+
+                        if (paymentState is PaymentMethodsError) {
+                          return Container(
+                            padding: EdgeInsets.all(16.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Iconsax.info_circle,
+                                  color: AppColors.error,
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Text(
+                                    paymentState.message,
+                                    style: TextStyle(color: AppColors.error),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        if (paymentState is PaymentMethodsLoaded) {
+                          final paymentMethods = paymentState.paymentMethods;
+
+                          // Set default payment method if not selected
+                          if (_selectedPaymentMethodId == null &&
+                              paymentMethods.isNotEmpty) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              setState(
+                                () => _selectedPaymentMethodId =
+                                    paymentMethods.first.id,
+                              );
+                            });
+                          }
+
+                          if (paymentMethods.isEmpty) {
+                            return Container(
+                              padding: EdgeInsets.all(16.w),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppColors.cardDark
+                                    : AppColors.cardLight,
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Iconsax.card,
+                                    size: 48.sp,
+                                    color: AppColors.textSecondaryLight,
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  Text(
+                                    'لا توجد طرق دفع متاحة',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: paymentMethods.map((method) {
+                              return _buildPaymentCard(
+                                theme,
+                                isDark,
+                                method,
+                                isSelected:
+                                    _selectedPaymentMethodId == method.id,
+                              );
+                            }).toList(),
+                          );
+                        }
+
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                    SizedBox(height: 24.h),
+
+                    // Coupon Section
+                    BlocBuilder<CartCubit, CartState>(
+                      builder: (context, cartState) {
+                        final cart = cartState is CartLoaded
+                            ? cartState.cart
+                            : null;
+                        final orderTotal = cart?.subtotal ?? 0.0;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionTitle(theme, 'كود الخصم'),
+                            SizedBox(height: 12.h),
+                            CouponInput(
+                              orderTotal: orderTotal,
+                              onCouponApplied: (validation) {
+                                setState(() => _appliedCoupon = validation);
+                              },
+                              onCouponRemoved: () {
+                                setState(() => _appliedCoupon = null);
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    SizedBox(height: 24.h),
+
+                    // Order Summary
+                    BlocBuilder<CartCubit, CartState>(
+                      builder: (context, cartState) {
+                        final cart = cartState is CartLoaded
+                            ? cartState.cart
+                            : null;
+                        if (cart == null) {
+                          return SizedBox.shrink();
+                        }
+                        return _buildOrderSummary(theme, isDark, cart);
+                      },
+                    ),
+                    SizedBox(height: 100.h),
+                  ],
+                ),
               ),
             ),
-          ),
-          _buildBottomBar(context, theme, isDark),
-        ],
+            _buildBottomBar(context, theme, isDark),
+          ],
+        ),
       ),
     );
   }
@@ -180,12 +398,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildAddressCard(
     ThemeData theme,
     bool isDark,
-    int index,
-    _Address address,
-  ) {
-    final isSelected = _selectedAddressIndex == index;
+    AddressEntity address, {
+    required bool isSelected,
+  }) {
     return GestureDetector(
-      onTap: () => setState(() => _selectedAddressIndex = index),
+      onTap: () => setState(() => _selectedAddressId = address.id),
       child: Container(
         margin: EdgeInsets.only(bottom: 12.h),
         padding: EdgeInsets.all(16.w),
@@ -232,7 +449,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Row(
                     children: [
                       Text(
-                        address.title,
+                        address.label,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -262,18 +479,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    address.address,
+                    address.addressLine,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondaryLight,
                     ),
                   ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    address.phone,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textTertiaryLight,
+                  if (address.cityName != null) ...[
+                    SizedBox(height: 2.h),
+                    Text(
+                      address.cityName!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondaryLight,
+                      ),
                     ),
-                  ),
+                  ],
+                  if (address.phone != null) ...[
+                    SizedBox(height: 2.h),
+                    Text(
+                      address.phone!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textTertiaryLight,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -290,12 +518,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildPaymentCard(
     ThemeData theme,
     bool isDark,
-    int index,
-    _PaymentMethod method,
-  ) {
-    final isSelected = _selectedPaymentIndex == index;
+    PaymentMethodEntity method, {
+    required bool isSelected,
+  }) {
+    final locale = Localizations.localeOf(context).languageCode;
+    final iconData = _getPaymentMethodIcon(method.type);
+
     return GestureDetector(
-      onTap: () => setState(() => _selectedPaymentIndex = index),
+      onTap: () => setState(() => _selectedPaymentMethodId = method.id),
       child: Container(
         margin: EdgeInsets.only(bottom: 12.h),
         padding: EdgeInsets.all(16.w),
@@ -316,7 +546,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12.r),
               ),
-              child: Icon(method.icon, color: AppColors.primary),
+              child: Icon(iconData, color: AppColors.primary),
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -324,18 +554,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    method.title,
+                    method.getName(locale),
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    method.description,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textTertiaryLight,
+                  if (method.getDescription(locale) != null) ...[
+                    SizedBox(height: 2.h),
+                    Text(
+                      method.getDescription(locale)!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textTertiaryLight,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -377,7 +609,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final taxAmount = cart.taxAmount;
     final total = subtotal - couponDiscount + shippingCost + taxAmount;
     final itemsCount = cart.itemsCount;
-    
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -480,7 +712,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final shippingCost = cart?.shippingCost ?? 0.0;
         final taxAmount = cart?.taxAmount ?? 0.0;
         final total = subtotal - couponDiscount + shippingCost + taxAmount;
-        
+
         return Container(
           padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
@@ -497,9 +729,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: ElevatedButton(
               onPressed: () async {
                 if (cart == null || cart.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('السلة فارغة')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('السلة فارغة')));
                   return;
                 }
 
@@ -517,38 +749,69 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 // Get coupon code if applied
                 final couponCode = _appliedCoupon?.coupon?.code;
 
-                // Get selected address and payment method
-                final selectedAddress = _addresses[_selectedAddressIndex];
-                final selectedPayment = _paymentMethods[_selectedPaymentIndex];
+                // Get selected address and payment method from state
+                final addressesState = context.read<AddressesCubit>().state;
+                final paymentState = context.read<PaymentMethodsCubit>().state;
+
+                AddressEntity? selectedAddress;
+                if (addressesState is AddressesLoaded ||
+                    addressesState is AddressOperationLoading ||
+                    addressesState is AddressOperationSuccess) {
+                  final addresses = addressesState is AddressesLoaded
+                      ? addressesState.addresses
+                      : addressesState is AddressOperationLoading
+                      ? addressesState.addresses
+                      : (addressesState as AddressOperationSuccess).addresses;
+                  selectedAddress = addresses.firstWhere(
+                    (a) => a.id == _selectedAddressId,
+                    orElse: () => addresses.first,
+                  );
+                }
+
+                PaymentMethodEntity? selectedPaymentMethod;
+                if (paymentState is PaymentMethodsLoaded) {
+                  selectedPaymentMethod = paymentState.paymentMethods
+                      .firstWhere(
+                        (m) => m.id == _selectedPaymentMethodId,
+                        orElse: () => paymentState.paymentMethods.first,
+                      );
+                }
+
+                if (selectedAddress == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('يرجى اختيار عنوان التوصيل')),
+                  );
+                  return;
+                }
+
+                if (selectedPaymentMethod == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('يرجى اختيار طريقة الدفع')),
+                  );
+                  return;
+                }
 
                 // Map payment method
-                OrderPaymentMethod? paymentMethod;
-                switch (selectedPayment.id) {
-                  case 1:
-                    paymentMethod = OrderPaymentMethod.cash;
-                    break;
-                  case 2:
-                    paymentMethod = OrderPaymentMethod.wallet;
-                    break;
-                  case 3:
-                    paymentMethod = OrderPaymentMethod.bankTransfer;
-                    break;
-                }
+                final paymentMethod = OrderPaymentMethod.fromString(
+                  selectedPaymentMethod.orderPaymentMethodValue,
+                );
 
                 // Create shipping address model
                 final shippingAddress = ShippingAddressModel(
-                  fullName: selectedAddress.title,
-                  phone: selectedAddress.phone,
-                  address: selectedAddress.address,
-                  city: selectedAddress.address.split(' - ')[0], // Extract city
+                  fullName:
+                      selectedAddress.recipientName ?? selectedAddress.label,
+                  phone: selectedAddress.phone ?? '',
+                  address: selectedAddress.addressLine,
+                  city: selectedAddress.cityName ?? '',
                 );
 
                 // Create order
                 final order = await context.read<OrdersCubit>().createOrder(
-                      shippingAddress: shippingAddress,
-                      paymentMethod: paymentMethod,
-                      couponCode: couponCode,
-                    );
+                  shippingAddressId: selectedAddress.id,
+                  shippingAddress: shippingAddress,
+                  paymentMethod: paymentMethod,
+                  couponCode: couponCode,
+                );
 
                 if (order != null) {
                   // Clear local cart after successful order
@@ -576,34 +839,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       },
     );
   }
-}
 
-class _Address {
-  final int id;
-  final String title;
-  final String address;
-  final String phone;
-  final bool isDefault;
-
-  _Address({
-    required this.id,
-    required this.title,
-    required this.address,
-    required this.phone,
-    required this.isDefault,
-  });
-}
-
-class _PaymentMethod {
-  final int id;
-  final String title;
-  final IconData icon;
-  final String description;
-
-  _PaymentMethod({
-    required this.id,
-    required this.title,
-    required this.icon,
-    required this.description,
-  });
+  /// Get icon for payment method type
+  IconData _getPaymentMethodIcon(String type) {
+    switch (type) {
+      case 'cash_on_delivery':
+        return Iconsax.money;
+      case 'wallet':
+        return Iconsax.wallet;
+      case 'bank_transfer':
+        return Iconsax.bank;
+      case 'credit_card':
+      case 'mada':
+        return Iconsax.card;
+      default:
+        return Iconsax.money;
+    }
+  }
 }
