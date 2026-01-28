@@ -281,7 +281,6 @@ async function seedAll() {
             for (let i = 0; i < customerNames.length; i++) {
                 const cust = customerNames[i];
                 const phone = `+9665${String(randomNumber(10000000, 99999999))}`;
-                const customerCode = `CUST-${String(Date.now()).slice(-6)}${i}`;
 
                 const userResult = await usersCollection.insertOne({
                     phone,
@@ -296,7 +295,6 @@ async function seedAll() {
 
                 await customersCollection.insertOne({
                     userId: userResult.insertedId,
-                    customerCode,
                     responsiblePersonName: cust.contact,
                     shopName: cust.shop,
                     shopNameAr: cust.shop,

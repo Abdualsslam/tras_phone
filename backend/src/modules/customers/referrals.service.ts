@@ -48,7 +48,7 @@ export class ReferralsService {
     async findByReferrer(referrerId: string): Promise<ReferralDocument[]> {
         return this.referralModel
             .find({ referrerId })
-            .populate('referredId', 'shopName customerCode')
+            .populate('referredId', 'shopName')
             .sort({ createdAt: -1 });
     }
 

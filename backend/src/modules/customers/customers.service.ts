@@ -54,76 +54,49 @@ export class CustomersService {
       throw new ConflictException('Customer already exists for this user');
     }
 
-    // Use retry mechanism to handle race conditions with customerCode
-    let customerCreated = false;
-    let retryCount = 0;
-    const maxRetries = 5;
+    // Check again before creating (race condition check)
+    const checkCustomer = await this.customerModel.findOne({
+      userId: createCustomerDto.userId,
+    });
 
-    while (!customerCreated && retryCount < maxRetries) {
-      try {
-        // Check again before creating (race condition check)
-        const checkCustomer = await this.customerModel.findOne({
+    if (checkCustomer) {
+      throw new ConflictException('Customer already exists for this user');
+    }
+
+    try {
+      const customer = await this.customerModel.create({
+        ...createCustomerDto,
+      });
+
+      console.log(
+        `[CustomersService] Customer created successfully for user: ${createCustomerDto.userId}`,
+      );
+      return customer;
+    } catch (e: any) {
+      if (e instanceof ConflictException) {
+        // Re-throw ConflictException as-is
+        throw e;
+      }
+
+      if (e?.code === 11000) {
+        // Duplicate key error - check if customer was created
+        const raceConditionCustomer = await this.customerModel.findOne({
           userId: createCustomerDto.userId,
         });
 
-        if (checkCustomer) {
+        if (raceConditionCustomer) {
           throw new ConflictException('Customer already exists for this user');
-        }
-
-        // Generate customer code
-        const customerCode = await this.generateCustomerCode();
-
-        const customer = await this.customerModel.create({
-          ...createCustomerDto,
-          customerCode,
-        });
-
-        customerCreated = true;
-        console.log(
-          `[CustomersService] Customer created successfully with code: ${customerCode}`,
-        );
-        return customer;
-      } catch (e: any) {
-        if (e instanceof ConflictException) {
-          // Re-throw ConflictException as-is
-          throw e;
-        }
-
-        if (e?.code === 11000) {
-          // Duplicate key error - check if customer was created
-          const raceConditionCustomer = await this.customerModel.findOne({
-            userId: createCustomerDto.userId,
-          });
-
-          if (raceConditionCustomer) {
-            throw new ConflictException(
-              'Customer already exists for this user',
-            );
-          } else {
-            // Duplicate is in customerCode (race condition) - retry with new code
-            retryCount++;
-            console.log(
-              `[CustomersService] Duplicate customerCode detected in create, retrying (${retryCount}/${maxRetries})...`,
-            );
-
-            if (retryCount >= maxRetries) {
-              throw new ConflictException(
-                'Failed to create customer after multiple attempts. Please try again.',
-              );
-            }
-            // Wait a bit before retrying to avoid immediate collision
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            continue;
-          }
         } else {
-          // Other errors - throw them
-          throw e;
+          // Other duplicate key error
+          throw new ConflictException(
+            'Failed to create customer. Please try again.',
+          );
         }
+      } else {
+        // Other errors - throw them
+        throw e;
       }
     }
-
-    // This should never be reached, but just in case
-    throw new ConflictException('Failed to create customer. Please try again.');
   }
 
   /**
@@ -145,96 +118,61 @@ export class CustomersService {
       return existingCustomer;
     }
 
-    // Use retry mechanism to handle race conditions with customerCode
-    let customerCreated = false;
-    let retryCount = 0;
-    const maxRetries = 5;
+    // Check again before creating (race condition check)
+    const checkCustomer = await this.customerModel.findOne({
+      userId,
+    });
 
-    while (!customerCreated && retryCount < maxRetries) {
-      try {
-        // Check again before creating (race condition check)
-        const checkCustomer = await this.customerModel.findOne({
-          userId,
-        });
-
-        if (checkCustomer) {
-          // Customer was created by another request - return it
-          return checkCustomer;
-        }
-
-        // Generate customer code
-        const customerCode = await this.generateCustomerCode();
-
-        const customer = await this.customerModel.create({
-          userId,
-          customerCode,
-          responsiblePersonName,
-          shopName: 'My Shop',
-          businessType: 'shop',
-          // cityId is optional - will be updated later
-          priceLevelId,
-          creditLimit: 0,
-          walletBalance: 0,
-          loyaltyPoints: 0,
-          loyaltyTier: 'bronze',
-          preferredContactMethod: 'whatsapp',
-        });
-
-        customerCreated = true;
-        console.log(
-          `[CustomersService] Auto profile created successfully with code: ${customerCode}`,
-        );
-        return customer;
-      } catch (e: any) {
-        console.error('[CustomersService] Error creating auto profile:', {
-          error: e.message,
-          errorCode: e?.code,
-          userId,
-          retryCount,
-        });
-
-        // Always check if customer exists before throwing error
-        // This handles race conditions where customer was created by another request
-        // This is especially important when approve/reject updates user status
-        // and triggers getProfile which may call createAutoProfile
-        const existingCustomer = await this.customerModel.findOne({
-          userId,
-        });
-
-        if (existingCustomer) {
-          // Customer was created by another request - return it
-          console.log(
-            '[CustomersService] Customer exists, returning existing customer',
-          );
-          return existingCustomer;
-        }
-
-        if (e?.code === 11000) {
-          // Duplicate key error - duplicate is in customerCode (race condition) - retry with new code
-          retryCount++;
-          console.log(
-            `[CustomersService] Duplicate customerCode detected, retrying (${retryCount}/${maxRetries})...`,
-          );
-
-          if (retryCount >= maxRetries) {
-            throw new ConflictException(
-              'Failed to create customer profile after multiple attempts. Please try again.',
-            );
-          }
-          // Wait a bit before retrying to avoid immediate collision
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          continue;
-        } else {
-          // Other errors - throw them
-          throw e;
-        }
-      }
+    if (checkCustomer) {
+      // Customer was created by another request - return it
+      return checkCustomer;
     }
 
-    // This should never be reached, but just in case
-    throw new ConflictException(
-      'Failed to create customer profile. Please try again.',
-    );
+    try {
+      const customer = await this.customerModel.create({
+        userId,
+        responsiblePersonName,
+        shopName: 'My Shop',
+        businessType: 'shop',
+        // cityId is optional - will be updated later
+        priceLevelId,
+        creditLimit: 0,
+        walletBalance: 0,
+        loyaltyPoints: 0,
+        loyaltyTier: 'bronze',
+        preferredContactMethod: 'whatsapp',
+      });
+
+      console.log(
+        `[CustomersService] Auto profile created successfully for user: ${userId}`,
+      );
+      return customer;
+    } catch (e: any) {
+      console.error('[CustomersService] Error creating auto profile:', {
+        error: e.message,
+        errorCode: e?.code,
+        userId,
+      });
+
+      // Always check if customer exists before throwing error
+      // This handles race conditions where customer was created by another request
+      // This is especially important when approve/reject updates user status
+      // and triggers getProfile which may call createAutoProfile
+      const existingCustomer = await this.customerModel.findOne({
+        userId,
+      });
+
+      if (existingCustomer) {
+        // Customer was created by another request - return it
+        console.log(
+          '[CustomersService] Customer exists, returning existing customer',
+        );
+        return existingCustomer;
+      }
+
+      // Other errors - throw them
+      throw e;
+    }
   }
 
   /**
@@ -327,7 +265,6 @@ export class CustomersService {
         phone: user.phone,
         email: user.email,
       },
-      customerCode: null,
       responsiblePersonName: null,
       shopName: null,
       shopNameAr: null,
@@ -727,49 +664,6 @@ export class CustomersService {
   // ═════════════════════════════════════
   // Helper Methods
   // ═════════════════════════════════════
-
-  /**
-   * Generate unique customer code
-   * Uses retry mechanism to handle race conditions
-   */
-  async generateCustomerCode(maxRetries: number = 10): Promise<string> {
-    const prefix = 'CUS';
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      // Get count of customers created this month
-      const count = await this.customerModel.countDocuments({
-        createdAt: {
-          $gte: new Date(date.getFullYear(), date.getMonth(), 1),
-        },
-      });
-
-      // Generate sequence with attempt offset to handle race conditions
-      const sequence = (count + 1 + attempt).toString().padStart(4, '0');
-      const customerCode = `${prefix}${year}${month}${sequence}`;
-
-      // Check if code already exists
-      const existingCustomer = await this.customerModel.findOne({
-        customerCode,
-      });
-
-      if (!existingCustomer) {
-        return customerCode;
-      }
-
-      // If code exists, try next sequence number
-      console.log(
-        `[CustomersService] Customer code ${customerCode} already exists, trying next...`,
-      );
-    }
-
-    // If all retries failed, throw error
-    throw new Error(
-      'Failed to generate unique customer code after multiple attempts',
-    );
-  }
 
   /**
    * Get all userIds that are linked to customer profiles

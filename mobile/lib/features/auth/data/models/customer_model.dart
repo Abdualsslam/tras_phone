@@ -18,7 +18,6 @@ class CustomerModel {
 
   final UserModel? user;
 
-  final String customerCode;
   final String responsiblePersonName;
   final String shopName;
   final String? shopNameAr;
@@ -79,7 +78,6 @@ class CustomerModel {
     required this.id,
     this.userId,
     this.user,
-    required this.customerCode,
     required this.responsiblePersonName,
     required this.shopName,
     this.shopNameAr,
@@ -160,7 +158,6 @@ class CustomerModel {
       id: id,
       userId: userId,
       user: user?.toEntity(),
-      customerCode: customerCode,
       responsiblePersonName: responsiblePersonName,
       shopName: shopName,
       shopNameAr: shopNameAr,

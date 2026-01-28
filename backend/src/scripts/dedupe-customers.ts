@@ -89,8 +89,7 @@ async function dedupeCustomers() {
       const [keep, ...toRemove] = customers;
       if (!keep) continue;
 
-      const keepCode = (keep as any).customerCode;
-      console.log(`userId ${userId}: keep ${keep._id} (${keepCode}), remove ${toRemove.length}`);
+      console.log(`userId ${userId}: keep ${keep._id}, remove ${toRemove.length}`);
 
       for (const c of toRemove) {
         const ordersCount = await db!.collection('orders').countDocuments({ customerId: c._id });

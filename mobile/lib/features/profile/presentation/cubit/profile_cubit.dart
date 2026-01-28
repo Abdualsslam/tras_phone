@@ -64,7 +64,6 @@ class ProfileCubit extends Cubit<ProfileState> {
     print('\n🔹 Basic Information - المعلومات الأساسية:');
     print('  ID: ${customer.id}');
     print('  User ID: ${customer.userId ?? "N/A"}');
-    print('  Customer Code: ${customer.customerCode}');
     print('  Responsible Person Name: ${customer.responsiblePersonName}');
     print('  Shop Name (EN): ${customer.shopName}');
     print('  Shop Name (AR): ${customer.shopNameAr ?? "N/A"}');
@@ -165,7 +164,6 @@ class ProfileCubit extends Cubit<ProfileState> {
           CustomerEntity(
             id: '',
             userId: '',
-            customerCode: '',
             responsiblePersonName: '',
             shopName: '',
             cityId: '',

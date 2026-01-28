@@ -23,7 +23,7 @@
      - حرف كبير واحد على الأقل (A-Z)
      - حرف صغير واحد على الأقل (a-z)
      - رقم واحد على الأقل (0-9)
-     - رمز خاص واحد على الأقل (@$!%*?&)
+     - رمز خاص واحد على الأقل (@$!%\*?&)
 
 3. **`userType`** - نوع المستخدم
    - نوع: `string`
@@ -65,33 +65,31 @@
 flowchart TD
     Start([بدء التسجيل]) --> Validate[التحقق من صحة البيانات]
     Validate --> CheckExists{التحقق من وجود المستخدم}
-    
+
     CheckExists -->|المستخدم موجود| Error1[خطأ: المستخدم موجود مسبقاً]
     CheckExists -->|المستخدم غير موجود| HashPassword[تشفير كلمة المرور]
-    
+
     HashPassword --> GenerateReferral[توليد كود الإحالة]
     GenerateReferral --> CreateUser[إنشاء مستخدم جديد]
-    
+
     CreateUser --> SetStatus[تعيين الحالة: pending]
     SetStatus --> CheckCustomerFields{هل تم إرسال<br/>cityId, responsiblePersonName,<br/>و shopName?}
-    
+
     CheckCustomerFields -->|لا| GenerateTokens
-    CheckCustomerFields -->|نعم| GenerateCustomerCode[توليد كود العميل<br/>مثال: CUS2501001]
-    
-    GenerateCustomerCode --> GetPriceLevel[الحصول على<br/>Default Price Level]
+    CheckCustomerFields -->|نعم| GetPriceLevel[الحصول على<br/>Default Price Level]
     GetPriceLevel --> CheckPriceLevel{هل يوجد<br/>Default Price Level?}
-    
+
     CheckPriceLevel -->|لا| Error2[خطأ: Default Price Level غير موجود]
     CheckPriceLevel -->|نعم| CreateCustomer[إنشاء ملف العميل]
-    
+
     CreateCustomer --> SetDefaults[تعيين القيم الافتراضية:<br/>- creditLimit: 0<br/>- walletBalance: 0<br/>- loyaltyPoints: 0<br/>- loyaltyTier: bronze<br/>- preferredContactMethod: whatsapp]
-    
+
     SetDefaults --> GenerateTokens[توليد JWT Tokens<br/>- accessToken<br/>- refreshToken]
-    
+
     GenerateTokens --> ReturnResponse[إرجاع الاستجابة:<br/>- بيانات المستخدم<br/>- Tokens]
-    
+
     ReturnResponse --> End([نهاية - التسجيل ناجح])
-    
+
     Error1 --> EndError([إنهاء - خطأ])
     Error2 --> LogError[تسجيل الخطأ<br/>عدم إلغاء التسجيل]
     LogError --> GenerateTokens
@@ -113,11 +111,11 @@ flowchart TD
 ```typescript
 // البحث عن مستخدم موجود بنفس رقم الهاتف أو البريد الإلكتروني
 const existingUser = await userModel.findOne({
-  $or: [{ phone }, ...(email ? [{ email }] : [])]
+  $or: [{ phone }, ...(email ? [{ email }] : [])],
 });
 
 if (existingUser) {
-  throw ConflictException('User with this phone or email already exists');
+  throw ConflictException("User with this phone or email already exists");
 }
 ```
 
@@ -142,20 +140,16 @@ if (existingUser) {
 
 **⚠️ يتم فقط إذا تم إرسال `cityId` و `responsiblePersonName` و `shopName`**
 
-#### أ) توليد كود العميل
-- الصيغة: `CUS + سنة (2 أرقام) + شهر (2 أرقام) + رقم تسلسلي (4 أرقام)`
-- مثال: `CUS2501001`
+#### أ) الحصول على Default Price Level
 
-#### ب) الحصول على Default Price Level
 - البحث عن مستوى السعر الافتراضي (isDefault: true, isActive: true)
 - إذا لم يوجد: خطأ ولا يتم إلغاء التسجيل (يتم تسجيل الخطأ فقط)
 
-#### ج) إنشاء ملف العميل
+#### ب) إنشاء ملف العميل
 
 ```typescript
 {
   userId: user._id,
-  customerCode: "CUS2501001",
   responsiblePersonName: "أحمد علي",
   shopName: "Phone Repair Center",
   shopNameAr: "مركز صيانة الجوالات",

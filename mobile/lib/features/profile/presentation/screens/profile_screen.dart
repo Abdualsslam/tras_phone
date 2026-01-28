@@ -242,24 +242,6 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 4.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Text(
-                        customer.customerCode,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ],
@@ -487,13 +469,6 @@ class ProfileScreen extends StatelessWidget {
                 height: 1,
                 indent: 56.w,
                 color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-              ),
-              _buildInfoTile(
-                theme,
-                isDark,
-                Iconsax.code,
-                'كود العميل',
-                customer.customerCode,
               ),
             ],
           ),

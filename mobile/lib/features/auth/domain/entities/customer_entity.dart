@@ -9,7 +9,6 @@ class CustomerEntity extends Equatable {
   final String id;
   final String? userId;
   final UserEntity? user;
-  final String customerCode;
   final String responsiblePersonName;
   final String shopName;
   final String? shopNameAr;
@@ -57,7 +56,6 @@ class CustomerEntity extends Equatable {
     required this.id,
     this.userId,
     this.user,
-    required this.customerCode,
     required this.responsiblePersonName,
     required this.shopName,
     this.shopNameAr,
@@ -95,5 +93,5 @@ class CustomerEntity extends Equatable {
       locale == 'ar' && shopNameAr != null ? shopNameAr! : shopName;
 
   @override
-  List<Object?> get props => [id, customerCode, userId];
+  List<Object?> get props => [id, userId];
 }

@@ -3,6 +3,7 @@
 ## 📋 نظرة عامة
 
 هذا الموديول يتعامل مع:
+
 - ✅ جلب بيانات بروفايل العميل
 - ✅ تحديث بيانات البروفايل
 - ✅ حذف حساب العميل
@@ -21,50 +22,49 @@
 class Customer {
   final String id;
   final String? userId;
-  final String customerCode;
   final String responsiblePersonName;
   final String shopName;
   final String? shopNameAr;
   final String businessType; // 'shop' | 'technician' | 'distributor' | 'other'
-  
+
   // Location
   final String? cityId;
   final String? marketId;
   final String? address;
   final double? latitude;
   final double? longitude;
-  
+
   // Pricing & Credit
   final String? priceLevelId;
   final double creditLimit;
   final double creditUsed;
-  
+
   // Wallet
   final double walletBalance;
-  
+
   // Loyalty
   final int loyaltyPoints;
   final String loyaltyTier; // 'bronze' | 'silver' | 'gold' | 'platinum'
-  
+
   // Statistics
   final int totalOrders;
   final double totalSpent;
   final double averageOrderValue;
   final DateTime? lastOrderAt;
-  
+
   // Preferences
   final String? preferredPaymentMethod;
   final String? preferredShippingTime;
   final String preferredContactMethod; // 'phone' | 'whatsapp' | 'email'
-  
+
   // Social
   final String? instagramHandle;
   final String? twitterHandle;
-  
+
   final DateTime? approvedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
-  
+
   // Populated fields
   final User? user;
   final City? city;
@@ -74,7 +74,6 @@ class Customer {
   Customer({
     required this.id,
     this.userId,
-    required this.customerCode,
     required this.responsiblePersonName,
     required this.shopName,
     this.shopNameAr,
@@ -111,25 +110,24 @@ class Customer {
   factory Customer.fromJson(Map<String, dynamic> json) {
     return Customer(
       id: json['_id'] ?? json['id'],
-      userId: json['userId'] is String 
-          ? json['userId'] 
+      userId: json['userId'] is String
+          ? json['userId']
           : json['userId']?['_id']?.toString(),
-      customerCode: json['customerCode'],
       responsiblePersonName: json['responsiblePersonName'],
       shopName: json['shopName'],
       shopNameAr: json['shopNameAr'],
       businessType: json['businessType'] ?? 'shop',
-      cityId: json['cityId'] is String 
-          ? json['cityId'] 
+      cityId: json['cityId'] is String
+          ? json['cityId']
           : json['cityId']?['_id']?.toString(),
-      marketId: json['marketId'] is String 
-          ? json['marketId'] 
+      marketId: json['marketId'] is String
+          ? json['marketId']
           : json['marketId']?['_id']?.toString(),
       address: json['address'],
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
-      priceLevelId: json['priceLevelId'] is String 
-          ? json['priceLevelId'] 
+      priceLevelId: json['priceLevelId'] is String
+          ? json['priceLevelId']
           : json['priceLevelId']?['_id']?.toString(),
       creditLimit: (json['creditLimit'] as num?)?.toDouble() ?? 0.0,
       creditUsed: (json['creditUsed'] as num?)?.toDouble() ?? 0.0,
@@ -139,38 +137,38 @@ class Customer {
       totalOrders: json['totalOrders'] ?? 0,
       totalSpent: (json['totalSpent'] as num?)?.toDouble() ?? 0.0,
       averageOrderValue: (json['averageOrderValue'] as num?)?.toDouble() ?? 0.0,
-      lastOrderAt: json['lastOrderAt'] != null 
-          ? DateTime.parse(json['lastOrderAt']) 
+      lastOrderAt: json['lastOrderAt'] != null
+          ? DateTime.parse(json['lastOrderAt'])
           : null,
       preferredPaymentMethod: json['preferredPaymentMethod'],
       preferredShippingTime: json['preferredShippingTime'],
       preferredContactMethod: json['preferredContactMethod'] ?? 'whatsapp',
       instagramHandle: json['instagramHandle'],
       twitterHandle: json['twitterHandle'],
-      approvedAt: json['approvedAt'] != null 
-          ? DateTime.parse(json['approvedAt']) 
+      approvedAt: json['approvedAt'] != null
+          ? DateTime.parse(json['approvedAt'])
           : null,
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
       user: json['userId'] is Map ? User.fromJson(json['userId']) : null,
       city: json['cityId'] is Map ? City.fromJson(json['cityId']) : null,
       market: json['marketId'] is Map ? Market.fromJson(json['marketId']) : null,
-      priceLevel: json['priceLevelId'] is Map 
-          ? PriceLevel.fromJson(json['priceLevelId']) 
+      priceLevel: json['priceLevelId'] is Map
+          ? PriceLevel.fromJson(json['priceLevelId'])
           : null,
     );
   }
 
   /// الحصول على اسم المتجر حسب اللغة
-  String getShopName(String locale) => 
+  String getShopName(String locale) =>
       locale == 'ar' && shopNameAr != null ? shopNameAr! : shopName;
-  
+
   /// هل الحساب معتمد؟
   bool get isApproved => approvedAt != null;
-  
+
   /// الرصيد المتاح من الائتمان
   double get availableCredit => creditLimit - creditUsed;
-  
+
   /// هل يمكن الطلب بالائتمان؟
   bool canOrderOnCredit(double amount) => availableCredit >= amount;
 }
@@ -220,7 +218,7 @@ class City {
     );
   }
 
-  String getName(String locale) => 
+  String getName(String locale) =>
       locale == 'ar' && nameAr != null ? nameAr! : name;
 }
 
@@ -347,6 +345,7 @@ class DeleteAccountDto {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response (200 OK):**
+
 ```dart
 {
   "success": true,
@@ -359,7 +358,6 @@ class DeleteAccountDto {
       "userType": "customer",
       "status": "active"
     },
-    "customerCode": "CUST-001",
     "responsiblePersonName": "أحمد محمد",
     "shopName": "Phone Repair Center",
     "shopNameAr": "مركز صيانة الجوالات",
@@ -406,16 +404,17 @@ class DeleteAccountDto {
 ```
 
 **Flutter Code:**
+
 ```dart
 class CustomerProfileService {
   final Dio _dio;
-  
+
   CustomerProfileService(this._dio);
-  
+
   Future<Customer> getProfile() async {
     try {
       final response = await _dio.get('/customer/profile');
-      
+
       if (response.data['success']) {
         return Customer.fromJson(response.data['data']);
       }
@@ -442,6 +441,7 @@ class CustomerProfileService {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body (جميع الحقول اختيارية):**
+
 ```dart
 {
   "responsiblePersonName": "أحمد محمد علي",
@@ -462,6 +462,7 @@ class CustomerProfileService {
 ```
 
 **Response (200 OK):**
+
 ```dart
 {
   "success": true,
@@ -480,6 +481,7 @@ class CustomerProfileService {
 ```
 
 **Flutter Code:**
+
 ```dart
 Future<Customer> updateProfile(UpdateCustomerProfileDto dto) async {
   try {
@@ -487,7 +489,7 @@ Future<Customer> updateProfile(UpdateCustomerProfileDto dto) async {
       '/customer/profile',
       data: dto.toJson(),
     );
-    
+
     if (response.data['success']) {
       return Customer.fromJson(response.data['data']);
     }
@@ -514,6 +516,7 @@ Future<Customer> updateProfile(UpdateCustomerProfileDto dto) async {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body (اختياري):**
+
 ```dart
 {
   "reason": "لا أريد استخدام الخدمة بعد الآن"
@@ -521,6 +524,7 @@ Future<Customer> updateProfile(UpdateCustomerProfileDto dto) async {
 ```
 
 **Response (200 OK):**
+
 ```dart
 {
   "success": true,
@@ -533,6 +537,7 @@ Future<Customer> updateProfile(UpdateCustomerProfileDto dto) async {
 > ⚠️ **ملاحظة مهمة**: هذا حذف ناعم (Soft Delete) - البيانات محفوظة ولكن الحساب غير نشط.
 
 **Flutter Code:**
+
 ```dart
 Future<void> deleteAccount({String? reason}) async {
   try {
@@ -540,7 +545,7 @@ Future<void> deleteAccount({String? reason}) async {
       '/customer/profile',
       data: reason != null ? {'reason': reason} : null,
     );
-    
+
     if (!response.data['success']) {
       throw Exception(response.data['messageAr'] ?? response.data['message']);
     }
@@ -569,6 +574,7 @@ Future<void> deleteAccount({String? reason}) async {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -608,6 +614,7 @@ Future<void> deleteAccount({String? reason}) async {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
+
 ```dart
 {
   "label": "المنزل",
@@ -643,18 +650,18 @@ import 'package:dio/dio.dart';
 
 class CustomerProfileService {
   final Dio _dio;
-  
+
   CustomerProfileService(this._dio);
-  
+
   // ═════════════════════════════════════
   // Profile Operations
   // ═════════════════════════════════════
-  
+
   /// جلب بروفايل العميل
   Future<Customer> getProfile() async {
     try {
       final response = await _dio.get('/customer/profile');
-      
+
       if (response.data['success']) {
         return Customer.fromJson(response.data['data']);
       }
@@ -663,7 +670,7 @@ class CustomerProfileService {
       throw _handleError(e);
     }
   }
-  
+
   /// تحديث بروفايل العميل
   Future<Customer> updateProfile(UpdateCustomerProfileDto dto) async {
     try {
@@ -671,7 +678,7 @@ class CustomerProfileService {
         '/customer/profile',
         data: dto.toJson(),
       );
-      
+
       if (response.data['success']) {
         return Customer.fromJson(response.data['data']);
       }
@@ -680,7 +687,7 @@ class CustomerProfileService {
       throw _handleError(e);
     }
   }
-  
+
   /// حذف حساب العميل
   Future<void> deleteAccount({String? reason}) async {
     try {
@@ -688,7 +695,7 @@ class CustomerProfileService {
         '/customer/profile',
         data: reason != null ? {'reason': reason} : null,
       );
-      
+
       if (!response.data['success']) {
         throw Exception(response.data['messageAr'] ?? response.data['message']);
       }
@@ -696,16 +703,16 @@ class CustomerProfileService {
       throw _handleError(e);
     }
   }
-  
+
   // ═════════════════════════════════════
   // Addresses Operations
   // ═════════════════════════════════════
-  
+
   /// جلب جميع العناوين
   Future<List<Address>> getAddresses() async {
     try {
       final response = await _dio.get('/customer/addresses');
-      
+
       if (response.data['success']) {
         return (response.data['data'] as List)
             .map((a) => Address.fromJson(a))
@@ -716,12 +723,12 @@ class CustomerProfileService {
       throw _handleError(e);
     }
   }
-  
+
   /// جلب عنوان محدد
   Future<Address> getAddressById(String addressId) async {
     try {
       final response = await _dio.get('/customer/addresses/$addressId');
-      
+
       if (response.data['success']) {
         return Address.fromJson(response.data['data']);
       }
@@ -730,7 +737,7 @@ class CustomerProfileService {
       throw _handleError(e);
     }
   }
-  
+
   /// إضافة عنوان جديد
   Future<Address> createAddress(AddressRequest request) async {
     try {
@@ -738,7 +745,7 @@ class CustomerProfileService {
         '/customer/addresses',
         data: request.toJson(),
       );
-      
+
       if (response.data['success']) {
         return Address.fromJson(response.data['data']);
       }
@@ -747,7 +754,7 @@ class CustomerProfileService {
       throw _handleError(e);
     }
   }
-  
+
   /// تحديث عنوان
   Future<Address> updateAddress(
     String addressId,
@@ -758,7 +765,7 @@ class CustomerProfileService {
         '/customer/addresses/$addressId',
         data: updates,
       );
-      
+
       if (response.data['success']) {
         return Address.fromJson(response.data['data']);
       }
@@ -767,12 +774,12 @@ class CustomerProfileService {
       throw _handleError(e);
     }
   }
-  
+
   /// حذف عنوان
   Future<void> deleteAddress(String addressId) async {
     try {
       final response = await _dio.delete('/customer/addresses/$addressId');
-      
+
       if (!response.data['success']) {
         throw Exception(response.data['messageAr'] ?? response.data['message']);
       }
@@ -780,16 +787,16 @@ class CustomerProfileService {
       throw _handleError(e);
     }
   }
-  
+
   /// تعيين عنوان كافتراضي
   Future<Address> setDefaultAddress(String addressId) async {
     return updateAddress(addressId, {'isDefault': true});
   }
-  
+
   // ═════════════════════════════════════
   // Error Handling
   // ═════════════════════════════════════
-  
+
   Exception _handleError(DioException e) {
     if (e.response != null) {
       final data = e.response!.data;
@@ -798,7 +805,7 @@ class CustomerProfileService {
         return Exception(message);
       }
     }
-    
+
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
@@ -829,19 +836,19 @@ class ProfileLoading extends ProfileState {}
 
 class ProfileLoaded extends ProfileState {
   final Customer customer;
-  
+
   ProfileLoaded(this.customer);
 }
 
 class ProfileError extends ProfileState {
   final String message;
-  
+
   ProfileError(this.message);
 }
 
 class ProfileUpdated extends ProfileState {
   final Customer customer;
-  
+
   ProfileUpdated(this.customer);
 }
 
@@ -849,11 +856,11 @@ class ProfileUpdated extends ProfileState {
 class ProfileCubit extends Cubit<ProfileState> {
   final CustomerProfileService _service;
   Customer? _customer;
-  
+
   ProfileCubit(this._service) : super(ProfileInitial());
-  
+
   Customer? get customer => _customer;
-  
+
   /// جلب البروفايل
   Future<void> loadProfile() async {
     emit(ProfileLoading());
@@ -864,7 +871,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(ProfileError(e.toString()));
     }
   }
-  
+
   /// تحديث البروفايل
   Future<void> updateProfile(UpdateCustomerProfileDto dto) async {
     emit(ProfileLoading());
@@ -875,7 +882,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(ProfileError(e.toString()));
     }
   }
-  
+
   /// حذف الحساب
   Future<void> deleteAccount({String? reason}) async {
     emit(ProfileLoading());
@@ -934,10 +941,10 @@ class ProfileScreen extends StatelessWidget {
                 ),
               );
             } else if (state is ProfileLoaded || state is ProfileUpdated) {
-              final customer = (state is ProfileLoaded 
-                  ? state.customer 
+              final customer = (state is ProfileLoaded
+                  ? state.customer
                   : (state as ProfileUpdated).customer);
-              
+
               return RefreshIndicator(
                 onRefresh: () => context.read<ProfileCubit>().loadProfile(),
                 child: ListView(
@@ -946,7 +953,7 @@ class ProfileScreen extends StatelessWidget {
                     // Profile Header
                     _buildProfileHeader(customer),
                     const SizedBox(height: 24),
-                    
+
                     // Business Info
                     _buildSectionTitle('معلومات العمل'),
                     _buildInfoCard(
@@ -964,13 +971,8 @@ class ProfileScreen extends StatelessWidget {
                       title: 'نوع العمل',
                       value: _getBusinessTypeName(customer.businessType),
                     ),
-                    _buildInfoCard(
-                      icon: Icons.code,
-                      title: 'كود العميل',
-                      value: customer.customerCode,
-                    ),
                     const SizedBox(height: 24),
-                    
+
                     // Location Info
                     _buildSectionTitle('الموقع'),
                     if (customer.city != null)
@@ -986,17 +988,17 @@ class ProfileScreen extends StatelessWidget {
                         value: customer.address!,
                       ),
                     const SizedBox(height: 24),
-                    
+
                     // Statistics
                     _buildSectionTitle('الإحصائيات'),
                     _buildStatsGrid(customer),
                     const SizedBox(height: 24),
-                    
+
                     // Wallet & Credit
                     _buildSectionTitle('المحفظة والائتمان'),
                     _buildWalletCard(customer),
                     const SizedBox(height: 24),
-                    
+
                     // Actions
                     ElevatedButton.icon(
                       onPressed: () => Navigator.pushNamed(context, '/addresses'),
@@ -1019,7 +1021,7 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildProfileHeader(Customer customer) {
     return Card(
       child: Padding(
@@ -1076,7 +1078,7 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -1089,7 +1091,7 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildInfoCard({
     required IconData icon,
     required String title,
@@ -1104,7 +1106,7 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildStatsGrid(Customer customer) {
     return GridView.count(
       crossAxisCount: 2,
@@ -1141,7 +1143,7 @@ class ProfileScreen extends StatelessWidget {
       ],
     );
   }
-  
+
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Card(
       color: color.withOpacity(0.1),
@@ -1173,7 +1175,7 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildWalletCard(Customer customer) {
     return Card(
       color: Colors.blue.shade50,
@@ -1231,8 +1233,8 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             LinearProgressIndicator(
-              value: customer.creditLimit > 0 
-                  ? customer.creditUsed / customer.creditLimit 
+              value: customer.creditLimit > 0
+                  ? customer.creditUsed / customer.creditLimit
                   : 0,
               backgroundColor: Colors.grey.shade300,
             ),
@@ -1249,7 +1251,7 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   String _getBusinessTypeName(String type) {
     switch (type) {
       case 'shop':
@@ -1264,7 +1266,7 @@ class ProfileScreen extends StatelessWidget {
         return type;
     }
   }
-  
+
   void _showDeleteAccountDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -1302,9 +1304,9 @@ class ProfileScreen extends StatelessWidget {
 ```dart
 class EditProfileScreen extends StatefulWidget {
   final Customer customer;
-  
+
   const EditProfileScreen({required this.customer});
-  
+
   @override
   _EditProfileScreenState createState() => _EditProfileScreenState();
 }
@@ -1319,7 +1321,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _selectedCityId;
   String? _selectedPaymentMethod;
   String? _selectedContactMethod;
-  
+
   @override
   void initState() {
     super.initState();
@@ -1335,7 +1337,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _selectedPaymentMethod = c.preferredPaymentMethod;
     _selectedContactMethod = c.preferredContactMethod;
   }
-  
+
   @override
   void dispose() {
     _responsiblePersonNameController.dispose();
@@ -1344,7 +1346,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _addressController.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1443,23 +1445,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
   }
-  
+
   void _saveProfile() {
     if (_formKey.currentState!.validate()) {
       final dto = UpdateCustomerProfileDto(
         responsiblePersonName: _responsiblePersonNameController.text,
         shopName: _shopNameController.text,
-        shopNameAr: _shopNameArController.text.isEmpty 
-            ? null 
+        shopNameAr: _shopNameArController.text.isEmpty
+            ? null
             : _shopNameArController.text,
         businessType: _selectedBusinessType,
-        address: _addressController.text.isEmpty 
-            ? null 
+        address: _addressController.text.isEmpty
+            ? null
             : _addressController.text,
         preferredPaymentMethod: _selectedPaymentMethod,
         preferredContactMethod: _selectedContactMethod,
       );
-      
+
       context.read<ProfileCubit>().updateProfile(dto);
     }
   }
@@ -1470,35 +1472,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
 ## 📝 ملخص الـ Endpoints
 
-| Method | Endpoint | Auth | الوصف |
-|--------|----------|------|-------|
-| GET | `/customer/profile` | ✅ | جلب بروفايل العميل |
-| PUT | `/customer/profile` | ✅ | تحديث بروفايل العميل |
-| DELETE | `/customer/profile` | ✅ | حذف حساب العميل |
-| GET | `/customer/addresses` | ✅ | جلب جميع العناوين |
-| GET | `/customer/addresses/:id` | ✅ | جلب عنوان محدد |
-| POST | `/customer/addresses` | ✅ | إضافة عنوان جديد |
-| PUT | `/customer/addresses/:id` | ✅ | تحديث عنوان |
-| DELETE | `/customer/addresses/:id` | ✅ | حذف عنوان |
+| Method | Endpoint                  | Auth | الوصف                |
+| ------ | ------------------------- | ---- | -------------------- |
+| GET    | `/customer/profile`       | ✅   | جلب بروفايل العميل   |
+| PUT    | `/customer/profile`       | ✅   | تحديث بروفايل العميل |
+| DELETE | `/customer/profile`       | ✅   | حذف حساب العميل      |
+| GET    | `/customer/addresses`     | ✅   | جلب جميع العناوين    |
+| GET    | `/customer/addresses/:id` | ✅   | جلب عنوان محدد       |
+| POST   | `/customer/addresses`     | ✅   | إضافة عنوان جديد     |
+| PUT    | `/customer/addresses/:id` | ✅   | تحديث عنوان          |
+| DELETE | `/customer/addresses/:id` | ✅   | حذف عنوان            |
 
 ---
 
 ## ⚠️ ملاحظات مهمة
 
 ### حالة الحساب (Account Status)
+
 - الحساب يمكن أن يكون في حالة `pending` (قيد المراجعة) حتى يتم اعتماده من قبل الإدارة
 - عند حذف الحساب، يتم عمل Soft Delete - البيانات محفوظة ولكن الحساب غير نشط
 
 ### الائتمان (Credit)
+
 - `creditLimit`: الحد الأقصى للائتمان المسموح به
 - `creditUsed`: المبلغ المستخدم من الائتمان
 - `availableCredit`: المبلغ المتاح = `creditLimit - creditUsed`
 
 ### نقاط الولاء (Loyalty Points)
+
 - يتم تجميع النقاط عند إتمام الطلبات
 - يمكن استبدال النقاط (راجع [wallet.md](./10-wallet.md))
 
 ### العناوين
+
 - يمكن للعميل إضافة عناوين متعددة
 - عنوان واحد فقط يمكن أن يكون افتراضي (`isDefault: true`)
 - عند تعيين عنوان كافتراضي، يتم إلغاء العنوان الافتراضي السابق تلقائياً

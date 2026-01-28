@@ -18,9 +18,6 @@ export class Customer {
     @Prop({ type: Types.ObjectId, ref: 'User', required: true, unique: true })
     userId: Types.ObjectId;
 
-    @Prop({ required: true, unique: true })
-    customerCode: string;
-
     // ═════════════════════════════════════
     // Business Info
     // ═════════════════════════════════════
@@ -205,7 +202,6 @@ export const CustomerSchema = SchemaFactory.createForClass(Customer);
 // Indexes
 // ═════════════════════════════════════
 CustomerSchema.index({ userId: 1 }, { unique: true });
-CustomerSchema.index({ customerCode: 1 });
 CustomerSchema.index({ cityId: 1 });
 CustomerSchema.index({ priceLevelId: 1 });
 CustomerSchema.index({ loyaltyTier: 1 });

@@ -83,7 +83,6 @@ export interface Customer {
     taxNumber?: string;
     commercialRegister?: string;
     tier?: string;
-    customerCode?: string;
     businessType?: string;
     cityId?: string | { _id: string; name: string; nameAr: string };
     priceLevelId?: string | { _id: string; name: string; nameAr?: string; discount?: number };

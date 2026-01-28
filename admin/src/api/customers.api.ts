@@ -99,7 +99,6 @@ const transformCustomer = (customer: any): Customer => {
         taxNumber: customer.taxNumber,
         commercialRegister: customer.commercialLicenseNumber,
         tier: customer.loyaltyTier,
-        customerCode: customer.customerCode,
         businessType: customer.businessType,
         cityId: customer.cityId,
         priceLevelId: customer.priceLevelId,
