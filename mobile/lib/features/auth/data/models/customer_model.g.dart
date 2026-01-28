@@ -13,7 +13,6 @@ CustomerModel _$CustomerModelFromJson(Map<String, dynamic> json) =>
       user: json['user'] == null
           ? null
           : UserModel.fromJson(json['user'] as Map<String, dynamic>),
-      customerCode: json['customerCode'] as String,
       responsiblePersonName: json['responsiblePersonName'] as String,
       shopName: json['shopName'] as String,
       shopNameAr: json['shopNameAr'] as String?,
@@ -55,7 +54,6 @@ Map<String, dynamic> _$CustomerModelToJson(CustomerModel instance) =>
       'id': instance.id,
       'userId': instance.userId,
       'user': instance.user,
-      'customerCode': instance.customerCode,
       'responsiblePersonName': instance.responsiblePersonName,
       'shopName': instance.shopName,
       'shopNameAr': instance.shopNameAr,

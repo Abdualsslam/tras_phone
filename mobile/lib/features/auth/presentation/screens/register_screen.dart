@@ -470,8 +470,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           );
                         }
 
+                        // Find matching city from current list by ID
+                        // This ensures the value matches an item in the list
+                        // Since CityModel doesn't implement ==, we need to find by ID
+                        CityModel? safeSelectedCity;
+                        if (_selectedCity != null) {
+                          try {
+                            safeSelectedCity = locationsState.cities.firstWhere(
+                              (city) => city.id == _selectedCity!.id,
+                            );
+                          } catch (e) {
+                            // City not found in current list, set to null
+                            safeSelectedCity = null;
+                          }
+                        }
+
                         return DropdownButtonFormField<CityModel>(
-                          value: _selectedCity,
+                          value: safeSelectedCity,
                           decoration: InputDecoration(
                             prefixIcon: Icon(
                               Iconsax.location,
