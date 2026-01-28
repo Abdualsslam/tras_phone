@@ -13,7 +13,8 @@ class ApiEndpoints {
   static const String refreshToken = '/auth/refresh';
   static const String sendOtp = '/auth/send-otp';
   static const String verifyOtp = '/auth/verify-otp';
-  static const String forgotPassword = '/auth/forgot-password'; // Legacy - kept for backward compatibility
+  static const String forgotPassword =
+      '/auth/forgot-password'; // Legacy - kept for backward compatibility
   static const String requestPasswordReset = '/auth/request-password-reset';
   static const String verifyResetOtp = '/auth/verify-reset-otp';
   static const String resetPassword = '/auth/reset-password';
@@ -37,12 +38,15 @@ class ApiEndpoints {
   // CATALOG ENDPOINTS
   // ═══════════════════════════════════════════════════════════════════════════
   static const String brands = '/catalog/brands';
-  static String brandProducts(String brandId) => '/catalog/brands/$brandId/products';
+  static String brandProducts(String brandId) =>
+      '/catalog/brands/$brandId/products';
   static const String categories = '/catalog/categories';
   static const String categoriesTree = '/catalog/categories/tree';
-  static String categoryProducts(String identifier) => '/catalog/categories/$identifier/products';
+  static String categoryProducts(String identifier) =>
+      '/catalog/categories/$identifier/products';
   static const String devices = '/catalog/devices';
-  static String deviceProducts(String identifier) => '/catalog/devices/$identifier/products';
+  static String deviceProducts(String identifier) =>
+      '/catalog/devices/$identifier/products';
   static const String qualityTypes = '/catalog/quality-types';
   static const String products = '/products';
   static const String productsSearch = '/products/search';
@@ -83,7 +87,7 @@ class ApiEndpoints {
   static const String removeCoupon = '/cart/coupon';
   static const String checkoutSummary = '/checkout/summary';
   static const String placeOrder = '/checkout/place-order';
-  static const String paymentMethods = '/checkout/payment-methods';
+  static const String paymentMethods = '/settings/payment-methods';
   static const String bankAccounts = '/bank-accounts';
   static const String calculateShipping = '/checkout/calculate-shipping';
   static const String validateCoupon = '/coupons/validate';
@@ -99,7 +103,8 @@ class ApiEndpoints {
   static const String ordersStats = '/orders/stats';
   static const String ordersRecent = '/orders/recent';
   static const String ordersPendingPayment = '/orders/pending-payment';
-  static String orderUploadReceipt(String orderId) => '/orders/$orderId/upload-receipt';
+  static String orderUploadReceipt(String orderId) =>
+      '/orders/$orderId/upload-receipt';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RETURNS
@@ -115,12 +120,12 @@ class ApiEndpoints {
   static const String tickets = '/tickets';
   static const String supportCategories = '/support/categories';
   static const String ticketUpload = '/tickets/upload';
-  
+
   // Ticket endpoints
   static String ticketDetails(String id) => '/tickets/my/$id';
   static String ticketMessages(String id) => '/tickets/my/$id/messages';
   static String ticketRate(String id) => '/tickets/my/$id/rate';
-  
+
   // Live Chat
   static const String chatStart = '/chat/start';
   static const String chatMySession = '/chat/my-session';
@@ -145,7 +150,8 @@ class ApiEndpoints {
   static const String pages = '/pages';
   static const String faqs = '/faqs';
   static const String banners = '/banners';
-  static String bannersImpression(String id) => '/content/banners/$id/impression';
+  static String bannersImpression(String id) =>
+      '/content/banners/$id/impression';
   static String bannersClick(String id) => '/content/banners/$id/click';
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -154,7 +160,8 @@ class ApiEndpoints {
   static const String locationsCountries = '/locations/countries';
   static const String locationsCities = '/locations/cities';
   static const String locationsMarkets = '/locations/markets';
-  static const String locationsShippingCalculate = '/locations/shipping/calculate';
+  static const String locationsShippingCalculate =
+      '/locations/shipping/calculate';
   static const String locationsShippingZones = '/locations/shipping-zones';
 
   // ═══════════════════════════════════════════════════════════════════════════
