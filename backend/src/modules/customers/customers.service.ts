@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Customer, CustomerDocument } from './schemas/customer.schema';
 import {
   CustomerAddress,
@@ -129,18 +129,36 @@ export class CustomersService {
     priceLevelId: string,
     responsiblePersonName: string = 'Customer',
   ): Promise<CustomerDocument> {
+    // First, check if customer already exists
+    const existingCustomer = await this.findByUserId(userId);
+
+    if (existingCustomer) {
+      console.log(
+        '[CustomersService] Customer already exists, returning existing customer:',
+        {
+          userId,
+          customerId: existingCustomer._id.toString(),
+        },
+      );
+      return existingCustomer;
+    }
+
+    // Convert userId to ObjectId
+    const userIdObjectId = new Types.ObjectId(userId);
+    const priceLevelIdObjectId = new Types.ObjectId(priceLevelId);
+
     return this.retryWithBackoff(async () => {
       // Use findOneAndUpdate with upsert for atomic operation
       const customer = await this.customerModel.findOneAndUpdate(
-        { userId },
+        { userId: userIdObjectId },
         {
           $setOnInsert: {
-            userId,
+            userId: userIdObjectId,
             responsiblePersonName,
             shopName: 'My Shop',
             businessType: 'shop',
             // cityId is optional - will be updated later
-            priceLevelId,
+            priceLevelId: priceLevelIdObjectId,
             creditLimit: 0,
             walletBalance: 0,
             loyaltyPoints: 0,
@@ -166,7 +184,7 @@ export class CustomersService {
       if (!isNewCustomer) {
         // Customer already existed - return it
         console.log(
-          '[CustomersService] Customer already exists, returning existing customer',
+          '[CustomersService] Customer already exists (from upsert), returning existing customer',
         );
       } else {
         console.log(
@@ -337,12 +355,27 @@ export class CustomersService {
    * Find customer by user ID
    */
   async findByUserId(userId: string): Promise<CustomerDocument | null> {
-    return this.customerModel
-      .findOne({ userId })
+    // Convert userId to ObjectId to ensure proper matching
+    const userIdObjectId = new Types.ObjectId(userId);
+
+    console.log('[CustomersService] findByUserId:', {
+      userId,
+      userIdObjectId: userIdObjectId.toString(),
+    });
+
+    const customer = await this.customerModel
+      .findOne({ userId: userIdObjectId })
       .populate('userId', '_id phone email userType status')
       .populate('cityId', 'name nameAr')
       .populate('marketId', 'name nameAr')
       .populate('priceLevelId', 'name discount');
+
+    console.log('[CustomersService] findByUserId result:', {
+      found: !!customer,
+      customerId: customer?._id?.toString(),
+    });
+
+    return customer;
   }
 
   /**
