@@ -758,7 +758,12 @@ export class SettingsService {
 
     async findActivePaymentMethods(platform?: string): Promise<PaymentMethod[]> {
         const query: any = { isActive: true };
-        if (platform) query.platforms = platform;
+        if (platform) {
+            // Normalize android/ios -> mobile; DB uses "web" | "mobile" only
+            const normalized =
+                platform === 'android' || platform === 'ios' ? 'mobile' : platform;
+            query.platforms = normalized;
+        }
 
         return this.paymentMethodModel
             .find(query)

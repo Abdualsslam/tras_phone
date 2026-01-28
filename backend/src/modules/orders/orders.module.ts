@@ -18,11 +18,13 @@ import { CartService } from './cart.service';
 import { OrdersService } from './orders.service';
 import {
   CartController,
+  CheckoutController,
   OrdersController,
   BankAccountsController,
   AdminOrdersController,
 } from './orders.controller';
 import { AuthModule } from '@modules/auth/auth.module';
+import { SettingsModule } from '@modules/settings/settings.module';
 import { PromotionsModule } from '@modules/promotions/promotions.module';
 import { ProductsModule } from '@modules/products/products.module';
 import { InventoryModule } from '@modules/inventory/inventory.module';
@@ -52,6 +54,7 @@ import { CustomersModule } from '@modules/customers/customers.module';
       inject: [ConfigService],
     }),
     AuthModule,
+    SettingsModule,
     PromotionsModule,
     ProductsModule,
     InventoryModule,
@@ -59,6 +62,7 @@ import { CustomersModule } from '@modules/customers/customers.module';
   ],
   controllers: [
     CartController,
+    CheckoutController,
     OrdersController,
     BankAccountsController,
     AdminOrdersController,

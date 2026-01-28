@@ -78,6 +78,10 @@ export class Order {
   @Prop({ type: Number, default: 0 })
   paidAmount: number;
 
+  /** Order currency (e.g. SAR). Default SAR. */
+  @Prop({ type: String, default: 'SAR' })
+  currencyCode: string;
+
   // ═════════════════════════════════════
   // Payment
   // ═════════════════════════════════════

@@ -104,7 +104,7 @@ export class OrdersService {
     const discount = cart.discount; // Other discounts (promotions)
     const total = subtotal - discount - couponDiscount + taxAmount + shippingCost;
 
-    // Create order
+    // Create order (currency default SAR)
     const order = await this.orderModel.create({
       orderNumber,
       customerId,
@@ -115,6 +115,7 @@ export class OrdersService {
       discount,
       couponDiscount,
       total,
+      currencyCode: 'SAR',
       couponId,
       couponCode,
       appliedPromotions: cart.appliedPromotions,

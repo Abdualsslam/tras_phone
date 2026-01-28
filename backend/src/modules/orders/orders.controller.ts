@@ -39,6 +39,7 @@ import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { RateOrderDto } from './dto/rate-order.dto';
 import { CartService } from './cart.service';
 import { OrdersService } from './orders.service';
+import { SettingsService } from '@modules/settings/settings.service';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 import { RolesGuard } from '@guards/roles.guard';
 import { Roles } from '@decorators/roles.decorator';
@@ -240,6 +241,47 @@ export class CartController {
       },
       'Cart synced successfully',
       'تمت مزامنة السلة بنجاح',
+    );
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * 🛒 Checkout Controller (payment methods for order flow)
+ * ═══════════════════════════════════════════════════════════════
+ */
+@ApiTags('Checkout')
+@Controller('checkout')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT-auth')
+export class CheckoutController {
+  constructor(private readonly settingsService: SettingsService) {}
+
+  @Get('payment-methods')
+  @ApiOperation({
+    summary: 'Get payment methods for checkout',
+    description:
+      'Active payment methods for order placement. Optional platform filter (web|mobile|android|ios).',
+  })
+  @ApiQuery({
+    name: 'platform',
+    required: false,
+    enum: ['web', 'mobile', 'android', 'ios'],
+    description: 'Platform filter; android/ios normalized to mobile',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment methods retrieved',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async getPaymentMethods(@Query('platform') platform?: string) {
+    const methods =
+      await this.settingsService.findActivePaymentMethods(platform);
+    return ResponseBuilder.success(
+      methods,
+      'Payment methods retrieved',
+      'تم استرجاع طرق الدفع',
     );
   }
 }
