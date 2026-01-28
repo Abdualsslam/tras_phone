@@ -238,7 +238,11 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     developer.log('Fetching payment methods', name: 'OrdersDataSource');
 
     final response = await _apiClient.get(ApiEndpoints.paymentMethods);
-    final data = response.data['data'] ?? response.data;
+    dynamic data = response.data['data'] ?? response.data;
+    // Handle double-nested { data: { data: [...] } } from some backends
+    if (data is! List && data is Map && data['data'] is List) {
+      data = data['data'];
+    }
 
     if (data is List) {
       return data.cast<Map<String, dynamic>>();

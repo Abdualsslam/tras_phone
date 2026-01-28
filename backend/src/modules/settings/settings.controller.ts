@@ -167,7 +167,9 @@ export class SettingsController {
   async getPaymentMethods(@Query('platform') platform?: string) {
     const methods =
       await this.settingsService.findActivePaymentMethods(platform);
-    return ResponseBuilder.success(methods);
+    // Return raw array so TransformInterceptor wraps once as { data: methods }.
+    // ResponseBuilder.success() here would double-wrap; mobile expects data = array.
+    return methods as any;
   }
 
   // ==================== Notification Settings ====================
