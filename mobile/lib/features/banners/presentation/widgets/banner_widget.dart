@@ -26,10 +26,7 @@ class BannerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = banner.media.getImage(
-      locale: locale,
-      isMobile: isMobile,
-    );
+    final imageUrl = banner.media.getImage(locale: locale, isMobile: isMobile);
 
     return BlocProvider.value(
       value: context.read<BannersCubit>(),
@@ -42,6 +39,7 @@ class BannerWidget extends StatelessWidget {
           }
         },
         child: _BannerContent(
+          key: ValueKey('banner_content_${banner.id}'),
           banner: banner,
           imageUrl: imageUrl,
           locale: locale,
@@ -57,6 +55,7 @@ class _BannerContent extends StatefulWidget {
   final String locale;
 
   const _BannerContent({
+    super.key,
     required this.banner,
     required this.imageUrl,
     required this.locale,
@@ -73,12 +72,13 @@ class _BannerContentState extends State<_BannerContent> {
   void initState() {
     super.initState();
     // Track impression when widget is first displayed
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_hasTrackedImpression) {
-        context.read<BannersCubit>().trackImpression(widget.banner.id);
-        _hasTrackedImpression = true;
-      }
-    });
+    // Disabled: Impression tracking is currently disabled
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   if (mounted && !_hasTrackedImpression) {
+    //     context.read<BannersCubit>().trackImpression(widget.banner.id);
+    //     _hasTrackedImpression = true;
+    //   }
+    // });
   }
 
   @override
@@ -103,9 +103,7 @@ class _BannerContentState extends State<_BannerContent> {
                 height: 200.h,
                 color: Colors.grey.shade300,
                 child: const Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               ),
               errorWidget: (context, url, error) {
@@ -122,11 +120,9 @@ class _BannerContentState extends State<_BannerContent> {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: widget.banner.content
-                        .getOverlayColor()
-                        ?.withOpacity(
-                          widget.banner.content.overlayOpacity ?? 0.3,
-                        ),
+                    color: widget.banner.content.getOverlayColor()?.withOpacity(
+                      widget.banner.content.overlayOpacity ?? 0.3,
+                    ),
                     borderRadius: AppTheme.radiusLg,
                   ),
                 ),
@@ -150,7 +146,8 @@ class _BannerContentState extends State<_BannerContent> {
                           style: TextStyle(
                             fontSize: 28.sp,
                             fontWeight: FontWeight.bold,
-                            color: widget.banner.content.getTextColor() ??
+                            color:
+                                widget.banner.content.getTextColor() ??
                                 Colors.white,
                           ),
                         ),
@@ -161,7 +158,8 @@ class _BannerContentState extends State<_BannerContent> {
                           widget.banner.content.getSubheading(widget.locale)!,
                           style: TextStyle(
                             fontSize: 16.sp,
-                            color: widget.banner.content.getTextColor() ??
+                            color:
+                                widget.banner.content.getTextColor() ??
                                 Colors.white,
                           ),
                         ),
@@ -171,9 +169,9 @@ class _BannerContentState extends State<_BannerContent> {
                         SizedBox(height: 16.h),
                         ElevatedButton(
                           onPressed: () {
-                            context
-                                .read<BannersCubit>()
-                                .trackClick(widget.banner.id);
+                            context.read<BannersCubit>().trackClick(
+                              widget.banner.id,
+                            );
                             BannerNavigationHelper.handleBannerTap(
                               context,
                               widget.banner,

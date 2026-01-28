@@ -118,6 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   )
                   .map(
                     (banner) => PopupBannerWidget(
+                      key: ValueKey('popup_banner_${banner.id}'),
                       banner: banner,
                       locale: locale,
                       isMobile: isMobile,

@@ -62,6 +62,7 @@ import '../../features/banners/data/services/banners_service.dart';
 import '../../features/banners/presentation/cubit/banners_cubit.dart';
 import '../cache/hive_cache_service.dart';
 import '../../features/home/data/services/home_cache_service.dart';
+import '../../features/catalog/data/services/product_cache_service.dart';
 import '../cubit/theme_cubit.dart';
 import '../services/biometric_service.dart';
 import '../services/share_service.dart';
@@ -107,6 +108,9 @@ Future<void> setupDependencies() async {
   final homeCacheService = HomeCacheService(hiveCacheService);
   getIt.registerSingleton<HomeCacheService>(homeCacheService);
 
+  final productCacheService = ProductCacheService(hiveCacheService);
+  getIt.registerSingleton<ProductCacheService>(productCacheService);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // AUTH FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
@@ -143,6 +147,7 @@ Future<void> setupDependencies() async {
   getIt.registerLazySingleton<CatalogRepository>(
     () => CatalogRepositoryImpl(
       remoteDataSource: getIt<CatalogRemoteDataSource>(),
+      cacheService: getIt<ProductCacheService>(),
     ),
   );
 
@@ -446,8 +451,7 @@ Future<void> setupDependencies() async {
 
   // Theme Cubit
   getIt.registerLazySingleton<ThemeCubit>(
-    () => ThemeCubit(localStorage: getIt<LocalStorage>())
-      ..loadSavedTheme(),
+    () => ThemeCubit(localStorage: getIt<LocalStorage>())..loadSavedTheme(),
   );
 
   // Biometric Service
@@ -459,9 +463,7 @@ Future<void> setupDependencies() async {
   );
 
   // Share Service
-  getIt.registerLazySingleton<ShareService>(
-    () => ShareService(),
-  );
+  getIt.registerLazySingleton<ShareService>(() => ShareService());
 }
 
 /// Handle forced logout when token refresh fails

@@ -29,10 +29,9 @@ class PopupBannerWidget extends StatelessWidget {
     return BlocProvider.value(
       value: context.read<BannersCubit>(),
       child: Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: AppTheme.radiusLg,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: AppTheme.radiusLg),
         child: _PopupBannerContent(
+          key: ValueKey('popup_banner_content_${banner.id}'),
           banner: banner,
           locale: locale,
           isMobile: isMobile,
@@ -48,6 +47,7 @@ class _PopupBannerContent extends StatefulWidget {
   final bool isMobile;
 
   const _PopupBannerContent({
+    super.key,
     required this.banner,
     required this.locale,
     required this.isMobile,
@@ -64,12 +64,13 @@ class _PopupBannerContentState extends State<_PopupBannerContent> {
   void initState() {
     super.initState();
     // Track impression when popup is shown
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_hasTrackedImpression) {
-        context.read<BannersCubit>().trackImpression(widget.banner.id);
-        _hasTrackedImpression = true;
-      }
-    });
+    // Disabled: Impression tracking is currently disabled
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   if (mounted && !_hasTrackedImpression) {
+    //     context.read<BannersCubit>().trackImpression(widget.banner.id);
+    //     _hasTrackedImpression = true;
+    //   }
+    // });
   }
 
   @override
@@ -91,9 +92,7 @@ class _PopupBannerContentState extends State<_PopupBannerContent> {
               height: 300.h,
               color: Colors.grey.shade300,
               child: const Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
             errorWidget: (context, url, error) {
@@ -129,10 +128,7 @@ class _PopupBannerContentState extends State<_PopupBannerContent> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.7),
-                  ],
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                 ),
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(16),
@@ -156,9 +152,9 @@ class _PopupBannerContentState extends State<_PopupBannerContent> {
                     SizedBox(height: 12.h),
                     ElevatedButton(
                       onPressed: () {
-                        context
-                            .read<BannersCubit>()
-                            .trackClick(widget.banner.id);
+                        context.read<BannersCubit>().trackClick(
+                          widget.banner.id,
+                        );
                         Navigator.pop(context);
                         BannerNavigationHelper.handleBannerTap(
                           context,

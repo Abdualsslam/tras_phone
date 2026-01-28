@@ -52,8 +52,9 @@ class _BannerSliderState extends State<BannerSlider> {
         return;
       }
 
-      final heroBanners =
-          widget.banners.where((b) => b.type == BannerType.hero).toList();
+      final heroBanners = widget.banners
+          .where((b) => b.type == BannerType.hero)
+          .toList();
       final promotionalBanners = widget.banners
           .where((b) => b.type == BannerType.promotional)
           .toList();
@@ -85,14 +86,16 @@ class _BannerSliderState extends State<BannerSlider> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     // Filter banners by type
-    final heroBanners =
-        widget.banners.where((b) => b.type == BannerType.hero).toList();
+    final heroBanners = widget.banners
+        .where((b) => b.type == BannerType.hero)
+        .toList();
     final promotionalBanners = widget.banners
         .where((b) => b.type == BannerType.promotional)
         .toList();
 
-    final bannerList =
-        promotionalBanners.isNotEmpty ? promotionalBanners : heroBanners;
+    final bannerList = promotionalBanners.isNotEmpty
+        ? promotionalBanners
+        : heroBanners;
     final itemCount = bannerList.length;
 
     return Column(
@@ -113,6 +116,7 @@ class _BannerSliderState extends State<BannerSlider> {
 
               // Use new BannerWidget for better functionality
               return BannerWidget(
+                key: ValueKey('banner_${banner.id}'),
                 banner: banner,
                 locale: locale,
                 isMobile: isMobile,
@@ -130,8 +134,7 @@ class _BannerSliderState extends State<BannerSlider> {
               dotHeight: 8.w,
               spacing: 6.w,
               activeDotColor: AppColors.primary,
-              dotColor:
-                  isDark ? AppColors.dividerDark : AppColors.dividerLight,
+              dotColor: isDark ? AppColors.dividerDark : AppColors.dividerLight,
             ),
           ),
       ],

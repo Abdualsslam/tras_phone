@@ -13,13 +13,18 @@ import '../datasources/catalog_remote_datasource.dart';
 import '../models/product_filter_query.dart';
 import '../models/product_model.dart';
 import '../models/product_review_model.dart';
+import '../services/product_cache_service.dart';
 
 /// Implementation of CatalogRepository using remote data source
 class CatalogRepositoryImpl implements CatalogRepository {
   final CatalogRemoteDataSource _remoteDataSource;
+  final ProductCacheService? _cacheService;
 
-  CatalogRepositoryImpl({required CatalogRemoteDataSource remoteDataSource})
-      : _remoteDataSource = remoteDataSource;
+  CatalogRepositoryImpl({
+    required CatalogRemoteDataSource remoteDataSource,
+    ProductCacheService? cacheService,
+  }) : _remoteDataSource = remoteDataSource,
+       _cacheService = cacheService;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BRANDS
@@ -40,7 +45,9 @@ class CatalogRepositoryImpl implements CatalogRepository {
     try {
       final brand = await _remoteDataSource.getBrandBySlug(slug);
       if (brand == null) {
-        return const Left(NotFoundFailure(message: 'العلامة التجارية غير موجودة'));
+        return const Left(
+          NotFoundFailure(message: 'العلامة التجارية غير موجودة'),
+        );
       }
       return Right(brand);
     } catch (e) {
@@ -53,7 +60,9 @@ class CatalogRepositoryImpl implements CatalogRepository {
     try {
       final brand = await _remoteDataSource.getBrandById(id);
       if (brand == null) {
-        return const Left(NotFoundFailure(message: 'العلامة التجارية غير موجودة'));
+        return const Left(
+          NotFoundFailure(message: 'العلامة التجارية غير موجودة'),
+        );
       }
       return Right(brand);
     } catch (e) {
@@ -72,6 +81,35 @@ class CatalogRepositoryImpl implements CatalogRepository {
     String? sortOrder,
   }) async {
     try {
+      // Try to get from cache first
+      if (_cacheService != null) {
+        final cachedData = await _cacheService!.getProductsList(
+          brandId: brandId,
+          page: page,
+        );
+        if (cachedData != null &&
+            await _cacheService!.isProductsListCacheValid(
+              brandId: brandId,
+              page: page,
+            )) {
+          // Load fresh data in background
+          _loadBrandProductsInBackground(
+            brandId,
+            page: page,
+            limit: limit,
+            minPrice: minPrice,
+            maxPrice: maxPrice,
+            sortBy: sortBy,
+            sortOrder: sortOrder,
+          );
+          return Right({
+            'products': cachedData.products,
+            'pagination': cachedData.pagination,
+          });
+        }
+      }
+
+      // If no cache or expired, load from API
       final result = await _remoteDataSource.getBrandProducts(
         brandId,
         page: page,
@@ -81,9 +119,55 @@ class CatalogRepositoryImpl implements CatalogRepository {
         sortBy: sortBy,
         sortOrder: sortOrder,
       );
+
+      // Save to cache
+      if (_cacheService != null) {
+        final products = result['products'] as List<ProductEntity>;
+        await _cacheService!.saveProductsList(
+          products: products,
+          pagination: result['pagination'] as Map<String, dynamic>?,
+          brandId: brandId,
+          page: page,
+        );
+      }
+
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  /// Load brand products in background and update cache
+  Future<void> _loadBrandProductsInBackground(
+    String brandId, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+  }) async {
+    try {
+      final result = await _remoteDataSource.getBrandProducts(
+        brandId,
+        page: page,
+        limit: limit,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+      );
+      if (_cacheService != null) {
+        final products = result['products'] as List<ProductEntity>;
+        await _cacheService!.saveProductsList(
+          products: products,
+          pagination: result['pagination'] as Map<String, dynamic>?,
+          brandId: brandId,
+          page: page,
+        );
+      }
+    } catch (e) {
+      // Ignore background update errors
     }
   }
 
@@ -151,6 +235,37 @@ class CatalogRepositoryImpl implements CatalogRepository {
     String? qualityTypeId,
   }) async {
     try {
+      // Try to get from cache first
+      if (_cacheService != null) {
+        final cachedData = await _cacheService!.getProductsList(
+          categoryId: categoryIdentifier,
+          page: page,
+        );
+        if (cachedData != null &&
+            await _cacheService!.isProductsListCacheValid(
+              categoryId: categoryIdentifier,
+              page: page,
+            )) {
+          // Load fresh data in background
+          _loadCategoryProductsInBackground(
+            categoryIdentifier,
+            page: page,
+            limit: limit,
+            minPrice: minPrice,
+            maxPrice: maxPrice,
+            sortBy: sortBy,
+            sortOrder: sortOrder,
+            brandId: brandId,
+            qualityTypeId: qualityTypeId,
+          );
+          return Right({
+            'products': cachedData.products,
+            'pagination': cachedData.pagination,
+          });
+        }
+      }
+
+      // If no cache or expired, load from API
       final result = await _remoteDataSource.getCategoryProducts(
         categoryIdentifier,
         page: page,
@@ -162,9 +277,59 @@ class CatalogRepositoryImpl implements CatalogRepository {
         brandId: brandId,
         qualityTypeId: qualityTypeId,
       );
+
+      // Save to cache
+      if (_cacheService != null) {
+        final products = result['products'] as List<ProductEntity>;
+        await _cacheService!.saveProductsList(
+          products: products,
+          pagination: result['pagination'] as Map<String, dynamic>?,
+          categoryId: categoryIdentifier,
+          page: page,
+        );
+      }
+
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  /// Load category products in background and update cache
+  Future<void> _loadCategoryProductsInBackground(
+    String categoryIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  }) async {
+    try {
+      final result = await _remoteDataSource.getCategoryProducts(
+        categoryIdentifier,
+        page: page,
+        limit: limit,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        brandId: brandId,
+        qualityTypeId: qualityTypeId,
+      );
+      if (_cacheService != null) {
+        final products = result['products'] as List<ProductEntity>;
+        await _cacheService!.saveProductsList(
+          products: products,
+          pagination: result['pagination'] as Map<String, dynamic>?,
+          categoryId: categoryIdentifier,
+          page: page,
+        );
+      }
+    } catch (e) {
+      // Ignore background update errors
     }
   }
 
@@ -225,6 +390,37 @@ class CatalogRepositoryImpl implements CatalogRepository {
     String? qualityTypeId,
   }) async {
     try {
+      // Try to get from cache first
+      if (_cacheService != null) {
+        final cachedData = await _cacheService!.getProductsList(
+          deviceId: deviceIdentifier,
+          page: page,
+        );
+        if (cachedData != null &&
+            await _cacheService!.isProductsListCacheValid(
+              deviceId: deviceIdentifier,
+              page: page,
+            )) {
+          // Load fresh data in background
+          _loadDeviceProductsInBackground(
+            deviceIdentifier,
+            page: page,
+            limit: limit,
+            minPrice: minPrice,
+            maxPrice: maxPrice,
+            sortBy: sortBy,
+            sortOrder: sortOrder,
+            brandId: brandId,
+            qualityTypeId: qualityTypeId,
+          );
+          return Right({
+            'products': cachedData.products,
+            'pagination': cachedData.pagination,
+          });
+        }
+      }
+
+      // If no cache or expired, load from API
       final result = await _remoteDataSource.getDeviceProducts(
         deviceIdentifier,
         page: page,
@@ -236,9 +432,59 @@ class CatalogRepositoryImpl implements CatalogRepository {
         brandId: brandId,
         qualityTypeId: qualityTypeId,
       );
+
+      // Save to cache
+      if (_cacheService != null) {
+        final products = result['products'] as List<ProductEntity>;
+        await _cacheService!.saveProductsList(
+          products: products,
+          pagination: result['pagination'] as Map<String, dynamic>?,
+          deviceId: deviceIdentifier,
+          page: page,
+        );
+      }
+
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  /// Load device products in background and update cache
+  Future<void> _loadDeviceProductsInBackground(
+    String deviceIdentifier, {
+    int page = 1,
+    int limit = 20,
+    double? minPrice,
+    double? maxPrice,
+    String? sortBy,
+    String? sortOrder,
+    String? brandId,
+    String? qualityTypeId,
+  }) async {
+    try {
+      final result = await _remoteDataSource.getDeviceProducts(
+        deviceIdentifier,
+        page: page,
+        limit: limit,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        brandId: brandId,
+        qualityTypeId: qualityTypeId,
+      );
+      if (_cacheService != null) {
+        final products = result['products'] as List<ProductEntity>;
+        await _cacheService!.saveProductsList(
+          products: products,
+          pagination: result['pagination'] as Map<String, dynamic>?,
+          deviceId: deviceIdentifier,
+          page: page,
+        );
+      }
+    } catch (e) {
+      // Ignore background update errors
     }
   }
 
@@ -265,23 +511,128 @@ class CatalogRepositoryImpl implements CatalogRepository {
     ProductFilterQuery filter,
   ) async {
     try {
+      // Try to get from cache first
+      if (_cacheService != null) {
+        final cachedData = await _cacheService!.getProductsList(
+          page: filter.page,
+          filter: filter,
+        );
+        if (cachedData != null &&
+            await _cacheService!.isProductsListCacheValid(
+              page: filter.page,
+              filter: filter,
+            )) {
+          // Load fresh data in background
+          _loadProductsInBackground(filter);
+          // Convert to ProductsResponse
+          final products = cachedData.products;
+          final pagination = cachedData.pagination;
+          // Convert entities to models
+          final productModels = products
+              .map((e) {
+                try {
+                  return ProductModel.fromJson(e as Map<String, dynamic>);
+                } catch (_) {
+                  return null;
+                }
+              })
+              .whereType<ProductModel>()
+              .toList();
+          return Right(
+            ProductsResponse(
+              products: productModels,
+              total: pagination?['total'] ?? products.length,
+              page: pagination?['page'] ?? filter.page,
+              pages: pagination?['pages'] ?? 1,
+            ),
+          );
+        }
+      }
+
+      // If no cache or expired, load from API
       final response = await _remoteDataSource.getProductsWithFilter(filter);
+
+      // Save to cache
+      if (_cacheService != null) {
+        await _cacheService!.saveProductsList(
+          products: response.toEntities(),
+          pagination: {
+            'total': response.total,
+            'page': response.page,
+            'pages': response.pages,
+          },
+          page: filter.page,
+          filter: filter,
+        );
+      }
+
       return Right(response);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
     }
   }
 
+  /// Load products in background and update cache
+  Future<void> _loadProductsInBackground(ProductFilterQuery filter) async {
+    try {
+      final response = await _remoteDataSource.getProductsWithFilter(filter);
+      if (_cacheService != null) {
+        await _cacheService!.saveProductsList(
+          products: response.toEntities(),
+          pagination: {
+            'total': response.total,
+            'page': response.page,
+            'pages': response.pages,
+          },
+          page: filter.page,
+          filter: filter,
+        );
+      }
+    } catch (e) {
+      // Ignore background update errors
+    }
+  }
+
   @override
   Future<Either<Failure, ProductEntity>> getProduct(String identifier) async {
     try {
+      // Try to get from cache first
+      if (_cacheService != null) {
+        final cachedProduct = await _cacheService!.getProduct(identifier);
+        if (cachedProduct != null &&
+            await _cacheService!.isProductCacheValid(identifier)) {
+          // Load fresh data in background
+          _loadProductInBackground(identifier);
+          return Right(cachedProduct);
+        }
+      }
+
+      // If no cache or expired, load from API
       final product = await _remoteDataSource.getProduct(identifier);
       if (product == null) {
         return const Left(NotFoundFailure(message: 'المنتج غير موجود'));
       }
+
+      // Save to cache
+      if (_cacheService != null) {
+        await _cacheService!.saveProduct(identifier, product);
+      }
+
       return Right(product);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  /// Load product in background and update cache
+  Future<void> _loadProductInBackground(String identifier) async {
+    try {
+      final product = await _remoteDataSource.getProduct(identifier);
+      if (product != null && _cacheService != null) {
+        await _cacheService!.saveProduct(identifier, product);
+      }
+    } catch (e) {
+      // Ignore background update errors
     }
   }
 
@@ -290,7 +641,9 @@ class CatalogRepositoryImpl implements CatalogRepository {
     int? limit,
   }) async {
     try {
-      final products = await _remoteDataSource.getFeaturedProducts(limit: limit);
+      final products = await _remoteDataSource.getFeaturedProducts(
+        limit: limit,
+      );
       return Right(products);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));

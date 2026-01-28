@@ -13,9 +13,10 @@ class AppConfig {
   static const int appBuildNumber = 1;
 
   // API Configuration (for future use)
-  static const String baseUrl = 'https://api-trasphone.smartagency-ye.com/api/v1';
+  static const String baseUrl =
+      'https://api-trasphone.smartagency-ye.com/api/v1';
   static const String apiVersion = 'v1';
-  static const Duration apiTimeout = Duration(seconds: 30);
+  static const Duration apiTimeout = Duration(seconds: 60);
 
   // Google Maps API Key (loaded from .env)
   static String get googleMapsApiKey {
