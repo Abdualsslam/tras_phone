@@ -294,70 +294,96 @@ export class AuthService {
           );
         }
 
-        // Use retry with backoff for customer creation
-        const customer = await this.retryWithBackoff(async () => {
-          // Use findOneAndUpdate with upsert for atomic operation
-          const customerDoc = await this.customerModel.findOneAndUpdate(
-            { userId: user._id },
-            {
-              $setOnInsert: {
-                userId: user._id,
-                responsiblePersonName,
-                shopName,
-                shopNameAr,
-                cityId: new Types.ObjectId(cityId),
-                businessType: businessType || 'shop',
-                priceLevelId: defaultPriceLevel._id,
-                creditLimit: 0,
-                walletBalance: 0,
-                loyaltyPoints: 0,
-                loyaltyTier: 'bronze',
-                preferredContactMethod: 'whatsapp',
-              },
-            },
-            {
-              new: true,
-              upsert: true,
-              runValidators: true,
-              setDefaultsOnInsert: true,
-            },
-          );
-
-          if (!customerDoc) {
-            throw new ConflictException('Failed to create customer profile');
-          }
-
-          return customerDoc;
+        // Check for orphaned customer (customer linked to a deleted/non-existent user)
+        // This prevents duplicate customers when a previous registration was interrupted
+        const orphanedCustomer = await this.customerModel.findOne({
+          userId: user._id,
         });
 
-        // Check if this was an insert (new customer) or update (existing)
-        const isNewCustomer = customer.get('wasNew', false);
-
-        console.log('[AuthService] Customer operation:', {
-          userId: user._id.toString(),
-          isNewCustomer,
-          customerId: customer._id.toString(),
-        });
-
-        if (!isNewCustomer) {
-          // Customer already existed - this can happen if:
-          // 1. User was restored from deleted state
-          // 2. Previous registration attempt partially succeeded
-          // Update the customer profile with new data
-          customer.responsiblePersonName = responsiblePersonName;
-          customer.shopName = shopName;
-          if (shopNameAr) customer.shopNameAr = shopNameAr;
-          customer.cityId = new Types.ObjectId(cityId);
-          if (businessType) customer.businessType = businessType;
-          await customer.save();
-
+        if (orphanedCustomer) {
           console.log(
-            '[AuthService] Customer already existed, updated with new data',
+            '[AuthService] Found orphaned customer, updating with new data:',
+            {
+              customerId: orphanedCustomer._id.toString(),
+              userId: user._id.toString(),
+            },
           );
+
+          // Update the orphaned customer with new data
+          orphanedCustomer.responsiblePersonName = responsiblePersonName;
+          orphanedCustomer.shopName = shopName;
+          if (shopNameAr) orphanedCustomer.shopNameAr = shopNameAr;
+          orphanedCustomer.cityId = new Types.ObjectId(cityId);
+          if (businessType) orphanedCustomer.businessType = businessType;
+          await orphanedCustomer.save();
+
+          console.log('[AuthService] Orphaned customer updated successfully');
         } else {
-          console.log(
-            `[AuthService] Customer created successfully for user: ${user._id}`,
-          );
+          // Use retry with backoff for customer creation
+          const customer = await this.retryWithBackoff(async () => {
+            // Use findOneAndUpdate with upsert for atomic operation
+            const customerDoc = await this.customerModel.findOneAndUpdate(
+              { userId: user._id },
+              {
+                $setOnInsert: {
+                  userId: user._id,
+                  responsiblePersonName,
+                  shopName,
+                  shopNameAr,
+                  cityId: new Types.ObjectId(cityId),
+                  businessType: businessType || 'shop',
+                  priceLevelId: defaultPriceLevel._id,
+                  creditLimit: 0,
+                  walletBalance: 0,
+                  loyaltyPoints: 0,
+                  loyaltyTier: 'bronze',
+                  preferredContactMethod: 'whatsapp',
+                },
+              },
+              {
+                new: true,
+                upsert: true,
+                runValidators: true,
+                setDefaultsOnInsert: true,
+              },
+            );
+
+            if (!customerDoc) {
+              throw new ConflictException('Failed to create customer profile');
+            }
+
+            return customerDoc;
+          });
+
+          // Check if this was an insert (new customer) or update (existing)
+          const isNewCustomer = customer.get('wasNew', false);
+
+          console.log('[AuthService] Customer operation:', {
+            userId: user._id.toString(),
+            isNewCustomer,
+            customerId: customer._id.toString(),
+          });
+
+          if (!isNewCustomer) {
+            // Customer already existed - this can happen if:
+            // 1. User was restored from deleted state
+            // 2. Previous registration attempt partially succeeded
+            // Update the customer profile with new data
+            customer.responsiblePersonName = responsiblePersonName;
+            customer.shopName = shopName;
+            if (shopNameAr) customer.shopNameAr = shopNameAr;
+            customer.cityId = new Types.ObjectId(cityId);
+            if (businessType) customer.businessType = businessType;
+            await customer.save();
+
+            console.log(
+              '[AuthService] Customer already existed, updated with new data',
+            );
+          } else {
+            console.log(
+              `[AuthService] Customer created successfully for user: ${user._id}`,
+            );
+          }
         }
       } catch (error: any) {
         console.error('[AuthService] Error creating/updating customer:', {
