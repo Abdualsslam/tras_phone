@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Cart, CartDocument } from './schemas/cart.schema';
@@ -15,6 +15,8 @@ import { CheckoutCartDto, CheckoutCartItemDto, CartItemProductDto } from './dto/
  */
 @Injectable()
 export class CartService {
+    private readonly logger = new Logger(CartService.name);
+
     constructor(
         @InjectModel(Cart.name)
         private cartModel: Model<CartDocument>,
@@ -128,18 +130,31 @@ export class CartService {
      */
     async clearCart(customerId: string): Promise<CartDocument> {
         const cart = await this.getCart(customerId);
+        const lastActivityAt = new Date();
 
-        cart.items = [];
-        cart.couponId = undefined;
-        cart.couponCode = undefined;
-        cart.couponDiscount = 0;
-        cart.appliedPromotions = [];
+        const updated = await this.cartModel.findOneAndUpdate(
+            { _id: cart._id },
+            {
+                $set: {
+                    items: [],
+                    itemsCount: 0,
+                    subtotal: 0,
+                    discount: 0,
+                    total: 0,
+                    couponDiscount: 0,
+                    appliedPromotions: [],
+                    lastActivityAt,
+                },
+                $unset: { couponId: '', couponCode: '' },
+            },
+            { new: true },
+        );
 
-        await this.recalculateTotals(cart);
-        cart.lastActivityAt = new Date();
-
-        cart.markModified('items');
-        return cart.save();
+        if (!updated) {
+            this.logger.warn(`clearCart: findOneAndUpdate did not match cartId=${cart._id}`);
+            return cart;
+        }
+        return updated;
     }
 
     /**
@@ -346,16 +361,16 @@ export class CartService {
             productNameAr?: string;
         }>;
     }> {
-        // Get or create cart
+        // Get or create cart (customerId here is Customer._id from JWT guard)
         const cart = await this.getCart(customerId);
+        this.logger.debug(`syncCart: customerId=${customerId}, cartId=${cart._id}, existingItems=${cart.items?.length ?? 0}`);
 
-        // Get customer for priceLevelId
+        // Get customer for priceLevelId (customerId is Customer._id, so use findById)
         let priceLevelId: string;
         try {
-            const customer = await this.customersService.findByUserId(customerId);
+            const customer = await this.customersService.findById(customerId);
             priceLevelId = customer?.priceLevelId?.toString() || '';
         } catch (e) {
-            // If customer not found, use default or fallback
             priceLevelId = '';
         }
 
@@ -384,8 +399,8 @@ export class CartService {
             productNameAr?: string;
         }> = [];
 
-        // Clear existing items in cart (we'll rebuild from local items)
-        cart.items = [];
+        // Build new items array (plain objects for direct DB update)
+        const newItems: { productId: Types.ObjectId; quantity: number; unitPrice: number; totalPrice: number; addedAt: Date }[] = [];
 
         // Process each local item
         for (const localItem of localItems) {
@@ -483,18 +498,17 @@ export class CartService {
                     });
                 }
 
-                // 6. Add/update item in cart
-                const existingItemIndex = cart.items.findIndex(
+                // 6. Add/update item in newItems
+                const existingItemIndex = newItems.findIndex(
                     (item) => item.productId.toString() === localItem.productId,
                 );
 
                 if (existingItemIndex >= 0) {
-                    cart.items[existingItemIndex].quantity = finalQuantity;
-                    cart.items[existingItemIndex].unitPrice = currentPrice;
-                    cart.items[existingItemIndex].totalPrice =
-                        finalQuantity * currentPrice;
+                    newItems[existingItemIndex].quantity = finalQuantity;
+                    newItems[existingItemIndex].unitPrice = currentPrice;
+                    newItems[existingItemIndex].totalPrice = finalQuantity * currentPrice;
                 } else {
-                    cart.items.push({
+                    newItems.push({
                         productId: new Types.ObjectId(localItem.productId),
                         quantity: finalQuantity,
                         unitPrice: currentPrice,
@@ -514,18 +528,36 @@ export class CartService {
             }
         }
 
-        // Recalculate totals
-        await this.recalculateTotals(cart);
-        cart.lastActivityAt = new Date();
+        // Compute totals from newItems
+        const itemsCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
+        const subtotal = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
+        const total = subtotal - (cart.couponDiscount || 0) + (cart.taxAmount || 0) + (cart.shippingCost || 0);
+        const lastActivityAt = new Date();
 
-        // Mark items as modified so Mongoose persists the replaced array
-        cart.markModified('items');
+        // Persist to DB with findOneAndUpdate (guarantees write; no Mongoose change-tracking)
+        const updateResult = await this.cartModel.findOneAndUpdate(
+            { _id: cart._id },
+            {
+                $set: {
+                    items: newItems,
+                    itemsCount,
+                    subtotal,
+                    total,
+                    lastActivityAt,
+                },
+            },
+            { new: true },
+        );
 
-        // Save cart
-        const savedCart = await cart.save();
+        if (!updateResult) {
+            this.logger.error(`syncCart: findOneAndUpdate did not match cartId=${cart._id}`);
+            throw new BadRequestException('Cart update failed');
+        }
+
+        this.logger.log(`syncCart: saved cartId=${cart._id} items=${updateResult.items?.length ?? 0} itemsCount=${itemsCount} total=${total}`);
 
         return {
-            cart: savedCart,
+            cart: updateResult,
             removedItems,
             priceChangedItems,
             quantityAdjustedItems,

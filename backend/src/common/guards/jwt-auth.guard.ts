@@ -8,9 +8,10 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { IS_PUBLIC_KEY } from '@decorators/public.decorator';
 import { AuthService } from '@modules/auth/auth.service';
+import { Customer } from '@modules/customers/schemas/customer.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -26,6 +27,7 @@ export class JwtAuthGuard implements CanActivate {
     private reflector: Reflector,
     private authService: AuthService,
     @InjectModel('AdminUser') private adminUserModel: Model<any>,
+    @InjectModel(Customer.name) private customerModel: Model<Customer>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -67,7 +69,7 @@ export class JwtAuthGuard implements CanActivate {
       // Build base user object
       const userObj: any = {
         id: user._id.toString(),
-        customerId: user._id.toString(), // For customer type, customerId is the same as id
+        customerId: user._id.toString(), // default; overwritten below for customers
         phone: user.phone,
         email: user.email,
         userType: user.userType,
@@ -76,8 +78,8 @@ export class JwtAuthGuard implements CanActivate {
         permissions: [],
       };
 
-      // If admin user, fetch admin profile for isSuperAdmin flag
       if (user.userType === 'admin') {
+        // Admin: fetch admin profile for isSuperAdmin flag
         const adminUser = await this.adminUserModel.findOne({
           userId: user._id,
         });
@@ -85,6 +87,15 @@ export class JwtAuthGuard implements CanActivate {
           userObj.isSuperAdmin = adminUser.isSuperAdmin || false;
           userObj.adminUserId = adminUser._id.toString();
           userObj.fullName = adminUser.fullName;
+        }
+      } else {
+        // Customer (app user): resolve real Customer _id for cart/orders (Cart refs Customer, not User)
+        const customer = await this.customerModel
+          .findOne({ userId: new Types.ObjectId(user._id.toString()) })
+          .select('_id')
+          .lean();
+        if (customer) {
+          userObj.customerId = (customer as any)._id.toString();
         }
       }
 

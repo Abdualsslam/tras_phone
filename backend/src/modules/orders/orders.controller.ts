@@ -301,10 +301,10 @@ export class CheckoutController {
     // 3. Get active payment methods
     const paymentMethods = await this.settingsService.findActivePaymentMethods(query.platform);
 
-    // 4. Get customer basic info
+    // 4. Get customer basic info (findByUserId expects userId = user.id)
     let customer: any = { id: user.customerId };
     try {
-      const customerDoc = await this.customersService.findByUserId(user.customerId);
+      const customerDoc = await this.customersService.findByUserId(user.id);
       if (customerDoc) {
         const populatedUserId = customerDoc.userId as { phone?: string } | undefined;
         customer = {
