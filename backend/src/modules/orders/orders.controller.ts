@@ -306,10 +306,11 @@ export class CheckoutController {
     try {
       const customerDoc = await this.customersService.findByUserId(user.customerId);
       if (customerDoc) {
+        const populatedUserId = customerDoc.userId as { phone?: string } | undefined;
         customer = {
           id: customerDoc._id.toString(),
           name: customerDoc.responsiblePersonName || customerDoc.shopName,
-          phone: customerDoc.user?.phone,
+          phone: populatedUserId?.phone,
           priceLevelId: customerDoc.priceLevelId?.toString(),
         };
       }
@@ -327,11 +328,11 @@ export class CheckoutController {
           cart.subtotal,
         );
         coupon = {
-          isValid: validation.isValid,
+          isValid: true,
           code: query.couponCode,
           discountAmount: validation.discountAmount,
           discountType: validation.coupon?.discountType,
-          message: validation.isValid ? undefined : validation.message,
+          message: undefined,
         };
       } catch (e) {
         coupon = {
