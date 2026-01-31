@@ -39,13 +39,29 @@ class LocalCartItemModel {
     };
   }
 
-  /// Create from JSON
+  /// Create from JSON - resilient to type mismatches (e.g. quantity as double from JSON)
   factory LocalCartItemModel.fromJson(Map<String, dynamic> json) {
+    final productId = json['productId']?.toString();
+    if (productId == null || productId.isEmpty) {
+      throw FormatException('productId is required');
+    }
+    final quantity = json['quantity'] != null
+        ? (json['quantity'] is num
+            ? (json['quantity'] as num).toInt()
+            : int.tryParse(json['quantity'].toString()) ?? 1)
+        : 1;
+    final unitPrice = json['unitPrice'] != null
+        ? (json['unitPrice'] as num).toDouble()
+        : 0.0;
+    final addedAtStr = json['addedAt']?.toString();
+    final addedAt = addedAtStr != null
+        ? DateTime.tryParse(addedAtStr) ?? DateTime.now()
+        : DateTime.now();
     return LocalCartItemModel(
-      productId: json['productId'] as String,
-      quantity: json['quantity'] as int,
-      unitPrice: (json['unitPrice'] as num).toDouble(),
-      addedAt: DateTime.parse(json['addedAt'] as String),
+      productId: productId,
+      quantity: quantity.clamp(1, 999),
+      unitPrice: unitPrice,
+      addedAt: addedAt,
       productName: json['productName'] as String?,
       productNameAr: json['productNameAr'] as String?,
       productImage: json['productImage'] as String?,

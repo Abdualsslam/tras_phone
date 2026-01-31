@@ -58,9 +58,26 @@ class CartLocalDataSourceImpl implements CartLocalDataSource {
         return [];
       }
 
-      return itemsList
-          .map((item) => LocalCartItemModel.fromJson(item))
-          .toList();
+      // Parse items individually to avoid losing entire cart due to one corrupt entry
+      final validItems = <LocalCartItemModel>[];
+      for (var i = 0; i < itemsList.length; i++) {
+        try {
+          final item = itemsList[i];
+          if (item is Map<String, dynamic>) {
+            validItems.add(LocalCartItemModel.fromJson(item));
+          } else if (item is Map) {
+            validItems.add(LocalCartItemModel.fromJson(
+              Map<String, dynamic>.from(item),
+            ));
+          }
+        } catch (e) {
+          developer.log(
+            'Skipping corrupt cart item at index $i: $e',
+            name: 'CartLocalDataSource',
+          );
+        }
+      }
+      return validItems;
     } catch (e) {
       developer.log(
         'Error getting local cart: $e',
