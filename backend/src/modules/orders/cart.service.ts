@@ -243,13 +243,12 @@ export class CartService {
     async getCartWithProductDetails(customerId: string): Promise<CheckoutCartDto> {
         const cart = await this.getCart(customerId);
 
-        // Get customer for priceLevelId
+        // Get customer for priceLevelId (customerId here is Customer._id)
         let priceLevelId: string = '';
         try {
-            const customer = await this.customersService.findByUserId(customerId);
+            const customer = await this.customersService.findById(customerId);
             priceLevelId = customer?.priceLevelId?.toString() || '';
         } catch (e) {
-            // If customer not found, use default
             priceLevelId = '';
         }
 
@@ -411,11 +410,9 @@ export class CartService {
                 // 1. Check if product exists and is active
                 let product;
                 try {
-                    // Get product - findByIdOrSlug handles both ObjectId and slug
-                    // Note: This will increment viewsCount, which is acceptable for sync operations
                     product = await this.productsService.findByIdOrSlug(localItem.productId);
                 } catch (e) {
-                    // Product not found
+                    this.logger.debug(`syncCart: skip productId=${localItem.productId} reason=deleted (not found)`);
                     removedItems.push({
                         productId: localItem.productId,
                         reason: 'deleted',
@@ -424,6 +421,7 @@ export class CartService {
                 }
 
                 if (!product) {
+                    this.logger.debug(`syncCart: skip productId=${localItem.productId} reason=deleted (null)`);
                     removedItems.push({
                         productId: localItem.productId,
                         reason: 'deleted',
@@ -434,6 +432,7 @@ export class CartService {
                 if (!product.isActive || product.status !== 'active') {
                     productName = product.name;
                     productNameAr = product.nameAr;
+                    this.logger.debug(`syncCart: skip productId=${localItem.productId} reason=inactive`);
                     removedItems.push({
                         productId: localItem.productId,
                         reason: 'inactive',
@@ -446,12 +445,20 @@ export class CartService {
                 productName = product.name;
                 productNameAr = product.nameAr;
 
-                // 2. Check available stock
-                const availableQuantity = await this.inventoryService.getAvailableQuantity(
-                    localItem.productId,
-                );
+                // 2. Check available stock (skip only if product tracks inventory and available is 0)
+                let availableQuantity: number;
+                try {
+                    availableQuantity = await this.inventoryService.getAvailableQuantity(
+                        localItem.productId,
+                    );
+                } catch (e) {
+                    this.logger.warn(`syncCart: getAvailableQuantity failed productId=${localItem.productId}`, e);
+                    availableQuantity = 0;
+                }
 
-                if (availableQuantity === 0) {
+                const tracksInventory = product.trackInventory === true;
+                if (tracksInventory && availableQuantity === 0) {
+                    this.logger.debug(`syncCart: skip productId=${localItem.productId} reason=out_of_stock (available=0)`);
                     removedItems.push({
                         productId: localItem.productId,
                         reason: 'out_of_stock',
@@ -484,9 +491,9 @@ export class CartService {
                     });
                 }
 
-                // 5. Adjust quantity if needed
+                // 5. Adjust quantity if needed (only when product tracks inventory)
                 let finalQuantity = localItem.quantity;
-                if (availableQuantity < localItem.quantity) {
+                if (tracksInventory && availableQuantity < localItem.quantity) {
                     finalQuantity = availableQuantity;
                     quantityAdjustedItems.push({
                         productId: localItem.productId,
@@ -515,9 +522,10 @@ export class CartService {
                         totalPrice: finalQuantity * currentPrice,
                         addedAt: new Date(),
                     });
+                    this.logger.debug(`syncCart: add productId=${localItem.productId} quantity=${finalQuantity} unitPrice=${currentPrice}`);
                 }
             } catch (e) {
-                // If any error occurs, add to removed items
+                this.logger.warn(`syncCart: skip productId=${localItem.productId} reason=error`, e instanceof Error ? e.message : e);
                 removedItems.push({
                     productId: localItem.productId,
                     reason: 'error',
