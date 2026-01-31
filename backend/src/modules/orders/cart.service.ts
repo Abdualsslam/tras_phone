@@ -138,6 +138,7 @@ export class CartService {
         await this.recalculateTotals(cart);
         cart.lastActivityAt = new Date();
 
+        cart.markModified('items');
         return cart.save();
     }
 
@@ -516,6 +517,9 @@ export class CartService {
         // Recalculate totals
         await this.recalculateTotals(cart);
         cart.lastActivityAt = new Date();
+
+        // Mark items as modified so Mongoose persists the replaced array
+        cart.markModified('items');
 
         // Save cart
         const savedCart = await cart.save();
