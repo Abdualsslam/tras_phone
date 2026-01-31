@@ -79,134 +79,406 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
       },
       builder: (context, state) {
-        return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          appBar: AppBar(
-            title: Text(AppLocalizations.of(context)!.checkout),
-            leading: IconButton(
-              icon: const Icon(Iconsax.arrow_right_3),
-              onPressed: () => context.pop(),
-            ),
-          ),
-          body: _buildBody(context, theme, isDark, locale, state),
-        );
-      },
-    );
-  }
-
-  Widget _buildBody(
-    BuildContext context,
-    ThemeData theme,
-    bool isDark,
-    String locale,
-    CheckoutSessionState state,
-  ) {
-    if (state is CheckoutSessionLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (state is CheckoutSessionError) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
-            SizedBox(height: 16.h),
-            Text(
-              'حدث خطأ أثناء تحميل البيانات',
-              style: theme.textTheme.titleMedium,
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              state.message,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondaryLight,
+        if (state is CheckoutSessionLoading) {
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: AppBar(
+              title: Text(AppLocalizations.of(context)!.checkout),
+              leading: IconButton(
+                icon: const Icon(Iconsax.arrow_right_3),
+                onPressed: () => context.pop(),
               ),
-              textAlign: TextAlign.center,
             ),
-            SizedBox(height: 24.h),
-            ElevatedButton.icon(
-              onPressed: () => context.read<CheckoutSessionCubit>().loadSession(),
-              icon: const Icon(Iconsax.refresh),
-              label: const Text('إعادة المحاولة'),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (state is CheckoutSessionError) {
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: AppBar(
+              title: Text(AppLocalizations.of(context)!.checkout),
+              leading: IconButton(
+                icon: const Icon(Iconsax.arrow_right_3),
+                onPressed: () => context.pop(),
+              ),
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'حدث خطأ أثناء تحميل البيانات',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    state.message,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondaryLight,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 24.h),
+                  ElevatedButton.icon(
+                    onPressed: () =>
+                        context.read<CheckoutSessionCubit>().loadSession(),
+                    icon: const Icon(Iconsax.refresh),
+                    label: const Text('إعادة المحاولة'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.checkout),
+          leading: IconButton(
+            icon: const Icon(Iconsax.arrow_right_3),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(16.w),
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Address Section
+                    _buildSectionTitle(
+                      theme,
+                      AppLocalizations.of(context)!.addresses,
+                    ),
+                    SizedBox(height: 12.h),
+                    BlocBuilder<AddressesCubit, AddressesState>(
+                      builder: (context, addressesState) {
+                        if (addressesState is AddressesLoading) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(24.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+
+                        if (addressesState is AddressesError) {
+                          return Container(
+                            padding: EdgeInsets.all(16.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Iconsax.info_circle,
+                                  color: AppColors.error,
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Text(
+                                    addressesState.message,
+                                    style: TextStyle(color: AppColors.error),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        if (addressesState is AddressesLoaded ||
+                            addressesState is AddressOperationLoading ||
+                            addressesState is AddressOperationSuccess) {
+                          final addresses = addressesState is AddressesLoaded
+                              ? addressesState.addresses
+                              : addressesState is AddressOperationLoading
+                              ? addressesState.addresses
+                              : (addressesState as AddressOperationSuccess)
+                                    .addresses;
+
+                          // Set default address if not selected
+                          if (_selectedAddressId == null &&
+                              addresses.isNotEmpty) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              final defaultAddress = addresses.firstWhere(
+                                (a) => a.isDefault,
+                                orElse: () => addresses.first,
+                              );
+                              setState(
+                                () => _selectedAddressId = defaultAddress.id,
+                              );
+                            });
+                          }
+
+                          if (addresses.isEmpty) {
+                            return Container(
+                              padding: EdgeInsets.all(16.w),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppColors.cardDark
+                                    : AppColors.cardLight,
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Iconsax.location,
+                                    size: 48.sp,
+                                    color: AppColors.textSecondaryLight,
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  Text(
+                                    'لا توجد عناوين متاحة',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  ElevatedButton.icon(
+                                    onPressed: () async {
+                                      final result = await context.push(
+                                        '/address/add',
+                                      );
+                                      if (result == true && mounted) {
+                                        // Reload addresses after adding
+                                        context
+                                            .read<AddressesCubit>()
+                                            .loadAddresses();
+                                      }
+                                    },
+                                    icon: const Icon(Iconsax.add, size: 18),
+                                    label: Text(
+                                      AppLocalizations.of(context)!.addAddress,
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 24.w,
+                                        vertical: 12.h,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: [
+                              ...addresses.map((address) {
+                                return _buildAddressCard(
+                                  theme,
+                                  isDark,
+                                  address,
+                                  isSelected: _selectedAddressId == address.id,
+                                );
+                              }),
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final result = await context.push(
+                                    '/address/add',
+                                  );
+                                  if (result == true && mounted) {
+                                    // Reload addresses after adding
+                                    context
+                                        .read<AddressesCubit>()
+                                        .loadAddresses();
+                                  }
+                                },
+                                icon: const Icon(Iconsax.add),
+                                label: Text(
+                                  AppLocalizations.of(context)!.addAddress,
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                    SizedBox(height: 24.h),
+
+                    // Payment Section
+                    _buildSectionTitle(
+                      theme,
+                      AppLocalizations.of(context)!.paymentMethod,
+                    ),
+                    SizedBox(height: 12.h),
+                    BlocBuilder<PaymentMethodsCubit, PaymentMethodsState>(
+                      builder: (context, paymentState) {
+                        if (paymentState is PaymentMethodsLoading) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(24.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+
+                        if (paymentState is PaymentMethodsError) {
+                          return Container(
+                            padding: EdgeInsets.all(16.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Iconsax.info_circle,
+                                  color: AppColors.error,
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Text(
+                                    paymentState.message,
+                                    style: TextStyle(color: AppColors.error),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        if (paymentState is PaymentMethodsLoaded) {
+                          final paymentMethods = paymentState.paymentMethods;
+
+                          // Set default payment method if not selected
+                          if (_selectedPaymentMethodId == null &&
+                              paymentMethods.isNotEmpty) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              setState(
+                                () => _selectedPaymentMethodId =
+                                    paymentMethods.first.id,
+                              );
+                            });
+                          }
+
+                          if (paymentMethods.isEmpty) {
+                            return Container(
+                              padding: EdgeInsets.all(16.w),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppColors.cardDark
+                                    : AppColors.cardLight,
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Iconsax.card,
+                                    size: 48.sp,
+                                    color: AppColors.textSecondaryLight,
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  Text(
+                                    'لا توجد طرق دفع متاحة',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          return Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.w,
+                              vertical: 10.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? AppColors.surfaceDark
+                                  : AppColors.backgroundLight,
+                              borderRadius: BorderRadius.circular(14.r),
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.dividerDark
+                                    : AppColors.dividerLight,
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              children: paymentMethods.map((method) {
+                                return _buildPaymentCard(
+                                  theme,
+                                  isDark,
+                                  method,
+                                  isSelected:
+                                      _selectedPaymentMethodId == method.id,
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        }
+
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                    SizedBox(height: 24.h),
+
+                    // Coupon Section
+                    BlocBuilder<CartCubit, CartState>(
+                      builder: (context, cartState) {
+                        final cart = cartState is CartLoaded
+                            ? cartState.cart
+                            : null;
+                        final orderTotal = cart?.subtotal ?? 0.0;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionTitle(theme, 'كود الخصم'),
+                            SizedBox(height: 12.h),
+                            CouponInput(
+                              orderTotal: orderTotal,
+                              onCouponApplied: (validation) {
+                                setState(() => _appliedCoupon = validation);
+                              },
+                              onCouponRemoved: () {
+                                setState(() => _appliedCoupon = null);
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    SizedBox(height: 24.h),
+
+                    // Order Summary
+                    BlocBuilder<CartCubit, CartState>(
+                      builder: (context, cartState) {
+                        final cart = cartState is CartLoaded
+                            ? cartState.cart
+                            : null;
+                        if (cart == null) {
+                          return SizedBox.shrink();
+                        }
+                        return _buildOrderSummary(theme, isDark, cart);
+                      },
+                    ),
+                    SizedBox(height: 100.h),
+                  ],
+                ),
+              ),
+            ),
+            BlocBuilder<CheckoutSessionCubit, CheckoutSessionState>(
+              builder: (context, sessionState) {
+                if (sessionState is CheckoutSessionLoaded) {
+                  return _buildBottomBar(
+                      context, theme, isDark, sessionState.session);
+                }
+                return const SizedBox.shrink();
+              },
             ),
           ],
         ),
       );
-    }
-
-    // Get session from state
-    CheckoutSessionEntity? session;
-    if (state is CheckoutSessionLoaded) {
-      session = state.session;
-    } else if (state is CheckoutSessionApplyingCoupon) {
-      session = state.currentSession;
-    } else if (state is CheckoutSessionCouponError) {
-      session = state.currentSession;
-    }
-
-    if (session == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    return Column(
-      children: [
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () => context.read<CheckoutSessionCubit>().refresh(),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(16.w),
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Cart Items Section (NEW)
-                  _buildSectionTitle(theme, AppLocalizations.of(context)!.products),
-                  SizedBox(height: 12.h),
-                  CheckoutCartItems(
-                    items: session.cart.items,
-                    initiallyExpanded: false,
-                    locale: locale,
-                  ),
-                  SizedBox(height: 24.h),
-
-                  // Address Section
-                  _buildSectionTitle(theme, AppLocalizations.of(context)!.addresses),
-                  SizedBox(height: 12.h),
-                  _buildAddressSection(theme, isDark, session.addresses),
-                  SizedBox(height: 24.h),
-
-                  // Payment Section
-                  _buildSectionTitle(theme, AppLocalizations.of(context)!.paymentMethod),
-                  SizedBox(height: 12.h),
-                  _buildPaymentSection(theme, isDark, session.paymentMethods),
-                  SizedBox(height: 24.h),
-
-                  // Coupon Section
-                  _buildSectionTitle(theme, 'كود الخصم'),
-                  SizedBox(height: 12.h),
-                  CouponInput(
-                    orderTotal: session.cart.subtotal,
-                    onCouponApplied: (validation) {
-                      setState(() => _appliedCoupon = validation);
-                    },
-                    onCouponRemoved: () {
-                      setState(() => _appliedCoupon = null);
-                    },
-                  ),
-                  SizedBox(height: 24.h),
-
-                  // Order Summary
-                  _buildOrderSummary(theme, isDark, session.cart),
-                  SizedBox(height: 100.h),
-                ],
-              ),
-            ),
-          ),
-        ),
-        _buildBottomBar(context, theme, isDark, session),
-      ],
+      },
     );
   }
 
@@ -423,37 +695,58 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return GestureDetector(
       onTap: () => setState(() => _selectedPaymentMethodId = method.id),
       child: Container(
-        margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(16.w),
+        margin: EdgeInsets.only(bottom: 4.h),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(16.r),
+          color: isDark
+              ? AppColors.cardDark
+              : (isSelected
+                    ? AppColors.primary.withValues(alpha: 0.04)
+                    : AppColors.inputBackgroundLight),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            width: 2,
+            color: isSelected
+                ? AppColors.primary
+                : (isDark ? AppColors.dividerDark : AppColors.dividerLight),
+            width: isSelected ? 1.5 : 1,
           ),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
         ),
         child: Row(
           children: [
+            // Icon/logo (left) - كما كان سابقاً
             Container(
-              width: 48.w,
-              height: 48.w,
+              width: 40.w,
+              height: 40.w,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12.r),
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10.r),
               ),
-              child: Icon(iconData, color: AppColors.primary),
+              child: Icon(iconData, color: AppColors.primary, size: 22.sp),
             ),
             SizedBox(width: 12.w),
+            // Payment method name and description (center)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     method.getName(locale),
-                    style: theme.textTheme.titleSmall?.copyWith(
+                    style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w600,
+                      fontSize: 14.sp,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   if (method.getDescription(locale) != null) ...[
                     SizedBox(height: 2.h),
@@ -461,17 +754,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       method.getDescription(locale)!,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textTertiaryLight,
+                        fontSize: 12.sp,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ],
               ),
             ),
+            SizedBox(width: 8.w),
+            // Selection indicator (right) - كما كان سابقاً
             Container(
-              width: 24.w,
-              height: 24.w,
+              width: 22.w,
+              height: 22.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                color: isSelected ? AppColors.primary : Colors.transparent,
                 border: Border.all(
                   color: isSelected ? AppColors.primary : AppColors.textTertiaryLight,
                   width: 2,
@@ -480,10 +779,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: isSelected
                   ? Center(
                       child: Container(
-                        width: 12.w,
-                        height: 12.w,
+                        width: 8.w,
+                        height: 8.w,
                         decoration: const BoxDecoration(
-                          color: AppColors.primary,
+                          color: Colors.white,
                           shape: BoxShape.circle,
                         ),
                       ),
