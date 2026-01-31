@@ -15,7 +15,6 @@ import '../../domain/entities/checkout_session_entity.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/checkout_session_cubit.dart';
 import '../cubit/checkout_session_state.dart';
-import '../widgets/checkout_cart_items.dart';
 import '../../../orders/presentation/cubit/orders_cubit.dart';
 import '../../../orders/domain/enums/order_enums.dart';
 import '../../../orders/domain/entities/payment_method_entity.dart';
@@ -47,23 +46,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final locale = Localizations.localeOf(context).languageCode;
 
     return BlocConsumer<CheckoutSessionCubit, CheckoutSessionState>(
       listener: (context, state) {
         if (state is CheckoutSessionLoaded) {
           // Auto-select default address if not selected
-          if (_selectedAddressId == null && state.session.addresses.isNotEmpty) {
+          if (_selectedAddressId == null &&
+              state.session.addresses.isNotEmpty) {
             final defaultAddress = state.session.defaultAddress;
             if (defaultAddress != null) {
               setState(() => _selectedAddressId = defaultAddress.id);
             }
           }
           // Auto-select first payment method if not selected
-          if (_selectedPaymentMethodId == null && 
+          if (_selectedPaymentMethodId == null &&
               state.session.paymentMethods.isNotEmpty) {
-            setState(() => _selectedPaymentMethodId = 
-                state.session.paymentMethods.first.id);
+            setState(
+              () => _selectedPaymentMethodId =
+                  state.session.paymentMethods.first.id,
+            );
           }
           // Set coupon if applied from session
           if (state.session.hasCouponApplied && _appliedCoupon == null) {
@@ -133,133 +134,59 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
         }
         return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context)!.checkout),
-          leading: IconButton(
-            icon: const Icon(Iconsax.arrow_right_3),
-            onPressed: () => context.pop(),
+          backgroundColor: theme.scaffoldBackgroundColor,
+          appBar: AppBar(
+            title: Text(AppLocalizations.of(context)!.checkout),
+            leading: IconButton(
+              icon: const Icon(Iconsax.arrow_right_3),
+              onPressed: () => context.pop(),
+            ),
           ),
-        ),
-        body: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(16.w),
-                physics: const ClampingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Address Section
-                    _buildSectionTitle(
-                      theme,
-                      AppLocalizations.of(context)!.addresses,
-                    ),
-                    SizedBox(height: 12.h),
-                    BlocBuilder<AddressesCubit, AddressesState>(
-                      builder: (context, addressesState) {
-                        if (addressesState is AddressesLoading) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(24.0),
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        }
-
-                        if (addressesState is AddressesError) {
-                          return Container(
-                            padding: EdgeInsets.all(16.w),
-                            decoration: BoxDecoration(
-                              color: AppColors.error.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Iconsax.info_circle,
-                                  color: AppColors.error,
-                                ),
-                                SizedBox(width: 12.w),
-                                Expanded(
-                                  child: Text(
-                                    addressesState.message,
-                                    style: TextStyle(color: AppColors.error),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-
-                        if (addressesState is AddressesLoaded ||
-                            addressesState is AddressOperationLoading ||
-                            addressesState is AddressOperationSuccess) {
-                          final addresses = addressesState is AddressesLoaded
-                              ? addressesState.addresses
-                              : addressesState is AddressOperationLoading
-                              ? addressesState.addresses
-                              : (addressesState as AddressOperationSuccess)
-                                    .addresses;
-
-                          // Set default address if not selected
-                          if (_selectedAddressId == null &&
-                              addresses.isNotEmpty) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              final defaultAddress = addresses.firstWhere(
-                                (a) => a.isDefault,
-                                orElse: () => addresses.first,
-                              );
-                              setState(
-                                () => _selectedAddressId = defaultAddress.id,
-                              );
-                            });
+          body: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16.w),
+                  physics: const ClampingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Address Section
+                      _buildSectionTitle(
+                        theme,
+                        AppLocalizations.of(context)!.addresses,
+                      ),
+                      SizedBox(height: 12.h),
+                      BlocBuilder<AddressesCubit, AddressesState>(
+                        builder: (context, addressesState) {
+                          if (addressesState is AddressesLoading) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
                           }
 
-                          if (addresses.isEmpty) {
+                          if (addressesState is AddressesError) {
                             return Container(
                               padding: EdgeInsets.all(16.w),
                               decoration: BoxDecoration(
-                                color: isDark
-                                    ? AppColors.cardDark
-                                    : AppColors.cardLight,
+                                color: AppColors.error.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12.r),
                               ),
-                              child: Column(
+                              child: Row(
                                 children: [
                                   Icon(
-                                    Iconsax.location,
-                                    size: 48.sp,
-                                    color: AppColors.textSecondaryLight,
+                                    Iconsax.info_circle,
+                                    color: AppColors.error,
                                   ),
-                                  SizedBox(height: 8.h),
-                                  Text(
-                                    'لا توجد عناوين متاحة',
-                                    style: theme.textTheme.bodyMedium,
-                                  ),
-                                  SizedBox(height: 12.h),
-                                  ElevatedButton.icon(
-                                    onPressed: () async {
-                                      final result = await context.push(
-                                        '/address/add',
-                                      );
-                                      if (result == true && mounted) {
-                                        // Reload addresses after adding
-                                        context
-                                            .read<AddressesCubit>()
-                                            .loadAddresses();
-                                      }
-                                    },
-                                    icon: const Icon(Iconsax.add, size: 18),
-                                    label: Text(
-                                      AppLocalizations.of(context)!.addAddress,
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 24.w,
-                                        vertical: 12.h,
-                                      ),
+                                  SizedBox(width: 12.w),
+                                  Expanded(
+                                    child: Text(
+                                      addressesState.message,
+                                      style: TextStyle(color: AppColors.error),
                                     ),
                                   ),
                                 ],
@@ -267,86 +194,138 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             );
                           }
 
-                          return Column(
-                            children: [
-                              ...addresses.map((address) {
-                                return _buildAddressCard(
-                                  theme,
-                                  isDark,
-                                  address,
-                                  isSelected: _selectedAddressId == address.id,
+                          if (addressesState is AddressesLoaded ||
+                              addressesState is AddressOperationLoading ||
+                              addressesState is AddressOperationSuccess) {
+                            final addresses = addressesState is AddressesLoaded
+                                ? addressesState.addresses
+                                : addressesState is AddressOperationLoading
+                                ? addressesState.addresses
+                                : (addressesState as AddressOperationSuccess)
+                                      .addresses;
+
+                            // Set default address if not selected
+                            if (_selectedAddressId == null &&
+                                addresses.isNotEmpty) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                final defaultAddress = addresses.firstWhere(
+                                  (a) => a.isDefault,
+                                  orElse: () => addresses.first,
                                 );
-                              }),
-                              TextButton.icon(
-                                onPressed: () async {
-                                  final result = await context.push(
-                                    '/address/add',
+                                setState(
+                                  () => _selectedAddressId = defaultAddress.id,
+                                );
+                              });
+                            }
+
+                            if (addresses.isEmpty) {
+                              return Container(
+                                padding: EdgeInsets.all(16.w),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppColors.cardDark
+                                      : AppColors.cardLight,
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Iconsax.location,
+                                      size: 48.sp,
+                                      color: AppColors.textSecondaryLight,
+                                    ),
+                                    SizedBox(height: 8.h),
+                                    Text(
+                                      'لا توجد عناوين متاحة',
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                    SizedBox(height: 12.h),
+                                    ElevatedButton.icon(
+                                      onPressed: () async {
+                                        final result = await context.push(
+                                          '/address/add',
+                                        );
+                                        if (result != true) return;
+                                        if (!context.mounted) return;
+                                        context
+                                            .read<AddressesCubit>()
+                                            .loadAddresses();
+                                      },
+                                      icon: const Icon(Iconsax.add, size: 18),
+                                      label: Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.addAddress,
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 24.w,
+                                          vertical: 12.h,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            return Column(
+                              children: [
+                                ...addresses.map((address) {
+                                  return _buildAddressCard(
+                                    theme,
+                                    isDark,
+                                    address,
+                                    isSelected:
+                                        _selectedAddressId == address.id,
                                   );
-                                  if (result == true && mounted) {
-                                    // Reload addresses after adding
+                                }),
+                                TextButton.icon(
+                                  onPressed: () async {
+                                    final result = await context.push(
+                                      '/address/add',
+                                    );
+                                    if (result != true) return;
+                                    if (!context.mounted) return;
                                     context
                                         .read<AddressesCubit>()
                                         .loadAddresses();
-                                  }
-                                },
-                                icon: const Icon(Iconsax.add),
-                                label: Text(
-                                  AppLocalizations.of(context)!.addAddress,
-                                ),
-                              ),
-                            ],
-                          );
-                        }
-
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                    SizedBox(height: 24.h),
-
-                    // Payment Section
-                    _buildSectionTitle(
-                      theme,
-                      AppLocalizations.of(context)!.paymentMethod,
-                    ),
-                    SizedBox(height: 12.h),
-                    BlocBuilder<PaymentMethodsCubit, PaymentMethodsState>(
-                      builder: (context, paymentState) {
-                        if (paymentState is PaymentMethodsLoading) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(24.0),
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        }
-
-                        if (paymentState is PaymentMethodsError) {
-                          return Container(
-                            padding: EdgeInsets.all(16.w),
-                            decoration: BoxDecoration(
-                              color: AppColors.error.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Iconsax.info_circle,
-                                  color: AppColors.error,
-                                ),
-                                SizedBox(width: 12.w),
-                                Expanded(
-                                  child: Text(
-                                    paymentState.message,
-                                    style: TextStyle(color: AppColors.error),
+                                  },
+                                  icon: const Icon(Iconsax.add),
+                                  label: Text(
+                                    AppLocalizations.of(context)!.addAddress,
                                   ),
                                 ),
                               ],
-                            ),
-                          );
-                        }
+                            );
+                          }
 
-                        if (paymentState is PaymentMethodsLoaded) {
-                          final paymentMethods = paymentState.paymentMethods;
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                      SizedBox(height: 24.h),
+
+                      // Payment Section (from checkout session)
+                      _buildSectionTitle(
+                        theme,
+                        AppLocalizations.of(context)!.paymentMethod,
+                      ),
+                      SizedBox(height: 12.h),
+                      BlocBuilder<CheckoutSessionCubit, CheckoutSessionState>(
+                        builder: (context, sessionState) {
+                          if (sessionState is CheckoutSessionLoading) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          }
+                          if (sessionState is! CheckoutSessionLoaded) {
+                            return const SizedBox.shrink();
+                          }
+                          final paymentMethods =
+                              sessionState.session.paymentMethods;
 
                           // Set default payment method if not selected
                           if (_selectedPaymentMethodId == null &&
@@ -414,70 +393,69 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               }).toList(),
                             ),
                           );
-                        }
+                        },
+                      ),
+                      SizedBox(height: 24.h),
 
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                    SizedBox(height: 24.h),
+                      // Coupon Section
+                      BlocBuilder<CheckoutSessionCubit, CheckoutSessionState>(
+                        builder: (context, sessionState) {
+                          final orderTotal =
+                              sessionState is CheckoutSessionLoaded
+                              ? sessionState.session.cart.subtotal
+                              : 0.0;
 
-                    // Coupon Section
-                    BlocBuilder<CartCubit, CartState>(
-                      builder: (context, cartState) {
-                        final cart = cartState is CartLoaded
-                            ? cartState.cart
-                            : null;
-                        final orderTotal = cart?.subtotal ?? 0.0;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSectionTitle(theme, 'كود الخصم'),
+                              SizedBox(height: 12.h),
+                              CouponInput(
+                                orderTotal: orderTotal,
+                                onCouponApplied: (validation) {
+                                  setState(() => _appliedCoupon = validation);
+                                },
+                                onCouponRemoved: () {
+                                  setState(() => _appliedCoupon = null);
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      SizedBox(height: 24.h),
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionTitle(theme, 'كود الخصم'),
-                            SizedBox(height: 12.h),
-                            CouponInput(
-                              orderTotal: orderTotal,
-                              onCouponApplied: (validation) {
-                                setState(() => _appliedCoupon = validation);
-                              },
-                              onCouponRemoved: () {
-                                setState(() => _appliedCoupon = null);
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    SizedBox(height: 24.h),
-
-                    // Order Summary
-                    BlocBuilder<CartCubit, CartState>(
-                      builder: (context, cartState) {
-                        final cart = cartState is CartLoaded
-                            ? cartState.cart
-                            : null;
-                        if (cart == null) {
-                          return SizedBox.shrink();
-                        }
-                        return _buildOrderSummary(theme, isDark, cart);
-                      },
-                    ),
-                    SizedBox(height: 100.h),
-                  ],
+                      // Order Summary
+                      BlocBuilder<CheckoutSessionCubit, CheckoutSessionState>(
+                        builder: (context, sessionState) {
+                          if (sessionState is! CheckoutSessionLoaded) {
+                            return const SizedBox.shrink();
+                          }
+                          final cart = sessionState.session.cart;
+                          return _buildOrderSummary(theme, isDark, cart);
+                        },
+                      ),
+                      SizedBox(height: 100.h),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            BlocBuilder<CheckoutSessionCubit, CheckoutSessionState>(
-              builder: (context, sessionState) {
-                if (sessionState is CheckoutSessionLoaded) {
-                  return _buildBottomBar(
-                      context, theme, isDark, sessionState.session);
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ],
-        ),
-      );
+              BlocBuilder<CheckoutSessionCubit, CheckoutSessionState>(
+                builder: (context, sessionState) {
+                  if (sessionState is CheckoutSessionLoaded) {
+                    return _buildBottomBar(
+                      context,
+                      theme,
+                      isDark,
+                      sessionState.session,
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ],
+          ),
+        );
       },
     );
   }
@@ -486,59 +464,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Text(
       title,
       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-    );
-  }
-
-  Widget _buildAddressSection(
-    ThemeData theme,
-    bool isDark,
-    List<AddressEntity> addresses,
-  ) {
-    if (addresses.isEmpty) {
-      return Container(
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Column(
-          children: [
-            Icon(Iconsax.location, size: 48.sp, color: AppColors.textSecondaryLight),
-            SizedBox(height: 8.h),
-            Text('لا توجد عناوين متاحة', style: theme.textTheme.bodyMedium),
-            SizedBox(height: 12.h),
-            ElevatedButton.icon(
-              onPressed: () async {
-                final result = await context.push('/address/add');
-                if (result == true && mounted) {
-                  context.read<CheckoutSessionCubit>().refresh();
-                }
-              },
-              icon: const Icon(Iconsax.add, size: 18),
-              label: Text(AppLocalizations.of(context)!.addAddress),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        ...addresses.map((address) => _buildAddressCard(
-          theme, isDark, address,
-          isSelected: _selectedAddressId == address.id,
-        )),
-        TextButton.icon(
-          onPressed: () async {
-            final result = await context.push('/address/add');
-            if (result == true && mounted) {
-              context.read<CheckoutSessionCubit>().refresh();
-            }
-          },
-          icon: const Icon(Iconsax.add),
-          label: Text(AppLocalizations.of(context)!.addAddress),
-        ),
-      ],
     );
   }
 
@@ -569,7 +494,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.textTertiaryLight,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textTertiaryLight,
                   width: 2,
                 ),
               ),
@@ -602,7 +529,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       if (address.isDefault) ...[
                         SizedBox(width: 8.w),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8.w,
+                            vertical: 2.h,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4.r),
@@ -650,36 +580,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildPaymentSection(
-    ThemeData theme,
-    bool isDark,
-    List<PaymentMethodEntity> paymentMethods,
-  ) {
-    if (paymentMethods.isEmpty) {
-      return Container(
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Column(
-          children: [
-            Icon(Iconsax.card, size: 48.sp, color: AppColors.textSecondaryLight),
-            SizedBox(height: 8.h),
-            Text('لا توجد طرق دفع متاحة', style: theme.textTheme.bodyMedium),
-          ],
-        ),
-      );
-    }
-
-    return Column(
-      children: paymentMethods.map((method) => _buildPaymentCard(
-        theme, isDark, method,
-        isSelected: _selectedPaymentMethodId == method.id,
-      )).toList(),
     );
   }
 
@@ -772,7 +672,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 shape: BoxShape.circle,
                 color: isSelected ? AppColors.primary : Colors.transparent,
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.textTertiaryLight,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textTertiaryLight,
                   width: 2,
                 ),
               ),
@@ -795,7 +697,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildOrderSummary(ThemeData theme, bool isDark, CheckoutCartEntity cart) {
+  Widget _buildOrderSummary(
+    ThemeData theme,
+    bool isDark,
+    CheckoutCartEntity cart,
+  ) {
     final couponDiscount = _appliedCoupon?.discountAmount ?? 0.0;
     final subtotal = cart.subtotal;
     final shippingCost = cart.shippingCost;
@@ -814,7 +720,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         children: [
           Text(
             AppLocalizations.of(context)!.subtotal,
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           SizedBox(height: 16.h),
           _buildSummaryRow(
@@ -870,14 +778,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         Text(
           label,
           style: isTotal
-              ? theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)
-              : theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondaryLight),
+              ? theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                )
+              : theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondaryLight,
+                ),
         ),
         Text(
           value,
           style: isTotal
-              ? TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w700, color: AppColors.primary)
-              : theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: valueColor),
+              ? TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                )
+              : theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: valueColor,
+                ),
         ),
       ],
     );
@@ -909,10 +828,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: session.cart.isEmpty ? null : () => _handlePlaceOrder(session),
+          onPressed: session.cart.isEmpty
+              ? null
+              : () => _handlePlaceOrder(session),
           style: ElevatedButton.styleFrom(
             padding: EdgeInsets.symmetric(vertical: 16.h),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14.r),
+            ),
           ),
           child: Text(
             '${AppLocalizations.of(context)!.confirm} • ${total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
@@ -925,9 +848,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _handlePlaceOrder(CheckoutSessionEntity session) async {
     if (session.cart.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('السلة فارغة')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('السلة فارغة')));
       return;
     }
 
@@ -957,6 +880,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     // Sync cart before creating order
     final syncResult = await context.read<CartCubit>().syncCart();
+    if (!mounted) return;
     if (syncResult == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('فشلت المزامنة. حاول مرة أخرى.')),
@@ -993,9 +917,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     if (selectedPaymentMethod == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى اختيار طريقة الدفع')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('يرجى اختيار طريقة الدفع')));
       return;
     }
 
@@ -1020,9 +944,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       couponCode: couponCode,
     );
 
+    if (!mounted) return;
     if (order != null) {
       // Clear local cart after successful order
       await context.read<CartCubit>().clearCartLocal();
+      if (!mounted) return;
       context.push('/order-confirmation');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -154,7 +154,8 @@ class CheckoutCartModel {
       id: extractId(json['_id'] ?? json['id']) ?? '',
       customerId: extractId(json['customerId']) ?? '',
       status: json['status'] ?? 'active',
-      items: (json['items'] as List<dynamic>?)
+      items:
+          (json['items'] as List<dynamic>?)
               ?.map((e) => CheckoutCartItemModel.fromJson(e))
               .toList() ??
           [],
@@ -313,16 +314,33 @@ class CheckoutSessionModel {
   });
 
   factory CheckoutSessionModel.fromJson(Map<String, dynamic> json) {
+    final paymentMethodsRaw = json['paymentMethods'] ?? json['payment_methods'];
+    final paymentMethodsList = paymentMethodsRaw is List
+        ? paymentMethodsRaw
+              .map(
+                (e) => PaymentMethodModel.fromJson(
+                  e is Map<String, dynamic>
+                      ? e
+                      : Map<String, dynamic>.from(e as Map),
+                ),
+              )
+              .toList()
+        : <PaymentMethodModel>[];
+
     return CheckoutSessionModel(
       cart: CheckoutCartModel.fromJson(json['cart'] ?? <String, dynamic>{}),
-      addresses: (json['addresses'] as List<dynamic>?)
-              ?.map((e) => AddressModel.fromJson(e))
+      addresses:
+          (json['addresses'] as List<dynamic>?)
+              ?.map(
+                (e) => AddressModel.fromJson(
+                  e is Map<String, dynamic>
+                      ? e
+                      : Map<String, dynamic>.from(e as Map),
+                ),
+              )
               .toList() ??
           [],
-      paymentMethods: (json['paymentMethods'] as List<dynamic>?)
-              ?.map((e) => PaymentMethodModel.fromJson(e))
-              .toList() ??
-          [],
+      paymentMethods: paymentMethodsList,
       customer: CheckoutCustomerModel.fromJson(
         json['customer'] ?? <String, dynamic>{},
       ),

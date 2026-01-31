@@ -1,6 +1,7 @@
 /// Cart Remote DataSource - Real API implementation
 library;
 
+import 'dart:convert';
 import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
@@ -206,12 +207,14 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
     );
 
     final data = response.data['data'] ?? response.data;
-    
+
     // Handle both old format (cart only) and new format (with sync results)
     if (data['cart'] != null) {
-      return CartModel.fromJson(data['cart'] as Map<String, dynamic>).toEntity();
+      return CartModel.fromJson(
+        data['cart'] as Map<String, dynamic>,
+      ).toEntity();
     }
-    
+
     return CartModel.fromJson(data).toEntity();
   }
 
@@ -230,12 +233,12 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
     );
 
     final responseData = response.data['data'] ?? response.data;
-    
+
     // Check if response has sync results format
     if (responseData['cart'] != null) {
       return CartSyncResultEntity.fromJson(responseData);
     }
-    
+
     // Fallback to old format (cart only)
     final cart = CartModel.fromJson(responseData).toEntity();
     return CartSyncResultEntity(
@@ -265,11 +268,23 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
         ? '?${queryParams.entries.map((e) => '${e.key}=${e.value}').join('&')}'
         : '';
 
-    final response = await _apiClient.get(
-      '${ApiEndpoints.checkoutSession}$queryString',
-    );
+    final path = '${ApiEndpoints.checkoutSession}$queryString';
+    print('[API] → GET $path');
+
+    final response = await _apiClient.get(path);
+
+    print('[API] ← ${response.statusCode} $path');
 
     final data = response.data['data'] ?? response.data;
+    // طباعة البيانات القادمة من الـ API
+    try {
+      final pretty = const JsonEncoder.withIndent(
+        '  ',
+      ).convert(data is Map ? data : {'data': data});
+      print('[API] Response data:\n$pretty');
+    } catch (_) {
+      print('[API] Response data: $data');
+    }
     return CheckoutSessionModel.fromJson(data).toEntity();
   }
 }

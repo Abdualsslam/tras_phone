@@ -3,7 +3,6 @@ library;
 
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/cart_entity.dart';
-import '../../domain/enums/cart_enums.dart';
 import 'cart_item_model.dart';
 
 part 'cart_model.g.dart';

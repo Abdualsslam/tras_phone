@@ -86,22 +86,25 @@ class _CheckoutCartItemsState extends State<CheckoutCartItems> {
             firstChild: const SizedBox.shrink(),
             secondChild: Column(
               children: [
-                Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
+                Divider(
+                  height: 1,
+                  color: AppColors.dividerLight.withValues(alpha: 0.5),
+                ),
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
+                  ),
                   itemCount: widget.items.length,
-                  separatorBuilder: (_, __) => Divider(
+                  separatorBuilder: (_, _) => Divider(
                     height: 16.h,
-                    color: AppColors.border.withValues(alpha: 0.3),
+                    color: AppColors.dividerLight.withValues(alpha: 0.3),
                   ),
                   itemBuilder: (context, index) {
                     final item = widget.items[index];
-                    return _CartItemRow(
-                      item: item,
-                      locale: widget.locale,
-                    );
+                    return _CartItemRow(item: item, locale: widget.locale);
                   },
                 ),
               ],
@@ -121,10 +124,7 @@ class _CartItemRow extends StatelessWidget {
   final CheckoutCartItemEntity item;
   final String locale;
 
-  const _CartItemRow({
-    required this.item,
-    required this.locale,
-  });
+  const _CartItemRow({required this.item, required this.locale});
 
   @override
   Widget build(BuildContext context) {
@@ -142,20 +142,21 @@ class _CartItemRow extends StatelessWidget {
             child: SizedBox(
               width: 56.w,
               height: 56.w,
-              child: item.product.image != null && item.product.image!.isNotEmpty
+              child:
+                  item.product.image != null && item.product.image!.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: item.product.image!,
                       fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(
-                        color: AppColors.surface,
+                      placeholder: (_, _) => Container(
+                        color: AppColors.surfaceLight,
                         child: Icon(
                           Iconsax.box,
                           size: 24.sp,
                           color: AppColors.textTertiaryLight,
                         ),
                       ),
-                      errorWidget: (_, __, ___) => Container(
-                        color: AppColors.surface,
+                      errorWidget: (_, _, _) => Container(
+                        color: AppColors.surfaceLight,
                         child: Icon(
                           Iconsax.box,
                           size: 24.sp,
@@ -164,7 +165,7 @@ class _CartItemRow extends StatelessWidget {
                       ),
                     )
                   : Container(
-                      color: AppColors.surface,
+                      color: AppColors.surfaceLight,
                       child: Icon(
                         Iconsax.box,
                         size: 24.sp,
@@ -218,7 +219,7 @@ class _CartItemRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${item.totalPrice.toStringAsFixed(0)}',
+                item.totalPrice.toStringAsFixed(0),
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: AppColors.primary,
