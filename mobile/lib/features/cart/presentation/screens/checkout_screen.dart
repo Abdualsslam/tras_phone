@@ -19,8 +19,6 @@ import '../../../orders/presentation/cubit/orders_cubit.dart';
 import '../../../orders/domain/enums/order_enums.dart';
 import '../../../orders/domain/entities/payment_method_entity.dart';
 import '../../../orders/data/models/shipping_address_model.dart';
-import '../../../profile/presentation/cubit/profile_cubit.dart';
-import '../../../profile/presentation/cubit/profile_state.dart';
 import '../../../profile/domain/entities/address_entity.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -152,15 +150,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Address Section
+                      // Address Section (from checkout session)
                       _buildSectionTitle(
                         theme,
                         AppLocalizations.of(context)!.addresses,
                       ),
                       SizedBox(height: 12.h),
-                      BlocBuilder<AddressesCubit, AddressesState>(
-                        builder: (context, addressesState) {
-                          if (addressesState is AddressesLoading) {
+                      BlocBuilder<CheckoutSessionCubit, CheckoutSessionState>(
+                        builder: (context, sessionState) {
+                          if (sessionState is CheckoutSessionLoading) {
                             return const Center(
                               child: Padding(
                                 padding: EdgeInsets.all(24.0),
@@ -168,25 +166,67 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               ),
                             );
                           }
+                          if (sessionState is! CheckoutSessionLoaded) {
+                            return const SizedBox.shrink();
+                          }
+                          final addresses = sessionState.session.addresses;
 
-                          if (addressesState is AddressesError) {
+                          // Set default address if not selected
+                          if (_selectedAddressId == null &&
+                              addresses.isNotEmpty) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              final defaultAddress = addresses.firstWhere(
+                                (a) => a.isDefault,
+                                orElse: () => addresses.first,
+                              );
+                              setState(
+                                () => _selectedAddressId = defaultAddress.id,
+                              );
+                            });
+                          }
+
+                          if (addresses.isEmpty) {
                             return Container(
                               padding: EdgeInsets.all(16.w),
                               decoration: BoxDecoration(
-                                color: AppColors.error.withValues(alpha: 0.1),
+                                color: isDark
+                                    ? AppColors.cardDark
+                                    : AppColors.cardLight,
                                 borderRadius: BorderRadius.circular(12.r),
                               ),
-                              child: Row(
+                              child: Column(
                                 children: [
                                   Icon(
-                                    Iconsax.info_circle,
-                                    color: AppColors.error,
+                                    Iconsax.location,
+                                    size: 48.sp,
+                                    color: AppColors.textSecondaryLight,
                                   ),
-                                  SizedBox(width: 12.w),
-                                  Expanded(
-                                    child: Text(
-                                      addressesState.message,
-                                      style: TextStyle(color: AppColors.error),
+                                  SizedBox(height: 8.h),
+                                  Text(
+                                    'لا توجد عناوين متاحة',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  ElevatedButton.icon(
+                                    onPressed: () async {
+                                      final result = await context.push(
+                                        '/address/add',
+                                      );
+                                      if (result != true) return;
+                                      if (!context.mounted) return;
+                                      context
+                                          .read<CheckoutSessionCubit>()
+                                          .refresh();
+                                    },
+                                    icon: const Icon(Iconsax.add, size: 18),
+                                    label: Text(
+                                      AppLocalizations.of(context)!.addAddress,
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 24.w,
+                                        vertical: 12.h,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -194,113 +234,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             );
                           }
 
-                          if (addressesState is AddressesLoaded ||
-                              addressesState is AddressOperationLoading ||
-                              addressesState is AddressOperationSuccess) {
-                            final addresses = addressesState is AddressesLoaded
-                                ? addressesState.addresses
-                                : addressesState is AddressOperationLoading
-                                ? addressesState.addresses
-                                : (addressesState as AddressOperationSuccess)
-                                      .addresses;
-
-                            // Set default address if not selected
-                            if (_selectedAddressId == null &&
-                                addresses.isNotEmpty) {
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                final defaultAddress = addresses.firstWhere(
-                                  (a) => a.isDefault,
-                                  orElse: () => addresses.first,
+                          return Column(
+                            children: [
+                              ...addresses.map((address) {
+                                return _buildAddressCard(
+                                  theme,
+                                  isDark,
+                                  address,
+                                  isSelected: _selectedAddressId == address.id,
                                 );
-                                setState(
-                                  () => _selectedAddressId = defaultAddress.id,
-                                );
-                              });
-                            }
-
-                            if (addresses.isEmpty) {
-                              return Container(
-                                padding: EdgeInsets.all(16.w),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? AppColors.cardDark
-                                      : AppColors.cardLight,
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Iconsax.location,
-                                      size: 48.sp,
-                                      color: AppColors.textSecondaryLight,
-                                    ),
-                                    SizedBox(height: 8.h),
-                                    Text(
-                                      'لا توجد عناوين متاحة',
-                                      style: theme.textTheme.bodyMedium,
-                                    ),
-                                    SizedBox(height: 12.h),
-                                    ElevatedButton.icon(
-                                      onPressed: () async {
-                                        final result = await context.push(
-                                          '/address/add',
-                                        );
-                                        if (result != true) return;
-                                        if (!context.mounted) return;
-                                        context
-                                            .read<AddressesCubit>()
-                                            .loadAddresses();
-                                      },
-                                      icon: const Icon(Iconsax.add, size: 18),
-                                      label: Text(
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.addAddress,
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 24.w,
-                                          vertical: 12.h,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-
-                            return Column(
-                              children: [
-                                ...addresses.map((address) {
-                                  return _buildAddressCard(
-                                    theme,
-                                    isDark,
-                                    address,
-                                    isSelected:
-                                        _selectedAddressId == address.id,
+                              }),
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final result = await context.push(
+                                    '/address/add',
                                   );
-                                }),
-                                TextButton.icon(
-                                  onPressed: () async {
-                                    final result = await context.push(
-                                      '/address/add',
-                                    );
-                                    if (result != true) return;
-                                    if (!context.mounted) return;
-                                    context
-                                        .read<AddressesCubit>()
-                                        .loadAddresses();
-                                  },
-                                  icon: const Icon(Iconsax.add),
-                                  label: Text(
-                                    AppLocalizations.of(context)!.addAddress,
-                                  ),
+                                  if (result != true) return;
+                                  if (!context.mounted) return;
+                                  context
+                                      .read<CheckoutSessionCubit>()
+                                      .refresh();
+                                },
+                                icon: const Icon(Iconsax.add),
+                                label: Text(
+                                  AppLocalizations.of(context)!.addAddress,
                                 ),
-                              ],
-                            );
-                          }
-
-                          return const SizedBox.shrink();
+                              ),
+                            ],
+                          );
                         },
                       ),
                       SizedBox(height: 24.h),
@@ -708,6 +669,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final taxAmount = cart.taxAmount;
     final total = subtotal - couponDiscount + shippingCost + taxAmount;
     final itemsCount = cart.itemsCount;
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -718,13 +680,138 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // تفاصيل المنتجات - شكل فاتورة
+          Text(
+            AppLocalizations.of(context)!.products,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          if (cart.items.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.h),
+              child: Text(
+                'لا توجد منتجات',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondaryLight,
+                ),
+              ),
+            )
+          else ...[
+            // رأس الفاتورة
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'المنتج',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 40.w,
+                  child: Text(
+                    'الكمية',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 56.w,
+                  child: Text(
+                    'السعر',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 56.w,
+                  child: Text(
+                    'الإجمالي',
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            Divider(
+              height: 1,
+              color: AppColors.dividerLight.withValues(alpha: 0.5),
+            ),
+            SizedBox(height: 8.h),
+            // صفوف المنتجات
+            ...cart.items.map((item) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: 10.h),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        item.getProductName(locale),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 40.w,
+                      child: Text(
+                        '${item.quantity}',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 56.w,
+                      child: Text(
+                        item.unitPrice.toStringAsFixed(0),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 56.w,
+                      child: Text(
+                        item.totalPrice.toStringAsFixed(0),
+                        textAlign: TextAlign.end,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            Divider(height: 20.h, color: AppColors.dividerLight),
+          ],
+          // المجموع الفرعي وما بعده
           Text(
             AppLocalizations.of(context)!.subtotal,
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 12.h),
           _buildSummaryRow(
             theme,
             'المجموع الفرعي ($itemsCount ${itemsCount == 1 ? 'منتج' : 'منتجات'})',
