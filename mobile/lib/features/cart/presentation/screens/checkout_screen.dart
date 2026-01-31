@@ -187,24 +187,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                           if (addresses.isEmpty) {
                             return Container(
-                              padding: EdgeInsets.all(16.w),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12.w,
+                                vertical: 16.h,
+                              ),
                               decoration: BoxDecoration(
                                 color: isDark
-                                    ? AppColors.cardDark
-                                    : AppColors.cardLight,
-                                borderRadius: BorderRadius.circular(12.r),
+                                    ? AppColors.surfaceDark
+                                    : AppColors.backgroundLight,
+                                borderRadius: BorderRadius.circular(14.r),
+                                border: Border.all(
+                                  color: isDark
+                                      ? AppColors.dividerDark
+                                      : AppColors.dividerLight,
+                                  width: 1,
+                                ),
                               ),
                               child: Column(
                                 children: [
                                   Icon(
                                     Iconsax.location,
-                                    size: 48.sp,
+                                    size: 40.sp,
                                     color: AppColors.textSecondaryLight,
                                   ),
                                   SizedBox(height: 8.h),
                                   Text(
                                     'لا توجد عناوين متاحة',
-                                    style: theme.textTheme.bodyMedium,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontSize: 14.sp,
+                                    ),
                                   ),
                                   SizedBox(height: 12.h),
                                   ElevatedButton.icon(
@@ -224,8 +235,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     ),
                                     style: ElevatedButton.styleFrom(
                                       padding: EdgeInsets.symmetric(
-                                        horizontal: 24.w,
-                                        vertical: 12.h,
+                                        horizontal: 20.w,
+                                        vertical: 10.h,
                                       ),
                                     ),
                                   ),
@@ -234,33 +245,53 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             );
                           }
 
-                          return Column(
-                            children: [
-                              ...addresses.map((address) {
-                                return _buildAddressCard(
-                                  theme,
-                                  isDark,
-                                  address,
-                                  isSelected: _selectedAddressId == address.id,
-                                );
-                              }),
-                              TextButton.icon(
-                                onPressed: () async {
-                                  final result = await context.push(
-                                    '/address/add',
-                                  );
-                                  if (result != true) return;
-                                  if (!context.mounted) return;
-                                  context
-                                      .read<CheckoutSessionCubit>()
-                                      .refresh();
-                                },
-                                icon: const Icon(Iconsax.add),
-                                label: Text(
-                                  AppLocalizations.of(context)!.addAddress,
-                                ),
+                          return Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.w,
+                              vertical: 10.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? AppColors.surfaceDark
+                                  : AppColors.backgroundLight,
+                              borderRadius: BorderRadius.circular(14.r),
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.dividerDark
+                                    : AppColors.dividerLight,
+                                width: 1,
                               ),
-                            ],
+                            ),
+                            child: Column(
+                              children: [
+                                ...addresses.map((address) {
+                                  return _buildAddressCard(
+                                    theme,
+                                    isDark,
+                                    address,
+                                    isSelected:
+                                        _selectedAddressId == address.id,
+                                  );
+                                }),
+                                TextButton.icon(
+                                  onPressed: () async {
+                                    final result = await context.push(
+                                      '/address/add',
+                                    );
+                                    if (result != true) return;
+                                    if (!context.mounted) return;
+                                    context
+                                        .read<CheckoutSessionCubit>()
+                                        .refresh();
+                                  },
+                                  icon: Icon(Iconsax.add, size: 18.sp),
+                                  label: Text(
+                                    AppLocalizations.of(context)!.addAddress,
+                                    style: TextStyle(fontSize: 13.sp),
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
                         },
                       ),
@@ -437,61 +468,68 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return GestureDetector(
       onTap: () => setState(() => _selectedAddressId = address.id),
       child: Container(
-        margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(16.w),
+        margin: EdgeInsets.only(bottom: 4.h),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(16.r),
+          color: isDark
+              ? AppColors.cardDark
+              : (isSelected
+                    ? AppColors.primary.withValues(alpha: 0.04)
+                    : AppColors.inputBackgroundLight),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            width: 2,
+            color: isSelected
+                ? AppColors.primary
+                : (isDark ? AppColors.dividerDark : AppColors.dividerLight),
+            width: isSelected ? 1.5 : 1,
           ),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
         ),
         child: Row(
           children: [
             Container(
-              width: 24.w,
-              height: 24.w,
+              width: 40.w,
+              height: 40.w,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.textTertiaryLight,
-                  width: 2,
-                ),
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10.r),
               ),
-              child: isSelected
-                  ? Center(
-                      child: Container(
-                        width: 12.w,
-                        height: 12.w,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    )
-                  : null,
+              child: Icon(
+                Iconsax.location,
+                color: AppColors.primary,
+                size: 22.sp,
+              ),
             ),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     children: [
                       Text(
                         address.label,
-                        style: theme.textTheme.titleSmall?.copyWith(
+                        style: theme.textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w600,
+                          fontSize: 14.sp,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       if (address.isDefault) ...[
-                        SizedBox(width: 8.w),
+                        SizedBox(width: 6.w),
                         Container(
                           padding: EdgeInsets.symmetric(
-                            horizontal: 8.w,
+                            horizontal: 6.w,
                             vertical: 2.h,
                           ),
                           decoration: BoxDecoration(
@@ -510,33 +548,60 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ],
                     ],
                   ),
-                  SizedBox(height: 4.h),
+                  SizedBox(height: 2.h),
                   Text(
                     address.addressLine,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondaryLight,
+                      fontSize: 12.sp,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  if (address.cityName != null) ...[
+                  if (address.cityName != null || address.phone != null) ...[
                     SizedBox(height: 2.h),
                     Text(
-                      address.cityName!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  ],
-                  if (address.phone != null) ...[
-                    SizedBox(height: 2.h),
-                    Text(
-                      address.phone!,
+                      [
+                        if (address.cityName != null) address.cityName!,
+                        if (address.phone != null) address.phone!,
+                      ].join(' • '),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textTertiaryLight,
+                        fontSize: 11.sp,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ],
               ),
+            ),
+            SizedBox(width: 8.w),
+            Container(
+              width: 22.w,
+              height: 22.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? AppColors.primary : Colors.transparent,
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textTertiaryLight,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 8.w,
+                        height: 8.w,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
           ],
         ),
