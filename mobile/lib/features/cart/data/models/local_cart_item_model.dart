@@ -1,4 +1,5 @@
 /// Local Cart Item Model - Model for local cart items stored on device
+library;
 
 class LocalCartItemModel {
   final String productId;
@@ -47,8 +48,8 @@ class LocalCartItemModel {
     }
     final quantity = json['quantity'] != null
         ? (json['quantity'] is num
-            ? (json['quantity'] as num).toInt()
-            : int.tryParse(json['quantity'].toString()) ?? 1)
+              ? (json['quantity'] as num).toInt()
+              : int.tryParse(json['quantity'].toString()) ?? 1)
         : 1;
     final unitPrice = json['unitPrice'] != null
         ? (json['unitPrice'] as num).toDouble()

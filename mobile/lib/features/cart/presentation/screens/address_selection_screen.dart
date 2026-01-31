@@ -95,7 +95,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                   child: ListView.separated(
                     padding: EdgeInsets.all(16.w),
                     itemCount: _addresses.length,
-                    separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                    separatorBuilder: (_, _) => SizedBox(height: 12.h),
                     itemBuilder: (context, index) {
                       return _buildAddressCard(_addresses[index], isDark);
                     },

@@ -11,10 +11,9 @@ import 'checkout_session_state.dart';
 class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
   final CartRemoteDataSource _remoteDataSource;
 
-  CheckoutSessionCubit({
-    required CartRemoteDataSource remoteDataSource,
-  })  : _remoteDataSource = remoteDataSource,
-        super(const CheckoutSessionInitial());
+  CheckoutSessionCubit({required CartRemoteDataSource remoteDataSource})
+    : _remoteDataSource = remoteDataSource,
+      super(const CheckoutSessionInitial());
 
   /// Load checkout session from server
   Future<void> loadSession({String? couponCode}) async {
@@ -34,11 +33,16 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
         couponCode: couponCode,
       );
 
-      emit(CheckoutSessionLoaded(
-        session: session,
-        appliedCouponCode: couponCode,
-      ));
+      emit(
+        CheckoutSessionLoaded(session: session, appliedCouponCode: couponCode),
+      );
 
+      print(
+        '[CheckoutSessionCubit] Checkout session loaded: '
+        '${session.cart.itemsCount} items, '
+        '${session.addresses.length} addresses, '
+        '${session.paymentMethods.length} payment methods',
+      );
       developer.log(
         'Checkout session loaded: ${session.cart.itemsCount} items, '
         '${session.addresses.length} addresses, '
@@ -68,10 +72,12 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
     final currentSession = _getCurrentSession();
     if (currentSession == null) return;
 
-    emit(CheckoutSessionApplyingCoupon(
-      currentSession: currentSession,
-      couponCode: code,
-    ));
+    emit(
+      CheckoutSessionApplyingCoupon(
+        currentSession: currentSession,
+        couponCode: code,
+      ),
+    );
 
     try {
       // Determine platform
@@ -89,10 +95,7 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
 
       // Check if coupon was valid
       if (session.coupon != null && session.coupon!.isValid) {
-        emit(CheckoutSessionLoaded(
-          session: session,
-          appliedCouponCode: code,
-        ));
+        emit(CheckoutSessionLoaded(session: session, appliedCouponCode: code));
         developer.log(
           'Coupon applied: $code, discount: ${session.coupon!.discountAmount}',
           name: 'CheckoutSessionCubit',
@@ -100,16 +103,20 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
       } else {
         // Coupon was invalid
         final errorMessage = session.coupon?.message ?? 'الكوبون غير صالح';
-        emit(CheckoutSessionCouponError(
-          message: errorMessage,
-          currentSession: currentSession,
-        ));
-        
+        emit(
+          CheckoutSessionCouponError(
+            message: errorMessage,
+            currentSession: currentSession,
+          ),
+        );
+
         // After showing error, revert to loaded state without coupon
-        emit(CheckoutSessionLoaded(
-          session: currentSession,
-          appliedCouponCode: null,
-        ));
+        emit(
+          CheckoutSessionLoaded(
+            session: currentSession,
+            appliedCouponCode: null,
+          ),
+        );
       }
     } catch (e) {
       developer.log(
@@ -117,16 +124,17 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
         name: 'CheckoutSessionCubit',
         error: e,
       );
-      emit(CheckoutSessionCouponError(
-        message: e.toString(),
-        currentSession: currentSession,
-      ));
-      
+      emit(
+        CheckoutSessionCouponError(
+          message: e.toString(),
+          currentSession: currentSession,
+        ),
+      );
+
       // Revert to previous state
-      emit(CheckoutSessionLoaded(
-        session: currentSession,
-        appliedCouponCode: null,
-      ));
+      emit(
+        CheckoutSessionLoaded(session: currentSession, appliedCouponCode: null),
+      );
     }
   }
 
@@ -151,10 +159,7 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
         couponCode: null,
       );
 
-      emit(CheckoutSessionLoaded(
-        session: session,
-        appliedCouponCode: null,
-      ));
+      emit(CheckoutSessionLoaded(session: session, appliedCouponCode: null));
 
       developer.log('Coupon removed', name: 'CheckoutSessionCubit');
     } catch (e) {
@@ -163,12 +168,11 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
         name: 'CheckoutSessionCubit',
         error: e,
       );
-      
+
       // Revert to previous state without coupon
-      emit(CheckoutSessionLoaded(
-        session: currentSession,
-        appliedCouponCode: null,
-      ));
+      emit(
+        CheckoutSessionLoaded(session: currentSession, appliedCouponCode: null),
+      );
     }
   }
 

@@ -8,7 +8,6 @@ import '../../data/models/local_cart_item_model.dart';
 import '../../domain/entities/cart_entity.dart';
 import '../../domain/entities/cart_item_entity.dart';
 import '../../domain/entities/cart_sync_result_entity.dart';
-import '../../domain/enums/cart_enums.dart';
 import 'cart_state.dart';
 
 class CartCubit extends Cubit<CartState> {

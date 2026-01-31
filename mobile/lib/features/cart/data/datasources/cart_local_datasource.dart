@@ -47,8 +47,7 @@ abstract class CartLocalDataSource {
 class CartLocalDataSourceImpl implements CartLocalDataSource {
   final LocalStorage _storage;
 
-  CartLocalDataSourceImpl({required LocalStorage storage})
-      : _storage = storage;
+  CartLocalDataSourceImpl({required LocalStorage storage}) : _storage = storage;
 
   @override
   Future<List<LocalCartItemModel>> getLocalCart() async {
@@ -62,14 +61,9 @@ class CartLocalDataSourceImpl implements CartLocalDataSource {
       final validItems = <LocalCartItemModel>[];
       for (var i = 0; i < itemsList.length; i++) {
         try {
-          final item = itemsList[i];
-          if (item is Map<String, dynamic>) {
-            validItems.add(LocalCartItemModel.fromJson(item));
-          } else if (item is Map) {
-            validItems.add(LocalCartItemModel.fromJson(
-              Map<String, dynamic>.from(item),
-            ));
-          }
+          final item = itemsList[i] as Map;
+          final map = Map<String, dynamic>.from(item);
+          validItems.add(LocalCartItemModel.fromJson(map));
         } catch (e) {
           developer.log(
             'Skipping corrupt cart item at index $i: $e',
@@ -124,8 +118,9 @@ class CartLocalDataSourceImpl implements CartLocalDataSource {
   }) async {
     try {
       final items = await getLocalCart();
-      final existingIndex =
-          items.indexWhere((item) => item.productId == productId);
+      final existingIndex = items.indexWhere(
+        (item) => item.productId == productId,
+      );
 
       if (existingIndex >= 0) {
         // Update existing item
@@ -139,16 +134,18 @@ class CartLocalDataSourceImpl implements CartLocalDataSource {
         );
       } else {
         // Add new item
-        items.add(LocalCartItemModel(
-          productId: productId,
-          quantity: quantity,
-          unitPrice: unitPrice,
-          addedAt: DateTime.now(),
-          productName: productName,
-          productNameAr: productNameAr,
-          productImage: productImage,
-          productSku: productSku,
-        ));
+        items.add(
+          LocalCartItemModel(
+            productId: productId,
+            quantity: quantity,
+            unitPrice: unitPrice,
+            addedAt: DateTime.now(),
+            productName: productName,
+            productNameAr: productNameAr,
+            productImage: productImage,
+            productSku: productSku,
+          ),
+        );
       }
 
       await saveLocalCart(items);

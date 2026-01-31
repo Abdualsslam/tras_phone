@@ -35,22 +35,7 @@ class _CartScreenState extends State<CartScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.cart),
-        actions: [
-          BlocBuilder<CartCubit, CartState>(
-            builder: (context, state) {
-              if (state is CartLoaded && state.cart.isNotEmpty) {
-                return IconButton(
-                  icon: const Icon(Iconsax.trash),
-                  onPressed: () => _showClearCartDialog(context),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.cart)),
       body: BlocBuilder<CartCubit, CartState>(
         builder: (context, state) {
           if (state is CartLoading) {
@@ -361,36 +346,39 @@ class _CartScreenState extends State<CartScreen> {
   Future<void> _handleCheckout(BuildContext context) async {
     HapticFeedback.mediumImpact();
 
-    // Navigate to checkout without syncing - cart contents stay as-is.
-    // Sync and validation happen when user taps "Confirm order" in checkout screen.
-    // Cart is cleared only after successful order confirmation.
-    if (context.mounted) {
-      context.push('/checkout');
-    }
-  }
+    final cartCubit = context.read<CartCubit>();
+    final currentState = cartCubit.state;
+    final cart = currentState is CartLoaded
+        ? currentState.cart
+        : (currentState is CartUpdating ? currentState.cart : null);
 
-  void _showClearCartDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('تفريغ السلة'),
-        content: const Text('هل أنت متأكد من تفريغ السلة؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)!.cancel),
+    if (cart == null || cart.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.emptyCart)),
+        );
+      }
+      return;
+    }
+
+    // مزامنة السلة المحلية مع السيرفر قبل فتح الدفع
+    // حتى يرجع GET /checkout/session عناصر السلة والعناوين وطرق الدفع
+    final syncResult = await cartCubit.syncCart();
+    if (!context.mounted) return;
+    if (syncResult == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.tryAgain),
+          action: SnackBarAction(
+            label: 'إعادة المحاولة',
+            onPressed: () => _handleCheckout(context),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<CartCubit>().clearCart();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('تفريغ'),
-          ),
-        ],
-      ),
-    );
+        ),
+      );
+      return;
+    }
+
+    context.push('/checkout');
   }
 }
 
@@ -431,7 +419,7 @@ class _CartItemCard extends StatelessWidget {
                   ? Image.network(
                       item.productImage!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(
+                      errorBuilder: (_, _, _) => Icon(
                         Iconsax.image,
                         size: 30.sp,
                         color: AppColors.textTertiaryLight,
