@@ -445,16 +445,21 @@ export class CartService {
                 productName = product.name;
                 productNameAr = product.nameAr;
 
-                // 2. Check available stock (skip only if product tracks inventory and available is 0)
-                let availableQuantity: number;
+                // 2. Check available stock: use Inventory (ProductStock) if records exist, else fallback to product.stockQuantity
+                let availableFromInventory: number;
                 try {
-                    availableQuantity = await this.inventoryService.getAvailableQuantity(
+                    availableFromInventory = await this.inventoryService.getAvailableQuantity(
                         localItem.productId,
                     );
                 } catch (e) {
                     this.logger.warn(`syncCart: getAvailableQuantity failed productId=${localItem.productId}`, e);
-                    availableQuantity = 0;
+                    availableFromInventory = 0;
                 }
+
+                const hasStockRecords = await this.inventoryService.hasStockRecords(localItem.productId);
+                const productDocStock = typeof product.stockQuantity === 'number' ? product.stockQuantity : 0;
+                // Use inventory module quantity when ProductStock records exist; otherwise use product.stockQuantity
+                const availableQuantity = hasStockRecords ? availableFromInventory : productDocStock;
 
                 const tracksInventory = product.trackInventory === true;
                 if (tracksInventory && availableQuantity === 0) {
@@ -491,7 +496,7 @@ export class CartService {
                     });
                 }
 
-                // 5. Adjust quantity if needed (only when product tracks inventory)
+                // 5. Adjust quantity if needed (when product tracks inventory and available < requested)
                 let finalQuantity = localItem.quantity;
                 if (tracksInventory && availableQuantity < localItem.quantity) {
                     finalQuantity = availableQuantity;

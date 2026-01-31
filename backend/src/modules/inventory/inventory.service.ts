@@ -106,6 +106,15 @@ export class InventoryService {
   }
 
   /**
+   * Check if product has any stock records (inventory set up).
+   * Used to distinguish "no inventory set up" (allow in cart) from "out of stock" (block).
+   */
+  async hasStockRecords(productId: string): Promise<boolean> {
+    const count = await this.productStockModel.countDocuments({ productId });
+    return count > 0;
+  }
+
+  /**
    * Adjust stock (create movement)
    */
   async adjustStock(data: {
