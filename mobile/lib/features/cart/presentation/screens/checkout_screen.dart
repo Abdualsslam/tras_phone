@@ -966,6 +966,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final taxAmount = session.cart.taxAmount;
     final total = subtotal - couponDiscount + shippingCost + taxAmount;
 
+    // تفعيل الزر عند توفر: سلة غير فارغة + عنوان + طريقة دفع
+    // التحقق من المخزون والمنتجات غير النشطة يبقى داخل _handlePlaceOrder مع رسالة للمستخدم
+    final canPlaceOrder =
+        !session.cart.isEmpty &&
+        _selectedAddressId != null &&
+        session.addresses.isNotEmpty &&
+        _selectedPaymentMethodId != null &&
+        session.paymentMethods.isNotEmpty;
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -979,19 +988,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ],
       ),
       child: SafeArea(
-        child: ElevatedButton(
-          onPressed: session.cart.isEmpty
-              ? null
-              : () => _handlePlaceOrder(session),
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.symmetric(vertical: 16.h),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14.r),
+        child: Opacity(
+          opacity: canPlaceOrder ? 1.0 : 0.5,
+          child: ElevatedButton(
+            onPressed: canPlaceOrder ? () => _handlePlaceOrder(session) : null,
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(vertical: 16.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14.r),
+              ),
             ),
-          ),
-          child: Text(
-            '${AppLocalizations.of(context)!.confirm} • ${total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+            child: Text(
+              '${AppLocalizations.of(context)!.confirm} • ${total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+            ),
           ),
         ),
       ),
