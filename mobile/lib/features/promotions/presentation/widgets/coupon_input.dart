@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/models/coupon_model.dart';
 import '../../data/models/coupon_validation_model.dart';
 import '../cubit/promotions_cubit.dart';
-import '../cubit/promotions_state.dart';
 
 class CouponInput extends StatefulWidget {
   final double orderTotal;
@@ -37,9 +35,9 @@ class _CouponInputState extends State<CouponInput> {
 
     try {
       final result = await context.read<PromotionsCubit>().validateCoupon(
-            code: controller.text.toUpperCase(),
-            orderTotal: widget.orderTotal,
-          );
+        code: controller.text.toUpperCase(),
+        orderTotal: widget.orderTotal,
+      );
 
       if (result != null && result.isValid) {
         setState(() => appliedCoupon = result);
@@ -122,9 +120,7 @@ class _CouponInputState extends State<CouponInput> {
             const SizedBox(width: 12),
             ElevatedButton(
               onPressed: isLoading ? null : _applyCoupon,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(80, 56),
-              ),
+              style: ElevatedButton.styleFrom(minimumSize: const Size(80, 56)),
               child: isLoading
                   ? const SizedBox(
                       width: 20,
@@ -135,58 +131,7 @@ class _CouponInputState extends State<CouponInput> {
             ),
           ],
         ),
-
-        // الكوبونات المتاحة
-        const SizedBox(height: 8),
-        TextButton(
-          onPressed: () => _showAvailableCoupons(context),
-          child: const Text('عرض الكوبونات المتاحة'),
-        ),
       ],
-    );
-  }
-
-  void _showAvailableCoupons(BuildContext context) {
-    context.read<PromotionsCubit>().loadPublicCoupons();
-
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => BlocBuilder<PromotionsCubit, PromotionsState>(
-        bloc: context.read<PromotionsCubit>(),
-        builder: (context, state) {
-          if (state is PromotionsLoaded && state.coupons.isNotEmpty) {
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: state.coupons.length,
-              itemBuilder: (context, index) {
-                final coupon = state.coupons[index];
-                return _buildCouponTile(coupon);
-              },
-            );
-          }
-          return const Center(child: CircularProgressIndicator());
-        },
-      ),
-    );
-  }
-
-  Widget _buildCouponTile(Coupon coupon) {
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          child: Text(coupon.discountText, style: const TextStyle(fontSize: 10)),
-        ),
-        title: Text(coupon.code),
-        subtitle: Text(coupon.getName('ar')),
-        trailing: TextButton(
-          onPressed: () {
-            controller.text = coupon.code;
-            Navigator.pop(context);
-            _applyCoupon();
-          },
-          child: const Text('استخدام'),
-        ),
-      ),
     );
   }
 

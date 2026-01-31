@@ -318,16 +318,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             );
                           }
 
-                          return Column(
-                            children: paymentMethods.map((method) {
-                              return _buildPaymentCard(
-                                theme,
-                                isDark,
-                                method,
-                                isSelected:
-                                    _selectedPaymentMethodId == method.id,
-                              );
-                            }).toList(),
+                          return Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.w,
+                              vertical: 10.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? AppColors.surfaceDark
+                                  : AppColors.backgroundLight,
+                              borderRadius: BorderRadius.circular(14.r),
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.dividerDark
+                                    : AppColors.dividerLight,
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              children: paymentMethods.map((method) {
+                                return _buildPaymentCard(
+                                  theme,
+                                  isDark,
+                                  method,
+                                  isSelected:
+                                      _selectedPaymentMethodId == method.id,
+                                );
+                              }).toList(),
+                            ),
                           );
                         }
 
@@ -527,37 +545,58 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return GestureDetector(
       onTap: () => setState(() => _selectedPaymentMethodId = method.id),
       child: Container(
-        margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(16.w),
+        margin: EdgeInsets.only(bottom: 4.h),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(16.r),
+          color: isDark
+              ? AppColors.cardDark
+              : (isSelected
+                    ? AppColors.primary.withValues(alpha: 0.04)
+                    : AppColors.inputBackgroundLight),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            width: 2,
+            color: isSelected
+                ? AppColors.primary
+                : (isDark ? AppColors.dividerDark : AppColors.dividerLight),
+            width: isSelected ? 1.5 : 1,
           ),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
         ),
         child: Row(
           children: [
+            // Icon/logo (left) - كما كان سابقاً
             Container(
-              width: 48.w,
-              height: 48.w,
+              width: 40.w,
+              height: 40.w,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12.r),
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10.r),
               ),
-              child: Icon(iconData, color: AppColors.primary),
+              child: Icon(iconData, color: AppColors.primary, size: 22.sp),
             ),
             SizedBox(width: 12.w),
+            // Payment method name and description (center)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     method.getName(locale),
-                    style: theme.textTheme.titleSmall?.copyWith(
+                    style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w600,
+                      fontSize: 14.sp,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   if (method.getDescription(locale) != null) ...[
                     SizedBox(height: 2.h),
@@ -565,17 +604,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       method.getDescription(locale)!,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textTertiaryLight,
+                        fontSize: 12.sp,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ],
               ),
             ),
+            SizedBox(width: 8.w),
+            // Selection indicator (right) - كما كان سابقاً
             Container(
-              width: 24.w,
-              height: 24.w,
+              width: 22.w,
+              height: 22.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                color: isSelected ? AppColors.primary : Colors.transparent,
                 border: Border.all(
                   color: isSelected
                       ? AppColors.primary
@@ -586,10 +631,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: isSelected
                   ? Center(
                       child: Container(
-                        width: 12.w,
-                        height: 12.w,
+                        width: 8.w,
+                        height: 8.w,
                         decoration: const BoxDecoration(
-                          color: AppColors.primary,
+                          color: Colors.white,
                           shape: BoxShape.circle,
                         ),
                       ),
