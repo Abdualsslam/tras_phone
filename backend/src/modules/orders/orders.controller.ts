@@ -37,9 +37,12 @@ import { OrderFilterQueryDto } from './dto/order-filter-query.dto';
 import { UploadReceiptDto } from './dto/upload-receipt.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { RateOrderDto } from './dto/rate-order.dto';
+import { CheckoutSessionQueryDto, CheckoutSessionResponseDto, CheckoutCouponDto } from './dto/checkout-session.dto';
 import { CartService } from './cart.service';
 import { OrdersService } from './orders.service';
 import { SettingsService } from '@modules/settings/settings.service';
+import { CustomersService } from '@modules/customers/customers.service';
+import { CouponsService } from '@modules/promotions/coupons.service';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 import { RolesGuard } from '@guards/roles.guard';
 import { Roles } from '@decorators/roles.decorator';
@@ -255,7 +258,104 @@ export class CartController {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class CheckoutController {
-  constructor(private readonly settingsService: SettingsService) {}
+  constructor(
+    private readonly settingsService: SettingsService,
+    private readonly cartService: CartService,
+    private readonly customersService: CustomersService,
+    private readonly couponsService: CouponsService,
+  ) {}
+
+  @Get('session')
+  @ApiOperation({
+    summary: 'Get checkout session',
+    description:
+      'Get complete checkout session with cart (including product details), addresses, payment methods, and optional coupon validation.',
+  })
+  @ApiQuery({
+    name: 'platform',
+    required: false,
+    enum: ['web', 'mobile', 'android', 'ios'],
+    description: 'Platform filter for payment methods',
+  })
+  @ApiQuery({
+    name: 'couponCode',
+    required: false,
+    description: 'Coupon code to pre-validate',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Checkout session retrieved',
+    type: CheckoutSessionResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async getCheckoutSession(
+    @CurrentUser() user: any,
+    @Query() query: CheckoutSessionQueryDto,
+  ) {
+    // 1. Get cart with product details
+    const cart = await this.cartService.getCartWithProductDetails(user.customerId);
+
+    // 2. Get customer addresses
+    const addresses = await this.customersService.getAddresses(user.customerId);
+
+    // 3. Get active payment methods
+    const paymentMethods = await this.settingsService.findActivePaymentMethods(query.platform);
+
+    // 4. Get customer basic info
+    let customer: any = { id: user.customerId };
+    try {
+      const customerDoc = await this.customersService.findByUserId(user.customerId);
+      if (customerDoc) {
+        customer = {
+          id: customerDoc._id.toString(),
+          name: customerDoc.responsiblePersonName || customerDoc.shopName,
+          phone: customerDoc.user?.phone,
+          priceLevelId: customerDoc.priceLevelId?.toString(),
+        };
+      }
+    } catch (e) {
+      // Use default customer info
+    }
+
+    // 5. Validate coupon if provided
+    let coupon: CheckoutCouponDto | undefined;
+    if (query.couponCode) {
+      try {
+        const validation = await this.couponsService.validate(
+          query.couponCode,
+          user.customerId,
+          cart.subtotal,
+        );
+        coupon = {
+          isValid: validation.isValid,
+          code: query.couponCode,
+          discountAmount: validation.discountAmount,
+          discountType: validation.coupon?.discountType,
+          message: validation.isValid ? undefined : validation.message,
+        };
+      } catch (e) {
+        coupon = {
+          isValid: false,
+          code: query.couponCode,
+          message: e.message || 'Invalid coupon',
+        };
+      }
+    }
+
+    const response: CheckoutSessionResponseDto = {
+      cart,
+      addresses,
+      paymentMethods,
+      customer,
+      coupon,
+    };
+
+    return ResponseBuilder.success(
+      response,
+      'Checkout session retrieved',
+      'تم استرجاع جلسة الدفع',
+    );
+  }
 
   @Get('payment-methods')
   @ApiOperation({

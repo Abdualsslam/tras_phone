@@ -1,0 +1,308 @@
+/// Checkout Cart Items Widget - Display cart items in checkout screen
+library;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:iconsax/iconsax.dart';
+import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
+import '../../domain/entities/checkout_session_entity.dart';
+
+class CheckoutCartItems extends StatefulWidget {
+  final List<CheckoutCartItemEntity> items;
+  final bool initiallyExpanded;
+  final String locale;
+
+  const CheckoutCartItems({
+    super.key,
+    required this.items,
+    this.initiallyExpanded = false,
+    this.locale = 'ar',
+  });
+
+  @override
+  State<CheckoutCartItems> createState() => _CheckoutCartItemsState();
+}
+
+class _CheckoutCartItemsState extends State<CheckoutCartItems> {
+  late bool _isExpanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.initiallyExpanded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        children: [
+          // Header with expand/collapse toggle
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(16.r),
+              bottom: _isExpanded ? Radius.zero : Radius.circular(16.r),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Row(
+                children: [
+                  Icon(
+                    Iconsax.shopping_bag,
+                    size: 20.sp,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(
+                      '${AppLocalizations.of(context)!.products} (${widget.items.length})',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _isExpanded ? Iconsax.arrow_up_2 : Iconsax.arrow_down_1,
+                    size: 20.sp,
+                    color: AppColors.textSecondaryLight,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Expandable items list
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Column(
+              children: [
+                Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  itemCount: widget.items.length,
+                  separatorBuilder: (_, __) => Divider(
+                    height: 16.h,
+                    color: AppColors.border.withValues(alpha: 0.3),
+                  ),
+                  itemBuilder: (context, index) {
+                    final item = widget.items[index];
+                    return _CartItemRow(
+                      item: item,
+                      locale: widget.locale,
+                    );
+                  },
+                ),
+              ],
+            ),
+            crossFadeState: _isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartItemRow extends StatelessWidget {
+  final CheckoutCartItemEntity item;
+  final String locale;
+
+  const _CartItemRow({
+    required this.item,
+    required this.locale,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasIssue = item.hasStockIssue || item.isProductInactive;
+
+    return Opacity(
+      opacity: hasIssue ? 0.6 : 1.0,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Product image
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8.r),
+            child: SizedBox(
+              width: 56.w,
+              height: 56.w,
+              child: item.product.image != null && item.product.image!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: item.product.image!,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(
+                        color: AppColors.surface,
+                        child: Icon(
+                          Iconsax.box,
+                          size: 24.sp,
+                          color: AppColors.textTertiaryLight,
+                        ),
+                      ),
+                      errorWidget: (_, __, ___) => Container(
+                        color: AppColors.surface,
+                        child: Icon(
+                          Iconsax.box,
+                          size: 24.sp,
+                          color: AppColors.textTertiaryLight,
+                        ),
+                      ),
+                    )
+                  : Container(
+                      color: AppColors.surface,
+                      child: Icon(
+                        Iconsax.box,
+                        size: 24.sp,
+                        color: AppColors.textTertiaryLight,
+                      ),
+                    ),
+            ),
+          ),
+          SizedBox(width: 12.w),
+
+          // Product details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.getProductName(locale),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 4.h),
+                Row(
+                  children: [
+                    Text(
+                      '${item.unitPrice.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                    Text(
+                      ' × ${item.quantity}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+                if (hasIssue) ...[
+                  SizedBox(height: 4.h),
+                  _buildIssueLabel(context),
+                ],
+              ],
+            ),
+          ),
+
+          // Total price
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${item.totalPrice.toStringAsFixed(0)}',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+              Text(
+                AppLocalizations.of(context)!.currency,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondaryLight,
+                  fontSize: 10.sp,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIssueLabel(BuildContext context) {
+    String text;
+    Color color;
+
+    if (item.isProductInactive) {
+      text = 'المنتج غير متوفر';
+      color = AppColors.error;
+    } else if (item.hasStockIssue) {
+      text = 'الكمية المتوفرة: ${item.product.stockQuantity}';
+      color = AppColors.warning;
+    } else {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4.r),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10.sp,
+          color: color,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact version for showing total without expand
+class CheckoutCartSummary extends StatelessWidget {
+  final int itemsCount;
+  final double subtotal;
+  final String locale;
+
+  const CheckoutCartSummary({
+    super.key,
+    required this.itemsCount,
+    required this.subtotal,
+    this.locale = 'ar',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          '$itemsCount ${itemsCount == 1 ? 'منتج' : 'منتجات'}',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.textSecondaryLight,
+          ),
+        ),
+        Text(
+          '${subtotal.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}

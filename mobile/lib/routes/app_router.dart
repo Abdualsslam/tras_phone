@@ -1,8 +1,11 @@
 /// App Router - GoRouter configuration
 library;
 
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
+import '../core/di/injection.dart';
+import '../features/cart/presentation/cubit/checkout_session_cubit.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/onboarding_screen.dart';
@@ -167,7 +170,10 @@ final GoRouter appRouter = GoRouter(
     // ═══════════════════════════════════════════════════════════════════════
     GoRoute(
       path: '/checkout',
-      builder: (context, state) => const CheckoutScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => getIt<CheckoutSessionCubit>(),
+        child: const CheckoutScreen(),
+      ),
     ),
     GoRoute(
       path: '/order-confirmation',

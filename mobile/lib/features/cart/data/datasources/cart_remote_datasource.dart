@@ -6,7 +6,9 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
 import '../../domain/entities/cart_entity.dart';
 import '../../domain/entities/cart_sync_result_entity.dart';
+import '../../domain/entities/checkout_session_entity.dart';
 import '../models/cart_model.dart';
+import '../models/checkout_session_model.dart';
 
 /// Abstract interface for cart data source
 abstract class CartRemoteDataSource {
@@ -51,6 +53,12 @@ abstract class CartRemoteDataSource {
   /// Sync local cart with server and get sync results
   Future<CartSyncResultEntity> syncCartWithResults({
     required List<Map<String, dynamic>> items,
+  });
+
+  /// Get checkout session with cart, addresses, payment methods, and coupon validation
+  Future<CheckoutSessionEntity> getCheckoutSession({
+    String? platform,
+    String? couponCode,
   });
 }
 
@@ -236,5 +244,32 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
       priceChangedItems: [],
       quantityAdjustedItems: [],
     );
+  }
+
+  @override
+  Future<CheckoutSessionEntity> getCheckoutSession({
+    String? platform,
+    String? couponCode,
+  }) async {
+    developer.log(
+      'Getting checkout session: platform=$platform, couponCode=$couponCode',
+      name: 'CartDataSource',
+    );
+
+    // Build query parameters
+    final queryParams = <String, String>{};
+    if (platform != null) queryParams['platform'] = platform;
+    if (couponCode != null) queryParams['couponCode'] = couponCode;
+
+    final queryString = queryParams.isNotEmpty
+        ? '?${queryParams.entries.map((e) => '${e.key}=${e.value}').join('&')}'
+        : '';
+
+    final response = await _apiClient.get(
+      '${ApiEndpoints.checkoutSession}$queryString',
+    );
+
+    final data = response.data['data'] ?? response.data;
+    return CheckoutSessionModel.fromJson(data).toEntity();
   }
 }

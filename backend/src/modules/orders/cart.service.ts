@@ -6,6 +6,7 @@ import { ProductsService } from '@modules/products/products.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 import { CustomersService } from '@modules/customers/customers.service';
 import { SyncCartItemDto } from './dto/sync-cart.dto';
+import { CheckoutCartDto, CheckoutCartItemDto, CartItemProductDto } from './dto/checkout-session.dto';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -217,6 +218,100 @@ export class CartService {
             })
             .populate('customerId', 'responsiblePersonName email phone')
             .limit(100);
+    }
+
+    /**
+     * Get cart with populated product details for checkout session
+     * Returns cart items with product name, image, sku, stock info
+     */
+    async getCartWithProductDetails(customerId: string): Promise<CheckoutCartDto> {
+        const cart = await this.getCart(customerId);
+
+        // Get customer for priceLevelId
+        let priceLevelId: string = '';
+        try {
+            const customer = await this.customersService.findByUserId(customerId);
+            priceLevelId = customer?.priceLevelId?.toString() || '';
+        } catch (e) {
+            // If customer not found, use default
+            priceLevelId = '';
+        }
+
+        // Populate product details for each item
+        const itemsWithDetails: CheckoutCartItemDto[] = [];
+
+        for (const item of cart.items) {
+            try {
+                const product = await this.productsService.findByIdOrSlug(
+                    item.productId.toString(),
+                );
+
+                if (!product) continue;
+
+                // Get current price based on customer's price level
+                let currentPrice = item.unitPrice;
+                if (priceLevelId) {
+                    try {
+                        currentPrice = await this.productsService.getPrice(
+                            item.productId.toString(),
+                            priceLevelId,
+                        );
+                    } catch (e) {
+                        // Use existing price if price level not found
+                    }
+                }
+
+                // Get stock quantity
+                let stockQuantity = 0;
+                try {
+                    stockQuantity = await this.inventoryService.getAvailableQuantity(
+                        item.productId.toString(),
+                    );
+                } catch (e) {
+                    // Default to 0 if error
+                }
+
+                const productDetails: CartItemProductDto = {
+                    name: product.name || '',
+                    nameAr: product.nameAr || '',
+                    image: product.images?.[0] || product.mainImage || '',
+                    sku: product.sku || '',
+                    isActive: product.isActive && product.status === 'active',
+                    stockQuantity,
+                };
+
+                itemsWithDetails.push({
+                    productId: item.productId.toString(),
+                    quantity: item.quantity,
+                    unitPrice: currentPrice,
+                    totalPrice: item.quantity * currentPrice,
+                    addedAt: item.addedAt,
+                    product: productDetails,
+                });
+            } catch (e) {
+                // Skip items with errors (product deleted, etc.)
+                continue;
+            }
+        }
+
+        // Recalculate totals based on current prices
+        const subtotal = itemsWithDetails.reduce((sum, item) => sum + item.totalPrice, 0);
+        const itemsCount = itemsWithDetails.reduce((sum, item) => sum + item.quantity, 0);
+
+        return {
+            id: cart._id.toString(),
+            customerId: cart.customerId.toString(),
+            status: cart.status,
+            items: itemsWithDetails,
+            itemsCount,
+            subtotal,
+            discount: cart.discount || 0,
+            taxAmount: cart.taxAmount || 0,
+            shippingCost: cart.shippingCost || 0,
+            total: subtotal - (cart.couponDiscount || 0) + (cart.taxAmount || 0) + (cart.shippingCost || 0),
+            couponCode: cart.couponCode,
+            couponDiscount: cart.couponDiscount || 0,
+        };
     }
 
     /**

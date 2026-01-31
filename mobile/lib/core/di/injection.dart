@@ -21,6 +21,7 @@ import '../../features/catalog/presentation/cubit/quality_types_cubit.dart';
 import '../../features/cart/data/datasources/cart_remote_datasource.dart';
 import '../../features/cart/data/datasources/cart_local_datasource.dart';
 import '../../features/cart/presentation/cubit/cart_cubit.dart';
+import '../../features/cart/presentation/cubit/checkout_session_cubit.dart';
 import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 import '../../features/orders/presentation/cubit/orders_cubit.dart';
 import '../../features/orders/presentation/cubit/payment_methods_cubit.dart';
@@ -207,6 +208,13 @@ Future<void> setupDependencies() async {
     () => CartCubit(
       remoteDataSource: getIt<CartRemoteDataSource>(),
       localDataSource: getIt<CartLocalDataSource>(),
+    ),
+  );
+
+  // CheckoutSessionCubit - Factory for fresh instance each checkout
+  getIt.registerFactory<CheckoutSessionCubit>(
+    () => CheckoutSessionCubit(
+      remoteDataSource: getIt<CartRemoteDataSource>(),
     ),
   );
 

@@ -85,6 +85,7 @@ class ApiEndpoints {
   static const String cartRemoveCoupon = '/cart/coupon';
   static const String applyCoupon = '/cart/coupon';
   static const String removeCoupon = '/cart/coupon';
+  static const String checkoutSession = '/checkout/session';
   static const String checkoutSummary = '/checkout/summary';
   static const String placeOrder = '/checkout/place-order';
   static const String paymentMethods = '/settings/payment-methods';
