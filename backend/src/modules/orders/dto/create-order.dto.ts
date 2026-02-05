@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsMongoId, IsEnum, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsMongoId,
+  IsEnum,
+  IsObject,
+  IsNumber,
+  IsBoolean,
+} from 'class-validator';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -7,70 +15,96 @@ import { IsString, IsOptional, IsMongoId, IsEnum, IsObject } from 'class-validat
  * ═══════════════════════════════════════════════════════════════
  */
 export class CreateOrderDto {
-    @ApiProperty({
-        description: 'Shipping address ID',
-        example: '507f1f77bcf86cd799439011',
-        required: false,
-    })
-    @IsMongoId()
-    @IsOptional()
-    shippingAddressId?: string;
+  @ApiProperty({
+    description: 'Shipping address ID',
+    example: '507f1f77bcf86cd799439011',
+    required: false,
+  })
+  @IsMongoId()
+  @IsOptional()
+  shippingAddressId?: string;
 
-    @ApiProperty({
-        description: 'Payment method',
-        enum: ['cash', 'card', 'bank_transfer', 'wallet', 'credit'],
-        example: 'credit',
-        required: false,
-    })
-    @IsString()
-    @IsOptional()
-    @IsEnum(['cash', 'card', 'bank_transfer', 'wallet', 'credit'])
-    paymentMethod?: string;
+  @ApiProperty({
+    description: 'Payment method',
+    enum: ['cash', 'card', 'bank_transfer', 'wallet', 'credit'],
+    example: 'credit',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @IsEnum(['cash', 'card', 'bank_transfer', 'wallet', 'credit'])
+  paymentMethod?: string;
 
-    @ApiProperty({
-        description: 'Customer notes',
-        example: 'Please deliver before 5 PM',
-        required: false,
-    })
-    @IsString()
-    @IsOptional()
-    customerNotes?: string;
+  @ApiProperty({
+    description: 'Customer notes',
+    example: 'Please deliver before 5 PM',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  customerNotes?: string;
 
-    @ApiProperty({
-        description: 'Coupon code to apply',
-        example: 'SUMMER2024',
-        required: false,
-    })
-    @IsString()
-    @IsOptional()
-    couponCode?: string;
+  @ApiProperty({
+    description: 'Coupon code to apply',
+    example: 'SUMMER2024',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  couponCode?: string;
 
-    @ApiProperty({
-        description: 'Shipping address object (if not using addressId)',
-        type: Object,
-        required: false,
-    })
-    @IsObject()
-    @IsOptional()
-    shippingAddress?: {
-        fullName: string;
-        phone: string;
-        address: string;
-        city: string;
-        district?: string;
-        postalCode?: string;
-        notes?: string;
-    };
+  @ApiProperty({
+    description: 'Shipping address object (if not using addressId)',
+    type: Object,
+    required: false,
+  })
+  @IsObject()
+  @IsOptional()
+  shippingAddress?: {
+    fullName: string;
+    phone: string;
+    address: string;
+    city: string;
+    district?: string;
+    postalCode?: string;
+    notes?: string;
+  };
 
-    @ApiProperty({
-        description: 'Order source',
-        enum: ['web', 'mobile', 'admin'],
-        example: 'mobile',
-        required: false,
-    })
-    @IsString()
-    @IsOptional()
-    @IsEnum(['web', 'mobile', 'admin'])
-    source?: string;
+  @ApiProperty({
+    description: 'Order source',
+    enum: ['web', 'mobile', 'admin'],
+    example: 'mobile',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @IsEnum(['web', 'mobile', 'admin'])
+  source?: string;
+
+  @ApiProperty({
+    description: 'Amount to use from wallet',
+    example: 50,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  walletAmountUsed?: number;
+
+  @ApiProperty({
+    description: 'Whether to use loyalty points',
+    example: true,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  useLoyaltyPoints?: boolean;
+
+  @ApiProperty({
+    description: 'Amount of loyalty points to use',
+    example: 100,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  loyaltyPointsAmount?: number;
 }
-

@@ -22,6 +22,7 @@ import {
 import { CartService } from './cart.service';
 import { CouponsService } from '@modules/promotions/coupons.service';
 import { PromotionsService } from '@modules/promotions/promotions.service';
+import { ProductsService } from '@modules/products/products.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 
 /**
@@ -47,6 +48,7 @@ export class OrdersService {
     private cartService: CartService,
     private couponsService: CouponsService,
     private promotionsService: PromotionsService,
+    private productsService: ProductsService,
   ) {}
 
   /**
@@ -65,7 +67,7 @@ export class OrdersService {
     const orderNumber = await this.generateOrderNumber();
 
     // Calculate subtotal from cart
-    let subtotal = cart.subtotal;
+    const subtotal = cart.subtotal;
     let couponDiscount = 0;
     let couponId: Types.ObjectId | undefined;
     let couponCode: string | undefined;
@@ -92,9 +94,7 @@ export class OrdersService {
         couponDiscount = validation.discountAmount;
       } catch (error) {
         // If validation fails, throw error
-        throw new BadRequestException(
-          error.message || 'Invalid coupon code',
-        );
+        throw new BadRequestException(error.message || 'Invalid coupon code');
       }
     }
 
@@ -102,7 +102,8 @@ export class OrdersService {
     const taxAmount = cart.taxAmount;
     const shippingCost = cart.shippingCost;
     const discount = cart.discount; // Other discounts (promotions)
-    const total = subtotal - discount - couponDiscount + taxAmount + shippingCost;
+    const total =
+      subtotal - discount - couponDiscount + taxAmount + shippingCost;
 
     // Create order (currency default SAR)
     const order = await this.orderModel.create({
@@ -126,16 +127,42 @@ export class OrdersService {
       source: data.source || 'mobile',
     });
 
-    // Create order items
-    const orderItems = cart.items.map((item) => ({
-      orderId: order._id,
-      productId: item.productId,
-      productSku: '', // Will be populated from product
-      productName: '', // Will be populated from product
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      totalPrice: item.totalPrice,
-    }));
+    // Create order items with product details
+    const orderItems = await Promise.all(
+      cart.items.map(async (item) => {
+        // Fetch product details to populate sku and name
+        let productSku = '';
+        let productName = '';
+        let productNameAr = '';
+        let productImage = '';
+
+        try {
+          const product = await this.productsService.findByIdOrSlug(
+            item.productId.toString(),
+          );
+          productSku = product.sku || '';
+          productName = product.name || '';
+          productNameAr = product.nameAr || '';
+          productImage = product.mainImage || product.images?.[0] || '';
+        } catch (error) {
+          // If product not found, use placeholder values
+          productSku = 'N/A';
+          productName = 'Unknown Product';
+        }
+
+        return {
+          orderId: order._id,
+          productId: item.productId,
+          productSku,
+          productName,
+          productNameAr,
+          productImage,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+        };
+      }),
+    );
 
     await this.orderItemModel.insertMany(orderItems);
 

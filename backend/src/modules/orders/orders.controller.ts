@@ -37,7 +37,11 @@ import { OrderFilterQueryDto } from './dto/order-filter-query.dto';
 import { UploadReceiptDto } from './dto/upload-receipt.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { RateOrderDto } from './dto/rate-order.dto';
-import { CheckoutSessionQueryDto, CheckoutSessionResponseDto, CheckoutCouponDto } from './dto/checkout-session.dto';
+import {
+  CheckoutSessionQueryDto,
+  CheckoutSessionResponseDto,
+  CheckoutCouponDto,
+} from './dto/checkout-session.dto';
 import { CartService } from './cart.service';
 import { OrdersService } from './orders.service';
 import { SettingsService } from '@modules/settings/settings.service';
@@ -226,10 +230,7 @@ export class CartController {
     type: ApiResponseDto,
   })
   @ApiAuthErrorResponses()
-  async syncCart(
-    @CurrentUser() user: any,
-    @Body() syncCartDto: SyncCartDto,
-  ) {
+  async syncCart(@CurrentUser() user: any, @Body() syncCartDto: SyncCartDto) {
     const result = await this.cartService.syncCart(
       user.customerId,
       syncCartDto.items,
@@ -293,20 +294,26 @@ export class CheckoutController {
     @Query() query: CheckoutSessionQueryDto,
   ) {
     // 1. Get cart with product details
-    const cart = await this.cartService.getCartWithProductDetails(user.customerId);
+    const cart = await this.cartService.getCartWithProductDetails(
+      user.customerId,
+    );
 
     // 2. Get customer addresses
     const addresses = await this.customersService.getAddresses(user.customerId);
 
     // 3. Get active payment methods
-    const paymentMethods = await this.settingsService.findActivePaymentMethods(query.platform);
+    const paymentMethods = await this.settingsService.findActivePaymentMethods(
+      query.platform,
+    );
 
     // 4. Get customer basic info (findByUserId expects userId = user.id)
     let customer: any = { id: user.customerId };
     try {
       const customerDoc = await this.customersService.findByUserId(user.id);
       if (customerDoc) {
-        const populatedUserId = customerDoc.userId as { phone?: string } | undefined;
+        const populatedUserId = customerDoc.userId as
+          | { phone?: string }
+          | undefined;
         customer = {
           id: customerDoc._id.toString(),
           name: customerDoc.responsiblePersonName || customerDoc.shopName,
