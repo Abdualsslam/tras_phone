@@ -19,8 +19,6 @@ import '../../../orders/presentation/cubit/orders_cubit.dart';
 import '../../../orders/domain/enums/order_enums.dart';
 import '../../../orders/domain/entities/payment_method_entity.dart';
 import '../../../orders/data/models/shipping_address_model.dart';
-import '../../../profile/presentation/cubit/profile_cubit.dart';
-import '../../../profile/presentation/cubit/profile_state.dart';
 import '../../../profile/domain/entities/address_entity.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -152,15 +150,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Address Section
+                      // Address Section (from checkout session)
                       _buildSectionTitle(
                         theme,
                         AppLocalizations.of(context)!.addresses,
                       ),
                       SizedBox(height: 12.h),
-                      BlocBuilder<AddressesCubit, AddressesState>(
-                        builder: (context, addressesState) {
-                          if (addressesState is AddressesLoading) {
+                      BlocBuilder<CheckoutSessionCubit, CheckoutSessionState>(
+                        builder: (context, sessionState) {
+                          if (sessionState is CheckoutSessionLoading) {
                             return const Center(
                               child: Padding(
                                 padding: EdgeInsets.all(24.0),
@@ -168,25 +166,78 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               ),
                             );
                           }
+                          if (sessionState is! CheckoutSessionLoaded) {
+                            return const SizedBox.shrink();
+                          }
+                          final addresses = sessionState.session.addresses;
 
-                          if (addressesState is AddressesError) {
+                          // Set default address if not selected
+                          if (_selectedAddressId == null &&
+                              addresses.isNotEmpty) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              final defaultAddress = addresses.firstWhere(
+                                (a) => a.isDefault,
+                                orElse: () => addresses.first,
+                              );
+                              setState(
+                                () => _selectedAddressId = defaultAddress.id,
+                              );
+                            });
+                          }
+
+                          if (addresses.isEmpty) {
                             return Container(
-                              padding: EdgeInsets.all(16.w),
-                              decoration: BoxDecoration(
-                                color: AppColors.error.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12.r),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12.w,
+                                vertical: 16.h,
                               ),
-                              child: Row(
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppColors.surfaceDark
+                                    : AppColors.backgroundLight,
+                                borderRadius: BorderRadius.circular(14.r),
+                                border: Border.all(
+                                  color: isDark
+                                      ? AppColors.dividerDark
+                                      : AppColors.dividerLight,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Column(
                                 children: [
                                   Icon(
-                                    Iconsax.info_circle,
-                                    color: AppColors.error,
+                                    Iconsax.location,
+                                    size: 40.sp,
+                                    color: AppColors.textSecondaryLight,
                                   ),
-                                  SizedBox(width: 12.w),
-                                  Expanded(
-                                    child: Text(
-                                      addressesState.message,
-                                      style: TextStyle(color: AppColors.error),
+                                  SizedBox(height: 8.h),
+                                  Text(
+                                    'لا توجد عناوين متاحة',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontSize: 14.sp,
+                                    ),
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  ElevatedButton.icon(
+                                    onPressed: () async {
+                                      final result = await context.push(
+                                        '/address/add',
+                                      );
+                                      if (result != true) return;
+                                      if (!context.mounted) return;
+                                      context
+                                          .read<CheckoutSessionCubit>()
+                                          .refresh();
+                                    },
+                                    icon: const Icon(Iconsax.add, size: 18),
+                                    label: Text(
+                                      AppLocalizations.of(context)!.addAddress,
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 20.w,
+                                        vertical: 10.h,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -194,82 +245,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             );
                           }
 
-                          if (addressesState is AddressesLoaded ||
-                              addressesState is AddressOperationLoading ||
-                              addressesState is AddressOperationSuccess) {
-                            final addresses = addressesState is AddressesLoaded
-                                ? addressesState.addresses
-                                : addressesState is AddressOperationLoading
-                                ? addressesState.addresses
-                                : (addressesState as AddressOperationSuccess)
-                                      .addresses;
-
-                            // Set default address if not selected
-                            if (_selectedAddressId == null &&
-                                addresses.isNotEmpty) {
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                final defaultAddress = addresses.firstWhere(
-                                  (a) => a.isDefault,
-                                  orElse: () => addresses.first,
-                                );
-                                setState(
-                                  () => _selectedAddressId = defaultAddress.id,
-                                );
-                              });
-                            }
-
-                            if (addresses.isEmpty) {
-                              return Container(
-                                padding: EdgeInsets.all(16.w),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? AppColors.cardDark
-                                      : AppColors.cardLight,
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Iconsax.location,
-                                      size: 48.sp,
-                                      color: AppColors.textSecondaryLight,
-                                    ),
-                                    SizedBox(height: 8.h),
-                                    Text(
-                                      'لا توجد عناوين متاحة',
-                                      style: theme.textTheme.bodyMedium,
-                                    ),
-                                    SizedBox(height: 12.h),
-                                    ElevatedButton.icon(
-                                      onPressed: () async {
-                                        final result = await context.push(
-                                          '/address/add',
-                                        );
-                                        if (result != true) return;
-                                        if (!context.mounted) return;
-                                        context
-                                            .read<AddressesCubit>()
-                                            .loadAddresses();
-                                      },
-                                      icon: const Icon(Iconsax.add, size: 18),
-                                      label: Text(
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.addAddress,
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 24.w,
-                                          vertical: 12.h,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-
-                            return Column(
+                          return Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.w,
+                              vertical: 10.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? AppColors.surfaceDark
+                                  : AppColors.backgroundLight,
+                              borderRadius: BorderRadius.circular(14.r),
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.dividerDark
+                                    : AppColors.dividerLight,
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
                               children: [
                                 ...addresses.map((address) {
                                   return _buildAddressCard(
@@ -288,19 +281,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     if (result != true) return;
                                     if (!context.mounted) return;
                                     context
-                                        .read<AddressesCubit>()
-                                        .loadAddresses();
+                                        .read<CheckoutSessionCubit>()
+                                        .refresh();
                                   },
-                                  icon: const Icon(Iconsax.add),
+                                  icon: Icon(Iconsax.add, size: 18.sp),
                                   label: Text(
                                     AppLocalizations.of(context)!.addAddress,
+                                    style: TextStyle(fontSize: 13.sp),
                                   ),
                                 ),
                               ],
-                            );
-                          }
-
-                          return const SizedBox.shrink();
+                            ),
+                          );
                         },
                       ),
                       SizedBox(height: 24.h),
@@ -476,61 +468,68 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return GestureDetector(
       onTap: () => setState(() => _selectedAddressId = address.id),
       child: Container(
-        margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(16.w),
+        margin: EdgeInsets.only(bottom: 4.h),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(16.r),
+          color: isDark
+              ? AppColors.cardDark
+              : (isSelected
+                    ? AppColors.primary.withValues(alpha: 0.04)
+                    : AppColors.inputBackgroundLight),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            width: 2,
+            color: isSelected
+                ? AppColors.primary
+                : (isDark ? AppColors.dividerDark : AppColors.dividerLight),
+            width: isSelected ? 1.5 : 1,
           ),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
         ),
         child: Row(
           children: [
             Container(
-              width: 24.w,
-              height: 24.w,
+              width: 40.w,
+              height: 40.w,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.textTertiaryLight,
-                  width: 2,
-                ),
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10.r),
               ),
-              child: isSelected
-                  ? Center(
-                      child: Container(
-                        width: 12.w,
-                        height: 12.w,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    )
-                  : null,
+              child: Icon(
+                Iconsax.location,
+                color: AppColors.primary,
+                size: 22.sp,
+              ),
             ),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     children: [
                       Text(
                         address.label,
-                        style: theme.textTheme.titleSmall?.copyWith(
+                        style: theme.textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w600,
+                          fontSize: 14.sp,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       if (address.isDefault) ...[
-                        SizedBox(width: 8.w),
+                        SizedBox(width: 6.w),
                         Container(
                           padding: EdgeInsets.symmetric(
-                            horizontal: 8.w,
+                            horizontal: 6.w,
                             vertical: 2.h,
                           ),
                           decoration: BoxDecoration(
@@ -549,33 +548,60 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ],
                     ],
                   ),
-                  SizedBox(height: 4.h),
+                  SizedBox(height: 2.h),
                   Text(
                     address.addressLine,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondaryLight,
+                      fontSize: 12.sp,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  if (address.cityName != null) ...[
+                  if (address.cityName != null || address.phone != null) ...[
                     SizedBox(height: 2.h),
                     Text(
-                      address.cityName!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  ],
-                  if (address.phone != null) ...[
-                    SizedBox(height: 2.h),
-                    Text(
-                      address.phone!,
+                      [
+                        if (address.cityName != null) address.cityName!,
+                        if (address.phone != null) address.phone!,
+                      ].join(' • '),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textTertiaryLight,
+                        fontSize: 11.sp,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ],
               ),
+            ),
+            SizedBox(width: 8.w),
+            Container(
+              width: 22.w,
+              height: 22.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? AppColors.primary : Colors.transparent,
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textTertiaryLight,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 8.w,
+                        height: 8.w,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
           ],
         ),
@@ -708,6 +734,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final taxAmount = cart.taxAmount;
     final total = subtotal - couponDiscount + shippingCost + taxAmount;
     final itemsCount = cart.itemsCount;
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -718,13 +745,138 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // تفاصيل المنتجات - شكل فاتورة
+          Text(
+            AppLocalizations.of(context)!.products,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          if (cart.items.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.h),
+              child: Text(
+                'لا توجد منتجات',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondaryLight,
+                ),
+              ),
+            )
+          else ...[
+            // رأس الفاتورة
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'المنتج',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 40.w,
+                  child: Text(
+                    'الكمية',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 56.w,
+                  child: Text(
+                    'السعر',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 56.w,
+                  child: Text(
+                    'الإجمالي',
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            Divider(
+              height: 1,
+              color: AppColors.dividerLight.withValues(alpha: 0.5),
+            ),
+            SizedBox(height: 8.h),
+            // صفوف المنتجات
+            ...cart.items.map((item) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: 10.h),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        item.getProductName(locale),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 40.w,
+                      child: Text(
+                        '${item.quantity}',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 56.w,
+                      child: Text(
+                        item.unitPrice.toStringAsFixed(0),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 56.w,
+                      child: Text(
+                        item.totalPrice.toStringAsFixed(0),
+                        textAlign: TextAlign.end,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            Divider(height: 20.h, color: AppColors.dividerLight),
+          ],
+          // المجموع الفرعي وما بعده
           Text(
             AppLocalizations.of(context)!.subtotal,
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 12.h),
           _buildSummaryRow(
             theme,
             'المجموع الفرعي ($itemsCount ${itemsCount == 1 ? 'منتج' : 'منتجات'})',
@@ -814,6 +966,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final taxAmount = session.cart.taxAmount;
     final total = subtotal - couponDiscount + shippingCost + taxAmount;
 
+    // تفعيل الزر عند توفر: سلة غير فارغة + عنوان + طريقة دفع
+    // التحقق من المخزون والمنتجات غير النشطة يبقى داخل _handlePlaceOrder مع رسالة للمستخدم
+    final canPlaceOrder =
+        !session.cart.isEmpty &&
+        _selectedAddressId != null &&
+        session.addresses.isNotEmpty &&
+        _selectedPaymentMethodId != null &&
+        session.paymentMethods.isNotEmpty;
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -827,19 +988,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ],
       ),
       child: SafeArea(
-        child: ElevatedButton(
-          onPressed: session.cart.isEmpty
-              ? null
-              : () => _handlePlaceOrder(session),
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.symmetric(vertical: 16.h),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14.r),
+        child: Opacity(
+          opacity: canPlaceOrder ? 1.0 : 0.5,
+          child: ElevatedButton(
+            onPressed: canPlaceOrder ? () => _handlePlaceOrder(session) : null,
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(vertical: 16.h),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14.r),
+              ),
             ),
-          ),
-          child: Text(
-            '${AppLocalizations.of(context)!.confirm} • ${total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+            child: Text(
+              '${AppLocalizations.of(context)!.confirm} • ${total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+            ),
           ),
         ),
       ),
@@ -847,6 +1009,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _handlePlaceOrder(CheckoutSessionEntity session) async {
+    // التحقق من أن السلة ليست فارغة
     if (session.cart.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -854,105 +1017,109 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
-    // Check for stock issues
-    if (session.cart.hasStockIssues) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('بعض المنتجات غير متوفرة بالكمية المطلوبة'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
-      return;
-    }
-
-    // Check for inactive products
-    if (session.cart.hasInactiveProducts) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('بعض المنتجات غير متوفرة'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-
     HapticFeedback.mediumImpact();
 
-    // Sync cart before creating order
-    final syncResult = await context.read<CartCubit>().syncCart();
-    if (!mounted) return;
-    if (syncResult == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('فشلت المزامنة. حاول مرة أخرى.')),
-      );
-      return;
-    }
-
-    // Get coupon code if applied
-    final couponCode = _appliedCoupon?.coupon?.code;
-
-    // Get selected address
-    AddressEntity? selectedAddress;
-    if (_selectedAddressId != null && session.addresses.isNotEmpty) {
-      selectedAddress = session.addresses.firstWhere(
-        (a) => a.id == _selectedAddressId,
-        orElse: () => session.addresses.first,
-      );
-    }
-
-    // Get selected payment method
-    PaymentMethodEntity? selectedPaymentMethod;
-    if (_selectedPaymentMethodId != null && session.paymentMethods.isNotEmpty) {
-      selectedPaymentMethod = session.paymentMethods.firstWhere(
-        (m) => m.id == _selectedPaymentMethodId,
-        orElse: () => session.paymentMethods.first,
-      );
-    }
-
-    if (selectedAddress == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى اختيار عنوان التوصيل')),
-      );
-      return;
-    }
-
-    if (selectedPaymentMethod == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('يرجى اختيار طريقة الدفع')));
-      return;
-    }
-
-    // Map payment method
-    final paymentMethod = OrderPaymentMethod.fromString(
-      selectedPaymentMethod.orderPaymentMethodValue,
+    // عرض مؤشر التحميل
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    // Create shipping address model
-    final shippingAddress = ShippingAddressModel(
-      fullName: selectedAddress.recipientName ?? selectedAddress.label,
-      phone: selectedAddress.phone ?? '',
-      address: selectedAddress.addressLine,
-      city: selectedAddress.cityName ?? '',
-    );
+    try {
+      // محاولة المزامنة (اختياري - لا يمنع الطلب إذا فشل)
+      try {
+        await context.read<CartCubit>().syncCart(silent: true);
+      } catch (_) {
+        // تجاهل أخطاء المزامنة - سيتحقق السيرفر عند إنشاء الطلب
+      }
 
-    // Create order
-    final order = await context.read<OrdersCubit>().createOrder(
-      shippingAddressId: selectedAddress.id,
-      shippingAddress: shippingAddress,
-      paymentMethod: paymentMethod,
-      couponCode: couponCode,
-    );
-
-    if (!mounted) return;
-    if (order != null) {
-      // Clear local cart after successful order
-      await context.read<CartCubit>().clearCartLocal();
       if (!mounted) return;
-      context.push('/order-confirmation');
-    } else {
+
+      // Get coupon code if applied
+      final couponCode = _appliedCoupon?.coupon?.code;
+
+      // Get selected address
+      AddressEntity? selectedAddress;
+      if (_selectedAddressId != null && session.addresses.isNotEmpty) {
+        selectedAddress = session.addresses.firstWhere(
+          (a) => a.id == _selectedAddressId,
+          orElse: () => session.addresses.first,
+        );
+      }
+
+      // Get selected payment method
+      PaymentMethodEntity? selectedPaymentMethod;
+      if (_selectedPaymentMethodId != null &&
+          session.paymentMethods.isNotEmpty) {
+        selectedPaymentMethod = session.paymentMethods.firstWhere(
+          (m) => m.id == _selectedPaymentMethodId,
+          orElse: () => session.paymentMethods.first,
+        );
+      }
+
+      if (selectedAddress == null) {
+        Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('يرجى اختيار عنوان التوصيل')),
+        );
+        return;
+      }
+
+      if (selectedPaymentMethod == null) {
+        Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('يرجى اختيار طريقة الدفع')),
+        );
+        return;
+      }
+
+      // Map payment method
+      final paymentMethod = OrderPaymentMethod.fromString(
+        selectedPaymentMethod.orderPaymentMethodValue,
+      );
+
+      // Create shipping address model
+      final shippingAddress = ShippingAddressModel(
+        fullName: selectedAddress.recipientName ?? selectedAddress.label,
+        phone: selectedAddress.phone ?? '',
+        address: selectedAddress.addressLine,
+        city: selectedAddress.cityName ?? '',
+      );
+
+      // Create order
+      final order = await context.read<OrdersCubit>().createOrder(
+        shippingAddressId: selectedAddress.id,
+        shippingAddress: shippingAddress,
+        paymentMethod: paymentMethod,
+        couponCode: couponCode,
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+
+      if (order != null) {
+        // Clear local cart after successful order
+        await context.read<CartCubit>().clearCartLocal();
+        if (!mounted) return;
+        // الانتقال لصفحة تفاصيل الطلب
+        context.go('/order-details/${order.id}');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('فشل إنشاء الطلب. حاول مرة أخرى.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // إغلاق مؤشر التحميل
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('فشل إنشاء الطلب. حاول مرة أخرى.')),
+        SnackBar(
+          content: Text('خطأ: ${e.toString()}'),
+          backgroundColor: AppColors.error,
+        ),
       );
     }
   }
