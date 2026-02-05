@@ -190,7 +190,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/order/:id',
       builder: (context, state) {
-        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+        final id = state.pathParameters['id'] ?? '';
+        return OrderDetailsScreen(orderId: id);
+      },
+    ),
+    // Alias for checkout screen navigation
+    GoRoute(
+      path: '/order-details/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id'] ?? '';
         return OrderDetailsScreen(orderId: id);
       },
     ),

@@ -1009,6 +1009,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _handlePlaceOrder(CheckoutSessionEntity session) async {
+    // التحقق من أن السلة ليست فارغة
     if (session.cart.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -1016,105 +1017,109 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
-    // Check for stock issues
-    if (session.cart.hasStockIssues) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('بعض المنتجات غير متوفرة بالكمية المطلوبة'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
-      return;
-    }
-
-    // Check for inactive products
-    if (session.cart.hasInactiveProducts) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('بعض المنتجات غير متوفرة'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-
     HapticFeedback.mediumImpact();
 
-    // Sync cart before creating order
-    final syncResult = await context.read<CartCubit>().syncCart();
-    if (!mounted) return;
-    if (syncResult == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('فشلت المزامنة. حاول مرة أخرى.')),
-      );
-      return;
-    }
-
-    // Get coupon code if applied
-    final couponCode = _appliedCoupon?.coupon?.code;
-
-    // Get selected address
-    AddressEntity? selectedAddress;
-    if (_selectedAddressId != null && session.addresses.isNotEmpty) {
-      selectedAddress = session.addresses.firstWhere(
-        (a) => a.id == _selectedAddressId,
-        orElse: () => session.addresses.first,
-      );
-    }
-
-    // Get selected payment method
-    PaymentMethodEntity? selectedPaymentMethod;
-    if (_selectedPaymentMethodId != null && session.paymentMethods.isNotEmpty) {
-      selectedPaymentMethod = session.paymentMethods.firstWhere(
-        (m) => m.id == _selectedPaymentMethodId,
-        orElse: () => session.paymentMethods.first,
-      );
-    }
-
-    if (selectedAddress == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى اختيار عنوان التوصيل')),
-      );
-      return;
-    }
-
-    if (selectedPaymentMethod == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('يرجى اختيار طريقة الدفع')));
-      return;
-    }
-
-    // Map payment method
-    final paymentMethod = OrderPaymentMethod.fromString(
-      selectedPaymentMethod.orderPaymentMethodValue,
+    // عرض مؤشر التحميل
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    // Create shipping address model
-    final shippingAddress = ShippingAddressModel(
-      fullName: selectedAddress.recipientName ?? selectedAddress.label,
-      phone: selectedAddress.phone ?? '',
-      address: selectedAddress.addressLine,
-      city: selectedAddress.cityName ?? '',
-    );
+    try {
+      // محاولة المزامنة (اختياري - لا يمنع الطلب إذا فشل)
+      try {
+        await context.read<CartCubit>().syncCart(silent: true);
+      } catch (_) {
+        // تجاهل أخطاء المزامنة - سيتحقق السيرفر عند إنشاء الطلب
+      }
 
-    // Create order
-    final order = await context.read<OrdersCubit>().createOrder(
-      shippingAddressId: selectedAddress.id,
-      shippingAddress: shippingAddress,
-      paymentMethod: paymentMethod,
-      couponCode: couponCode,
-    );
-
-    if (!mounted) return;
-    if (order != null) {
-      // Clear local cart after successful order
-      await context.read<CartCubit>().clearCartLocal();
       if (!mounted) return;
-      context.push('/order-confirmation');
-    } else {
+
+      // Get coupon code if applied
+      final couponCode = _appliedCoupon?.coupon?.code;
+
+      // Get selected address
+      AddressEntity? selectedAddress;
+      if (_selectedAddressId != null && session.addresses.isNotEmpty) {
+        selectedAddress = session.addresses.firstWhere(
+          (a) => a.id == _selectedAddressId,
+          orElse: () => session.addresses.first,
+        );
+      }
+
+      // Get selected payment method
+      PaymentMethodEntity? selectedPaymentMethod;
+      if (_selectedPaymentMethodId != null &&
+          session.paymentMethods.isNotEmpty) {
+        selectedPaymentMethod = session.paymentMethods.firstWhere(
+          (m) => m.id == _selectedPaymentMethodId,
+          orElse: () => session.paymentMethods.first,
+        );
+      }
+
+      if (selectedAddress == null) {
+        Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('يرجى اختيار عنوان التوصيل')),
+        );
+        return;
+      }
+
+      if (selectedPaymentMethod == null) {
+        Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('يرجى اختيار طريقة الدفع')),
+        );
+        return;
+      }
+
+      // Map payment method
+      final paymentMethod = OrderPaymentMethod.fromString(
+        selectedPaymentMethod.orderPaymentMethodValue,
+      );
+
+      // Create shipping address model
+      final shippingAddress = ShippingAddressModel(
+        fullName: selectedAddress.recipientName ?? selectedAddress.label,
+        phone: selectedAddress.phone ?? '',
+        address: selectedAddress.addressLine,
+        city: selectedAddress.cityName ?? '',
+      );
+
+      // Create order
+      final order = await context.read<OrdersCubit>().createOrder(
+        shippingAddressId: selectedAddress.id,
+        shippingAddress: shippingAddress,
+        paymentMethod: paymentMethod,
+        couponCode: couponCode,
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+
+      if (order != null) {
+        // Clear local cart after successful order
+        await context.read<CartCubit>().clearCartLocal();
+        if (!mounted) return;
+        // الانتقال لصفحة تفاصيل الطلب
+        context.go('/order-details/${order.id}');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('فشل إنشاء الطلب. حاول مرة أخرى.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // إغلاق مؤشر التحميل
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('فشل إنشاء الطلب. حاول مرة أخرى.')),
+        SnackBar(
+          content: Text('خطأ: ${e.toString()}'),
+          backgroundColor: AppColors.error,
+        ),
       );
     }
   }

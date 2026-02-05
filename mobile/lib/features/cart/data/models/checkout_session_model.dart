@@ -31,7 +31,7 @@ class CartItemProductModel {
       image: json['image'],
       sku: json['sku'] ?? '',
       isActive: json['isActive'] ?? true,
-      stockQuantity: (json['stockQuantity'] as num?)?.toInt() ?? 0,
+      stockQuantity: (json['stockQuantity'] as num?)?.toInt() ?? 999999,
     );
   }
 
