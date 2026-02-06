@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -32,6 +33,8 @@ import { CreateOrderDto } from './dto/create-order.dto';
  */
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(OrderItem.name)
@@ -58,7 +61,11 @@ export class OrdersService {
     customerId: string,
     data: CreateOrderDto,
   ): Promise<OrderDocument> {
+    this.logger.debug(`createOrder: customerId=${customerId}`);
     const cart = await this.cartService.getCart(customerId);
+    this.logger.debug(
+      `createOrder: cartId=${cart._id}, itemsCount=${cart.items?.length || 0}`,
+    );
 
     if (!cart.items.length) {
       throw new BadRequestException('Cart is empty');
@@ -128,8 +135,14 @@ export class OrdersService {
     });
 
     // Create order items with product details
+    this.logger.debug(
+      `createOrder: creating order items for orderId=${order._id}`,
+    );
     const orderItems = await Promise.all(
-      cart.items.map(async (item) => {
+      cart.items.map(async (item, index) => {
+        this.logger.debug(
+          `createOrder: processing item ${index}, productId=${item.productId}`,
+        );
         // Fetch product details to populate sku and name
         let productSku = '';
         let productName = '';
@@ -144,8 +157,14 @@ export class OrdersService {
           productName = product.name || '';
           productNameAr = product.nameAr || '';
           productImage = product.mainImage || product.images?.[0] || '';
+          this.logger.debug(
+            `createOrder: product found, sku=${productSku}, name=${productName}`,
+          );
         } catch (error) {
           // If product not found, use placeholder values
+          this.logger.error(
+            `createOrder: product not found for productId=${item.productId}, error=${error.message}`,
+          );
           productSku = 'N/A';
           productName = 'Unknown Product';
         }
@@ -164,16 +183,12 @@ export class OrdersService {
       }),
     );
 
-    await this.orderItemModel.insertMany(orderItems);
-
-    // Record status history
-    await this.recordStatusChange(
-      order._id.toString(),
-      '',
-      'pending',
-      'Order created',
-      undefined,
-      true,
+    this.logger.debug(
+      `createOrder: inserting ${orderItems.length} order items`,
+    );
+    const insertedItems = await this.orderItemModel.insertMany(orderItems);
+    this.logger.debug(
+      `createOrder: inserted ${insertedItems.length} order items`,
     );
 
     // Convert cart

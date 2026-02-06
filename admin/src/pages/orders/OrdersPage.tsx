@@ -427,10 +427,10 @@ export function OrdersPage() {
                     <TableCell>
                       <div>
                         <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {order.customer.companyName}
+                          {order.customer?.companyName || "-"}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {order.customer.contactName}
+                          {order.customer?.contactName || "-"}
                         </p>
                       </div>
                     </TableCell>
@@ -524,7 +524,7 @@ export function OrdersPage() {
                       العميل
                     </p>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {selectedOrder.customer.companyName}
+                      {selectedOrder.customer?.companyName || "-"}
                     </p>
                   </div>
                   <div>
@@ -590,7 +590,7 @@ export function OrdersPage() {
                             {formatCurrency(
                               item.totalPrice ?? item.total ?? 0,
                               "SAR",
-                              locale
+                              locale,
                             )}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -601,7 +601,7 @@ export function OrdersPage() {
                                 item.price ??
                                 0,
                               "SAR",
-                              locale
+                              locale,
                             )}
                           </p>
                         </div>
@@ -686,17 +686,17 @@ export function OrdersPage() {
                                 shipment.status === "delivered"
                                   ? "success"
                                   : shipment.status === "shipped"
-                                  ? "default"
-                                  : "warning"
+                                    ? "default"
+                                    : "warning"
                               }
                             >
                               {shipment.status === "pending"
                                 ? "قيد الانتظار"
                                 : shipment.status === "shipped"
-                                ? "تم الشحن"
-                                : shipment.status === "delivered"
-                                ? "تم التوصيل"
-                                : shipment.status}
+                                  ? "تم الشحن"
+                                  : shipment.status === "delivered"
+                                    ? "تم التوصيل"
+                                    : shipment.status}
                             </Badge>
                           </div>
                           <div className="mt-2 text-xs text-gray-500">
