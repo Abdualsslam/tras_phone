@@ -29,6 +29,7 @@ import { PromotionsModule } from '@modules/promotions/promotions.module';
 import { ProductsModule } from '@modules/products/products.module';
 import { InventoryModule } from '@modules/inventory/inventory.module';
 import { CustomersModule } from '@modules/customers/customers.module';
+import { WalletModule } from '@modules/wallet/wallet.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { CustomersModule } from '@modules/customers/customers.module';
     ProductsModule,
     InventoryModule,
     CustomersModule,
+    WalletModule,
   ],
   controllers: [
     CartController,
