@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../domain/entities/order_entity.dart';
@@ -120,7 +121,7 @@ class _OrdersListScreenState extends State<OrdersListScreen>
                   order: order,
                   isDark: isDark,
                   onTap: () {
-                    // Navigate to order details
+                    context.push('/order-details/${order.id}');
                   },
                 );
               },
