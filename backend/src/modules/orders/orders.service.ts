@@ -279,7 +279,7 @@ export class OrdersService {
    */
   async findAll(
     filters?: any,
-  ): Promise<{ data: OrderDocument[]; total: number }> {
+  ): Promise<{ data: any[]; total: number }> {
     const {
       page = 1,
       limit = 20,
