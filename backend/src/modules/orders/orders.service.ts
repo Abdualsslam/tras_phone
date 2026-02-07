@@ -55,7 +55,7 @@ export class OrdersService {
   ) {}
 
   /**
-   * Map OrderItem documents to client format (productSku->sku, productName->name, etc.)
+   * Map OrderItem documents (from order_items collection) to client format
    */
   private mapOrderItemsToClientFormat(
     items: OrderItemDocument[] | any[],
@@ -71,14 +71,43 @@ export class OrdersService {
           (item.productId?.mainImage || item.productId?.images?.[0]));
       return {
         productId,
-        sku: item.productSku ?? '',
-        name: item.productName ?? '',
-        nameAr: item.productNameAr ?? null,
-        image: productImage ?? null,
+        sku: item.productSku ?? item.sku ?? '',
+        name: item.productName ?? item.name ?? '',
+        nameAr: item.productNameAr ?? item.nameAr ?? null,
+        image: productImage ?? item.image ?? null,
         quantity: item.quantity ?? 0,
         unitPrice: item.unitPrice ?? 0,
         discount: item.discount ?? 0,
-        total: item.totalPrice ?? 0,
+        total: item.totalPrice ?? item.total ?? 0,
+      };
+    });
+  }
+
+  /**
+   * Map embedded order items (from order document) to client format
+   */
+  private mapEmbeddedOrderItemsToClientFormat(items: any[]): any[] {
+    if (!items?.length) return [];
+    return items.map((item) => {
+      let productId = item.productId;
+      if (typeof productId === 'object' && productId != null) {
+        productId =
+          productId._id?.toString() ??
+          productId.$oid?.toString() ??
+          productId.toString?.();
+      } else if (productId != null) {
+        productId = productId.toString();
+      }
+      return {
+        productId: productId ?? '',
+        sku: item.sku ?? '',
+        name: item.name ?? '',
+        nameAr: item.nameAr ?? null,
+        image: item.image ?? null,
+        quantity: item.quantity ?? 0,
+        unitPrice: item.unitPrice ?? 0,
+        discount: item.discount ?? 0,
+        total: item.total ?? 0,
       };
     });
   }
@@ -344,10 +373,15 @@ export class OrdersService {
     }
 
     const data = orders.map((order) => {
+      const orderObj = order.toObject();
       const orderItems = itemsByOrderId.get(order._id.toString()) || [];
+      const mappedItems =
+        orderItems.length > 0
+          ? this.mapOrderItemsToClientFormat(orderItems)
+          : this.mapEmbeddedOrderItemsToClientFormat(orderObj.items || []);
       return {
-        ...order.toObject(),
-        items: this.mapOrderItemsToClientFormat(orderItems),
+        ...orderObj,
+        items: mappedItems,
       };
     });
 
@@ -373,12 +407,16 @@ export class OrdersService {
 
     if (!order) throw new NotFoundException('Order not found');
 
+    const orderIdForQuery =
+      typeof order._id === 'string'
+        ? new Types.ObjectId(order._id)
+        : order._id;
     const [items, history] = await Promise.all([
       this.orderItemModel
-        .find({ orderId: order._id })
+        .find({ orderId: orderIdForQuery })
         .populate('productId', 'name nameAr mainImage'),
       this.statusHistoryModel
-        .find({ orderId: order._id })
+        .find({ orderId: orderIdForQuery })
         .sort({ createdAt: 1 }),
     ]);
 
@@ -390,9 +428,15 @@ export class OrdersService {
    */
   async findById(id: string): Promise<any> {
     const { order, items, history } = await this.findOrderAndItems(id);
+    const orderObj = order.toObject();
+    // Use order_items if available, otherwise fallback to embedded order.items
+    const mappedItems =
+      items.length > 0
+        ? this.mapOrderItemsToClientFormat(items)
+        : this.mapEmbeddedOrderItemsToClientFormat(orderObj.items || []);
     return {
-      ...order.toObject(),
-      items: this.mapOrderItemsToClientFormat(items),
+      ...orderObj,
+      items: mappedItems,
       history,
     };
   }
