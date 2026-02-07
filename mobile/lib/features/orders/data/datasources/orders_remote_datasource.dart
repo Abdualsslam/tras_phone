@@ -126,17 +126,49 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     );
   }
 
+  /// Map API order item format (productSku, productName, etc.) to OrderItemModel format
+  static Map<String, dynamic> _mapApiItemToOrderItemModel(Map<String, dynamic> apiItem) {
+    final productId = apiItem['productId'];
+    final productIdStr = productId is Map
+        ? (productId['_id'] ?? productId['\$oid'])?.toString()
+        : productId?.toString();
+    return {
+      'productId': productIdStr ?? '',
+      'sku': apiItem['productSku'] ?? apiItem['sku'] ?? '',
+      'name': apiItem['productName'] ?? apiItem['name'] ?? '',
+      'nameAr': apiItem['productNameAr'] ?? apiItem['nameAr'],
+      'image': apiItem['productImage'] ?? apiItem['image'],
+      'quantity': apiItem['quantity'] ?? 0,
+      'unitPrice': (apiItem['unitPrice'] as num?)?.toDouble() ?? 0.0,
+      'discount': (apiItem['discount'] as num?)?.toDouble() ?? 0.0,
+      'total': ((apiItem['totalPrice'] ?? apiItem['total']) as num?)?.toDouble() ?? 0.0,
+    };
+  }
+
   @override
   Future<OrderEntity> getOrderById(String orderId) async {
     developer.log('Fetching order: $orderId', name: 'OrdersDataSource');
 
     final response = await _apiClient.get('${ApiEndpoints.orders}/$orderId');
     final responseData = response.data['data'] ?? response.data;
-    
-    // Handle nested response (data.order) or direct response (data)
-    final orderData = responseData['order'] ?? responseData;
+    final responseMap = responseData as Map<String, dynamic>;
 
-    return OrderModel.fromJson(orderData as Map<String, dynamic>).toEntity();
+    // New format: merged object with items (responseData is the order)
+    // Old format: { order, items, history } - merge items into order
+    Map<String, dynamic> orderData;
+    if (responseMap['order'] != null && responseMap['items'] != null) {
+      // Old format - merge items with field mapping
+      orderData = Map<String, dynamic>.from(responseMap['order'] as Map);
+      final rawItems = responseMap['items'] as List<dynamic>? ?? [];
+      orderData['items'] = rawItems
+          .map((e) => _mapApiItemToOrderItemModel(e as Map<String, dynamic>))
+          .toList();
+    } else {
+      // New format - use directly (items already in client format from backend)
+      orderData = responseMap;
+    }
+
+    return OrderModel.fromJson(orderData).toEntity();
   }
 
   @override
