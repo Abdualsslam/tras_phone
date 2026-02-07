@@ -55,6 +55,35 @@ export class OrdersService {
   ) {}
 
   /**
+   * Map OrderItem documents to client format (productSku->sku, productName->name, etc.)
+   */
+  private mapOrderItemsToClientFormat(
+    items: OrderItemDocument[] | any[],
+  ): any[] {
+    return items.map((item) => {
+      const productId =
+        typeof item.productId === 'object' && item.productId?._id
+          ? item.productId._id.toString()
+          : item.productId?.toString?.() ?? item.productId;
+      const productImage =
+        item.productImage ||
+        (typeof item.productId === 'object' &&
+          (item.productId?.mainImage || item.productId?.images?.[0]));
+      return {
+        productId,
+        sku: item.productSku ?? '',
+        name: item.productName ?? '',
+        nameAr: item.productNameAr ?? null,
+        image: productImage ?? null,
+        quantity: item.quantity ?? 0,
+        unitPrice: item.unitPrice ?? 0,
+        discount: item.discount ?? 0,
+        total: item.totalPrice ?? 0,
+      };
+    });
+  }
+
+  /**
    * Create order from cart
    */
   async createOrder(
@@ -235,7 +264,14 @@ export class OrdersService {
     // Create invoice
     await this.createInvoice(order);
 
-    return order;
+    // Return order with items merged (client format)
+    const mappedItems = this.mapOrderItemsToClientFormat(
+      insertedItems as OrderItemDocument[],
+    );
+    return {
+      ...order.toObject(),
+      items: mappedItems,
+    } as any;
   }
 
   /**
@@ -267,7 +303,7 @@ export class OrdersService {
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
-    const [data, total] = await Promise.all([
+    const [orders, total] = await Promise.all([
       this.orderModel
         .find(query)
         .populate('customerId', 'shopName responsiblePersonName phone')
@@ -277,13 +313,38 @@ export class OrdersService {
       this.orderModel.countDocuments(query),
     ]);
 
+    if (orders.length === 0) {
+      return { data: [], total };
+    }
+
+    const orderIds = orders.map((o) => o._id);
+    const allItems = await this.orderItemModel
+      .find({ orderId: { $in: orderIds } })
+      .populate('productId', 'name nameAr mainImage');
+
+    const itemsByOrderId = new Map<string, OrderItemDocument[]>();
+    for (const item of allItems) {
+      const oid = item.orderId.toString();
+      const list = itemsByOrderId.get(oid) || [];
+      list.push(item);
+      itemsByOrderId.set(oid, list);
+    }
+
+    const data = orders.map((order) => {
+      const orderItems = itemsByOrderId.get(order._id.toString()) || [];
+      return {
+        ...order.toObject(),
+        items: this.mapOrderItemsToClientFormat(orderItems),
+      };
+    });
+
     return { data, total };
   }
 
   /**
-   * Find order by ID or number
+   * Find order with raw items (internal use)
    */
-  async findById(id: string): Promise<{
+  private async findOrderAndItems(id: string): Promise<{
     order: OrderDocument;
     items: OrderItemDocument[];
     history: OrderStatusHistoryDocument[];
@@ -309,6 +370,18 @@ export class OrdersService {
     ]);
 
     return { order, items, history };
+  }
+
+  /**
+   * Find order by ID or number - returns merged object with items for API
+   */
+  async findById(id: string): Promise<any> {
+    const { order, items, history } = await this.findOrderAndItems(id);
+    return {
+      ...order.toObject(),
+      items: this.mapOrderItemsToClientFormat(items),
+      history,
+    };
   }
 
   /**
@@ -446,7 +519,7 @@ export class OrdersService {
    * Create shipment
    */
   async createShipment(orderId: string, data: any): Promise<ShipmentDocument> {
-    const { order, items } = await this.findById(orderId);
+    const { order, items } = await this.findOrderAndItems(orderId);
     const shipmentNumber = await this.generateShipmentNumber();
 
     return this.shipmentModel.create({

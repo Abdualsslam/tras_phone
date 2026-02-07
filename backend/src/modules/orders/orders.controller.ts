@@ -794,7 +794,8 @@ export class OrdersController {
   ) {
     // Verify order belongs to user
     const order = await this.ordersService.findById(id);
-    if (order.order.customerId.toString() !== user.customerId) {
+    const orderCustomerId = (order.customerId?._id ?? order.customerId)?.toString();
+    if (orderCustomerId !== user.customerId) {
       throw new BadRequestException('Order not found');
     }
 
