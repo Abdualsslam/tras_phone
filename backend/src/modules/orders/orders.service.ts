@@ -220,6 +220,19 @@ export class OrdersService {
       `createOrder: inserted ${insertedItems.length} order items`,
     );
 
+    // Persist items to order document (Order schema format: productId, sku, name, quantity, unitPrice, total)
+    const orderItemsForDoc = orderItems.map((item) => ({
+      productId: item.productId,
+      sku: item.productSku,
+      name: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      total: item.totalPrice,
+    }));
+    await this.orderModel.findByIdAndUpdate(order._id, {
+      $set: { items: orderItemsForDoc },
+    });
+
     // Convert cart
     await this.cartService.convertCart(customerId, order._id.toString());
 
