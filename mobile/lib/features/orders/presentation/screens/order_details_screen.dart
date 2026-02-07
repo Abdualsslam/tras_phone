@@ -74,7 +74,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _navigateToOrdersList();
+        if (!didPop) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _navigateToOrdersList();
+          });
+        }
       },
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
