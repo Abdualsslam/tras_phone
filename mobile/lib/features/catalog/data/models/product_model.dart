@@ -3,7 +3,6 @@ library;
 
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/product_entity.dart';
-import '../../domain/enums/product_enums.dart';
 
 part 'product_model.g.dart';
 
@@ -202,7 +201,7 @@ class ProductModel {
     return value?.toString() ?? '';
   }
 
-  /// Handle related products which can be List<String> or List of objects
+  /// Handle related products which can be `List<String>` or List of objects
   static Object? _readRelatedProducts(Map<dynamic, dynamic> json, String key) {
     final value = json[key];
     if (value == null) return null;

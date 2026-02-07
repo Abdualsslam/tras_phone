@@ -13,7 +13,7 @@ class ProductsOnOfferCubit extends Cubit<ProductsOnOfferState> {
   int _currentPage = 1;
   final int _limit = 20;
   bool _hasMore = true;
-  List<ProductEntity> _products = [];
+  final List<ProductEntity> _products = [];
 
   // Filters
   String _sortBy = 'discount';

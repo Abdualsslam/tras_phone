@@ -1,6 +1,8 @@
 /// Banners Service
 library;
 
+import 'package:flutter/foundation.dart';
+
 import '../../domain/entities/banner_entity.dart';
 import '../../domain/enums/banner_position.dart';
 import '../repositories/banners_repository.dart';
@@ -27,7 +29,7 @@ class BannersService {
       await _repository.recordImpression(bannerId);
     } catch (e) {
       // لا نرمي خطأ لأن تتبع الإحصائيات ليس حرجاً
-      print('Failed to record impression: $e');
+      debugPrint('Failed to record impression: $e');
     }
   }
 
@@ -37,7 +39,7 @@ class BannersService {
       await _repository.recordClick(bannerId);
     } catch (e) {
       // لا نرمي خطأ لأن تتبع الإحصائيات ليس حرجاً
-      print('Failed to record click: $e');
+      debugPrint('Failed to record click: $e');
     }
   }
 }

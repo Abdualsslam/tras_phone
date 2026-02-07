@@ -58,21 +58,6 @@ class _PopupBannerContent extends StatefulWidget {
 }
 
 class _PopupBannerContentState extends State<_PopupBannerContent> {
-  bool _hasTrackedImpression = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Track impression when popup is shown
-    // Disabled: Impression tracking is currently disabled
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   if (mounted && !_hasTrackedImpression) {
-    //     context.read<BannersCubit>().trackImpression(widget.banner.id);
-    //     _hasTrackedImpression = true;
-    //   }
-    // });
-  }
-
   @override
   Widget build(BuildContext context) {
     final imageUrl = widget.banner.media.getImage(
@@ -128,7 +113,7 @@ class _PopupBannerContentState extends State<_PopupBannerContent> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
                 ),
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(16),

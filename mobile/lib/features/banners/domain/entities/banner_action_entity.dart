@@ -28,13 +28,13 @@ class BannerActionEntity extends Equatable {
       case BannerActionType.link:
         return url;
       case BannerActionType.product:
-        return '/product/${refId}';
+        return '/product/$refId';
       case BannerActionType.category:
-        return '/category/${refId}';
+        return '/category/$refId';
       case BannerActionType.brand:
-        return '/brand/${refId}';
+        return '/brand/$refId';
       case BannerActionType.page:
-        return '/page/${refId}';
+        return '/page/$refId';
       case BannerActionType.none:
         return null;
     }

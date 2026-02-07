@@ -152,19 +152,13 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   CatalogRemoteDataSourceImpl({required ApiClient apiClient})
     : _apiClient = apiClient;
 
-  /// Helper method to build and print full URL
+  /// Helper method to log API URL
   void _printApiUrl(String endpoint, {Map<String, dynamic>? queryParams}) {
     final uri = Uri.parse('${AppConfig.baseUrl}$endpoint');
     final finalUri = queryParams != null && queryParams.isNotEmpty
         ? uri.replace(queryParameters: queryParams.map((k, v) => MapEntry(k, v.toString())))
         : uri;
-    
-    print('\n${'=' * 80}');
-    print('🌐 API Request URL:');
-    print('${'=' * 80}');
-    print('📡 ${finalUri.toString()}');
-    print('${'=' * 80}\n');
-    
+
     developer.log(
       'API URL: ${finalUri.toString()}',
       name: 'CatalogDataSource',
@@ -270,16 +264,6 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       queryParameters: queryParams,
     );
 
-    // Print full response
-    print('\n${'=' * 80}');
-    print('📦 API Response - Category Products:');
-    print('${'=' * 80}');
-    print('Status Code: ${response.statusCode}');
-    print('Status Message: ${response.statusMessage}');
-    print('\nResponse Data:');
-    print(response.data);
-    print('${'=' * 80}\n');
-
     developer.log(
       'Response: ${response.data}',
       name: 'CatalogDataSource',
@@ -287,15 +271,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
 
     final data = response.data['data'] ?? [];
     final meta = response.data['meta'] ?? {};
-
-    // Print parsed data summary
     final dataList = data is List ? data : [];
-    print('\n${'=' * 80}');
-    print('📊 Parsed Data Summary:');
-    print('${'=' * 80}');
-    print('Products Count: ${dataList.length}');
-    print('Pagination Meta: $meta');
-    print('${'=' * 80}\n');
 
     return {
       'products': List<ProductEntity>.from(
@@ -413,16 +389,6 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       queryParameters: queryParams,
     );
 
-    // Print full response
-    print('\n${'=' * 80}');
-    print('📦 API Response - Brand Products:');
-    print('${'=' * 80}');
-    print('Status Code: ${response.statusCode}');
-    print('Status Message: ${response.statusMessage}');
-    print('\nResponse Data:');
-    print(response.data);
-    print('${'=' * 80}\n');
-
     developer.log(
       'Response: ${response.data}',
       name: 'CatalogDataSource',
@@ -430,15 +396,6 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
 
     final data = response.data['data'] ?? [];
     final meta = response.data['meta'] ?? {};
-
-    // Print parsed data summary
-    final dataList = data is List ? data : [];
-    print('\n${'=' * 80}');
-    print('📊 Parsed Data Summary:');
-    print('${'=' * 80}');
-    print('Products Count: ${dataList.length}');
-    print('Pagination Meta: $meta');
-    print('${'=' * 80}\n');
 
     return {
       'products': (data as List)
@@ -547,16 +504,6 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       queryParameters: queryParams,
     );
 
-    // Print full response
-    print('\n${'=' * 80}');
-    print('📦 API Response - Device Products:');
-    print('${'=' * 80}');
-    print('Status Code: ${response.statusCode}');
-    print('Status Message: ${response.statusMessage}');
-    print('\nResponse Data:');
-    print(response.data);
-    print('${'=' * 80}\n');
-
     developer.log(
       'Response: ${response.data}',
       name: 'CatalogDataSource',
@@ -565,18 +512,9 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? [];
     final meta = response.data['meta'] ?? {};
 
-    // Print parsed data summary
-    final dataList = data is List ? data : [];
-    print('\n${'=' * 80}');
-    print('📊 Parsed Data Summary:');
-    print('${'=' * 80}');
-    print('Products Count: ${dataList.length}');
-    print('Pagination Meta: $meta');
-    print('${'=' * 80}\n');
-
     return {
       'products': List<ProductEntity>.from(
-        dataList.map((p) => ProductModel.fromJson(p).toEntity()),
+        (data as List).map((p) => ProductModel.fromJson(p).toEntity()),
       ),
       'pagination': meta,
     };
@@ -603,100 +541,6 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   // ═══════════════════════════════════════════════════════════════════════════
   // PRODUCTS
   // ═══════════════════════════════════════════════════════════════════════════
-
-  /// Helper method to print product data to terminal
-  void _printProductData(ProductEntity product, {String? context}) {
-    print('\n${'=' * 80}');
-    if (context != null) {
-      print('📦 $context');
-      print('${'=' * 80}');
-    }
-    print('🆔 ID: ${product.id}');
-    print('📋 SKU: ${product.sku}');
-    print('📝 Name (EN): ${product.name}');
-    print('📝 Name (AR): ${product.nameAr}');
-    print('🔗 Slug: ${product.slug}');
-    if (product.shortDescription != null) {
-      print('📄 Short Description: ${product.shortDescription}');
-    }
-    if (product.description != null) {
-      print('📄 Description: ${product.description?.substring(0, product.description!.length > 100 ? 100 : product.description!.length)}...');
-    }
-    print('🏷️  Brand ID: ${product.brandId}');
-    if (product.brandName != null) {
-      print('   Brand Name: ${product.brandName}');
-    }
-    print('📂 Category ID: ${product.categoryId}');
-    if (product.categoryName != null) {
-      print('   Category Name: ${product.categoryName}');
-    }
-    print('⭐ Quality Type ID: ${product.qualityTypeId}');
-    if (product.qualityTypeName != null) {
-      print('   Quality Type: ${product.qualityTypeName}');
-    }
-    print('💰 Base Price: ${product.basePrice}');
-    if (product.compareAtPrice != null) {
-      print('💰 Compare At Price: ${product.compareAtPrice}');
-      print('🎯 Discount: ${product.discountPercentage}%');
-    }
-    print('📦 Stock Quantity: ${product.stockQuantity}');
-    print('⚠️  Low Stock Threshold: ${product.lowStockThreshold}');
-    print('📊 Status: ${product.status}');
-    print('✅ Is Active: ${product.isActive}');
-    print('⭐ Is Featured: ${product.isFeatured}');
-    print('🆕 Is New Arrival: ${product.isNewArrival}');
-    print('🔥 Is Best Seller: ${product.isBestSeller}');
-    if (product.mainImage != null) {
-      print('🖼️  Main Image: ${product.mainImage}');
-    }
-    if (product.images.isNotEmpty) {
-      print('🖼️  Images (${product.images.length}): ${product.images.join(", ")}');
-    }
-    if (product.compatibleDevices.isNotEmpty) {
-      print('📱 Compatible Devices: ${product.compatibleDevices.join(", ")}');
-    }
-    print('👁️  Views: ${product.viewsCount}');
-    print('🛒 Orders: ${product.ordersCount}');
-    print('⭐ Reviews: ${product.reviewsCount}');
-    print('⭐ Average Rating: ${product.averageRating}');
-    print('❤️  Wishlist Count: ${product.wishlistCount}');
-    if (product.tags.isNotEmpty) {
-      print('🏷️  Tags: ${product.tags.join(", ")}');
-    }
-    if (product.specifications != null && product.specifications!.isNotEmpty) {
-      print('⚙️  Specifications: ${product.specifications}');
-    }
-    if (product.weight != null) {
-      print('⚖️  Weight: ${product.weight}');
-    }
-    if (product.dimensions != null) {
-      print('📏 Dimensions: ${product.dimensions}');
-    }
-    if (product.color != null) {
-      print('🎨 Color: ${product.color}');
-    }
-    if (product.warrantyDays != null) {
-      print('🛡️  Warranty: ${product.warrantyDays} days');
-    }
-    print('📅 Created At: ${product.createdAt}');
-    print('📅 Updated At: ${product.updatedAt}');
-    print('${'=' * 80}\n');
-  }
-
-  /// Helper method to print list of products
-  void _printProductsList(List<ProductEntity> products, {String? context}) {
-    print('\n${'=' * 80}');
-    if (context != null) {
-      print('📦 $context');
-    }
-    print('📊 Total Products: ${products.length}');
-    print('${'=' * 80}');
-    for (var i = 0; i < products.length; i++) {
-      print('\n[${i + 1}/${products.length}]');
-      _printProductData(products[i]);
-    }
-    print('${'=' * 80}\n');
-  }
 
   @override
   Future<List<ProductEntity>> getProducts({
@@ -730,12 +574,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
-    
-    // Print products to terminal
-    _printProductsList(products, context: 'Products List (Page: $page)');
-    
-    return products;
+    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
   }
 
   @override
@@ -760,12 +599,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     try {
       final response = await _apiClient.get('${ApiEndpoints.products}/$identifier');
       final data = response.data['data'] ?? response.data;
-      final product = ProductModel.fromJson(data).toEntity();
-      
-      // Print product to terminal
-      _printProductData(product, context: 'Product: $identifier');
-      
-      return product;
+      return ProductModel.fromJson(data).toEntity();
     } catch (e) {
       developer.log('Product not found: $identifier', name: 'CatalogDataSource');
       return null;
@@ -779,12 +613,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     try {
       final response = await _apiClient.get('${ApiEndpoints.products}/$id');
       final data = response.data['data'] ?? response.data;
-      final product = ProductModel.fromJson(data).toEntity();
-      
-      // Print product to terminal
-      _printProductData(product, context: 'Product by ID: $id');
-      
-      return product;
+      return ProductModel.fromJson(data).toEntity();
     } catch (e) {
       developer.log('Product not found: $id', name: 'CatalogDataSource');
       return null;
@@ -802,12 +631,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       );
       final data = response.data['data'] ?? response.data;
       if (data is List && data.isNotEmpty) {
-        final product = ProductModel.fromJson(data.first).toEntity();
-        
-        // Print product to terminal
-        _printProductData(product, context: 'Product by SKU: $sku');
-        
-        return product;
+        return ProductModel.fromJson(data.first).toEntity();
       }
       return null;
     } catch (e) {
@@ -833,12 +657,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
-    
-    // Print products to terminal
-    _printProductsList(products, context: 'Featured Products');
-    
-    return products;
+    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
   }
 
   @override
@@ -855,12 +674,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
-    
-    // Print products to terminal
-    _printProductsList(products, context: 'New Arrivals');
-    
-    return products;
+    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
   }
 
   @override
@@ -877,12 +691,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
-    
-    // Print products to terminal
-    _printProductsList(products, context: 'Best Sellers');
-    
-    return products;
+    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
   }
 
   @override
@@ -941,12 +750,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
-    final products = list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
-    
-    // Print products to terminal
-    _printProductsList(products, context: 'Search Results for: "$query"');
-    
-    return products;
+    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
   }
 
   @override

@@ -83,12 +83,12 @@ class CatalogRepositoryImpl implements CatalogRepository {
     try {
       // Try to get from cache first
       if (_cacheService != null) {
-        final cachedData = await _cacheService!.getProductsList(
+        final cachedData = await _cacheService.getProductsList(
           brandId: brandId,
           page: page,
         );
         if (cachedData != null &&
-            await _cacheService!.isProductsListCacheValid(
+            await _cacheService.isProductsListCacheValid(
               brandId: brandId,
               page: page,
             )) {
@@ -123,7 +123,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
       // Save to cache
       if (_cacheService != null) {
         final products = result['products'] as List<ProductEntity>;
-        await _cacheService!.saveProductsList(
+        await _cacheService.saveProductsList(
           products: products,
           pagination: result['pagination'] as Map<String, dynamic>?,
           brandId: brandId,
@@ -159,7 +159,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
       );
       if (_cacheService != null) {
         final products = result['products'] as List<ProductEntity>;
-        await _cacheService!.saveProductsList(
+        await _cacheService.saveProductsList(
           products: products,
           pagination: result['pagination'] as Map<String, dynamic>?,
           brandId: brandId,
@@ -237,12 +237,12 @@ class CatalogRepositoryImpl implements CatalogRepository {
     try {
       // Try to get from cache first
       if (_cacheService != null) {
-        final cachedData = await _cacheService!.getProductsList(
+        final cachedData = await _cacheService.getProductsList(
           categoryId: categoryIdentifier,
           page: page,
         );
         if (cachedData != null &&
-            await _cacheService!.isProductsListCacheValid(
+            await _cacheService.isProductsListCacheValid(
               categoryId: categoryIdentifier,
               page: page,
             )) {
@@ -281,7 +281,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
       // Save to cache
       if (_cacheService != null) {
         final products = result['products'] as List<ProductEntity>;
-        await _cacheService!.saveProductsList(
+        await _cacheService.saveProductsList(
           products: products,
           pagination: result['pagination'] as Map<String, dynamic>?,
           categoryId: categoryIdentifier,
@@ -321,7 +321,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
       );
       if (_cacheService != null) {
         final products = result['products'] as List<ProductEntity>;
-        await _cacheService!.saveProductsList(
+        await _cacheService.saveProductsList(
           products: products,
           pagination: result['pagination'] as Map<String, dynamic>?,
           categoryId: categoryIdentifier,
@@ -392,12 +392,12 @@ class CatalogRepositoryImpl implements CatalogRepository {
     try {
       // Try to get from cache first
       if (_cacheService != null) {
-        final cachedData = await _cacheService!.getProductsList(
+        final cachedData = await _cacheService.getProductsList(
           deviceId: deviceIdentifier,
           page: page,
         );
         if (cachedData != null &&
-            await _cacheService!.isProductsListCacheValid(
+            await _cacheService.isProductsListCacheValid(
               deviceId: deviceIdentifier,
               page: page,
             )) {
@@ -436,7 +436,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
       // Save to cache
       if (_cacheService != null) {
         final products = result['products'] as List<ProductEntity>;
-        await _cacheService!.saveProductsList(
+        await _cacheService.saveProductsList(
           products: products,
           pagination: result['pagination'] as Map<String, dynamic>?,
           deviceId: deviceIdentifier,
@@ -476,7 +476,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
       );
       if (_cacheService != null) {
         final products = result['products'] as List<ProductEntity>;
-        await _cacheService!.saveProductsList(
+        await _cacheService.saveProductsList(
           products: products,
           pagination: result['pagination'] as Map<String, dynamic>?,
           deviceId: deviceIdentifier,
@@ -513,12 +513,12 @@ class CatalogRepositoryImpl implements CatalogRepository {
     try {
       // Try to get from cache first
       if (_cacheService != null) {
-        final cachedData = await _cacheService!.getProductsList(
+        final cachedData = await _cacheService.getProductsList(
           page: filter.page,
           filter: filter,
         );
         if (cachedData != null &&
-            await _cacheService!.isProductsListCacheValid(
+            await _cacheService.isProductsListCacheValid(
               page: filter.page,
               filter: filter,
             )) {
@@ -554,7 +554,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
       // Save to cache
       if (_cacheService != null) {
-        await _cacheService!.saveProductsList(
+        await _cacheService.saveProductsList(
           products: response.toEntities(),
           pagination: {
             'total': response.total,
@@ -577,7 +577,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
     try {
       final response = await _remoteDataSource.getProductsWithFilter(filter);
       if (_cacheService != null) {
-        await _cacheService!.saveProductsList(
+        await _cacheService.saveProductsList(
           products: response.toEntities(),
           pagination: {
             'total': response.total,
@@ -598,9 +598,9 @@ class CatalogRepositoryImpl implements CatalogRepository {
     try {
       // Try to get from cache first
       if (_cacheService != null) {
-        final cachedProduct = await _cacheService!.getProduct(identifier);
+        final cachedProduct = await _cacheService.getProduct(identifier);
         if (cachedProduct != null &&
-            await _cacheService!.isProductCacheValid(identifier)) {
+            await _cacheService.isProductCacheValid(identifier)) {
           // Load fresh data in background
           _loadProductInBackground(identifier);
           return Right(cachedProduct);
@@ -615,7 +615,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
       // Save to cache
       if (_cacheService != null) {
-        await _cacheService!.saveProduct(identifier, product);
+        await _cacheService.saveProduct(identifier, product);
       }
 
       return Right(product);
@@ -629,7 +629,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
     try {
       final product = await _remoteDataSource.getProduct(identifier);
       if (product != null && _cacheService != null) {
-        await _cacheService!.saveProduct(identifier, product);
+        await _cacheService.saveProduct(identifier, product);
       }
     } catch (e) {
       // Ignore background update errors
