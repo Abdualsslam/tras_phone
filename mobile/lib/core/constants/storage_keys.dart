@@ -20,6 +20,8 @@ class StorageKeys {
   static const String themeMode = 'theme_mode';
   static const String notificationsEnabled = 'notifications_enabled';
   static const String biometricEnabled = 'biometric_enabled';
+  static const String biometricPhone = 'biometric_phone';
+  static const String biometricPassword = 'biometric_password';
   static const String notificationSettings = 'notification_settings';
 
   // Cart

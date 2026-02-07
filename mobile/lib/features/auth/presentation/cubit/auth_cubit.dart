@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/services/biometric_service.dart';
 import '../../../../routes/app_router.dart';
 import '../../../notifications/services/push_notification_manager.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
@@ -102,8 +103,16 @@ class AuthCubit extends Cubit<AuthState> {
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (user) {
+      (user) async {
         emit(AuthAuthenticated(user));
+        // Save credentials for biometric login if enabled
+        final biometricService = getIt<BiometricService>();
+        if (await biometricService.isEnabled()) {
+          await _repository.saveBiometricCredentials(
+            phone: phone,
+            password: password,
+          );
+        }
         // Initialize push notifications after successful login
         _initializePushNotifications();
         // Update FCM token after successful login
@@ -112,6 +121,32 @@ class AuthCubit extends Cubit<AuthState> {
         _syncCartAfterLogin();
       },
     );
+  }
+
+  /// Login with biometric - authenticate then use stored credentials
+  Future<void> loginWithBiometric() async {
+    final biometricService = getIt<BiometricService>();
+    final isAvailable = await biometricService.isAvailable();
+    if (!isAvailable) {
+      emit(const AuthError('البصمة غير متاحة على هذا الجهاز'));
+      return;
+    }
+
+    final authenticated = await biometricService.authenticate(
+      localizedReason: 'يرجى التحقق من هويتك لتسجيل الدخول',
+    );
+    if (!authenticated) {
+      emit(const AuthError('فشل التحقق من الهوية'));
+      return;
+    }
+
+    final credentials = await _repository.getStoredBiometricCredentials();
+    if (credentials == null) {
+      emit(const AuthError('لا توجد بيانات محفوظة للتسجيل بالبصمة'));
+      return;
+    }
+
+    await login(phone: credentials.phone, password: credentials.password);
   }
 
   /// Register

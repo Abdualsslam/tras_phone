@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../core/di/injection.dart';
 import '../features/cart/presentation/cubit/checkout_session_cubit.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
+import '../features/auth/presentation/screens/biometric_login_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/onboarding_screen.dart';
 import '../features/auth/presentation/screens/otp_verification_screen.dart';
@@ -89,6 +90,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/onboarding',
       builder: (context, state) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      path: '/biometric-login',
+      builder: (context, state) => const BiometricLoginScreen(),
     ),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(

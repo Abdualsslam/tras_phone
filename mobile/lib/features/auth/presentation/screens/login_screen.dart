@@ -10,7 +10,10 @@ import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/services/biometric_credential_service.dart';
+import '../../../../core/services/biometric_service.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../cubit/auth_cubit.dart';
@@ -29,6 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _showBiometricButton = false;
 
   static const String _lastPhoneKey = 'last_login_phone';
 
@@ -36,6 +40,22 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _loadLastPhone();
+    _checkBiometricAvailability();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final biometricService = getIt<BiometricService>();
+    final credentialService = getIt<BiometricCredentialService>();
+    final biometricAvailable = await biometricService.isAvailable();
+    final biometricEnabled = await biometricService.isEnabled();
+    final hasCredentials = await credentialService.hasCredentials();
+
+    if (mounted) {
+      setState(() {
+        _showBiometricButton =
+            biometricAvailable && biometricEnabled && hasCredentials;
+      });
+    }
   }
 
   Future<void> _loadLastPhone() async {
@@ -272,6 +292,36 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     SizedBox(height: 24.h),
+
+                    // Biometric Login Button
+                    if (_showBiometricButton) ...[
+                      OutlinedButton.icon(
+                        onPressed: _isLoading
+                            ? null
+                            : () => context.read<AuthCubit>().loginWithBiometric(),
+                        icon: Icon(
+                          Iconsax.finger_scan,
+                          size: 22.sp,
+                          color: AppColors.primary,
+                        ),
+                        label: Text(
+                          'تسجيل الدخول بالبصمة',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(
+                            vertical: 14.h,
+                            horizontal: 24.w,
+                          ),
+                          side: const BorderSide(color: AppColors.primary),
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+                    ],
 
                     // Login Button
                     AppButton(

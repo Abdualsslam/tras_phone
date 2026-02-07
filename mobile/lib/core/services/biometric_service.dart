@@ -46,6 +46,34 @@ class BiometricService {
     await _localStorage.setBool(StorageKeys.biometricEnabled, enabled);
   }
 
+  /// Verify identity for setup (e.g. when enabling biometric) - does not check isEnabled
+  Future<bool> verifyIdentityForSetup({
+    String localizedReason = 'يرجى التحقق من هويتك لتفعيل البصمة',
+    bool useErrorDialogs = true,
+  }) async {
+    try {
+      final isAvailable = await this.isAvailable();
+      if (!isAvailable) {
+        return false;
+      }
+
+      final didAuthenticate = await _localAuth.authenticate(
+        localizedReason: localizedReason,
+        options: AuthenticationOptions(
+          useErrorDialogs: useErrorDialogs,
+          stickyAuth: true,
+          biometricOnly: true,
+        ),
+      );
+
+      return didAuthenticate;
+    } on PlatformException {
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Authenticate using biometric
   Future<bool> authenticate({
     String localizedReason = 'يرجى التحقق من هويتك للمتابعة',

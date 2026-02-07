@@ -10,6 +10,7 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/cubit/locale_cubit.dart';
 import '../../../../core/cubit/theme_cubit.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/services/biometric_credential_service.dart';
 import '../../../../core/services/biometric_service.dart';
 import '../../../../core/services/share_service.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -148,12 +149,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: _biometricEnabled,
                   onChanged: (value) async {
                     final biometricService = getIt<BiometricService>();
+                    final credentialService = getIt<BiometricCredentialService>();
                     if (value) {
-                      // Test authentication before enabling
-                      final authenticated = await biometricService.authenticate(
+                      // Verify identity before enabling
+                      final authenticated =
+                          await biometricService.verifyIdentityForSetup(
                         localizedReason: 'يرجى التحقق من هويتك لتفعيل البصمة',
                       );
                       if (authenticated) {
+                        // Check if we need to save credentials
+                        final hasCredentials =
+                            await credentialService.hasCredentials();
+                        if (!hasCredentials) {
+                          final password = await _showPasswordDialog();
+                          if (password == null || !mounted) return;
+                          final authCubit = context.read<AuthCubit>();
+                          final user = authCubit.currentUser;
+                          if (user == null || !mounted) return;
+                          await credentialService.saveCredentials(
+                            phone: user.phone,
+                            password: password,
+                          );
+                        }
                         await biometricService.setEnabled(true);
                         if (mounted) {
                           setState(() {
@@ -177,6 +194,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         }
                       }
                     } else {
+                      await credentialService.clearCredentials();
                       await biometricService.setEnabled(false);
                       if (mounted) {
                         setState(() {
@@ -185,6 +203,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('تم إلغاء تفعيل البصمة'),
+                            backgroundColor: AppColors.success,
                           ),
                         );
                       }
@@ -408,6 +427,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
         context.read<LocaleCubit>().changeLocale(Locale(code));
         Navigator.pop(ctx);
       },
+    );
+  }
+
+  Future<String?> _showPasswordDialog() async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('أدخل كلمة المرور'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          decoration: InputDecoration(
+            labelText: 'كلمة المرور',
+            hintText: 'أدخل كلمة المرور لحفظها لتسجيل الدخول بالبصمة',
+            border: const OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 12.w,
+              vertical: 12.h,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final password = controller.text.trim();
+              Navigator.pop(ctx, password.isNotEmpty ? password : null);
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
     );
   }
 

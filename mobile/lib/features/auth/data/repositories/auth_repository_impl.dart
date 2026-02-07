@@ -278,7 +278,41 @@ class AuthRepositoryImpl implements AuthRepository {
     await _secureStorage.delete(StorageKeys.refreshToken);
     await _localStorage.setBool(StorageKeys.isLoggedIn, false);
     await _localStorage.remove(StorageKeys.userData);
+    await clearBiometricCredentials();
     _cachedUser = null;
+  }
+
+  @override
+  Future<({String phone, String password})?> getStoredBiometricCredentials() async {
+    try {
+      final phone = await _secureStorage.read(StorageKeys.biometricPhone);
+      final password = await _secureStorage.read(StorageKeys.biometricPassword);
+
+      if (phone != null &&
+          phone.isNotEmpty &&
+          password != null &&
+          password.isNotEmpty) {
+        return (phone: phone, password: password);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> saveBiometricCredentials({
+    required String phone,
+    required String password,
+  }) async {
+    await _secureStorage.write(StorageKeys.biometricPhone, phone);
+    await _secureStorage.write(StorageKeys.biometricPassword, password);
+  }
+
+  @override
+  Future<void> clearBiometricCredentials() async {
+    await _secureStorage.delete(StorageKeys.biometricPhone);
+    await _secureStorage.delete(StorageKeys.biometricPassword);
   }
 
   @override

@@ -66,6 +66,7 @@ import '../cache/hive_cache_service.dart';
 import '../../features/home/data/services/home_cache_service.dart';
 import '../../features/catalog/data/services/product_cache_service.dart';
 import '../cubit/theme_cubit.dart';
+import '../services/biometric_credential_service.dart';
 import '../services/biometric_service.dart';
 import '../services/share_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -473,6 +474,11 @@ Future<void> setupDependencies() async {
       localAuth: LocalAuthentication(),
       localStorage: getIt<LocalStorage>(),
     ),
+  );
+
+  // Biometric Credential Service
+  getIt.registerLazySingleton<BiometricCredentialService>(
+    () => BiometricCredentialService(secureStorage: getIt<SecureStorage>()),
   );
 
   // Share Service

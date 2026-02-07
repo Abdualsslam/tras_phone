@@ -91,4 +91,16 @@ abstract class AuthRepository {
 
   /// Delete a specific session
   Future<Either<Failure, void>> deleteSession(String sessionId);
+
+  /// Get stored biometric credentials for quick login
+  Future<({String phone, String password})?> getStoredBiometricCredentials();
+
+  /// Save credentials for biometric login (when user enables biometric)
+  Future<void> saveBiometricCredentials({
+    required String phone,
+    required String password,
+  });
+
+  /// Clear biometric credentials (on logout or when disabling biometric)
+  Future<void> clearBiometricCredentials();
 }

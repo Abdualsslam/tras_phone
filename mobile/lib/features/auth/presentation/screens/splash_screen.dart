@@ -7,6 +7,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/services/biometric_credential_service.dart';
+import '../../../../core/services/biometric_service.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 
@@ -65,14 +68,28 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state is AuthAuthenticated) {
           context.go('/home');
         } else if (state is AuthUnauthenticated) {
           if (state.isFirstLaunch) {
             context.go('/onboarding');
           } else {
-            context.go('/login');
+            // Check if biometric login is available
+            final biometricService = getIt<BiometricService>();
+            final credentialService = getIt<BiometricCredentialService>();
+            final biometricAvailable = await biometricService.isAvailable();
+            final biometricEnabled = await biometricService.isEnabled();
+            final hasCredentials = await credentialService.hasCredentials();
+
+            if (mounted &&
+                biometricAvailable &&
+                biometricEnabled &&
+                hasCredentials) {
+              context.go('/biometric-login');
+            } else if (mounted) {
+              context.go('/login');
+            }
           }
         }
       },
