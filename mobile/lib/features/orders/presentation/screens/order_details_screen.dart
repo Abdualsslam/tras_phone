@@ -62,19 +62,28 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     }
   }
 
+  void _navigateToOrdersList() {
+    context.go('/orders');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.orderStatus),
-        leading: IconButton(
-          icon: const Icon(Iconsax.arrow_right_3),
-          onPressed: () => context.go('/orders'),
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _navigateToOrdersList();
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.orderStatus),
+          leading: IconButton(
+            icon: const Icon(Iconsax.arrow_right_3),
+            onPressed: _navigateToOrdersList,
+          ),
         actions: [
           if (_order != null)
             IconButton(
@@ -86,6 +95,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         ],
       ),
       body: _buildBody(theme, isDark),
+    ),
     );
   }
 
