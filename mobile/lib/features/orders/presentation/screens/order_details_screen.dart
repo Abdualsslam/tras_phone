@@ -73,7 +73,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         title: Text(AppLocalizations.of(context)!.orderStatus),
         leading: IconButton(
           icon: const Icon(Iconsax.arrow_right_3),
-          onPressed: () => context.pop(),
+          onPressed: () => context.go('/orders'),
         ),
         actions: [
           if (_order != null)
