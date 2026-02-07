@@ -169,7 +169,7 @@ class _DevicesListViewState extends State<_DevicesListView> {
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         itemCount: brands.length,
-        separatorBuilder: (_, __) => SizedBox(width: 8.w),
+        separatorBuilder: (context, index) => SizedBox(width: 8.w),
         itemBuilder: (context, index) {
           final brand = brands[index];
           final isSelected = _selectedBrandId == brand.id;

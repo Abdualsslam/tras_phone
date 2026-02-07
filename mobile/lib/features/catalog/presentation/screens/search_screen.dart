@@ -27,7 +27,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final _dataSource = getIt<CatalogRemoteDataSource>();
 
   List<ProductEntity> _searchResults = [];
-  List<String> _recentSearches = [];
+  final List<String> _recentSearches = [];
   List<String> _autocompleteSuggestions = [];
   List<String> _popularTags = [];
   Timer? _debounceTimer;
@@ -495,7 +495,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                   ),
                 );
-              }).toList(),
+              }),
           ],
         ),
       ),

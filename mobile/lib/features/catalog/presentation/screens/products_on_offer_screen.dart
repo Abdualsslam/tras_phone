@@ -268,7 +268,7 @@ class _ProductsOnOfferScreenState extends State<ProductsOnOfferScreen> {
             children: [
               // Sort By
               DropdownButtonFormField<String>(
-                value: cubit.sortBy,
+                initialValue: cubit.sortBy,
                 decoration: InputDecoration(
                   labelText: 'ترتيب حسب',
                   labelStyle: TextStyle(
@@ -308,7 +308,7 @@ class _ProductsOnOfferScreenState extends State<ProductsOnOfferScreen> {
 
               // Sort Order
               DropdownButtonFormField<String>(
-                value: cubit.sortOrder,
+                initialValue: cubit.sortOrder,
                 decoration: InputDecoration(
                   labelText: 'اتجاه الترتيب',
                   labelStyle: TextStyle(

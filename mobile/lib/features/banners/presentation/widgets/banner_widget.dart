@@ -66,21 +66,6 @@ class _BannerContent extends StatefulWidget {
 }
 
 class _BannerContentState extends State<_BannerContent> {
-  bool _hasTrackedImpression = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Track impression when widget is first displayed
-    // Disabled: Impression tracking is currently disabled
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   if (mounted && !_hasTrackedImpression) {
-    //     context.read<BannersCubit>().trackImpression(widget.banner.id);
-    //     _hasTrackedImpression = true;
-    //   }
-    // });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -120,8 +105,8 @@ class _BannerContentState extends State<_BannerContent> {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: widget.banner.content.getOverlayColor()?.withOpacity(
-                      widget.banner.content.overlayOpacity ?? 0.3,
+                    color: widget.banner.content.getOverlayColor()?.withValues(
+                      alpha: widget.banner.content.overlayOpacity ?? 0.3,
                     ),
                     borderRadius: AppTheme.radiusLg,
                   ),

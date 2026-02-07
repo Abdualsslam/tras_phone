@@ -98,10 +98,12 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
         },
       );
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('حدث خطأ: $e')),
-      );
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ: $e')),
+        );
+      }
     }
   }
 
@@ -306,7 +308,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
       controller: _scrollController,
       padding: EdgeInsets.all(16.w),
       itemCount: _products.length + (_isLoadingMore ? 1 : 0),
-      separatorBuilder: (_, __) => SizedBox(height: 12.h),
+      separatorBuilder: (context, index) => SizedBox(height: 12.h),
       itemBuilder: (context, index) {
         if (index < _products.length) {
           final product = _products[index];
@@ -338,7 +340,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                     width: 80.w,
                     height: 80.w,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (context, url, error) => Container(
                       width: 80.w,
                       height: 80.w,
                       color: AppColors.backgroundLight,

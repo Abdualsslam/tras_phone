@@ -11,7 +11,6 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
-import '../../domain/enums/product_enums.dart';
 import '../../data/datasources/catalog_remote_datasource.dart';
 import '../../data/models/product_filter_query.dart';
 import '../../../wishlist/data/datasources/wishlist_remote_datasource.dart';
@@ -383,7 +382,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       controller: _scrollController,
       padding: EdgeInsets.all(16.w),
       itemCount: _products.length + (_isLoadingMore ? 1 : 0),
-      separatorBuilder: (_, __) => SizedBox(height: 12.h),
+      separatorBuilder: (_, _) => SizedBox(height: 12.h),
       itemBuilder: (context, index) {
         if (index < _products.length) {
           final product = _products[index];
@@ -415,7 +414,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       width: 80.w,
                       height: 80.w,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         width: 80.w,
                         height: 80.w,
                         color: AppColors.backgroundLight,
