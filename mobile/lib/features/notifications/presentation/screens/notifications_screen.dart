@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/notification_enums.dart';
 import '../cubit/notifications_cubit.dart';
@@ -75,7 +76,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       body: BlocBuilder<NotificationsCubit, NotificationsState>(
         builder: (context, state) {
           if (state is NotificationsLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const NotificationsListShimmer();
           }
 
           if (state is NotificationsError) {

@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/wishlist_remote_datasource.dart';
@@ -123,7 +124,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
           bloc: _cubit,
           builder: (context, state) {
             if (state is WishlistLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const WishlistShimmer();
             }
 
             if (state is WishlistError) {

@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../cubit/wallet_cubit.dart';
 import '../cubit/wallet_state.dart';
@@ -40,7 +41,7 @@ class _WalletScreenState extends State<WalletScreen> {
       body: BlocBuilder<WalletCubit, WalletState>(
         builder: (context, state) {
           if (state is WalletLoading && state is! WalletLoaded) {
-            return const Center(child: CircularProgressIndicator());
+            return const WalletShimmer();
           }
 
           if (state is WalletError) {

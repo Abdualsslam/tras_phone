@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../core/di/injection.dart';
 import '../../data/services/favorites_service.dart';
 import '../../domain/entities/educational_content_entity.dart';
@@ -139,7 +140,7 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
 
   Widget _buildBody(bool isDark) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const EducationListShimmer();
     }
 
     if (_error != null) {

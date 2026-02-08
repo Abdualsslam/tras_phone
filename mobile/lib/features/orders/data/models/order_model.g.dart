@@ -53,7 +53,8 @@ OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => OrderModel(
   paidAmount: (json['paidAmount'] as num?)?.toDouble() ?? 0.0,
   paymentStatus: json['paymentStatus'] as String? ?? 'unpaid',
   paymentMethod: json['paymentMethod'] as String?,
-  shippingAddressId: json['shippingAddressId'] as String?,
+  shippingAddressId:
+      OrderModel._readShippingAddressId(json, 'shippingAddressId') as String?,
   shippingAddress: json['shippingAddress'] == null
       ? null
       : ShippingAddressModel.fromJson(

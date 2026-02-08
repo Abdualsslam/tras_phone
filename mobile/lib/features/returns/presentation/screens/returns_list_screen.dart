@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/return_enums.dart';
@@ -67,7 +68,7 @@ class _ReturnsListViewState extends State<_ReturnsListView> {
       body: BlocBuilder<ReturnsCubit, ReturnsState>(
         builder: (context, state) {
           if (state is ReturnsLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const ReturnsListShimmer();
           }
 
           if (state is ReturnsError) {

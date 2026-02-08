@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../core/di/injection.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/repositories/notifications_repository.dart';
@@ -88,7 +89,7 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const NotificationDetailsShimmer()
           : _errorMessage != null
               ? _buildErrorState(context, isDark)
               : _notification == null

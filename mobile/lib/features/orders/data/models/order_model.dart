@@ -114,6 +114,7 @@ class OrderModel {
   final String? paymentMethod;
 
   // Shipping
+  @JsonKey(name: 'shippingAddressId', readValue: _readShippingAddressId)
   final String? shippingAddressId;
   final ShippingAddressModel? shippingAddress;
   final DateTime? estimatedDeliveryDate;
@@ -208,6 +209,17 @@ class OrderModel {
       return value['_id']?.toString() ?? value['\$oid']?.toString();
     }
     return value?.toString();
+  }
+
+  /// Handle shippingAddressId which can be String or populated object
+  static Object? _readShippingAddressId(Map<dynamic, dynamic> json, String key) {
+    final value = json['shippingAddressId'];
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value.toString();
   }
 
   factory OrderModel.fromJson(Map<String, dynamic> json) =>

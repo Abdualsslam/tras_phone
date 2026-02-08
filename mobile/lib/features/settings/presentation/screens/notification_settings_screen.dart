@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../core/config/theme/app_theme.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/storage/local_storage.dart';
@@ -168,7 +169,7 @@ class _NotificationSettingsScreenState
     return Scaffold(
       appBar: AppBar(title: const Text('إعدادات الإشعارات')),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SettingsListShimmer()
           : ListView(
         padding: EdgeInsets.all(16.w),
         children: [

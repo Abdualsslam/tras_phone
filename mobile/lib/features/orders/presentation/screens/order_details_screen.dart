@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/order_entity.dart';
 import '../cubit/orders_cubit.dart';
@@ -105,7 +106,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   Widget _buildBody(ThemeData theme, bool isDark) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const OrderDetailsShimmer();
     }
 
     if (_error != null) {

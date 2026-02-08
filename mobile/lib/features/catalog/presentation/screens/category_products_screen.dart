@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
@@ -179,7 +180,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
             // Products Grid/List
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const ProductsGridShimmer()
                   : _products.isEmpty
                   ? _buildEmptyState(isDark)
                   : _isGridView

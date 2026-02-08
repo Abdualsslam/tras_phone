@@ -10,6 +10,9 @@ export 'inputs/index.dart';
 // Loading
 export 'loading/index.dart';
 
+// Shimmer
+export '../shimmer/index.dart';
+
 // Feedback
 export 'feedback/index.dart';
 

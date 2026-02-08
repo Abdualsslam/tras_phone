@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/order_entity.dart';
 import '../cubit/orders_cubit.dart';
 import '../cubit/orders_state.dart';
@@ -80,7 +81,7 @@ class _OrdersListScreenState extends State<OrdersListScreen>
       body: BlocBuilder<OrdersCubit, OrdersState>(
         builder: (context, state) {
           if (state is OrdersLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const OrdersListShimmer();
           }
 
           if (state is OrdersError) {
