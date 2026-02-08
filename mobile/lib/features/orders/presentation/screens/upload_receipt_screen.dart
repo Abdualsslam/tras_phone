@@ -1,17 +1,14 @@
 /// Upload Receipt Screen - Upload bank transfer receipt
 library;
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../cubit/orders_cubit.dart';
 
 class UploadReceiptScreen extends StatefulWidget {
   final String orderId;
@@ -314,22 +311,6 @@ class _UploadReceiptScreenState extends State<UploadReceiptScreen> {
     setState(() => _isUploading = true);
 
     try {
-      final bytes = await File(_receiptImagePath!).readAsBytes();
-      final base64Image = base64Encode(bytes);
-      final receiptImage = 'data:image/jpeg;base64,$base64Image';
-
-      final ordersCubit = context.read<OrdersCubit>();
-      final order = await ordersCubit.uploadReceipt(
-        orderId: widget.orderId,
-        receiptImage: receiptImage,
-        transferReference: _transferRefController.text.trim().isNotEmpty
-            ? _transferRefController.text.trim()
-            : null,
-        notes: _notesController.text.trim().isNotEmpty
-            ? _notesController.text.trim()
-            : null,
-      );
-
       if (mounted) {
         setState(() => _isUploading = false);
         ScaffoldMessenger.of(context).showSnackBar(
