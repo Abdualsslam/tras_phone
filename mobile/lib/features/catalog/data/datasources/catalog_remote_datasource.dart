@@ -964,7 +964,12 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       },
     );
 
-    if (response.data['success'] == true) {
+    final status = response.data['status'] as String?;
+    final success = response.data['success'] == true;
+    final statusOk = status == 'success' ||
+        response.data['statusCode'] == 200 ||
+        response.data['statusCode'] == 201;
+    if (success || statusOk) {
       return ProductReviewModel.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr'] ?? 'Failed to add review');
