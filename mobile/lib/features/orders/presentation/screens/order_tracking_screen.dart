@@ -2,58 +2,196 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../domain/entities/order_entity.dart';
+import '../cubit/orders_cubit.dart';
 
-class OrderTrackingScreen extends StatelessWidget {
+class OrderTrackingScreen extends StatefulWidget {
+  final String orderId;
   final String orderNumber;
 
-  const OrderTrackingScreen({super.key, required this.orderNumber});
+  const OrderTrackingScreen({
+    super.key,
+    required this.orderId,
+    required this.orderNumber,
+  });
+
+  @override
+  State<OrderTrackingScreen> createState() => _OrderTrackingScreenState();
+}
+
+class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
+  Map<String, dynamic>? _trackData;
+  OrderEntity? _order;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTracking();
+  }
+
+  Future<void> _loadTracking() async {
+    final cubit = context.read<OrdersCubit>();
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final trackData = await cubit.trackOrder(widget.orderId);
+      final order = await cubit.getOrderById(widget.orderId);
+      if (mounted) {
+        setState(() {
+          _trackData = trackData;
+          _order = order;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  List<_TrackingEvent> _buildTrackingEvents() {
+    if (_trackData != null && _trackData!['events'] is List) {
+      final events = _trackData!['events'] as List;
+      return events.map((e) {
+        final map = e as Map<String, dynamic>;
+        return _TrackingEvent(
+          status: map['status']?.toString() ?? map['title']?.toString() ?? '',
+          description: map['description']?.toString() ?? '',
+          location: map['location']?.toString() ?? '',
+          timestamp: map['timestamp'] != null
+              ? DateTime.tryParse(map['timestamp'].toString()) ?? DateTime.now()
+              : DateTime.now(),
+          isCompleted: map['isCompleted'] == true,
+        );
+      }).toList();
+    }
+
+    if (_order != null) {
+      return _buildEventsFromOrder(_order!);
+    }
+
+    return _defaultTrackingEvents();
+  }
+
+  List<_TrackingEvent> _buildEventsFromOrder(OrderEntity order) {
+    final events = <_TrackingEvent>[];
+    final now = DateTime.now();
+
+    events.add(_TrackingEvent(
+      status: 'تم الطلب',
+      description: 'تم إنشاء الطلب بنجاح',
+      location: '',
+      timestamp: order.createdAt,
+      isCompleted: true,
+    ));
+
+    if (order.confirmedAt != null) {
+      events.add(_TrackingEvent(
+        status: 'تم التأكيد',
+        description: 'تم تأكيد الطلب',
+        location: '',
+        timestamp: order.confirmedAt!,
+        isCompleted: true,
+      ));
+    }
+
+    if (order.shippedAt != null) {
+      events.add(_TrackingEvent(
+        status: 'تم الشحن',
+        description: 'الطلب في الطريق',
+        location: '',
+        timestamp: order.shippedAt!,
+        isCompleted: true,
+      ));
+    }
+
+    if (order.deliveredAt != null) {
+      events.add(_TrackingEvent(
+        status: 'تم التوصيل',
+        description: 'تم تسليم الطلب',
+        location: '',
+        timestamp: order.deliveredAt!,
+        isCompleted: true,
+      ));
+    } else if (order.status == OrderStatus.outForDelivery ||
+        order.status == OrderStatus.shipped) {
+      events.add(_TrackingEvent(
+        status: 'في الطريق للتوصيل',
+        description: 'الطلب مع مندوب التوصيل',
+        location: '',
+        timestamp: order.shippedAt ?? now,
+        isCompleted: false,
+      ));
+    }
+
+    if (events.isEmpty) {
+      return _defaultTrackingEvents();
+    }
+    events.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return events;
+  }
+
+  List<_TrackingEvent> _defaultTrackingEvents() {
+    return [
+      _TrackingEvent(
+        status: 'تم الطلب',
+        description: 'جاري تجهيز طلبك',
+        location: '',
+        timestamp: DateTime.now(),
+        isCompleted: true,
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final trackingEvents = [
-      _TrackingEvent(
-        status: 'تم التسليم',
-        description: 'تم تسليم الطلب بنجاح',
-        location: 'الرياض - حي الملز',
-        timestamp: DateTime.now(),
-        isCompleted: false,
-      ),
-      _TrackingEvent(
-        status: 'في الطريق للتوصيل',
-        description: 'الطلب مع مندوب التوصيل',
-        location: 'الرياض',
-        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-        isCompleted: true,
-      ),
-      _TrackingEvent(
-        status: 'وصل إلى المستودع',
-        description: 'الطلب في مستودع التوزيع',
-        location: 'الرياض - المنطقة الصناعية',
-        timestamp: DateTime.now().subtract(const Duration(hours: 12)),
-        isCompleted: true,
-      ),
-      _TrackingEvent(
-        status: 'تم الشحن',
-        description: 'الطلب في الطريق إلى مدينتك',
-        location: 'جدة',
-        timestamp: DateTime.now().subtract(const Duration(days: 1)),
-        isCompleted: true,
-      ),
-      _TrackingEvent(
-        status: 'قيد التجهيز',
-        description: 'جاري تجهيز طلبك',
-        location: 'المستودع الرئيسي',
-        timestamp: DateTime.now().subtract(const Duration(days: 2)),
-        isCompleted: true,
-      ),
-    ];
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('تتبع الشحنة')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('تتبع الشحنة')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
+              SizedBox(height: 16.h),
+              Text(_error!, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final trackingEvents = _buildTrackingEvents();
+    String estimatedDelivery = 'قريباً';
+    if (_trackData?['estimatedDelivery'] != null) {
+      estimatedDelivery = _trackData!['estimatedDelivery'].toString();
+    } else if (_order?.estimatedDeliveryDate != null) {
+      final d = _order!.estimatedDeliveryDate!;
+      estimatedDelivery = '${d.day}/${d.month}/${d.year}';
+    }
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -90,7 +228,7 @@ class OrderTrackingScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    orderNumber,
+                    widget.orderNumber,
                     style: TextStyle(
                       fontSize: 14.sp,
                       color: Colors.white.withValues(alpha: 0.8),
@@ -107,7 +245,7 @@ class OrderTrackingScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20.r),
                     ),
                     child: Text(
-                      'التوصيل المتوقع: اليوم',
+                      'التوصيل المتوقع: $estimatedDelivery',
                       style: TextStyle(
                         fontSize: 12.sp,
                         color: Colors.white,

@@ -2,18 +2,85 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../domain/entities/order_entity.dart';
+import '../cubit/orders_cubit.dart';
 
-class InvoiceViewScreen extends StatelessWidget {
+class InvoiceViewScreen extends StatefulWidget {
   final String orderId;
 
   const InvoiceViewScreen({super.key, required this.orderId});
 
   @override
+  State<InvoiceViewScreen> createState() => _InvoiceViewScreenState();
+}
+
+class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
+  OrderEntity? _order;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrder();
+  }
+
+  Future<void> _loadOrder() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final order = await context.read<OrdersCubit>().getOrderById(widget.orderId);
+      if (mounted) {
+        setState(() {
+          _order = order;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('الفاتورة')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null || _order == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('الفاتورة')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
+              SizedBox(height: 16.h),
+              Text(_error ?? 'لم يتم العثور على الطلب'),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -96,66 +163,88 @@ class InvoiceViewScreen extends StatelessWidget {
               Divider(height: 32.h),
 
               // Invoice Info
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildInfoColumn('رقم الفاتورة', 'INV-2024-$orderId', isDark),
-                  _buildInfoColumn('التاريخ', '20 ديسمبر 2024', isDark),
-                  _buildInfoColumn(
-                    'الحالة',
-                    'مدفوعة',
-                    isDark,
-                    valueColor: AppColors.success,
-                  ),
-                ],
+              Builder(
+                builder: (context) {
+                  final order = _order!;
+                  final dateFormat = DateFormat('dd MMMM yyyy', 'ar');
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildInfoColumn(
+                        'رقم الفاتورة',
+                        order.orderNumber,
+                        isDark,
+                      ),
+                      _buildInfoColumn(
+                        'التاريخ',
+                        dateFormat.format(order.createdAt),
+                        isDark,
+                      ),
+                      _buildInfoColumn(
+                        'الحالة',
+                        order.paymentStatus.displayNameAr,
+                        isDark,
+                        valueColor: order.paymentStatus == PaymentStatus.paid
+                            ? AppColors.success
+                            : null,
+                      ),
+                    ],
+                  );
+                },
               ),
               SizedBox(height: 24.h),
 
               // Customer Info
-              Container(
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.surfaceDark
-                      : AppColors.backgroundLight,
-                  borderRadius: BorderRadius.circular(8.r),
+              if (_order!.shippingAddress != null)
+                Builder(
+                  builder: (context) {
+                    final addr = _order!.shippingAddress!;
+                    return Container(
+                      padding: EdgeInsets.all(12.w),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.surfaceDark
+                            : AppColors.backgroundLight,
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'بيانات العميل',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: AppColors.textSecondaryLight,
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            addr.fullName,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            addr.formattedAddress,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: AppColors.textSecondaryLight,
+                            ),
+                          ),
+                          Text(
+                            addr.phone,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'بيانات العميل',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: AppColors.textSecondaryLight,
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      'مؤسسة الصيانة الذكية',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      'الرياض، حي النرجس',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: AppColors.textSecondaryLight,
-                      ),
-                    ),
-                    Text(
-                      '055 123 4567',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 24.h),
+              if (_order!.shippingAddress != null) SizedBox(height: 24.h),
 
               // Items Table Header
               Container(
@@ -206,65 +295,109 @@ class InvoiceViewScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              _buildInvoiceItem('شاشة iPhone 15 Pro Max أصلية', 2, 850, isDark),
-              _buildInvoiceItem('بطارية iPhone 15 Pro أصلية', 3, 120, isDark),
-              _buildInvoiceItem('غطاء خلفي Samsung S24', 5, 85, isDark),
+              ..._order!.items.map(
+                (item) => _buildInvoiceItem(
+                  item.nameAr ?? item.name,
+                  item.quantity,
+                  item.unitPrice,
+                  item.total,
+                  isDark,
+                ),
+              ),
 
               Divider(height: 24.h),
 
               // Totals
-              _buildTotalRow('المجموع الفرعي', '2,485.00 ر.س', isDark),
-              _buildTotalRow('الضريبة (15%)', '372.75 ر.س', isDark),
-              _buildTotalRow('الشحن', '25.00 ر.س', isDark),
-              _buildTotalRow(
-                'الخصم',
-                '-100.00 ر.س',
-                isDark,
-                valueColor: AppColors.success,
+              Builder(
+                builder: (context) {
+                  final order = _order!;
+                  return Column(
+                    children: [
+                      _buildTotalRow(
+                        'المجموع الفرعي',
+                        '${order.subtotal.toStringAsFixed(2)} ر.س',
+                        isDark,
+                      ),
+                      if (order.taxAmount > 0)
+                        _buildTotalRow(
+                          'الضريبة',
+                          '${order.taxAmount.toStringAsFixed(2)} ر.س',
+                          isDark,
+                        ),
+                      if (order.shippingCost > 0)
+                        _buildTotalRow(
+                          'الشحن',
+                          '${order.shippingCost.toStringAsFixed(2)} ر.س',
+                          isDark,
+                        ),
+                      if (order.discount > 0 || order.couponDiscount > 0)
+                        _buildTotalRow(
+                          'الخصم',
+                          '-${(order.discount + order.couponDiscount).toStringAsFixed(2)} ر.س',
+                          isDark,
+                          valueColor: AppColors.success,
+                        ),
+                      Divider(height: 16.h),
+                      _buildTotalRow(
+                        'الإجمالي',
+                        '${order.total.toStringAsFixed(2)} ر.س',
+                        isDark,
+                        isBold: true,
+                      ),
+                    ],
+                  );
+                },
               ),
-              Divider(height: 16.h),
-              _buildTotalRow('الإجمالي', '2,782.75 ر.س', isDark, isBold: true),
               SizedBox(height: 24.h),
 
               // Payment Info
-              Container(
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Iconsax.tick_circle,
-                      size: 20.sp,
-                      color: AppColors.success,
+              Builder(
+                builder: (context) {
+                  final order = _order!;
+                  final isPaid = order.paymentStatus == PaymentStatus.paid;
+                  return Container(
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: (isPaid ? AppColors.success : AppColors.warning)
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8.r),
                     ),
-                    SizedBox(width: 8.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'تم الدفع',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.success,
-                            ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isPaid ? Iconsax.tick_circle : Iconsax.clock,
+                          size: 20.sp,
+                          color: isPaid ? AppColors.success : AppColors.warning,
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                order.paymentStatus.displayNameAr,
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: isPaid
+                                      ? AppColors.success
+                                      : AppColors.warning,
+                                ),
+                              ),
+                              Text(
+                                'طريقة الدفع: ${order.paymentMethod?.displayNameAr ?? '-'}',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: AppColors.textSecondaryLight,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            'طريقة الدفع: تحويل بنكي',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: AppColors.textSecondaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
               SizedBox(height: 24.h),
 
@@ -330,7 +463,13 @@ class InvoiceViewScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInvoiceItem(String name, int qty, double price, bool isDark) {
+  Widget _buildInvoiceItem(
+    String name,
+    int qty,
+    double price,
+    double total,
+    bool isDark,
+  ) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
       decoration: BoxDecoration(
@@ -362,7 +501,7 @@ class InvoiceViewScreen extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              '${(qty * price).toStringAsFixed(0)}',
+              '${total.toStringAsFixed(0)}',
               style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
               textAlign: TextAlign.end,
             ),
@@ -404,21 +543,81 @@ class InvoiceViewScreen extends StatelessWidget {
     );
   }
 
-  void _downloadInvoice(BuildContext context) {
+  Future<void> _downloadInvoice(BuildContext context) async {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('جاري تحميل الفاتورة...'),
         behavior: SnackBarBehavior.floating,
       ),
     );
+    try {
+      final url = await context.read<OrdersCubit>().getOrderInvoice(widget.orderId);
+      if (url.isNotEmpty && mounted) {
+        final uri = Uri.tryParse(url);
+        if (uri != null && await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('تم فتح رابط الفاتورة'),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تعذر فتح رابط الفاتورة'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('لا يوجد رابط للفاتورة'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل تحميل الفاتورة: ${e.toString()}'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
-  void _shareInvoice(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('فتح خيارات المشاركة...'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  Future<void> _shareInvoice(BuildContext context) async {
+    try {
+      final url = await context.read<OrdersCubit>().getOrderInvoice(widget.orderId);
+      if (url.isNotEmpty && mounted) {
+        await Share.share(
+          'فاتورة الطلب ${_order?.orderNumber ?? widget.orderId}\n$url',
+          subject: 'فاتورة الطلب ${_order?.orderNumber ?? widget.orderId}',
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('لا يوجد رابط للمشاركة'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل المشاركة: ${e.toString()}'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 }

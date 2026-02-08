@@ -1,11 +1,17 @@
 /// Upload Receipt Screen - Upload bank transfer receipt
 library;
 
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../cubit/orders_cubit.dart';
 
 class UploadReceiptScreen extends StatefulWidget {
   final String orderId;
@@ -24,11 +30,14 @@ class UploadReceiptScreen extends StatefulWidget {
 class _UploadReceiptScreenState extends State<UploadReceiptScreen> {
   String? _receiptImagePath;
   final _notesController = TextEditingController();
+  final _transferRefController = TextEditingController();
   bool _isUploading = false;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void dispose() {
     _notesController.dispose();
+    _transferRefController.dispose();
     super.dispose();
   }
 
@@ -122,28 +131,9 @@ class _UploadReceiptScreenState extends State<UploadReceiptScreen> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10.r),
-                          child: Container(
-                            color: AppColors.success.withValues(alpha: 0.1),
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Iconsax.document_upload,
-                                    size: 48.sp,
-                                    color: AppColors.success,
-                                  ),
-                                  SizedBox(height: 8.h),
-                                  Text(
-                                    'تم اختيار الصورة',
-                                    style: TextStyle(
-                                      color: AppColors.success,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                          child: Image.file(
+                            File(_receiptImagePath!),
+                            fit: BoxFit.cover,
                           ),
                         ),
                         Positioned(
@@ -197,6 +187,20 @@ class _UploadReceiptScreenState extends State<UploadReceiptScreen> {
             ),
           ),
           SizedBox(height: 24.h),
+
+          // Transfer Reference
+          Text(
+            'رقم التحويل (اختياري)',
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+          ),
+          SizedBox(height: 12.h),
+          TextField(
+            controller: _transferRefController,
+            decoration: const InputDecoration(
+              hintText: 'أدخل رقم التحويل البنكي...',
+            ),
+          ),
+          SizedBox(height: 16.h),
 
           // Notes
           Text(
@@ -261,8 +265,8 @@ class _UploadReceiptScreenState extends State<UploadReceiptScreen> {
     );
   }
 
-  void _pickImage() {
-    showModalBottomSheet(
+  Future<void> _pickImage() async {
+    await showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
         child: Wrap(
@@ -270,17 +274,32 @@ class _UploadReceiptScreenState extends State<UploadReceiptScreen> {
             ListTile(
               leading: const Icon(Iconsax.camera),
               title: const Text('التقاط صورة'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                setState(() => _receiptImagePath = 'camera_image.jpg');
+                final source = ImageSource.camera;
+                final xFile = await _picker.pickImage(
+                  source: source,
+                  imageQuality: 85,
+                  maxWidth: 1920,
+                );
+                if (xFile != null && mounted) {
+                  setState(() => _receiptImagePath = xFile.path);
+                }
               },
             ),
             ListTile(
               leading: const Icon(Iconsax.gallery),
               title: const Text('اختيار من المعرض'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                setState(() => _receiptImagePath = 'gallery_image.jpg');
+                final xFile = await _picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 85,
+                  maxWidth: 1920,
+                );
+                if (xFile != null && mounted) {
+                  setState(() => _receiptImagePath = xFile.path);
+                }
               },
             ),
           ],
@@ -290,18 +309,47 @@ class _UploadReceiptScreenState extends State<UploadReceiptScreen> {
   }
 
   Future<void> _uploadReceipt() async {
-    setState(() => _isUploading = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() => _isUploading = false);
+    if (_receiptImagePath == null) return;
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم رفع الإيصال بنجاح'),
-          backgroundColor: AppColors.success,
-        ),
+    setState(() => _isUploading = true);
+
+    try {
+      final bytes = await File(_receiptImagePath!).readAsBytes();
+      final base64Image = base64Encode(bytes);
+      final receiptImage = 'data:image/jpeg;base64,$base64Image';
+
+      final ordersCubit = context.read<OrdersCubit>();
+      final order = await ordersCubit.uploadReceipt(
+        orderId: widget.orderId,
+        receiptImage: receiptImage,
+        transferReference: _transferRefController.text.trim().isNotEmpty
+            ? _transferRefController.text.trim()
+            : null,
+        notes: _notesController.text.trim().isNotEmpty
+            ? _notesController.text.trim()
+            : null,
       );
-      context.pop(true);
+
+      if (mounted) {
+        setState(() => _isUploading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم رفع الإيصال بنجاح'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        context.pop(true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUploading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل رفع الإيصال: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 }
