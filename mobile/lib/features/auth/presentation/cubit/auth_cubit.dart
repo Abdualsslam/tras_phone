@@ -12,6 +12,8 @@ import '../../../../core/services/biometric_service.dart';
 import '../../../../routes/app_router.dart';
 import '../../../notifications/services/push_notification_manager.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
+import '../../../catalog/data/services/product_cache_service.dart';
+import '../../../home/data/services/home_cache_service.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
@@ -104,6 +106,8 @@ class AuthCubit extends Cubit<AuthState> {
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (user) async {
+        // Clear product/home cache so fresh data with tier prices is fetched
+        await _clearProductCachesOnAuthChange();
         emit(AuthAuthenticated(user));
         // Save credentials for biometric login if enabled
         final biometricService = getIt<BiometricService>();
@@ -175,7 +179,9 @@ class AuthCubit extends Cubit<AuthState> {
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (user) {
+      (user) async {
+        // Clear product/home cache so fresh data with tier prices is fetched
+        await _clearProductCachesOnAuthChange();
         emit(AuthAuthenticated(user));
         // Initialize push notifications after successful registration
         _initializePushNotifications();
@@ -185,6 +191,19 @@ class AuthCubit extends Cubit<AuthState> {
         _syncCartAfterLogin();
       },
     );
+  }
+
+  /// Clear product and home caches when auth state changes (login/logout)
+  /// Prices differ by customer tier - cached data becomes stale
+  Future<void> _clearProductCachesOnAuthChange() async {
+    try {
+      await getIt<ProductCacheService>().clearAll();
+      await getIt<HomeCacheService>().clearHomeData();
+      developer.log('Cleared product and home caches on auth change', name: 'AuthCubit');
+    } catch (e) {
+      developer.log('Failed to clear caches on auth change: $e', name: 'AuthCubit');
+      // Fail silently - not critical
+    }
   }
 
   /// Initialize push notifications with navigation handler
@@ -447,7 +466,11 @@ class AuthCubit extends Cubit<AuthState> {
 
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (_) => emit(const AuthUnauthenticated(isFirstLaunch: false)),
+      (_) async {
+        // Clear product/home cache so fresh data with base prices is fetched
+        await _clearProductCachesOnAuthChange();
+        emit(const AuthUnauthenticated(isFirstLaunch: false));
+      },
     );
   }
 

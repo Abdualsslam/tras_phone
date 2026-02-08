@@ -491,6 +491,14 @@ Future<void> _handleForcedLogout() async {
   await getIt<TokenManager>().clearTokens();
   await getIt<SecureStorage>().deleteAll();
 
+  // Clear product/home cache - prices differ by customer tier
+  try {
+    await getIt<ProductCacheService>().clearAll();
+    await getIt<HomeCacheService>().clearHomeData();
+  } catch (_) {
+    // Fail silently
+  }
+
   // Navigate to login screen (this would be handled by the app's navigation)
   // The AuthCubit will handle the state change
 }

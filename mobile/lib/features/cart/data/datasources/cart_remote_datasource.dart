@@ -17,10 +17,11 @@ abstract class CartRemoteDataSource {
   Future<CartEntity> getCart();
 
   /// Add item to cart
+  /// [unitPrice] is optional - server calculates price from customer's price level
   Future<CartEntity> addToCart({
     required String productId,
     required int quantity,
-    required double unitPrice,
+    double? unitPrice,
   });
 
   /// Update item quantity
@@ -84,7 +85,7 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
   Future<CartEntity> addToCart({
     required String productId,
     required int quantity,
-    required double unitPrice,
+    double? unitPrice,
   }) async {
     developer.log(
       'Adding to cart: product=$productId, qty=$quantity, price=$unitPrice',
@@ -96,7 +97,7 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
       data: {
         'productId': productId,
         'quantity': quantity,
-        'unitPrice': unitPrice,
+        if (unitPrice != null) 'unitPrice': unitPrice,
       },
     );
 
