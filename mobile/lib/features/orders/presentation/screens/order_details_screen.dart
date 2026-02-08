@@ -655,7 +655,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
     return Row(
       children: [
-        if (order.canCancel)
+        if (order.canCancel) ...[
           Expanded(
             child: OutlinedButton.icon(
               onPressed: () => _showCancelDialog(context),
@@ -665,21 +665,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 style: TextStyle(color: AppColors.error),
               ),
             ),
-          )
-        else
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => _handleReorder(context),
-              icon: const Icon(Iconsax.refresh),
-              label: const Text('إعادة الطلب'),
-            ),
           ),
-        SizedBox(width: 12.w),
+          SizedBox(width: 12.w),
+        ],
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () {
               HapticFeedback.mediumImpact();
-              // Navigate to support
               context.push('/support');
             },
             icon: const Icon(Iconsax.message),
@@ -719,16 +711,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
-  Future<void> _handleReorder(BuildContext context) async {
-    HapticFeedback.selectionClick();
-    await context.read<OrdersCubit>().reorder(widget.orderId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تمت إضافة المنتجات إلى السلة')),
-      );
-      context.go('/cart');
-    }
-  }
 }
 
 class _TimelineStep {
