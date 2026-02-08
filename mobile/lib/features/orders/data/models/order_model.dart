@@ -146,6 +146,9 @@ class OrderModel {
   @JsonKey(defaultValue: [])
   final List<OrderItemModel> items;
 
+  @JsonKey(defaultValue: false)
+  final bool cancellable;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -183,6 +186,7 @@ class OrderModel {
     this.customerRatingComment,
     this.ratedAt,
     this.items = const [],
+    this.cancellable = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -257,6 +261,7 @@ class OrderModel {
       customerRatingComment: customerRatingComment,
       ratedAt: ratedAt,
       items: items.map((i) => i.toEntity()).toList(),
+      cancellable: cancellable,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

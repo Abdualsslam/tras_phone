@@ -37,6 +37,7 @@ import { OrderFilterQueryDto } from './dto/order-filter-query.dto';
 import { UploadReceiptDto } from './dto/upload-receipt.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { RateOrderDto } from './dto/rate-order.dto';
+import { CancelOrderDto } from './dto/cancel-order.dto';
 import {
   CheckoutSessionQueryDto,
   CheckoutSessionResponseDto,
@@ -520,6 +521,41 @@ export class OrdersController {
       stats,
       'Order statistics retrieved',
       'تم استرجاع إحصائيات الطلبات',
+    );
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cancel order',
+    description:
+      'Cancel an order by customer. Only allowed when order status is pending, confirmed, or processing. Reason is required.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Order ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Order cancelled successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async cancelOrder(
+    @Param('id') id: string,
+    @Body() cancelOrderDto: CancelOrderDto,
+    @CurrentUser() user: any,
+  ) {
+    const order = await this.ordersService.cancelOrderByCustomer(
+      id,
+      user.customerId,
+      cancelOrderDto.reason,
+    );
+    return ResponseBuilder.success(
+      order,
+      'Order cancelled',
+      'تم إلغاء الطلب',
     );
   }
 

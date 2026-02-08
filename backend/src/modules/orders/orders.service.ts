@@ -55,6 +55,13 @@ export class OrdersService {
   ) {}
 
   /**
+   * Check if order can be cancelled by customer (pending, confirmed, processing only)
+   */
+  private isOrderCancellable(status: string): boolean {
+    return ['pending', 'confirmed', 'processing'].includes(status);
+  }
+
+  /**
    * Map OrderItem documents (from order_items collection) to client format
    */
   private mapOrderItemsToClientFormat(
@@ -313,6 +320,7 @@ export class OrdersService {
     return {
       ...order.toObject(),
       items: mappedItems,
+      cancellable: true,
     } as any;
   }
 
@@ -382,6 +390,7 @@ export class OrdersService {
       return {
         ...orderObj,
         items: mappedItems,
+        cancellable: this.isOrderCancellable(order.status),
       };
     });
 
@@ -438,7 +447,37 @@ export class OrdersService {
       ...orderObj,
       items: mappedItems,
       history,
+      cancellable: this.isOrderCancellable(order.status),
     };
+  }
+
+  /**
+   * Cancel order by customer (only if status is pending, confirmed, or processing)
+   */
+  async cancelOrderByCustomer(
+    orderId: string,
+    customerId: string,
+    reason: string,
+  ): Promise<any> {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+
+    const orderCustomerId = (
+      (order.customerId as any)?._id ?? order.customerId
+    )?.toString();
+    if (orderCustomerId !== customerId) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (!this.isOrderCancellable(order.status)) {
+      throw new BadRequestException(
+        'لا يمكن إلغاء الطلب بعد مرحلة التجهيز',
+      );
+    }
+
+    await this.updateStatus(orderId, 'cancelled', undefined, reason);
+
+    return this.findById(orderId);
   }
 
   /**

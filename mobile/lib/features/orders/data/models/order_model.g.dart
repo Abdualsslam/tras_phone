@@ -92,6 +92,7 @@ OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => OrderModel(
           ?.map((e) => OrderItemModel.fromJson(e as Map<String, dynamic>))
           .toList() ??
       [],
+  cancellable: json['cancellable'] as bool? ?? false,
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: DateTime.parse(json['updatedAt'] as String),
 );
@@ -132,6 +133,7 @@ Map<String, dynamic> _$OrderModelToJson(
   'customerRatingComment': instance.customerRatingComment,
   'ratedAt': instance.ratedAt?.toIso8601String(),
   'items': instance.items,
+  'cancellable': instance.cancellable,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt.toIso8601String(),
 };

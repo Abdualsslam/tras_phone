@@ -203,6 +203,9 @@ class Order {
   // العناصر
   final List<OrderItem> items;
   
+  /// هل يمكن إلغاء الطلب؟ (يأتي من الـ API - true فقط عند pending, confirmed, processing)
+  final bool cancellable;
+  
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -240,6 +243,7 @@ class Order {
     this.customerRatingComment,
     this.ratedAt,
     required this.items,
+    this.cancellable = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -301,6 +305,7 @@ class Order {
       items: (json['items'] as List? ?? [])
           .map((i) => OrderItem.fromJson(i))
           .toList(),
+      cancellable: json['cancellable'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
     );
@@ -315,10 +320,8 @@ class Order {
   /// هل الطلب ملغي؟
   bool get isCancelled => status == OrderStatus.cancelled;
   
-  /// هل يمكن إلغاء الطلب؟
-  bool get canCancel => 
-      status == OrderStatus.pending || 
-      status == OrderStatus.confirmed;
+  /// هل يمكن إلغاء الطلب؟ (يأتي من الـ API - true فقط عند pending, confirmed, processing)
+  bool get canCancel => cancellable;
   
   /// هل تم تقييم الطلب؟
   bool get isRated => customerRating != null && customerRating! > 0;
@@ -1290,7 +1293,64 @@ Future<Order> getOrderDetails(String orderId) async {
 
 ---
 
-#### 1️⃣2️⃣ جلب إحصائيات طلباتي
+#### 1️⃣2️⃣ إلغاء الطلب (Cancel Order)
+
+**Endpoint:** `POST /orders/:orderId/cancel`
+
+**Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**الشروط:** الطلب قابل للإلغاء فقط إذا كان في حالة `pending` أو `confirmed` أو `processing` (لم يتجاوز مرحلة قيد التجهيز). بعد الإلغاء، سيعود الطلب مع `cancellable: false`.
+
+**Body (مطلوب):**
+```json
+{
+  "reason": "سبب الإلغاء"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "...",
+    "orderNumber": "ORD-2024-001234",
+    "status": "cancelled",
+    "cancellable": false,
+    "cancellationReason": "سبب الإلغاء",
+    "items": [...],
+    ...
+  },
+  "message": "Order cancelled",
+  "messageAr": "تم إلغاء الطلب"
+}
+```
+
+**أخطاء محتملة:**
+- `400`: لا يمكن إلغاء الطلب بعد مرحلة التجهيز
+- `404`: الطلب غير موجود أو لا ينتمي للمستخدم
+
+**Flutter Code:**
+```dart
+/// إلغاء طلب (السبب مطلوب)
+Future<Order> cancelOrder(String orderId, {required String reason}) async {
+  final response = await _dio.post(
+    '/orders/$orderId/cancel',
+    data: {'reason': reason},
+  );
+  
+  if (response.data['success']) {
+    return Order.fromJson(response.data['data']);
+  }
+  throw Exception(response.data['messageAr']);
+}
+```
+
+> **ملاحظة:** استخدم حقل `cancellable` من استجابة الطلب لعرض/إخفاء زر الإلغاء. القيمة تأتي من الـ API مع كل طلب.
+
+---
+
+#### 1️⃣3️⃣ جلب إحصائيات طلباتي
 
 **Endpoint:** `GET /orders/my/stats`
 

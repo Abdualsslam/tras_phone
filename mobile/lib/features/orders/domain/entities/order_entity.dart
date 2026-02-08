@@ -126,6 +126,8 @@ class OrderEntity extends Equatable {
   // Items
   final List<OrderItemEntity> items;
 
+  final bool cancellable;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -163,6 +165,7 @@ class OrderEntity extends Equatable {
     this.customerRatingComment,
     this.ratedAt,
     this.items = const [],
+    this.cancellable = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -170,8 +173,7 @@ class OrderEntity extends Equatable {
   int get itemsCount => items.length;
   double get remainingAmount => total - paidAmount;
   bool get isCancelled => status == OrderStatus.cancelled;
-  bool get canCancel =>
-      status == OrderStatus.pending || status == OrderStatus.confirmed;
+  bool get canCancel => cancellable;
 
   /// Status text in Arabic for backward compatibility
   String get statusText => status.displayNameAr;
