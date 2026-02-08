@@ -218,7 +218,9 @@ final GoRouter appRouter = GoRouter(
       path: '/order/:id/tracking',
       builder: (context, state) {
         final id = state.pathParameters['id'] ?? '';
-        return OrderTrackingScreen(orderNumber: 'ORD-2024-$id');
+        final extra = state.extra;
+        final orderNumber = extra is String ? extra : 'ORD-$id';
+        return OrderTrackingScreen(orderId: id, orderNumber: orderNumber);
       },
     ),
 
@@ -435,7 +437,9 @@ final GoRouter appRouter = GoRouter(
       path: '/order/:id/upload-receipt',
       builder: (context, state) {
         final id = state.pathParameters['id'] ?? '';
-        return UploadReceiptScreen(orderId: id);
+        final extra = state.extra as Map<String, dynamic>?;
+        final amount = (extra?['amount'] as num?)?.toDouble() ?? 0.0;
+        return UploadReceiptScreen(orderId: id, amount: amount);
       },
     ),
     GoRoute(

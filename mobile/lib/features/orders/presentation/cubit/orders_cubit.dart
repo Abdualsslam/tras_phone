@@ -96,6 +96,11 @@ class OrdersCubit extends Cubit<OrdersState> {
     }
   }
 
+  /// Get order invoice URL
+  Future<String> getOrderInvoice(String orderId) async {
+    return await _dataSource.getOrderInvoice(orderId);
+  }
+
   /// Track order
   Future<Map<String, dynamic>?> trackOrder(String orderId) async {
     try {

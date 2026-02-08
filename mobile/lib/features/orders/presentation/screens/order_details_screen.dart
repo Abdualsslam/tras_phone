@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -93,9 +94,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           if (_order != null)
             IconButton(
               icon: const Icon(Iconsax.document_download),
-              onPressed: () {
-                // TODO: Implement PDF download
-              },
+              onPressed: () => _downloadInvoice(context),
             ),
         ],
       ),
@@ -158,7 +157,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
             // Payment Summary
             _buildPaymentSummary(theme, isDark),
-            SizedBox(height: 24.h),
+            SizedBox(height: 16.h),
+
+            // Quick Actions (Invoice, Upload Receipt, Tracking)
+            _buildQuickActions(context),
+            SizedBox(height: 16.h),
+
+            // Rate Order (when delivered/completed and not yet rated)
+            if (_order!.canRate) ...[
+              _buildRateSection(context, theme, isDark),
+              SizedBox(height: 16.h),
+            ],
 
             // Actions
             _buildActions(context),
@@ -650,12 +659,76 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
+  Widget _buildQuickActions(BuildContext context) {
+    final order = _order!;
+    final canUploadReceipt = order.paymentMethod == OrderPaymentMethod.bankTransfer &&
+        order.paymentStatus == PaymentStatus.unpaid;
+
+    return Wrap(
+      spacing: 8.w,
+      runSpacing: 8.h,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => context.push('/order/${order.id}/invoice'),
+          icon: const Icon(Iconsax.document_text, size: 18),
+          label: const Text('الفاتورة'),
+        ),
+        if (canUploadReceipt)
+          OutlinedButton.icon(
+            onPressed: () => context.push(
+              '/order/${order.id}/upload-receipt',
+              extra: {'amount': order.remainingAmount},
+            ),
+            icon: const Icon(Iconsax.document_upload, size: 18),
+            label: const Text('رفع إيصال'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRateSection(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    return _OrderRateSection(
+      orderId: widget.orderId,
+      onRated: _loadOrder,
+    );
+  }
+
+  Future<void> _downloadInvoice(BuildContext context) async {
+    try {
+      final url = await context.read<OrdersCubit>().getOrderInvoice(widget.orderId);
+      if (url.isNotEmpty && mounted) {
+        final uri = Uri.tryParse(url);
+        if (uri != null && await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تعذر فتح رابط الفاتورة')),
+          );
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا يوجد رابط للفاتورة')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل تحميل الفاتورة: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
   Widget _buildActions(BuildContext context) {
     final order = _order!;
 
     return Row(
       children: [
-        if (order.canCancel)
+        if (order.canCancel) ...[
           Expanded(
             child: OutlinedButton.icon(
               onPressed: () => _showCancelDialog(context),
@@ -665,21 +738,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 style: TextStyle(color: AppColors.error),
               ),
             ),
-          )
-        else
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => _handleReorder(context),
-              icon: const Icon(Iconsax.refresh),
-              label: const Text('إعادة الطلب'),
-            ),
           ),
-        SizedBox(width: 12.w),
+          SizedBox(width: 12.w),
+        ],
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () {
               HapticFeedback.mediumImpact();
-              // Navigate to support
               context.push('/support');
             },
             icon: const Icon(Iconsax.message),
@@ -691,44 +756,62 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   void _showCancelDialog(BuildContext context) {
+    final reasonController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('إلغاء الطلب'),
-        content: const Text('هل أنت متأكد من إلغاء هذا الطلب؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('لا'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              await context.read<OrdersCubit>().cancelOrder(widget.orderId);
-              if (mounted) {
-                await _loadOrder();
-              }
-            },
-            child: const Text(
-              'نعم، إلغاء',
-              style: TextStyle(color: AppColors.error),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) {
+          final hasReason = reasonController.text.trim().isNotEmpty;
+          return AlertDialog(
+            title: const Text('إلغاء الطلب'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('هل أنت متأكد من إلغاء هذا الطلب؟'),
+                SizedBox(height: 16.h),
+                TextField(
+                  controller: reasonController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'سبب الإلغاء (مطلوب)',
+                    hintText: 'أدخل سبب الإلغاء...',
+                  ),
+                  maxLines: 3,
+                ),
+              ],
             ),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('لا'),
+              ),
+              TextButton(
+                onPressed: hasReason
+                    ? () async {
+                        final reason = reasonController.text.trim();
+                        Navigator.of(dialogContext).pop();
+                        await context.read<OrdersCubit>().cancelOrder(
+                              widget.orderId,
+                              reason: reason,
+                            );
+                        if (mounted) {
+                          await _loadOrder();
+                        }
+                      }
+                    : null,
+                child: const Text(
+                  'نعم، إلغاء',
+                  style: TextStyle(color: AppColors.error),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Future<void> _handleReorder(BuildContext context) async {
-    HapticFeedback.selectionClick();
-    await context.read<OrdersCubit>().reorder(widget.orderId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تمت إضافة المنتجات إلى السلة')),
-      );
-      context.go('/cart');
-    }
-  }
 }
 
 class _TimelineStep {
@@ -737,4 +820,128 @@ class _TimelineStep {
   final DateTime? date;
 
   _TimelineStep(this.title, this.isCompleted, this.date);
+}
+
+class _OrderRateSection extends StatefulWidget {
+  final String orderId;
+  final Future<void> Function() onRated;
+
+  const _OrderRateSection({
+    required this.orderId,
+    required this.onRated,
+  });
+
+  @override
+  State<_OrderRateSection> createState() => _OrderRateSectionState();
+}
+
+class _OrderRateSectionState extends State<_OrderRateSection> {
+  int _rating = 0;
+  final _commentController = TextEditingController();
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'قيّم طلبك',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              final starValue = index + 1;
+              return GestureDetector(
+                onTap: _isSubmitting
+                    ? null
+                    : () => setState(() => _rating = starValue),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                  child: Icon(
+                    starValue <= _rating ? Icons.star : Icons.star_border,
+                    size: 32.sp,
+                    color: starValue <= _rating
+                        ? AppColors.primary
+                        : AppColors.textTertiaryLight,
+                  ),
+                ),
+              );
+            }),
+          ),
+          SizedBox(height: 12.h),
+          TextField(
+            controller: _commentController,
+            enabled: !_isSubmitting,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              hintText: 'أضف تعليقاً (اختياري)',
+            ),
+          ),
+          SizedBox(height: 12.h),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _rating > 0 && !_isSubmitting ? _submitRating : null,
+              child: _isSubmitting
+                  ? SizedBox(
+                      width: 20.w,
+                      height: 20.w,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('إرسال التقييم'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitRating() async {
+    setState(() => _isSubmitting = true);
+    try {
+      await context.read<OrdersCubit>().rateOrder(
+            orderId: widget.orderId,
+            rating: _rating,
+            comment: _commentController.text.trim().isNotEmpty
+                ? _commentController.text.trim()
+                : null,
+          );
+      if (mounted) {
+        await widget.onRated();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل إرسال التقييم')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
 }

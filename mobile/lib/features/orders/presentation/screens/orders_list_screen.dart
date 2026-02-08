@@ -115,7 +115,7 @@ class _OrdersListScreenState extends State<OrdersListScreen>
             child: ListView.separated(
               padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 100.h),
               itemCount: orders.length,
-              separatorBuilder: (_, __) => SizedBox(height: 12.h),
+              separatorBuilder: (_, __) => SizedBox(height: 16.h),
               itemBuilder: (context, index) {
                 final order = orders[index];
                 return _OrderCard(
@@ -180,98 +180,236 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final statusColor = _getStatusColor(order.status);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Order Header
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        order.orderNumber,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        _formatDate(order.createdAt),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textTertiaryLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _buildStatusBadge(order.status),
-              ],
-            ),
-
-            Divider(height: 24.h),
-
-            // Items Preview
-            Text(
-              '${order.itemsCount} منتج',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondaryLight,
-              ),
-            ),
-            SizedBox(height: 8.h),
-
-            // First item preview
-            if (order.items.isNotEmpty)
-              Text(
-                order.items.first.name,
-                style: theme.textTheme.bodyMedium,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            if (order.items.length > 1)
-              Text(
-                '+${order.items.length - 1} منتج آخر',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.textTertiaryLight,
-                ),
-              ),
-
-            SizedBox(height: 12.h),
-
-            // Total
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.total,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondaryLight,
-                  ),
-                ),
-                Text(
-                  '${order.total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
+          borderRadius: BorderRadius.circular(20.r),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20.r),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: Status bar + Order number
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      statusColor.withValues(alpha: 0.15),
+                      statusColor.withValues(alpha: 0.05),
+                    ],
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    _buildStatusBadge(order.status),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            order.orderNumber,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            _formatDate(order.createdAt),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.textTertiaryLight,
+                              fontSize: 11.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.all(8.w),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Iconsax.arrow_left_2,
+                        size: 18.sp,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              Padding(
+                padding: EdgeInsets.all(16.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Product thumbnails + items summary
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (order.items.isNotEmpty) ...[
+                          SizedBox(
+                            height: 56.h,
+                            width: (56.w * 3) + (8.w * 2),
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: order.items.length > 3 ? 3 : order.items.length,
+                              separatorBuilder: (_, __) => SizedBox(width: 8.w),
+                              itemBuilder: (context, index) {
+                                final item = order.items[index];
+                                return ClipRRect(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                  child: Container(
+                                    width: 56.w,
+                                    height: 56.h,
+                                    color: isDark
+                                        ? AppColors.surfaceDark
+                                        : AppColors.backgroundLight,
+                                    child: item.image != null
+                                        ? Image.network(
+                                            item.image!,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                Icon(
+                                                  Iconsax.box,
+                                                  color: AppColors.textTertiaryLight,
+                                                  size: 24.sp,
+                                                ),
+                                          )
+                                        : Icon(
+                                            Iconsax.box,
+                                            color: AppColors.textTertiaryLight,
+                                            size: 24.sp,
+                                          ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          SizedBox(width: 16.w),
+                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${order.itemsCount} منتج',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.textSecondaryLight,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(height: 4.h),
+                              if (order.items.isNotEmpty)
+                                Text(
+                                  order.items.first.nameAr ?? order.items.first.name,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              if (order.items.length > 1)
+                                Text(
+                                  '+${order.items.length - 1} منتج آخر',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textTertiaryLight,
+                                    fontSize: 11.sp,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 16.h),
+
+                    // Total row
+                    Container(
+                      padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 14.w),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context)!.total,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.textSecondaryLight,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '${order.total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+                            style: TextStyle(
+                              fontSize: 17.sp,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  Color _getStatusColor(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pending:
+        return Colors.orange;
+      case OrderStatus.confirmed:
+        return Colors.blue;
+      case OrderStatus.processing:
+        return Colors.purple;
+      case OrderStatus.shipped:
+        return Colors.teal;
+      case OrderStatus.delivered:
+        return AppColors.success;
+      case OrderStatus.cancelled:
+        return AppColors.error;
+      case OrderStatus.refunded:
+        return Colors.grey;
+      case OrderStatus.readyForPickup:
+        return Colors.indigo;
+      case OrderStatus.outForDelivery:
+        return Colors.cyan;
+      case OrderStatus.completed:
+        return Colors.green.shade700;
+    }
   }
 
   Widget _buildStatusBadge(OrderStatus status) {
