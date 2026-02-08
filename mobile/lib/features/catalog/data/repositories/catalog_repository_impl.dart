@@ -2,6 +2,7 @@
 library;
 
 import 'package:dartz/dartz.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/category_entity.dart';
@@ -736,7 +737,14 @@ class CatalogRepositoryImpl implements CatalogRepository {
       );
       return Right(review);
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      final msg = e is AppException ? e.message : e.toString();
+      final isDuplicate = msg.contains('E11000') ||
+          msg.contains('duplicate key') ||
+          msg.contains('dup key') ||
+          msg.contains('productId_1_customerId_1');
+      return Left(ServerFailure(
+        message: isDuplicate ? 'لقد قمت بتقييم هذا المنتج مسبقاً' : msg,
+      ));
     }
   }
 }

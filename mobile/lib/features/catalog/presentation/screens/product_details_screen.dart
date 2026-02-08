@@ -408,35 +408,60 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   Widget _buildRating(ThemeData theme, ProductEntity product) {
-    if (product.reviewsCount == 0) {
-      return const SizedBox.shrink();
-    }
-
-    return Row(
-      children: [
-        ...List.generate(5, (index) {
-          final rating = product.rating;
-          return Icon(
-            index < rating.floor() ? Iconsax.star1 : Iconsax.star,
-            color: Colors.amber,
-            size: 18.sp,
-          );
-        }),
-        SizedBox(width: 8.w),
-        Text(
-          '${product.rating}',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        SizedBox(width: 4.w),
-        Text(
-          '(${product.reviewsCount} تقييم)',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.textTertiaryLight,
-          ),
-        ),
-      ],
+    return GestureDetector(
+      onTap: () => context.push(
+        '/product/${product.id}/reviews',
+        extra: {
+          'productName': product.getName('ar'),
+          'averageRating': product.averageRating,
+          'reviewsCount': product.reviewsCount,
+        },
+      ),
+      child: product.reviewsCount == 0
+          ? Row(
+              children: [
+                ...List.generate(5, (index) {
+                  return Icon(
+                    Iconsax.star,
+                    color: Colors.amber.withValues(alpha: 0.3),
+                    size: 18.sp,
+                  );
+                }),
+                SizedBox(width: 8.w),
+                Text(
+                  '(اضغط لإضافة تقييم)',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textTertiaryLight,
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                ...List.generate(5, (index) {
+                  final rating = product.rating;
+                  return Icon(
+                    index < rating.floor() ? Iconsax.star1 : Iconsax.star,
+                    color: Colors.amber,
+                    size: 18.sp,
+                  );
+                }),
+                SizedBox(width: 8.w),
+                Text(
+                  '${product.rating}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(width: 4.w),
+                Text(
+                  '(${product.reviewsCount} تقييم)',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textTertiaryLight,
+                  ),
+                ),
+              ],
+            ),
     );
   }
 

@@ -114,15 +114,17 @@ class WishlistItemModel {
   bool get isInStock => product?.stockQuantity != null && product!.stockQuantity > 0;
   
   bool get priceDropped {
-    if (product?.compareAtPrice != null && product?.basePrice != null) {
-      return product!.compareAtPrice! > product!.basePrice;
+    if (product?.compareAtPrice != null && product != null) {
+      final current = product!.price ?? product!.basePrice;
+      return product!.compareAtPrice! > current;
     }
     return false;
   }
   
   double? get originalPrice => product?.compareAtPrice ?? product?.basePrice;
   
-  double? get currentPrice => product?.basePrice;
+  /// Current price (customer tier price when logged in, else basePrice)
+  double? get currentPrice => product?.price ?? product?.basePrice;
   
   double? get priceDifference {
     if (originalPrice != null && currentPrice != null) {

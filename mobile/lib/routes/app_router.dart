@@ -234,15 +234,26 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/product/:id/reviews',
       builder: (context, state) {
-        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
-        return ProductReviewsScreen(productId: id);
+        final id = state.pathParameters['id'] ?? '';
+        final extra = state.extra;
+        return ProductReviewsScreen(
+          productId: id,
+          productName: extra is Map ? extra['productName'] as String? : null,
+          averageRating: extra is Map ? extra['averageRating'] as double? : null,
+          reviewsCount: extra is Map ? extra['reviewsCount'] as int? : null,
+        );
       },
     ),
     GoRoute(
       path: '/product/:id/write-review',
       builder: (context, state) {
-        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
-        return WriteReviewScreen(productId: id, productName: 'منتج');
+        final id = state.pathParameters['id'] ?? '';
+        final extra = state.extra;
+        final productName = extra is Map ? extra['productName'] as String? : null;
+        return WriteReviewScreen(
+          productId: id,
+          productName: productName ?? 'المنتج',
+        );
       },
     ),
 

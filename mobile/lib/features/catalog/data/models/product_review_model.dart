@@ -80,11 +80,12 @@ class ProductReviewModel {
   }
 
   factory ProductReviewModel.fromJson(Map<String, dynamic> json) {
-    // Extract customer data if populated
+    // Extract customer data if populated (API uses responsiblePersonName, shopName)
     String? customerName, customerShopName;
     final customerData = json['customerId'];
     if (customerData is Map<String, dynamic>) {
-      customerName = customerData['name'] as String?;
+      customerName = customerData['responsiblePersonName'] as String? ??
+          customerData['name'] as String?;
       customerShopName = customerData['shopName'] as String?;
     }
 

@@ -933,7 +933,10 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       ApiEndpoints.productReviews(productId),
     );
 
-    if (response.data['success'] == true) {
+    final status = response.data['status'] as String?;
+    final success = response.data['success'] == true;
+    final statusOk = status == 'success' || response.data['statusCode'] == 200;
+    if (success || statusOk) {
       final data = response.data['data'] ?? [];
       final List<dynamic> list = data is List ? data : [];
       return list.map((json) => ProductReviewModel.fromJson(json)).toList();

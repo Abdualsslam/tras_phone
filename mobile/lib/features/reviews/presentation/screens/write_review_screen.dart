@@ -6,9 +6,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
+import '../../../catalog/domain/repositories/catalog_repository.dart';
 
 class WriteReviewScreen extends StatefulWidget {
-  final int productId;
+  final String productId;
   final String productName;
 
   const WriteReviewScreen({
@@ -22,8 +24,11 @@ class WriteReviewScreen extends StatefulWidget {
 }
 
 class _WriteReviewScreenState extends State<WriteReviewScreen> {
+  final _catalogRepository = getIt<CatalogRepository>();
   int _rating = 0;
   final _commentController = TextEditingController();
+  bool _isSubmitting = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -159,18 +164,31 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
             ),
             SizedBox(height: 32.h),
 
+            if (_error != null) ...[
+              Text(
+                _error!,
+                style: TextStyle(color: AppColors.error, fontSize: 12.sp),
+              ),
+              SizedBox(height: 16.h),
+            ],
             // Submit Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _rating > 0 ? _submitReview : null,
+                onPressed: _rating > 0 && !_isSubmitting ? _submitReview : null,
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 16.h),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14.r),
                   ),
                 ),
-                child: const Text('إرسال التقييم'),
+                child: _isSubmitting
+                    ? SizedBox(
+                        height: 20.h,
+                        width: 20.w,
+                        child: const CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('إرسال التقييم'),
               ),
             ),
           ],
@@ -196,17 +214,40 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
     }
   }
 
-  void _submitReview() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('تم إرسال تقييمك بنجاح'),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-      ),
+  Future<void> _submitReview() async {
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+
+    final result = await _catalogRepository.addReview(
+      productId: widget.productId,
+      rating: _rating,
+      comment: _commentController.text.trim().isEmpty
+          ? null
+          : _commentController.text.trim(),
     );
-    context.pop();
+
+    if (!mounted) return;
+
+    result.fold(
+      (failure) => setState(() {
+        _isSubmitting = false;
+        _error = failure.message;
+      }),
+      (_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('تم إرسال تقييمك بنجاح'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+          ),
+        );
+        context.pop(true);
+      },
+    );
   }
 }
