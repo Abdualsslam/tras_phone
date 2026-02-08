@@ -9,6 +9,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/order_entity.dart';
+import '../../domain/entities/order_stats_entity.dart';
 import '../cubit/orders_cubit.dart';
 import '../cubit/orders_state.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -24,11 +25,12 @@ class _OrdersListScreenState extends State<OrdersListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _tabs = <_OrderTab>[
-    const _OrderTab(label: 'الكل', status: null),
-    const _OrderTab(label: 'جارية', status: OrderStatus.processing),
-    const _OrderTab(label: 'تم الشحن', status: OrderStatus.shipped),
-    const _OrderTab(label: 'مكتملة', status: OrderStatus.delivered),
-    const _OrderTab(label: 'ملغاة', status: OrderStatus.cancelled),
+    const _OrderTab(label: 'الكل', status: null, isPendingPayment: false),
+    const _OrderTab(label: 'بانتظار الدفع', status: null, isPendingPayment: true),
+    const _OrderTab(label: 'جارية', status: OrderStatus.processing, isPendingPayment: false),
+    const _OrderTab(label: 'تم الشحن', status: OrderStatus.shipped, isPendingPayment: false),
+    const _OrderTab(label: 'مكتملة', status: OrderStatus.delivered, isPendingPayment: false),
+    const _OrderTab(label: 'ملغاة', status: OrderStatus.cancelled, isPendingPayment: false),
   ];
 
   @override
@@ -48,9 +50,12 @@ class _OrdersListScreenState extends State<OrdersListScreen>
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
-      context.read<OrdersCubit>().filterByStatus(
-        _tabs[_tabController.index].status,
-      );
+      final tab = _tabs[_tabController.index];
+      if (tab.isPendingPayment) {
+        context.read<OrdersCubit>().loadPendingPaymentOrders();
+      } else {
+        context.read<OrdersCubit>().filterByStatus(tab.status);
+      }
     }
   }
 
@@ -78,7 +83,14 @@ class _OrdersListScreenState extends State<OrdersListScreen>
           ),
         ),
       ),
-      body: BlocBuilder<OrdersCubit, OrdersState>(
+      body: BlocConsumer<OrdersCubit, OrdersState>(
+        listener: (context, state) {
+          if (state is BankAccountsLoaded) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              context.read<OrdersCubit>().loadOrders();
+            });
+          }
+        },
         builder: (context, state) {
           if (state is OrdersLoading) {
             return const OrdersListShimmer();
@@ -102,33 +114,50 @@ class _OrdersListScreenState extends State<OrdersListScreen>
             );
           }
 
-          final orders = state is OrdersLoaded ? state.orders : <OrderEntity>[];
+          final orders = state is OrdersLoaded
+              ? state.orders
+              : state is OrdersPendingPaymentLoaded
+                  ? state.orders
+                  : <OrderEntity>[];
 
           if (orders.isEmpty) {
             return _buildEmptyState(theme);
           }
 
+          final tab = _tabs[_tabController.index];
+          final stats = state is OrdersLoaded ? state.stats : null;
           return RefreshIndicator(
-            onRefresh: () => context.read<OrdersCubit>().loadOrders(
-              status: _tabs[_tabController.index].status,
-            ),
-            child: ListView.separated(
+            onRefresh: tab.isPendingPayment
+                ? () => context.read<OrdersCubit>().loadPendingPaymentOrders()
+                : () => context.read<OrdersCubit>().loadOrders(
+                      status: tab.status,
+                    ),
+            child: ListView(
               padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 100.h),
-              itemCount: orders.length,
-              separatorBuilder: (_, __) => SizedBox(height: 16.h),
-              itemBuilder: (context, index) {
-                final order = orders[index];
-                return _OrderCard(
-                  order: order,
-                  isDark: isDark,
-                  onTap: () {
-                    context.push('/order-details/${order.id}');
-                  },
-                );
-              },
+              children: [
+                if (stats != null) ...[
+                  _OrderStatsCard(stats: stats, isDark: isDark),
+                  SizedBox(height: 16.h),
+                ],
+                ...List.generate(orders.length, (index) {
+                  final order = orders[index];
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 16.h),
+                    child: _OrderCard(
+                      order: order,
+                      isDark: isDark,
+                      onTap: () {
+                        context.push('/order-details/${order.id}');
+                      },
+                    ),
+                  );
+                }),
+              ],
             ),
           );
         },
+        buildWhen: (previous, current) =>
+            current is! BankAccountsLoaded,
       ),
     );
   }
@@ -162,8 +191,154 @@ class _OrdersListScreenState extends State<OrdersListScreen>
 class _OrderTab {
   final String label;
   final OrderStatus? status;
+  final bool isPendingPayment;
 
-  const _OrderTab({required this.label, this.status});
+  const _OrderTab({
+    required this.label,
+    this.status,
+    this.isPendingPayment = false,
+  });
+}
+
+class _OrderStatsCard extends StatelessWidget {
+  final OrderStatsEntity stats;
+  final bool isDark;
+
+  const _OrderStatsCard({required this.stats, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'إحصائيات الطلبات',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              Expanded(
+                child: _StatItem(
+                  label: 'إجمالي الطلبات',
+                  value: '${stats.total}',
+                  theme: theme,
+                ),
+              ),
+              Expanded(
+                child: _StatItem(
+                  label: 'طلبات اليوم',
+                  value: '${stats.todayOrders}',
+                  theme: theme,
+                ),
+              ),
+              Expanded(
+                child: _StatItem(
+                  label: 'هذا الشهر',
+                  value: '${stats.thisMonthOrders}',
+                  theme: theme,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          Divider(height: 24.h, color: AppColors.dividerLight),
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'إيرادات اليوم',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondaryLight,
+                ),
+              ),
+              Text(
+                '${stats.todayRevenue.toStringAsFixed(0)} ر.س',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 4.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'إيرادات الشهر',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondaryLight,
+                ),
+              ),
+              Text(
+                '${stats.thisMonthRevenue.toStringAsFixed(0)} ر.س',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final ThemeData theme;
+
+  const _StatItem({
+    required this.label,
+    required this.value,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: AppColors.primary,
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.textSecondaryLight,
+            fontSize: 11.sp,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
 }
 
 class _OrderCard extends StatelessWidget {

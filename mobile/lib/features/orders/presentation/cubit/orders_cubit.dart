@@ -3,7 +3,9 @@ library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/order_entity.dart';
-import '../../data/datasources/orders_remote_datasource.dart';
+import '../../domain/entities/order_stats_entity.dart';
+import '../../data/datasources/orders_remote_datasource.dart'
+    show OrdersRemoteDataSource, OrdersResponseData;
 import '../../data/models/shipping_address_model.dart';
 import 'orders_state.dart';
 
@@ -17,22 +19,36 @@ class OrdersCubit extends Cubit<OrdersState> {
   /// Load my orders
   Future<void> loadOrders({
     OrderStatus? status,
+    PaymentStatus? paymentStatus,
+    String? orderNumber,
+    String? sortBy,
+    String? sortOrder,
     int page = 1,
     int limit = 20,
   }) async {
     emit(const OrdersLoading());
 
     try {
-      final response = await _dataSource.getMyOrders(
-        status: status,
-        page: page,
-        limit: limit,
-      );
+      final results = await Future.wait([
+        _dataSource.getMyOrders(
+          status: status,
+          paymentStatus: paymentStatus,
+          orderNumber: orderNumber,
+          sortBy: sortBy,
+          sortOrder: sortOrder,
+          page: page,
+          limit: limit,
+        ),
+        _dataSource.getMyOrderStats(),
+      ]);
+      final response = results[0] as OrdersResponseData;
+      final stats = results[1] as OrderStatsEntity;
       emit(
         OrdersLoaded(
           response.orders,
           total: response.total,
           filterStatus: status,
+          stats: stats,
         ),
       );
     } catch (e) {
@@ -67,8 +83,8 @@ class OrdersCubit extends Cubit<OrdersState> {
     }
   }
 
-  /// Cancel order
-  Future<void> cancelOrder(String orderId, {String? reason}) async {
+  /// Cancel order (reason is required by API)
+  Future<void> cancelOrder(String orderId, {required String reason}) async {
     try {
       await _dataSource.cancelOrder(orderId, reason: reason);
       await loadOrders();

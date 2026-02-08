@@ -26,11 +26,13 @@ class OrdersLoaded extends OrdersState {
   final List<OrderEntity> orders;
   final int total;
   final OrderStatus? filterStatus;
+  final OrderStatsEntity? stats;
 
-  const OrdersLoaded(this.orders, {this.total = 0, this.filterStatus});
+  const OrdersLoaded(this.orders,
+      {this.total = 0, this.filterStatus, this.stats});
 
   @override
-  List<Object?> get props => [orders, total, filterStatus];
+  List<Object?> get props => [orders, total, filterStatus, stats];
 }
 
 class OrdersError extends OrdersState {
