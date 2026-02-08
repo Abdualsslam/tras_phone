@@ -1,6 +1,7 @@
 /// Auth Interceptor - Handles automatic token injection and refresh
 library;
 
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import '../constants/api_endpoints.dart';
@@ -521,7 +522,27 @@ class LoggingInterceptor extends Interceptor {
       '← ${response.statusCode} ${response.requestOptions.path}',
       name: 'API',
     );
+    // طباعة البيانات القادمة من الـ API
+    final data = response.data;
+    if (data != null) {
+      try {
+        final toPrint = data is Map ? data : (data is List ? {'data': data} : {'raw': data});
+        final pretty = _prettyJson(toPrint);
+        developer.log('Response data:\n$pretty', name: 'API');
+      } catch (_) {
+        developer.log('Response data: $data', name: 'API');
+      }
+    }
     return handler.next(response);
+  }
+
+  static String _prettyJson(dynamic obj) {
+    const encoder = JsonEncoder.withIndent('  ');
+    try {
+      return encoder.convert(obj);
+    } catch (_) {
+      return obj.toString();
+    }
   }
 
   @override
