@@ -24,6 +24,7 @@ import { CartService } from './cart.service';
 import { CouponsService } from '@modules/promotions/coupons.service';
 import { PromotionsService } from '@modules/promotions/promotions.service';
 import { ProductsService } from '@modules/products/products.service';
+import { CustomersService } from '@modules/customers/customers.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 
 /**
@@ -52,6 +53,7 @@ export class OrdersService {
     private couponsService: CouponsService,
     private promotionsService: PromotionsService,
     private productsService: ProductsService,
+    private customersService: CustomersService,
   ) {}
 
   /**
@@ -177,10 +179,20 @@ export class OrdersService {
     const total =
       subtotal - discount - couponDiscount + taxAmount + shippingCost;
 
+    // Get customer's price level for order record
+    let priceLevelId: Types.ObjectId | undefined;
+    try {
+      const customer = await this.customersService.findById(customerId);
+      priceLevelId = customer?.priceLevelId;
+    } catch {
+      // Continue without priceLevelId if customer lookup fails
+    }
+
     // Create order (currency default SAR)
     const order = await this.orderModel.create({
       orderNumber,
       customerId,
+      priceLevelId,
       status: 'pending',
       subtotal,
       taxAmount,

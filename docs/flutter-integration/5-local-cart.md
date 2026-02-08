@@ -4,6 +4,8 @@
 
 نظام السلة المحلية (Local Cart) يعمل فوراً بدون انتظار السيرفر، مما يوفر تجربة مستخدم سريعة وسلسة. يتم المزامنة مع السيرفر عند الحاجة (قبل الدفع أو عند تسجيل الدخول) للتحقق من المخزون والأسعار.
 
+> **التسعير**: استخدم `product.effectivePrice` (انظر [16-pricing-rules.md](./16-pricing-rules.md)) عند إضافة المنتج للسلة لعرض السعر الصحيح حسب مستوى العميل.
+
 ### المزايا الرئيسية
 
 - ⚡ **عمليات فورية**: إضافة، تعديل، حذف العناصر بدون تأخير
@@ -88,13 +90,13 @@ class LocalCartItemModel {
   final int quantity;
   final double unitPrice;
   final DateTime addedAt;
-  
+
   // معلومات المنتج (اختيارية، للعرض)
   final String? productName;
   final String? productNameAr;
   final String? productImage;
   final String? productSku;
-  
+
   double get totalPrice => quantity * unitPrice;
 }
 ```
@@ -125,10 +127,10 @@ class CartSyncResultEntity {
   final List<RemovedCartItem> removedItems;      // المنتجات المحذوفة
   final List<PriceChangedCartItem> priceChangedItems;  // المنتجات التي تغير سعرها
   final List<QuantityAdjustedCartItem> quantityAdjustedItems;  // المنتجات التي تم تعديل كميتها
-  
-  bool get hasIssues => 
-    removedItems.isNotEmpty || 
-    priceChangedItems.isNotEmpty || 
+
+  bool get hasIssues =>
+    removedItems.isNotEmpty ||
+    priceChangedItems.isNotEmpty ||
     quantityAdjustedItems.isNotEmpty;
 }
 ```
@@ -143,10 +145,11 @@ class CartSyncResultEntity {
 
 ```dart
 // في ProductDetailsScreen أو أي شاشة
+// استخدم effectivePrice (السعر حسب مستوى العميل إن وُجد)
 context.read<CartCubit>().addToCartLocal(
   productId: product.id,
   quantity: 1,
-  unitPrice: product.price,
+  unitPrice: product.effectivePrice,  // price ?? basePrice
   productName: product.name,
   productNameAr: product.nameAr,
   productImage: product.image,
@@ -154,6 +157,7 @@ context.read<CartCubit>().addToCartLocal(
 );
 
 // يتم تحديث الـ UI فوراً بدون انتظار
+// ملاحظة: السيرفر يحسب السعر الصحيح عند syncCart أو addItem
 ```
 
 #### تحديث الكمية
@@ -202,19 +206,19 @@ void initState() {
 Future<void> _handleCheckout() async {
   // عرض loading
   showDialog(context: context, builder: (_) => LoadingDialog());
-  
+
   // المزامنة
   final result = await context.read<CartCubit>().syncCart();
-  
+
   // إغلاق loading
   Navigator.pop(context);
-  
+
   if (result == null) {
     // فشلت المزامنة
     showErrorDialog('فشلت المزامنة');
     return;
   }
-  
+
   // التحقق من النتائج
   if (result.hasIssues) {
     // عرض نتائج المزامنة
@@ -241,18 +245,18 @@ void _showSyncIssuesDialog(CartSyncResultEntity result) {
           // المنتجات المحذوفة
           if (result.removedItems.isNotEmpty) ...[
             Text('تم حذف المنتجات التالية:'),
-            ...result.removedItems.map((item) => 
+            ...result.removedItems.map((item) =>
               ListTile(
                 title: Text(item.productNameAr ?? item.productId),
                 subtitle: Text(_getRemovalReason(item.reason)),
               ),
             ),
           ],
-          
+
           // الأسعار المتغيرة
           if (result.priceChangedItems.isNotEmpty) ...[
             Text('تغيرت أسعار المنتجات التالية:'),
-            ...result.priceChangedItems.map((item) => 
+            ...result.priceChangedItems.map((item) =>
               ListTile(
                 title: Text(item.productNameAr ?? item.productId),
                 subtitle: Text(
@@ -261,11 +265,11 @@ void _showSyncIssuesDialog(CartSyncResultEntity result) {
               ),
             ),
           ],
-          
+
           // الكميات المعدلة
           if (result.quantityAdjustedItems.isNotEmpty) ...[
             Text('تم تعديل كميات المنتجات التالية:'),
-            ...result.quantityAdjustedItems.map((item) => 
+            ...result.quantityAdjustedItems.map((item) =>
               ListTile(
                 title: Text(item.productNameAr ?? item.productId),
                 subtitle: Text(
@@ -315,10 +319,10 @@ String _getRemovalReason(String reason) {
 // في AuthRepositoryImpl أو AuthCubit
 Future<void> login(String phone, String password) async {
   // ... login logic
-  
+
   // بعد تسجيل الدخول بنجاح
   await context.read<CartCubit>().syncCart(silent: true);
-  
+
   // silent: true يعني عدم عرض loading أو أخطاء
 }
 ```
@@ -330,15 +334,15 @@ BlocBuilder<CartCubit, CartState>(
   builder: (context, state) {
     if (state is CartLoaded) {
       final cart = state.cart;
-      
+
       return Column(
         children: [
           // عرض العناصر
           ...cart.items.map((item) => CartItemWidget(item: item)),
-          
+
           // الإجمالي
           Text('الإجمالي: ${cart.total}'),
-          
+
           // زر الدفع
           ElevatedButton(
             onPressed: _handleCheckout,
@@ -358,7 +362,7 @@ BlocBuilder<CartCubit, CartState>(
     } else if (state is CartSyncError) {
       return Text('خطأ في المزامنة: ${state.message}');
     }
-    
+
     return SizedBox.shrink();
   },
 )
@@ -372,31 +376,34 @@ BlocBuilder<CartCubit, CartState>(
 
 **Endpoint:** `POST /cart/sync`
 
-**Headers:** 
+**Headers:**
+
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
   "items": [
     {
       "productId": "507f1f77bcf86cd799439011",
       "quantity": 2,
-      "unitPrice": 150.00
+      "unitPrice": 150.0
     },
     {
       "productId": "507f1f77bcf86cd799439012",
       "quantity": 1,
-      "unitPrice": 200.00
+      "unitPrice": 200.0
     }
   ]
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -409,24 +416,24 @@ Content-Type: application/json
         {
           "productId": "507f1f77bcf86cd799439011",
           "quantity": 2,
-          "unitPrice": 150.00,
-          "totalPrice": 300.00,
+          "unitPrice": 150.0,
+          "totalPrice": 300.0,
           "addedAt": "2024-01-01T00:00:00Z"
         },
         {
           "productId": "507f1f77bcf86cd799439012",
           "quantity": 1,
-          "unitPrice": 180.00,
-          "totalPrice": 180.00,
+          "unitPrice": 180.0,
+          "totalPrice": 180.0,
           "addedAt": "2024-01-01T00:00:00Z"
         }
       ],
       "itemsCount": 3,
-      "subtotal": 480.00,
+      "subtotal": 480.0,
       "discount": 0,
       "taxAmount": 0,
       "shippingCost": 0,
-      "total": 480.00,
+      "total": 480.0,
       "couponId": null,
       "couponCode": null,
       "couponDiscount": 0
@@ -442,8 +449,8 @@ Content-Type: application/json
     "priceChangedItems": [
       {
         "productId": "507f1f77bcf86cd799439012",
-        "oldPrice": 200.00,
-        "newPrice": 180.00,
+        "oldPrice": 200.0,
+        "newPrice": 180.0,
         "productName": "Product Name",
         "productNameAr": "اسم المنتج"
       }
@@ -617,7 +624,7 @@ CartSyncCompleted (بدون إشعارات)
 ```dart
 class ProductDetailsScreen extends StatelessWidget {
   final ProductEntity product;
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -625,7 +632,7 @@ class ProductDetailsScreen extends StatelessWidget {
         children: [
           // عرض المنتج
           ProductDetails(product: product),
-          
+
           // زر إضافة للسلة
           ElevatedButton(
             onPressed: () {
@@ -638,7 +645,7 @@ class ProductDetailsScreen extends StatelessWidget {
                 productImage: product.images.firstOrNull,
                 productSku: product.sku,
               );
-              
+
               // عرض رسالة نجاح
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('تمت الإضافة للسلة')),
@@ -668,7 +675,7 @@ class _CartScreenState extends State<CartScreen> {
     // جلب السلة المحلية
     context.read<CartCubit>().loadLocalCart();
   }
-  
+
   Future<void> _handleCheckout() async {
     // عرض loading
     showDialog(
@@ -676,13 +683,13 @@ class _CartScreenState extends State<CartScreen> {
       barrierDismissible: false,
       builder: (_) => Center(child: CircularProgressIndicator()),
     );
-    
+
     // المزامنة
     final result = await context.read<CartCubit>().syncCart();
-    
+
     // إغلاق loading
     Navigator.pop(context);
-    
+
     if (result == null) {
       // فشلت المزامنة
       ScaffoldMessenger.of(context).showSnackBar(
@@ -690,7 +697,7 @@ class _CartScreenState extends State<CartScreen> {
       );
       return;
     }
-    
+
     // التحقق من النتائج
     if (result.hasIssues) {
       // عرض نتائج المزامنة
@@ -700,7 +707,7 @@ class _CartScreenState extends State<CartScreen> {
       context.push('/checkout');
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -709,11 +716,11 @@ class _CartScreenState extends State<CartScreen> {
         builder: (context, state) {
           if (state is CartLoaded) {
             final cart = state.cart;
-            
+
             if (cart.isEmpty) {
               return Center(child: Text('السلة فارغة'));
             }
-            
+
             return Column(
               children: [
                 // قائمة العناصر
@@ -739,10 +746,10 @@ class _CartScreenState extends State<CartScreen> {
                     },
                   ),
                 ),
-                
+
                 // الملخص
                 CartSummary(cart: cart),
-                
+
                 // زر الدفع
                 Padding(
                   padding: EdgeInsets.all(16),
@@ -762,7 +769,7 @@ class _CartScreenState extends State<CartScreen> {
             // بعد المزامنة، نعرض السلة المحدثة
             return build(context);  // rebuild
           }
-          
+
           return Center(child: CircularProgressIndicator());
         },
       ),
@@ -778,6 +785,7 @@ class _CartScreenState extends State<CartScreen> {
 ### المشكلة: السلة لا تظهر بعد الإضافة
 
 **الحل:**
+
 ```dart
 // تأكد من استدعاء loadLocalCart() في initState
 @override
@@ -790,6 +798,7 @@ void initState() {
 ### المشكلة: المزامنة تفشل
 
 **الحل:**
+
 ```dart
 // تحقق من وجود token
 // تأكد من الاتصال بالإنترنت
@@ -799,6 +808,7 @@ void initState() {
 ### المشكلة: السلة المحلية لا تزامن مع السيرفر
 
 **الحل:**
+
 ```dart
 // تأكد من استدعاء syncCart() قبل الدفع
 // تحقق من أن syncCartWithResults() موجودة في RemoteDataSource
@@ -809,6 +819,7 @@ void initState() {
 ## 📞 الدعم
 
 للمزيد من المعلومات أو المساعدة، يرجى الرجوع إلى:
+
 - [Orders Module Documentation](./orders.md)
 - [API Documentation](../../backend/README.md)
 

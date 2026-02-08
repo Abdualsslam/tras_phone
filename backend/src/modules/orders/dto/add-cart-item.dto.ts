@@ -1,10 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsNumber, IsMongoId, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsMongoId, Min, IsOptional } from 'class-validator';
 
 /**
  * ═══════════════════════════════════════════════════════════════
  * 🛒 Add Cart Item DTO
  * ═══════════════════════════════════════════════════════════════
+ * Note: unitPrice is ignored - server computes price from customer's price level
  */
 export class AddCartItemDto {
     @ApiProperty({
@@ -26,13 +27,14 @@ export class AddCartItemDto {
     quantity: number;
 
     @ApiProperty({
-        description: 'Unit price at the time of adding to cart',
+        description: 'Unit price (deprecated - server uses customer price level)',
         example: 100.00,
         minimum: 0,
+        required: false,
     })
     @IsNumber()
-    @IsNotEmpty()
+    @IsOptional()
     @Min(0)
-    unitPrice: number;
+    unitPrice?: number;
 }
 

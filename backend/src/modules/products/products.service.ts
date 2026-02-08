@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -25,6 +27,7 @@ import { Tag, TagDocument } from './schemas/tag.schema';
 import { ProductTag, ProductTagDocument } from './schemas/product-tag.schema';
 import { StockAlert, StockAlertDocument } from './schemas/stock-alert.schema';
 import { Customer, CustomerDocument } from '@modules/customers/schemas/customer.schema';
+import { CustomersService } from '@modules/customers/customers.service';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -36,6 +39,8 @@ export class ProductsService {
   constructor(
     @InjectModel(Product.name)
     private productModel: Model<ProductDocument>,
+    @Inject(forwardRef(() => CustomersService))
+    private customersService: CustomersService,
     @InjectModel(ProductPrice.name)
     private productPriceModel: Model<ProductPriceDocument>,
     @InjectModel(Wishlist.name)
@@ -147,8 +152,16 @@ export class ProductsService {
       this.productModel.countDocuments(query),
     ]);
 
+    let enrichedData = data;
+    if (filters?.priceLevelId) {
+      enrichedData = await this.enrichWithCustomerPrice(
+        data,
+        filters.priceLevelId,
+      );
+    }
+
     return {
-      data,
+      data: enrichedData,
       total,
       pagination: {
         page,
@@ -156,6 +169,38 @@ export class ProductsService {
         pages: Math.ceil(total / limit),
       },
     };
+  }
+
+  /**
+   * Get price level ID for a customer (returns null if not found)
+   */
+  async getPriceLevelIdForCustomer(customerId: string): Promise<string | null> {
+    try {
+      const customer = await this.customersService.findById(customerId);
+      return customer?.priceLevelId?.toString() || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Add price field to products based on customer's price level
+   */
+  private async enrichWithCustomerPrice(
+    products: any[],
+    priceLevelId: string,
+  ): Promise<any[]> {
+    if (!products?.length || !priceLevelId) return products;
+    return Promise.all(
+      products.map(async (p) => {
+        const doc = p.toObject ? p.toObject() : { ...p };
+        doc.price = await this.getPrice(
+          (p._id || p.id).toString(),
+          priceLevelId,
+        );
+        return doc;
+      }),
+    );
   }
 
   /**
@@ -314,8 +359,18 @@ export class ProductsService {
       };
     });
 
+    let enrichedData = formattedData;
+    if (filters?.priceLevelId) {
+      enrichedData = await Promise.all(
+        formattedData.map(async (doc) => ({
+          ...doc,
+          price: await this.getPrice(doc._id.toString(), filters.priceLevelId),
+        })),
+      );
+    }
+
     return {
-      data: formattedData,
+      data: enrichedData,
       total,
       pagination: {
         page,
@@ -328,7 +383,10 @@ export class ProductsService {
   /**
    * Find product by ID or slug
    */
-  async findByIdOrSlug(identifier: string): Promise<ProductDocument> {
+  async findByIdOrSlug(
+    identifier: string,
+    priceLevelId?: string,
+  ): Promise<ProductDocument | any> {
     const query = Types.ObjectId.isValid(identifier)
       ? { _id: identifier }
       : { slug: identifier };
@@ -361,6 +419,11 @@ export class ProductsService {
       $inc: { viewsCount: 1 },
     });
 
+    if (priceLevelId) {
+      const doc: Record<string, any> = product.toObject ? product.toObject() : { ...product };
+      doc.price = await this.getPrice(product._id.toString(), priceLevelId);
+      return doc;
+    }
     return product;
   }
 
@@ -412,6 +475,7 @@ export class ProductsService {
 
   /**
    * Get product price for customer's price level
+   * Uses ProductPrice if set; otherwise applies PriceLevel.discountPercentage to basePrice
    */
   async getPrice(productId: string, priceLevelId: string): Promise<number> {
     const productPrice = await this.productPriceModel.findOne({
@@ -424,9 +488,18 @@ export class ProductsService {
       return productPrice.price;
     }
 
-    // Fallback to base price
-    const product = await this.productModel.findById(productId);
-    return product?.basePrice || 0;
+    // Fallback: apply price level discount to base price
+    const [product, priceLevel] = await Promise.all([
+      this.productModel.findById(productId),
+      this.priceLevelModel.findById(priceLevelId),
+    ]);
+
+    const basePrice = product?.basePrice ?? 0;
+    const discountPercentage = priceLevel?.discountPercentage ?? 0;
+    if (discountPercentage <= 0) {
+      return basePrice;
+    }
+    return basePrice * (1 - discountPercentage / 100);
   }
 
   /**

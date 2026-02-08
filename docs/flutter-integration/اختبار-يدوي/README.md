@@ -22,6 +22,7 @@
 16. [13-customer-profile-checklist.md](./13-customer-profile-checklist.md) - اختبار بروفايل العميل
 17. [14-educational-content-checklist.md](./14-educational-content-checklist.md) - اختبار المحتوى التعليمي
 18. [15-banners-checklist.md](./15-banners-checklist.md) - اختبار البانرات
+19. [16-pricing-rules-checklist.md](./16-pricing-rules-checklist.md) - اختبار قواعد التسعير
 
 ## 📝 كيفية استخدام ملفات Checklist
 
@@ -42,12 +43,14 @@
 ## 🔄 دورة الاختبار الموصى بها
 
 1. **اختبار الوحدات الأساسية أولاً:**
+
    - Auth (المصادقة)
    - Products (المنتجات)
    - Cart (السلة)
    - Orders (الطلبات)
 
 2. **اختبار الوحدات الثانوية:**
+
    - Catalog (الكتالوج)
    - Wishlist (المفضلة)
    - Addresses (العناوين)

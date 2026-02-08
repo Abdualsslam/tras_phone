@@ -22,19 +22,20 @@ flutter-integration/
 
 ## 📋 قائمة الـ Modules
 
-| Module | ملف التوثيق | الوصف |
-|--------|-------------|-------|
-| 🔐 Auth | [auth.md](./auth.md) | التسجيل، تسجيل الدخول، OTP، تحديث التوكن |
-| 📦 Products | [products.md](./products.md) | عرض المنتجات، البحث، التفاصيل، المراجعات |
-| 📂 Catalog | [catalog.md](./catalog.md) | الفئات، العلامات التجارية، مستويات الأسعار |
-| 🛒 Orders | [orders.md](./orders.md) | السلة، إنشاء الطلبات، التتبع |
-| 👤 Customers | [customers.md](./customers.md) | الملف الشخصي، العناوين، المفضلة |
-| 🔔 Notifications | [notifications.md](./notifications.md) | الإشعارات، FCM Token |
-| 💰 Wallet | [wallet.md](./wallet.md) | المحفظة، نقاط الولاء، المستويات |
-| 📍 Locations | [locations.md](./locations.md) | المدن، الأحياء، حساب الشحن |
-| 🔄 Returns | [returns.md](./returns.md) | طلبات الإرجاع، أسباب الإرجاع |
-| 🎁 Promotions | [promotions.md](./promotions.md) | العروض، الكوبونات، التحقق من الصلاحية |
-| 🎧 Support | [support.md](./support.md) | التذاكر، المحادثة المباشرة، التقييم |
+| Module           | ملف التوثيق                                  | الوصف                                      |
+| ---------------- | -------------------------------------------- | ------------------------------------------ |
+| 🔐 Auth          | [auth.md](./auth.md)                         | التسجيل، تسجيل الدخول، OTP، تحديث التوكن   |
+| 📦 Products      | [products.md](./products.md)                 | عرض المنتجات، البحث، التفاصيل، المراجعات   |
+| 📂 Catalog       | [catalog.md](./catalog.md)                   | الفئات، العلامات التجارية، مستويات الأسعار |
+| 🛒 Orders        | [orders.md](./orders.md)                     | السلة، إنشاء الطلبات، التتبع               |
+| 👤 Customers     | [customers.md](./customers.md)               | الملف الشخصي، العناوين، المفضلة            |
+| 🔔 Notifications | [notifications.md](./notifications.md)       | الإشعارات، FCM Token                       |
+| 💰 Wallet        | [wallet.md](./wallet.md)                     | المحفظة، نقاط الولاء، المستويات            |
+| 📍 Locations     | [locations.md](./locations.md)               | المدن، الأحياء، حساب الشحن                 |
+| 🔄 Returns       | [returns.md](./returns.md)                   | طلبات الإرجاع، أسباب الإرجاع               |
+| 🎁 Promotions    | [promotions.md](./promotions.md)             | العروض، الكوبونات، التحقق من الصلاحية      |
+| 🎧 Support       | [support.md](./support.md)                   | التذاكر، المحادثة المباشرة، التقييم        |
+| 💰 Pricing Rules | [16-pricing-rules.md](./16-pricing-rules.md) | قواعد التسعير، السعر حسب مستوى العميل      |
 
 ## 🔗 Base URL
 
@@ -53,7 +54,7 @@ class ApiResponse<T> {
   final String message;
   final String messageAr;
   final dynamic error;
-  
+
   ApiResponse({
     required this.success,
     this.data,
@@ -61,15 +62,15 @@ class ApiResponse<T> {
     required this.messageAr,
     this.error,
   });
-  
+
   factory ApiResponse.fromJson(
     Map<String, dynamic> json,
     T Function(Map<String, dynamic>)? fromJsonT,
   ) {
     return ApiResponse(
       success: json['success'] ?? false,
-      data: json['data'] != null && fromJsonT != null 
-          ? fromJsonT(json['data']) 
+      data: json['data'] != null && fromJsonT != null
+          ? fromJsonT(json['data'])
           : json['data'],
       message: json['message'] ?? '',
       messageAr: json['messageAr'] ?? '',
@@ -88,7 +89,7 @@ class ApiClient {
   late Dio _dio;
   String? _accessToken;
   String? _refreshToken;
-  
+
   ApiClient() {
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
@@ -99,7 +100,7 @@ class ApiClient {
         'Accept': 'application/json',
       },
     ));
-    
+
     // إضافة Interceptor للـ Token
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
@@ -127,24 +128,24 @@ class ApiClient {
       },
     ));
   }
-  
+
   Future<void> _refreshAccessToken() async {
     final response = await _dio.post('/auth/refresh', data: {
       'refreshToken': _refreshToken,
     });
-    
+
     if (response.data['success']) {
       _accessToken = response.data['data']['accessToken'];
       _refreshToken = response.data['data']['refreshToken'];
       // حفظ الـ tokens في التخزين المحلي
     }
   }
-  
+
   void setTokens(String accessToken, String refreshToken) {
     _accessToken = accessToken;
     _refreshToken = refreshToken;
   }
-  
+
   void logout() {
     _accessToken = null;
     _refreshToken = null;
@@ -159,20 +160,20 @@ class ApiClient {
 
 هذه الـ endpoints لا تحتاج تسجيل دخول:
 
-| Endpoint | الوصف |
-|----------|-------|
-| `POST /auth/register` | التسجيل |
-| `POST /auth/login` | تسجيل الدخول |
-| `POST /auth/verify-otp` | التحقق من OTP |
-| `GET /catalog/*` | الكاتالوج (الفئات، العلامات) |
-| `GET /products` | قائمة المنتجات |
-| `GET /products/:id` | تفاصيل منتج |
-| `GET /promotions/active` | العروض النشطة |
-| `GET /promotions/coupons/public` | الكوبونات العامة |
-| `GET /locations/*` | المواقع والمدن |
-| `GET /returns/reasons` | أسباب الإرجاع |
-| `GET /tickets/categories` | فئات التذاكر |
-| `GET /wallet/tiers` | مستويات الولاء |
+| Endpoint                         | الوصف                        |
+| -------------------------------- | ---------------------------- |
+| `POST /auth/register`            | التسجيل                      |
+| `POST /auth/login`               | تسجيل الدخول                 |
+| `POST /auth/verify-otp`          | التحقق من OTP                |
+| `GET /catalog/*`                 | الكاتالوج (الفئات، العلامات) |
+| `GET /products`                  | قائمة المنتجات               |
+| `GET /products/:id`              | تفاصيل منتج                  |
+| `GET /promotions/active`         | العروض النشطة                |
+| `GET /promotions/coupons/public` | الكوبونات العامة             |
+| `GET /locations/*`               | المواقع والمدن               |
+| `GET /returns/reasons`           | أسباب الإرجاع                |
+| `GET /tickets/categories`        | فئات التذاكر                 |
+| `GET /wallet/tiers`              | مستويات الولاء               |
 
 ### 🔒 Protected Endpoints (تحتاج Token)
 
@@ -200,8 +201,8 @@ class ApiClient {
 ```yaml
 dependencies:
   dio: ^5.0.0
-  flutter_secure_storage: ^9.0.0  # لتخزين الـ tokens
-  shared_preferences: ^2.2.0      # للتخزين المحلي
+  flutter_secure_storage: ^9.0.0 # لتخزين الـ tokens
+  shared_preferences: ^2.2.0 # للتخزين المحلي
 ```
 
 ---

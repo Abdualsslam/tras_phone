@@ -8,6 +8,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '@guards/optional-jwt-auth.guard';
 import { User, UserSchema } from '@modules/users/schemas/user.schema';
 import { UserSession, UserSessionSchema } from './schemas/user-session.schema';
 import {
@@ -51,11 +52,12 @@ import { PriceLevel, PriceLevelSchema } from '@modules/products/schemas/price-le
     ]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, OptionalJwtAuthGuard],
   exports: [
     AuthService,
     JwtStrategy,
     JwtAuthGuard,
+    OptionalJwtAuthGuard,
     PassportModule,
     MongooseModule,
   ],

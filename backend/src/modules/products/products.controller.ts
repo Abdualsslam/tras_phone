@@ -23,6 +23,7 @@ import { ProductsSearchService } from './products-search.service';
 import { ProductsSearchSuggestionsService } from './products-search-suggestions.service';
 import { Public } from '@decorators/public.decorator';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '@guards/optional-jwt-auth.guard';
 import { RolesGuard } from '@guards/roles.guard';
 import { Roles } from '@decorators/roles.decorator';
 import { UserRole } from '@common/enums/user-role.enum';
@@ -91,6 +92,7 @@ export class ProductsController {
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('featured')
   @ApiOperation({
     summary: 'Get featured products',
@@ -102,11 +104,19 @@ export class ProductsController {
     type: ApiResponseDto,
   })
   @ApiPublicErrorResponses()
-  async getFeatured(@Query('limit') limit?: number) {
+  async getFeatured(
+    @Query('limit') limit?: number,
+    @CurrentUser() user?: any,
+  ) {
+    const priceLevelId = user?.customerId
+      ? await this.productsService.getPriceLevelIdForCustomer(user.customerId)
+      : null;
     const result = await this.productsService.findAll({
+      isFeatured: true,
       featured: true,
       limit: limit || 10,
       page: 1,
+      priceLevelId: priceLevelId || undefined,
     });
     return ResponseBuilder.success(
       result.data,
@@ -116,6 +126,7 @@ export class ProductsController {
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('new-arrivals')
   @ApiOperation({
     summary: 'Get new arrival products',
@@ -127,12 +138,19 @@ export class ProductsController {
     type: ApiResponseDto,
   })
   @ApiPublicErrorResponses()
-  async getNewArrivals(@Query('limit') limit?: number) {
+  async getNewArrivals(
+    @Query('limit') limit?: number,
+    @CurrentUser() user?: any,
+  ) {
+    const priceLevelId = user?.customerId
+      ? await this.productsService.getPriceLevelIdForCustomer(user.customerId)
+      : null;
     const result = await this.productsService.findAll({
       sortBy: 'createdAt',
       sortOrder: 'desc',
       limit: limit || 10,
       page: 1,
+      priceLevelId: priceLevelId || undefined,
     });
     return ResponseBuilder.success(
       result.data,
@@ -142,6 +160,7 @@ export class ProductsController {
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('best-sellers')
   @ApiOperation({
     summary: 'Get best selling products',
@@ -153,12 +172,19 @@ export class ProductsController {
     type: ApiResponseDto,
   })
   @ApiPublicErrorResponses()
-  async getBestSellers(@Query('limit') limit?: number) {
+  async getBestSellers(
+    @Query('limit') limit?: number,
+    @CurrentUser() user?: any,
+  ) {
+    const priceLevelId = user?.customerId
+      ? await this.productsService.getPriceLevelIdForCustomer(user.customerId)
+      : null;
     const result = await this.productsService.findAll({
       sortBy: 'salesCount',
       sortOrder: 'desc',
       limit: limit || 10,
       page: 1,
+      priceLevelId: priceLevelId || undefined,
     });
     return ResponseBuilder.success(
       result.data,
@@ -280,6 +306,7 @@ export class ProductsController {
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get()
   @ApiOperation({
     summary: 'Get all products with filters',
@@ -292,8 +319,13 @@ export class ProductsController {
     type: ApiResponseDto,
   })
   @ApiPublicErrorResponses()
-  async findAll(@Query() query: ProductFilterQueryDto) {
-    const result = await this.productsService.findAll(query);
+  async findAll(@Query() query: ProductFilterQueryDto, @CurrentUser() user?: any) {
+    const filters: any = { ...query };
+    if (user?.customerId) {
+      const priceLevelId = await this.productsService.getPriceLevelIdForCustomer(user.customerId);
+      if (priceLevelId) filters.priceLevelId = priceLevelId;
+    }
+    const result = await this.productsService.findAll(filters);
     return ResponseBuilder.success(
       result.data,
       'Products retrieved',
@@ -303,6 +335,7 @@ export class ProductsController {
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('on-offer')
   @ApiOperation({
     summary: 'Get products on offer',
@@ -315,8 +348,16 @@ export class ProductsController {
     type: ApiResponseDto,
   })
   @ApiPublicErrorResponses()
-  async getProductsOnOffer(@Query() query: ProductsOnOfferQueryDto) {
-    const result = await this.productsService.findProductsOnOffer(query);
+  async getProductsOnOffer(
+    @Query() query: ProductsOnOfferQueryDto,
+    @CurrentUser() user?: any,
+  ) {
+    const filters: any = { ...query };
+    if (user?.customerId) {
+      const priceLevelId = await this.productsService.getPriceLevelIdForCustomer(user.customerId);
+      if (priceLevelId) filters.priceLevelId = priceLevelId;
+    }
+    const result = await this.productsService.findProductsOnOffer(filters);
     return ResponseBuilder.success(
       result.data,
       'Products on offer retrieved',
@@ -326,6 +367,7 @@ export class ProductsController {
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':identifier')
   @ApiOperation({
     summary: 'Get product by ID or slug',
@@ -343,8 +385,14 @@ export class ProductsController {
     type: ApiResponseDto,
   })
   @ApiPublicErrorResponses()
-  async findOne(@Param('identifier') identifier: string) {
-    const product = await this.productsService.findByIdOrSlug(identifier);
+  async findOne(
+    @Param('identifier') identifier: string,
+    @CurrentUser() user?: any,
+  ) {
+    const priceLevelId = user?.customerId
+      ? await this.productsService.getPriceLevelIdForCustomer(user.customerId)
+      : undefined;
+    const product = await this.productsService.findByIdOrSlug(identifier, priceLevelId ?? undefined);
     return ResponseBuilder.success(
       product,
       'Product retrieved',

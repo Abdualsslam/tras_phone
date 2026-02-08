@@ -3,9 +3,11 @@
 ## 📋 نظرة عامة
 
 هذا الموديول يتعامل مع:
+
 - ✅ السلة (Cart) - إضافة، تعديل، حذف العناصر
 - ✅ السلة المحلية (Local Cart) - عمليات فورية بدون انتظار السيرفر
 - ✅ مزامنة السلة (Cart Sync) - التحقق من المخزون والأسعار قبل الدفع
+- ✅ **قواعد التسعير** - السيرفر يحسب السعر حسب مستوى العميل، والطلبات تحتوي `priceLevelId` (انظر [16-pricing-rules.md](./16-pricing-rules.md))
 - ✅ الكوبونات (Coupons) - يتم التحقق منها في مرحلة الدفع فقط
 - ✅ إنشاء الطلبات (Create Orders)
 - ✅ طلباتي (My Orders)
@@ -64,8 +66,8 @@ class Cart {
   factory Cart.fromJson(Map<String, dynamic> json) {
     return Cart(
       id: json['_id'] ?? json['id'],
-      customerId: json['customerId'] is String 
-          ? json['customerId'] 
+      customerId: json['customerId'] is String
+          ? json['customerId']
           : json['customerId']['_id'],
       status: CartStatus.fromString(json['status']),
       items: (json['items'] as List? ?? [])
@@ -80,17 +82,17 @@ class Cart {
       couponId: json['couponId'],
       couponCode: json['couponCode'],
       couponDiscount: (json['couponDiscount'] ?? 0).toDouble(),
-      lastActivityAt: json['lastActivityAt'] != null 
-          ? DateTime.parse(json['lastActivityAt']) 
+      lastActivityAt: json['lastActivityAt'] != null
+          ? DateTime.parse(json['lastActivityAt'])
           : null,
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
     );
   }
-  
+
   /// هل السلة فارغة؟
   bool get isEmpty => items.isEmpty;
-  
+
   /// هل يوجد كوبون مطبق؟
   bool get hasCoupon => couponCode != null && couponCode!.isNotEmpty;
 }
@@ -100,7 +102,7 @@ enum CartStatus {
   abandoned,
   converted,
   expired;
-  
+
   static CartStatus fromString(String value) {
     return CartStatus.values.firstWhere(
       (e) => e.name == value,
@@ -115,7 +117,7 @@ class CartItem {
   final double unitPrice;
   final double totalPrice;
   final DateTime addedAt;
-  
+
   // يمكن تعبئتها إذا تم populate
   Product? product;
 
@@ -130,17 +132,17 @@ class CartItem {
 
   factory CartItem.fromJson(Map<String, dynamic> json) {
     return CartItem(
-      productId: json['productId'] is String 
-          ? json['productId'] 
+      productId: json['productId'] is String
+          ? json['productId']
           : json['productId']['_id'],
       quantity: json['quantity'],
       unitPrice: (json['unitPrice'] ?? 0).toDouble(),
       totalPrice: (json['totalPrice'] ?? 0).toDouble(),
-      addedAt: json['addedAt'] != null 
-          ? DateTime.parse(json['addedAt']) 
+      addedAt: json['addedAt'] != null
+          ? DateTime.parse(json['addedAt'])
           : DateTime.now(),
-      product: json['productId'] is Map 
-          ? Product.fromJson(json['productId']) 
+      product: json['productId'] is Map
+          ? Product.fromJson(json['productId'])
           : null,
     );
   }
@@ -154,8 +156,10 @@ class Order {
   final String id;
   final String orderNumber;
   final String customerId;
+  /// مستوى السعر المُستخدم عند إنشاء الطلب (اختياري)
+  final String? priceLevelId;
   final OrderStatus status;
-  
+
   // المبالغ
   final double subtotal;
   final double taxAmount;
@@ -167,26 +171,26 @@ class Order {
   final double loyaltyPointsValue;
   final double total;
   final double paidAmount;
-  
+
   // الدفع
   final PaymentStatus paymentStatus;
   final OrderPaymentMethod? paymentMethod;
-  
+
   // الشحن
   final String? shippingAddressId;
   final ShippingAddress? shippingAddress;
   final DateTime? estimatedDeliveryDate;
-  
+
   // الكوبون
   final String? couponId;
   final String? couponCode;
-  
+
   // المصدر
   final OrderSource source;
-  
+
   // الملاحظات
   final String? customerNotes;
-  
+
   // التتبع الزمني
   final DateTime? confirmedAt;
   final DateTime? shippedAt;
@@ -194,18 +198,18 @@ class Order {
   final DateTime? completedAt;
   final DateTime? cancelledAt;
   final String? cancellationReason;
-  
+
   // التقييم
   final int? customerRating; // 1-5
   final String? customerRatingComment;
   final DateTime? ratedAt;
-  
+
   // العناصر
   final List<OrderItem> items;
-  
+
   /// هل يمكن إلغاء الطلب؟ (يأتي من الـ API - true فقط عند pending, confirmed, processing)
   final bool cancellable;
-  
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -213,6 +217,7 @@ class Order {
     required this.id,
     required this.orderNumber,
     required this.customerId,
+    this.priceLevelId,
     required this.status,
     required this.subtotal,
     required this.taxAmount,
@@ -252,9 +257,10 @@ class Order {
     return Order(
       id: json['_id'] ?? json['id'],
       orderNumber: json['orderNumber'],
-      customerId: json['customerId'] is String 
-          ? json['customerId'] 
+      customerId: json['customerId'] is String
+          ? json['customerId']
           : json['customerId']['_id'],
+      priceLevelId: json['priceLevelId']?.toString(),
       status: OrderStatus.fromString(json['status']),
       subtotal: (json['subtotal'] ?? 0).toDouble(),
       taxAmount: (json['taxAmount'] ?? 0).toDouble(),
@@ -267,40 +273,40 @@ class Order {
       total: (json['total'] ?? 0).toDouble(),
       paidAmount: (json['paidAmount'] ?? 0).toDouble(),
       paymentStatus: PaymentStatus.fromString(json['paymentStatus']),
-      paymentMethod: json['paymentMethod'] != null 
-          ? OrderPaymentMethod.fromString(json['paymentMethod']) 
+      paymentMethod: json['paymentMethod'] != null
+          ? OrderPaymentMethod.fromString(json['paymentMethod'])
           : null,
       shippingAddressId: json['shippingAddressId'],
-      shippingAddress: json['shippingAddress'] != null 
-          ? ShippingAddress.fromJson(json['shippingAddress']) 
+      shippingAddress: json['shippingAddress'] != null
+          ? ShippingAddress.fromJson(json['shippingAddress'])
           : null,
-      estimatedDeliveryDate: json['estimatedDeliveryDate'] != null 
-          ? DateTime.parse(json['estimatedDeliveryDate']) 
+      estimatedDeliveryDate: json['estimatedDeliveryDate'] != null
+          ? DateTime.parse(json['estimatedDeliveryDate'])
           : null,
       couponId: json['couponId'],
       couponCode: json['couponCode'],
       source: OrderSource.fromString(json['source'] ?? 'mobile'),
       customerNotes: json['customerNotes'],
-      confirmedAt: json['confirmedAt'] != null 
-          ? DateTime.parse(json['confirmedAt']) 
+      confirmedAt: json['confirmedAt'] != null
+          ? DateTime.parse(json['confirmedAt'])
           : null,
-      shippedAt: json['shippedAt'] != null 
-          ? DateTime.parse(json['shippedAt']) 
+      shippedAt: json['shippedAt'] != null
+          ? DateTime.parse(json['shippedAt'])
           : null,
-      deliveredAt: json['deliveredAt'] != null 
-          ? DateTime.parse(json['deliveredAt']) 
+      deliveredAt: json['deliveredAt'] != null
+          ? DateTime.parse(json['deliveredAt'])
           : null,
-      completedAt: json['completedAt'] != null 
-          ? DateTime.parse(json['completedAt']) 
+      completedAt: json['completedAt'] != null
+          ? DateTime.parse(json['completedAt'])
           : null,
-      cancelledAt: json['cancelledAt'] != null 
-          ? DateTime.parse(json['cancelledAt']) 
+      cancelledAt: json['cancelledAt'] != null
+          ? DateTime.parse(json['cancelledAt'])
           : null,
       cancellationReason: json['cancellationReason'],
       customerRating: json['customerRating'],
       customerRatingComment: json['customerRatingComment'],
-      ratedAt: json['ratedAt'] != null 
-          ? DateTime.parse(json['ratedAt']) 
+      ratedAt: json['ratedAt'] != null
+          ? DateTime.parse(json['ratedAt'])
           : null,
       items: (json['items'] as List? ?? [])
           .map((i) => OrderItem.fromJson(i))
@@ -310,24 +316,24 @@ class Order {
       updatedAt: DateTime.parse(json['updatedAt']),
     );
   }
-  
+
   /// المبلغ المتبقي
   double get remainingAmount => total - paidAmount;
-  
+
   /// عدد العناصر
   int get itemsCount => items.length;
-  
+
   /// هل الطلب ملغي؟
   bool get isCancelled => status == OrderStatus.cancelled;
-  
+
   /// هل يمكن إلغاء الطلب؟ (يأتي من الـ API - true فقط عند pending, confirmed, processing)
   bool get canCancel => cancellable;
-  
+
   /// هل تم تقييم الطلب؟
   bool get isRated => customerRating != null && customerRating! > 0;
-  
+
   /// هل يمكن تقييم الطلب؟
-  bool get canRate => 
+  bool get canRate =>
       (status == OrderStatus.delivered || status == OrderStatus.completed) &&
       !isRated;
 }
@@ -348,7 +354,7 @@ enum OrderStatus {
   completed,       // مكتمل
   cancelled,       // ملغي
   refunded;        // مسترجع
-  
+
   static OrderStatus fromString(String value) {
     switch (value) {
       case 'pending': return OrderStatus.pending;
@@ -364,7 +370,7 @@ enum OrderStatus {
       default: return OrderStatus.pending;
     }
   }
-  
+
   String get value {
     switch (this) {
       case OrderStatus.pending: return 'pending';
@@ -379,7 +385,7 @@ enum OrderStatus {
       case OrderStatus.refunded: return 'refunded';
     }
   }
-  
+
   String get displayNameAr {
     switch (this) {
       case OrderStatus.pending: return 'في الانتظار';
@@ -394,7 +400,7 @@ enum OrderStatus {
       case OrderStatus.refunded: return 'مسترجع';
     }
   }
-  
+
   Color get color {
     switch (this) {
       case OrderStatus.pending: return Colors.orange;
@@ -409,7 +415,7 @@ enum OrderStatus {
       case OrderStatus.refunded: return Colors.grey;
     }
   }
-  
+
   /// ترتيب الحالة في الـ Timeline
   int get stepIndex {
     switch (this) {
@@ -432,14 +438,14 @@ enum PaymentStatus {
   partial,
   paid,
   refunded;
-  
+
   static PaymentStatus fromString(String value) {
     return PaymentStatus.values.firstWhere(
       (e) => e.name == value,
       orElse: () => PaymentStatus.unpaid,
     );
   }
-  
+
   String get displayNameAr {
     switch (this) {
       case PaymentStatus.unpaid: return 'غير مدفوع';
@@ -456,7 +462,7 @@ enum OrderPaymentMethod {
   bankTransfer,
   wallet,
   credit;
-  
+
   static OrderPaymentMethod fromString(String value) {
     switch (value) {
       case 'cash': return OrderPaymentMethod.cash;
@@ -467,7 +473,7 @@ enum OrderPaymentMethod {
       default: return OrderPaymentMethod.cash;
     }
   }
-  
+
   String get value {
     switch (this) {
       case OrderPaymentMethod.cash: return 'cash';
@@ -477,7 +483,7 @@ enum OrderPaymentMethod {
       case OrderPaymentMethod.credit: return 'credit';
     }
   }
-  
+
   String get displayNameAr {
     switch (this) {
       case OrderPaymentMethod.cash: return 'كاش';
@@ -494,14 +500,14 @@ enum OrderSource {
   mobile,
   admin,
   api;
-  
+
   static OrderSource fromString(String value) {
     return OrderSource.values.firstWhere(
       (e) => e.name == value,
       orElse: () => OrderSource.mobile,
     );
   }
-  
+
   String get value {
     return name;
   }
@@ -536,8 +542,8 @@ class OrderItem {
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
-      productId: json['productId'] is String 
-          ? json['productId'] 
+      productId: json['productId'] is String
+          ? json['productId']
           : json['productId']['_id'],
       variantId: json['variantId'],
       sku: json['sku'],
@@ -609,6 +615,7 @@ class ShippingAddress {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -641,16 +648,17 @@ class ShippingAddress {
 ```
 
 **Flutter Code:**
+
 ```dart
 class CartService {
   final Dio _dio;
-  
+
   CartService(this._dio);
-  
+
   /// جلب السلة
   Future<Cart> getCart() async {
     final response = await _dio.get('/cart');
-    
+
     if (response.data['success']) {
       return Cart.fromJson(response.data['data']);
     }
@@ -668,15 +676,19 @@ class CartService {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
+
 ```dart
 {
   "productId": "507f1f77bcf86cd799439011",  // مطلوب
   "quantity": 2,                             // مطلوب (min: 1)
-  "unitPrice": 150.00                        // مطلوب
+  "unitPrice": 150.00                        // اختياري - يُتجاهل، السيرفر يحسب السعر من مستوى العميل
 }
 ```
 
+> **ملاحظة**: `unitPrice` أصبح اختيارياً - السيرفر يحسب السعر الصحيح حسب مستوى العميل. انظر [16-pricing-rules.md](./16-pricing-rules.md)
+
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -687,6 +699,7 @@ class CartService {
 ```
 
 **Flutter Code:**
+
 ```dart
 /// إضافة عنصر للسلة
 Future<Cart> addItem({
@@ -699,7 +712,7 @@ Future<Cart> addItem({
     'quantity': quantity,
     'unitPrice': unitPrice,
   });
-  
+
   if (response.data['success']) {
     return Cart.fromJson(response.data['data']);
   }
@@ -716,6 +729,7 @@ Future<Cart> addItem({
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
+
 ```dart
 {
   "quantity": 5  // الكمية الجديدة
@@ -723,6 +737,7 @@ Future<Cart> addItem({
 ```
 
 **Flutter Code:**
+
 ```dart
 /// تحديث كمية عنصر
 Future<Cart> updateItemQuantity({
@@ -732,7 +747,7 @@ Future<Cart> updateItemQuantity({
   final response = await _dio.put('/cart/items/$productId', data: {
     'quantity': quantity,
   });
-  
+
   if (response.data['success']) {
     return Cart.fromJson(response.data['data']);
   }
@@ -749,11 +764,12 @@ Future<Cart> updateItemQuantity({
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Flutter Code:**
+
 ```dart
 /// حذف عنصر من السلة
 Future<Cart> removeItem(String productId) async {
   final response = await _dio.delete('/cart/items/$productId');
-  
+
   if (response.data['success']) {
     return Cart.fromJson(response.data['data']);
   }
@@ -770,11 +786,12 @@ Future<Cart> removeItem(String productId) async {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Flutter Code:**
+
 ```dart
 /// تفريغ السلة
 Future<Cart> clearCart() async {
   final response = await _dio.delete('/cart');
-  
+
   if (response.data['success']) {
     return Cart.fromJson(response.data['data']);
   }
@@ -793,6 +810,7 @@ Future<Cart> clearCart() async {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
+
 ```dart
 {
   "couponCode": "SUMMER2024",        // مطلوب
@@ -802,6 +820,7 @@ Future<Cart> clearCart() async {
 ```
 
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -812,6 +831,7 @@ Future<Cart> clearCart() async {
 ```
 
 **Flutter Code:**
+
 ```dart
 /// تطبيق كوبون على السلة
 Future<Cart> applyCoupon({
@@ -824,7 +844,7 @@ Future<Cart> applyCoupon({
     if (couponId != null) 'couponId': couponId,
     'discountAmount': discountAmount,
   });
-  
+
   if (response.data['success']) {
     return Cart.fromJson(response.data['data']);
   }
@@ -841,11 +861,12 @@ Future<Cart> applyCoupon({
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Flutter Code:**
+
 ```dart
 /// إزالة كوبون من السلة
 Future<Cart> removeCoupon() async {
   final response = await _dio.delete('/cart/coupon');
-  
+
   if (response.data['success']) {
     return Cart.fromJson(response.data['data']);
   }
@@ -868,6 +889,7 @@ Future<Cart> removeCoupon() async {
 **الوصف:** مزامنة السلة المحلية مع السيرفر للتحقق من المخزون والأسعار قبل الدفع.
 
 **Request Body:**
+
 ```dart
 {
   "items": [
@@ -886,6 +908,7 @@ Future<Cart> removeCoupon() async {
 ```
 
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -925,6 +948,7 @@ Future<Cart> removeCoupon() async {
 ```
 
 **Flutter Code:**
+
 ```dart
 /// مزامنة السلة المحلية مع السيرفر
 Future<CartSyncResult> syncCart(List<CartSyncItem> items) async {
@@ -935,7 +959,7 @@ Future<CartSyncResult> syncCart(List<CartSyncItem> items) async {
       'unitPrice': item.unitPrice,
     }).toList(),
   });
-  
+
   if (response.data['success']) {
     final data = response.data['data'];
     return CartSyncResult(
@@ -959,7 +983,7 @@ class CartSyncItem {
   final String productId;
   final int quantity;
   final double unitPrice;
-  
+
   CartSyncItem({
     required this.productId,
     required this.quantity,
@@ -972,17 +996,17 @@ class CartSyncResult {
   final List<RemovedCartItem> removedItems;
   final List<PriceChangedCartItem> priceChangedItems;
   final List<QuantityAdjustedCartItem> quantityAdjustedItems;
-  
+
   CartSyncResult({
     required this.cart,
     required this.removedItems,
     required this.priceChangedItems,
     required this.quantityAdjustedItems,
   });
-  
-  bool get hasIssues => 
-    removedItems.isNotEmpty || 
-    priceChangedItems.isNotEmpty || 
+
+  bool get hasIssues =>
+    removedItems.isNotEmpty ||
+    priceChangedItems.isNotEmpty ||
     quantityAdjustedItems.isNotEmpty;
 }
 
@@ -991,14 +1015,14 @@ class RemovedCartItem {
   final String reason;
   final String? productName;
   final String? productNameAr;
-  
+
   RemovedCartItem({
     required this.productId,
     required this.reason,
     this.productName,
     this.productNameAr,
   });
-  
+
   factory RemovedCartItem.fromJson(Map<String, dynamic> json) {
     return RemovedCartItem(
       productId: json['productId'],
@@ -1015,7 +1039,7 @@ class PriceChangedCartItem {
   final double newPrice;
   final String? productName;
   final String? productNameAr;
-  
+
   PriceChangedCartItem({
     required this.productId,
     required this.oldPrice,
@@ -1023,7 +1047,7 @@ class PriceChangedCartItem {
     this.productName,
     this.productNameAr,
   });
-  
+
   factory PriceChangedCartItem.fromJson(Map<String, dynamic> json) {
     return PriceChangedCartItem(
       productId: json['productId'],
@@ -1042,7 +1066,7 @@ class QuantityAdjustedCartItem {
   final int finalQuantity;
   final String? productName;
   final String? productNameAr;
-  
+
   QuantityAdjustedCartItem({
     required this.productId,
     required this.requestedQuantity,
@@ -1051,7 +1075,7 @@ class QuantityAdjustedCartItem {
     this.productName,
     this.productNameAr,
   });
-  
+
   factory QuantityAdjustedCartItem.fromJson(Map<String, dynamic> json) {
     return QuantityAdjustedCartItem(
       productId: json['productId'],
@@ -1087,6 +1111,7 @@ class QuantityAdjustedCartItem {
 | `sortOrder` | string | ❌ | اتجاه الترتيب (`asc`, `desc`) |
 
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -1110,12 +1135,13 @@ class QuantityAdjustedCartItem {
 ```
 
 **Flutter Code:**
+
 ```dart
 class OrdersService {
   final Dio _dio;
-  
+
   OrdersService(this._dio);
-  
+
   /// جلب طلباتي
   Future<OrdersResponse> getMyOrders({
     int page = 1,
@@ -1135,7 +1161,7 @@ class OrdersService {
       if (sortBy != null) 'sortBy': sortBy,
       if (sortOrder != null) 'sortOrder': sortOrder,
     });
-    
+
     if (response.data['success']) {
       return OrdersResponse(
         orders: (response.data['data'] as List)
@@ -1151,7 +1177,7 @@ class OrdersService {
 class OrdersResponse {
   final List<Order> orders;
   final int total;
-  
+
   OrdersResponse({required this.orders, required this.total});
 }
 ```
@@ -1165,6 +1191,7 @@ class OrdersResponse {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
+
 ```dart
 {
   "shippingAddressId": "507f1f77bcf...",  // اختياري - ID عنوان محفوظ
@@ -1187,6 +1214,7 @@ class OrdersResponse {
 > **📌 ملاحظة:** `couponCode` يتم التحقق منه وتطبيقه مباشرة عند إنشاء الطلب. الكوبونات **لا تُحفظ في السلة**، بل تُطبق فقط في مرحلة الدفع.
 
 **Response (201 Created):**
+
 ```dart
 {
   "success": true,
@@ -1204,6 +1232,7 @@ class OrdersResponse {
 ```
 
 **Flutter Code:**
+
 ```dart
 /// إنشاء طلب جديد
 Future<Order> createOrder({
@@ -1222,7 +1251,7 @@ Future<Order> createOrder({
     if (couponCode != null) 'couponCode': couponCode,
     if (source != null) 'source': source.value,
   });
-  
+
   if (response.data['success']) {
     return Order.fromJson(response.data['data']);
   }
@@ -1239,6 +1268,7 @@ Future<Order> createOrder({
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -1278,11 +1308,12 @@ Future<Order> createOrder({
 > **ملاحظة:** الاستجابة تحتوي على `order` ككائن داخل `data`. استخدم `response.data['data']['order']` للحصول على بيانات الطلب.
 
 **Flutter Code:**
+
 ```dart
 /// جلب تفاصيل طلب
 Future<Order> getOrderDetails(String orderId) async {
   final response = await _dio.get('/orders/$orderId');
-  
+
   if (response.data['success']) {
     // الاستجابة تحتوي على order داخل data
     return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
@@ -1302,6 +1333,7 @@ Future<Order> getOrderDetails(String orderId) async {
 **الشروط:** الطلب قابل للإلغاء فقط إذا كان في حالة `pending` أو `confirmed` أو `processing` (لم يتجاوز مرحلة قيد التجهيز). بعد الإلغاء، سيعود الطلب مع `cancellable: false`.
 
 **Body (مطلوب):**
+
 ```json
 {
   "reason": "سبب الإلغاء"
@@ -1309,6 +1341,7 @@ Future<Order> getOrderDetails(String orderId) async {
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1327,10 +1360,12 @@ Future<Order> getOrderDetails(String orderId) async {
 ```
 
 **أخطاء محتملة:**
+
 - `400`: لا يمكن إلغاء الطلب بعد مرحلة التجهيز
 - `404`: الطلب غير موجود أو لا ينتمي للمستخدم
 
 **Flutter Code:**
+
 ```dart
 /// إلغاء طلب (السبب مطلوب)
 Future<Order> cancelOrder(String orderId, {required String reason}) async {
@@ -1338,7 +1373,7 @@ Future<Order> cancelOrder(String orderId, {required String reason}) async {
     '/orders/$orderId/cancel',
     data: {'reason': reason},
   );
-  
+
   if (response.data['success']) {
     return Order.fromJson(response.data['data']);
   }
@@ -1357,6 +1392,7 @@ Future<Order> cancelOrder(String orderId, {required String reason}) async {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -1388,11 +1424,12 @@ Future<Order> cancelOrder(String orderId, {required String reason}) async {
 ```
 
 **Flutter Code:**
+
 ```dart
 /// جلب إحصائيات طلباتي
 Future<OrderStats> getMyStats() async {
   final response = await _dio.get('/orders/my/stats');
-  
+
   if (response.data['success']) {
     return OrderStats.fromJson(response.data['data']);
   }
@@ -1410,7 +1447,7 @@ class OrderStats {
   final double todayRevenue;
   final int thisMonthOrders;
   final double thisMonthRevenue;
-  
+
   OrderStats({
     required this.total,
     required this.byStatus,
@@ -1423,7 +1460,7 @@ class OrderStats {
     required this.thisMonthOrders,
     required this.thisMonthRevenue,
   });
-  
+
   factory OrderStats.fromJson(Map<String, dynamic> json) {
     return OrderStats(
       total: json['total'] ?? 0,
@@ -1450,6 +1487,7 @@ class OrderStats {
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
+
 ```dart
 {
   "receiptImage": "base64_encoded_image_or_url",  // مطلوب
@@ -1460,6 +1498,7 @@ class OrderStats {
 ```
 
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -1472,6 +1511,7 @@ class OrderStats {
 ```
 
 **Flutter Code:**
+
 ```dart
 /// رفع إيصال الدفع
 Future<Order> uploadReceipt({
@@ -1487,7 +1527,7 @@ Future<Order> uploadReceipt({
     if (transferDate != null) 'transferDate': transferDate,
     if (notes != null) 'notes': notes,
   });
-  
+
   if (response.data['success']) {
     return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
   }
@@ -1504,6 +1544,7 @@ Future<Order> uploadReceipt({
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Request Body:**
+
 ```dart
 {
   "rating": 5,                    // مطلوب (1-5)
@@ -1512,6 +1553,7 @@ Future<Order> uploadReceipt({
 ```
 
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -1524,6 +1566,7 @@ Future<Order> uploadReceipt({
 ```
 
 **Flutter Code:**
+
 ```dart
 /// تقييم الطلب
 Future<Order> rateOrder({
@@ -1535,7 +1578,7 @@ Future<Order> rateOrder({
     'rating': rating,
     if (comment != null) 'comment': comment,
   });
-  
+
   if (response.data['success']) {
     return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
   }
@@ -1552,6 +1595,7 @@ Future<Order> rateOrder({
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -1572,11 +1616,12 @@ Future<Order> rateOrder({
 ```
 
 **Flutter Code:**
+
 ```dart
 /// جلب الطلبات بانتظار الدفع
 Future<List<Order>> getPendingPaymentOrders() async {
   final response = await _dio.get('/orders/pending-payment');
-  
+
   if (response.data['success']) {
     return (response.data['data'] as List)
         .map((o) => Order.fromJson(o))
@@ -1595,6 +1640,7 @@ Future<List<Order>> getPendingPaymentOrders() async {
 **Headers:** لا يحتاج Token (Public endpoint) 🌐
 
 **Response:**
+
 ```dart
 {
   "success": true,
@@ -1628,11 +1674,12 @@ Future<List<Order>> getPendingPaymentOrders() async {
 ```
 
 **Flutter Code:**
+
 ```dart
 /// جلب الحسابات البنكية
 Future<List<BankAccount>> getBankAccounts() async {
   final response = await _dio.get('/bank-accounts');
-  
+
   if (response.data['success']) {
     return (response.data['data'] as List)
         .map((a) => BankAccount.fromJson(a))
@@ -1662,7 +1709,7 @@ class BankAccount {
   final double totalReceived;
   final DateTime createdAt;
   final DateTime updatedAt;
-  
+
   BankAccount({
     required this.id,
     required this.bankName,
@@ -1685,7 +1732,7 @@ class BankAccount {
     required this.createdAt,
     required this.updatedAt,
   });
-  
+
   factory BankAccount.fromJson(Map<String, dynamic> json) {
     return BankAccount(
       id: json['_id'] ?? json['id'],
@@ -1802,9 +1849,9 @@ import 'package:dio/dio.dart';
 
 class CartService {
   final Dio _dio;
-  
+
   CartService(this._dio);
-  
+
   Future<Cart> getCart() async {
     final response = await _dio.get('/cart');
     if (response.data['success']) {
@@ -1812,7 +1859,7 @@ class CartService {
     }
     throw Exception(response.data['messageAr']);
   }
-  
+
   Future<Cart> addItem({
     required String productId,
     required int quantity,
@@ -1828,7 +1875,7 @@ class CartService {
     }
     throw Exception(response.data['messageAr']);
   }
-  
+
   Future<Cart> updateItemQuantity({
     required String productId,
     required int quantity,
@@ -1841,7 +1888,7 @@ class CartService {
     }
     throw Exception(response.data['messageAr']);
   }
-  
+
   Future<Cart> removeItem(String productId) async {
     final response = await _dio.delete('/cart/items/$productId');
     if (response.data['success']) {
@@ -1849,7 +1896,7 @@ class CartService {
     }
     throw Exception(response.data['messageAr']);
   }
-  
+
   Future<Cart> clearCart() async {
     final response = await _dio.delete('/cart');
     if (response.data['success']) {
@@ -1857,8 +1904,8 @@ class CartService {
     }
     throw Exception(response.data['messageAr']);
   }
-  
-  
+
+
   Future<CartSyncResult> syncCart(List<CartSyncItem> items) async {
     final response = await _dio.post('/cart/sync', data: {
       'items': items.map((item) => {
@@ -1867,7 +1914,7 @@ class CartService {
         'unitPrice': item.unitPrice,
       }).toList(),
     });
-    
+
     if (response.data['success']) {
       final data = response.data['data'];
       return CartSyncResult(
@@ -1895,9 +1942,9 @@ import 'package:dio/dio.dart';
 
 class OrdersService {
   final Dio _dio;
-  
+
   OrdersService(this._dio);
-  
+
   Future<OrdersResponse> getMyOrders({
     int page = 1,
     int limit = 20,
@@ -1916,7 +1963,7 @@ class OrdersService {
       if (sortBy != null) 'sortBy': sortBy,
       if (sortOrder != null) 'sortOrder': sortOrder,
     });
-    
+
     if (response.data['success']) {
       return OrdersResponse(
         orders: (response.data['data'] as List)
@@ -1927,7 +1974,7 @@ class OrdersService {
     }
     throw Exception(response.data['messageAr']);
   }
-  
+
   Future<Order> createOrder({
     String? shippingAddressId,
     ShippingAddress? shippingAddress,
@@ -1944,32 +1991,32 @@ class OrdersService {
       if (couponCode != null) 'couponCode': couponCode,
       if (source != null) 'source': source.value,
     });
-    
+
     if (response.data['success']) {
       return Order.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
   }
-  
+
   Future<Order> getOrderDetails(String orderId) async {
     final response = await _dio.get('/orders/$orderId');
-    
+
     if (response.data['success']) {
       // الاستجابة تحتوي على order داخل data
       return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
     }
     throw Exception(response.data['messageAr']);
   }
-  
+
   Future<OrderStats> getMyStats() async {
     final response = await _dio.get('/orders/my/stats');
-    
+
     if (response.data['success']) {
       return OrderStats.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
   }
-  
+
   Future<Order> uploadReceipt({
     required String orderId,
     required String receiptImage,
@@ -1983,13 +2030,13 @@ class OrdersService {
       if (transferDate != null) 'transferDate': transferDate,
       if (notes != null) 'notes': notes,
     });
-    
+
     if (response.data['success']) {
       return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
     }
     throw Exception(response.data['messageAr']);
   }
-  
+
   Future<Order> rateOrder({
     required String orderId,
     required int rating,
@@ -1999,16 +2046,16 @@ class OrdersService {
       'rating': rating,
       if (comment != null) 'comment': comment,
     });
-    
+
     if (response.data['success']) {
       return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
     }
     throw Exception(response.data['messageAr']);
   }
-  
+
   Future<List<Order>> getPendingPaymentOrders() async {
     final response = await _dio.get('/orders/pending-payment');
-    
+
     if (response.data['success']) {
       return (response.data['data'] as List)
           .map((o) => Order.fromJson(o))
@@ -2016,10 +2063,10 @@ class OrdersService {
     }
     throw Exception(response.data['messageAr']);
   }
-  
+
   Future<List<BankAccount>> getBankAccounts() async {
     final response = await _dio.get('/bank-accounts');
-    
+
     if (response.data['success']) {
       return (response.data['data'] as List)
           .map((a) => BankAccount.fromJson(a))
@@ -2049,7 +2096,7 @@ class _CartScreenState extends State<CartScreen> {
     // جلب السلة المحلية (فوري)
     context.read<CartCubit>().loadLocalCart();
   }
-  
+
   Future<void> _handleCheckout() async {
     // عرض loading
     showDialog(
@@ -2057,20 +2104,20 @@ class _CartScreenState extends State<CartScreen> {
       barrierDismissible: false,
       builder: (_) => Center(child: CircularProgressIndicator()),
     );
-    
+
     // مزامنة السلة مع السيرفر قبل الدفع
     final result = await context.read<CartCubit>().syncCart();
-    
+
     // إغلاق loading
     Navigator.pop(context);
-    
+
     if (result == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('فشلت المزامنة. حاول مرة أخرى.')),
       );
       return;
     }
-    
+
     // التحقق من نتائج المزامنة
     if (result.hasIssues) {
       await _showSyncIssuesDialog(result);
@@ -2079,12 +2126,12 @@ class _CartScreenState extends State<CartScreen> {
       Navigator.pushNamed(context, '/checkout');
     }
   }
-  
+
   void _showSyncIssuesDialog(CartSyncResultEntity result) {
     // عرض نتائج المزامنة (منتجات محذوفة، أسعار متغيرة، كميات معدلة)
     // راجع local-cart.md للأمثلة الكاملة
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -2093,11 +2140,11 @@ class _CartScreenState extends State<CartScreen> {
         builder: (context, state) {
           if (state is CartLoaded) {
             final cart = state.cart;
-            
+
             if (cart.isEmpty) {
               return Center(child: Text('السلة فارغة'));
             }
-            
+
             return Column(
               children: [
                 // قائمة العناصر
@@ -2125,7 +2172,7 @@ class _CartScreenState extends State<CartScreen> {
                     },
                   ),
                 ),
-                
+
                 // ملخص السلة
                 CartSummary(
                   subtotal: cart.subtotal,
@@ -2134,7 +2181,7 @@ class _CartScreenState extends State<CartScreen> {
                   tax: cart.taxAmount,
                   total: cart.total,
                 ),
-                
+
                 // زر الإتمام
                 Padding(
                   padding: EdgeInsets.all(16),
@@ -2154,7 +2201,7 @@ class _CartScreenState extends State<CartScreen> {
             // بعد المزامنة، إعادة بناء الواجهة
             return build(context);
           }
-          
+
           return Center(child: CircularProgressIndicator());
         },
       ),
@@ -2178,7 +2225,7 @@ ElevatedButton(
       productImage: product.images.firstOrNull,
       productSku: product.sku,
     );
-    
+
     // عرض رسالة نجاح
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('تمت الإضافة للسلة')),
@@ -2193,7 +2240,7 @@ ElevatedButton(
 ```dart
 class OrderTimelineWidget extends StatelessWidget {
   final Order order;
-  
+
   @override
   Widget build(BuildContext context) {
     final steps = [
@@ -2202,7 +2249,7 @@ class OrderTimelineWidget extends StatelessWidget {
       TimelineStep('تم الشحن', order.shippedAt, order.shippedAt != null),
       TimelineStep('تم التوصيل', order.deliveredAt, order.deliveredAt != null),
     ];
-    
+
     return ListView.builder(
       shrinkWrap: true,
       itemCount: steps.length,
@@ -2226,34 +2273,35 @@ class OrderTimelineWidget extends StatelessWidget {
 
 ### 🛒 Cart
 
-| Method | Endpoint | الوصف |
-|--------|----------|-------|
-| GET | `/cart` | جلب السلة من السيرفر |
-| POST | `/cart/items` | إضافة عنصر للسلة على السيرفر |
-| PUT | `/cart/items/:productId` | تحديث كمية عنصر على السيرفر |
-| DELETE | `/cart/items/:productId` | حذف عنصر من السلة على السيرفر |
-| DELETE | `/cart` | تفريغ السلة على السيرفر |
-| POST | `/cart/coupon` | تطبيق كوبون على السلة |
-| DELETE | `/cart/coupon` | إزالة كوبون من السلة |
-| **POST** | **`/cart/sync`** | **مزامنة السلة المحلية مع السيرفر** |
+| Method   | Endpoint                 | الوصف                               |
+| -------- | ------------------------ | ----------------------------------- |
+| GET      | `/cart`                  | جلب السلة من السيرفر                |
+| POST     | `/cart/items`            | إضافة عنصر للسلة على السيرفر        |
+| PUT      | `/cart/items/:productId` | تحديث كمية عنصر على السيرفر         |
+| DELETE   | `/cart/items/:productId` | حذف عنصر من السلة على السيرفر       |
+| DELETE   | `/cart`                  | تفريغ السلة على السيرفر             |
+| POST     | `/cart/coupon`           | تطبيق كوبون على السلة               |
+| DELETE   | `/cart/coupon`           | إزالة كوبون من السلة                |
+| **POST** | **`/cart/sync`**         | **مزامنة السلة المحلية مع السيرفر** |
 
 > **⚠️ ملاحظات مهمة:**
+>
 > - في التطبيق، يتم استخدام العمليات المحلية (`addToCartLocal`, `updateQuantityLocal`, `removeFromCartLocal`) للعمليات اليومية.
 > - endpoint `/cart/sync` يُستخدم فقط قبل الدفع للتحقق من المخزون والأسعار.
 > - **الكوبونات**: يمكن تطبيقها في السلة باستخدام `/cart/coupon` أو إرسال `couponCode` مباشرة عند إنشاء الطلب.
 
 ### 📦 Orders
 
-| Method | Endpoint | الوصف |
-|--------|----------|-------|
-| GET | `/orders/my` | طلباتي |
-| GET | `/orders/my/stats` | إحصائيات طلباتي |
-| POST | `/orders` | إنشاء طلب |
-| GET | `/orders/:id` | تفاصيل الطلب |
-| POST | `/orders/:id/upload-receipt` | رفع إيصال الدفع |
-| POST | `/orders/:id/rate` | تقييم الطلب |
-| GET | `/orders/pending-payment` | الطلبات بانتظار الدفع |
-| GET | `/bank-accounts` | الحسابات البنكية (Public) |
+| Method | Endpoint                     | الوصف                     |
+| ------ | ---------------------------- | ------------------------- |
+| GET    | `/orders/my`                 | طلباتي                    |
+| GET    | `/orders/my/stats`           | إحصائيات طلباتي           |
+| POST   | `/orders`                    | إنشاء طلب                 |
+| GET    | `/orders/:id`                | تفاصيل الطلب              |
+| POST   | `/orders/:id/upload-receipt` | رفع إيصال الدفع           |
+| POST   | `/orders/:id/rate`           | تقييم الطلب               |
+| GET    | `/orders/pending-payment`    | الطلبات بانتظار الدفع     |
+| GET    | `/bank-accounts`             | الحسابات البنكية (Public) |
 
 ---
 
@@ -2282,6 +2330,7 @@ class OrderTimelineWidget extends StatelessWidget {
 ### 3. معالجة نتائج المزامنة
 
 عند استخدام `syncCart()`, تأكد من:
+
 - التحقق من `result.hasIssues`
 - عرض المنتجات المحذوفة للمستخدم
 - عرض المنتجات التي تغير سعرها

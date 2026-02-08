@@ -50,24 +50,42 @@ export class CartService {
 
     /**
      * Add item to cart
+     * Uses customer's price level to get correct price (ignores client unitPrice for security)
      */
     async addItem(
         customerId: string,
         productId: string,
         quantity: number,
-        unitPrice: number,
+        _unitPrice?: number,
     ): Promise<CartDocument> {
         const cart = await this.getCart(customerId);
+
+        // Get customer's price level and compute correct price from server
+        let unitPrice: number;
+        try {
+            const customer = await this.customersService.findById(customerId);
+            const priceLevelId = customer?.priceLevelId?.toString() || '';
+            if (priceLevelId) {
+                unitPrice = await this.productsService.getPrice(productId, priceLevelId);
+            } else {
+                const product = await this.productsService.findByIdOrSlug(productId);
+                unitPrice = product?.basePrice || 0;
+            }
+        } catch {
+            const product = await this.productsService.findByIdOrSlug(productId);
+            unitPrice = product?.basePrice || 0;
+        }
 
         const existingItemIndex = cart.items.findIndex(
             (item) => item.productId.toString() === productId,
         );
 
         if (existingItemIndex >= 0) {
-            // Update existing item
+            // Update existing item - recalc price in case it changed
             cart.items[existingItemIndex].quantity += quantity;
+            cart.items[existingItemIndex].unitPrice = unitPrice;
             cart.items[existingItemIndex].totalPrice =
-                cart.items[existingItemIndex].quantity * cart.items[existingItemIndex].unitPrice;
+                cart.items[existingItemIndex].quantity * unitPrice;
         } else {
             // Add new item
             cart.items.push({

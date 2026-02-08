@@ -106,7 +106,7 @@ export class CartController {
       addCartItemDto.productId,
       addCartItemDto.quantity,
       addCartItemDto.unitPrice,
-    );
+    ); // unitPrice ignored - server computes from price level
     return ResponseBuilder.success(cart, 'Item added', 'تم إضافة العنصر');
   }
 

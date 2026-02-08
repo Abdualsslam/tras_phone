@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -36,6 +36,7 @@ import { ProductsController } from './products.controller';
 import { ProductsSearchService } from './products-search.service';
 import { ProductsSearchSuggestionsService } from './products-search-suggestions.service';
 import { AuthModule } from '@modules/auth/auth.module';
+import { CustomersModule } from '@modules/customers/customers.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { AuthModule } from '@modules/auth/auth.module';
       inject: [ConfigService],
     }),
     AuthModule,
+    forwardRef(() => CustomersModule),
   ],
   controllers: [ProductsController],
   providers: [
