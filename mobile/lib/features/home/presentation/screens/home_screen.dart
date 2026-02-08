@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
           if (state is HomeLoading) {
-            return const AppLoading();
+            return const HomeShimmer();
           }
           if (state is HomeError) {
             return AppError(
