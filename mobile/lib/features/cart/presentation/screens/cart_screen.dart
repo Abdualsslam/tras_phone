@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/cart_entity.dart';
 import '../../domain/entities/cart_item_entity.dart';
 import '../cubit/cart_cubit.dart';
@@ -39,7 +40,7 @@ class _CartScreenState extends State<CartScreen> {
       body: BlocBuilder<CartCubit, CartState>(
         builder: (context, state) {
           if (state is CartLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const CartShimmer();
           }
 
           if (state is CartError) {

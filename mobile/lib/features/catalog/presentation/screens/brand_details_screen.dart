@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/product_entity.dart';
@@ -170,7 +171,7 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
 
     return Scaffold(
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const BrandDetailShimmer()
           : RefreshIndicator(
               onRefresh: _loadData,
               child: CustomScrollView(

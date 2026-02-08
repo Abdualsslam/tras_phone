@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../data/datasources/catalog_remote_datasource.dart';
@@ -246,7 +247,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildBody(ThemeData theme, bool isDark) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const SearchResultsShimmer();
     }
 
     if (_hasSearched) {

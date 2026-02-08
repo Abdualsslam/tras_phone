@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/shimmer/index.dart';
 
 class AddressSelectionScreen extends StatefulWidget {
   final String? selectedAddressId;
@@ -86,7 +87,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AddressListShimmer()
           : _addresses.isEmpty
           ? _buildEmptyState(isDark)
           : Column(
