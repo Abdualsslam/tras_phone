@@ -697,7 +697,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         context.read<CartCubit>().addToCartLocal(
                               productId: product.id,
                               quantity: _quantity,
-                              unitPrice: product.basePrice,
+                              unitPrice: product.effectivePrice,
                               productName: product.name,
                               productNameAr: product.nameAr,
                               productImage: product.mainImage ?? 
