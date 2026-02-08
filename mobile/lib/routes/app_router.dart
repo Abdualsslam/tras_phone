@@ -61,7 +61,6 @@ import '../features/profile/domain/entities/address_entity.dart';
 import '../features/orders/presentation/screens/order_tracking_screen.dart';
 import '../features/orders/presentation/screens/upload_receipt_screen.dart';
 import '../features/orders/presentation/screens/invoice_view_screen.dart';
-import '../features/orders/presentation/screens/orders_list_screen.dart';
 import '../features/profile/presentation/screens/addresses_list_screen.dart';
 import '../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../features/profile/presentation/screens/change_password_screen.dart';
@@ -130,7 +129,15 @@ final GoRouter appRouter = GoRouter(
     // ═══════════════════════════════════════════════════════════════════════
     GoRoute(
       path: '/home',
-      builder: (context, state) => const MainNavigationShell(),
+      builder: (context, state) {
+        final tabIndex = int.tryParse(
+              state.uri.queryParameters['tab'] ?? '0',
+            ) ??
+            0;
+        return MainNavigationShell(
+          initialIndex: tabIndex.clamp(0, 4),
+        );
+      },
     ),
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -190,7 +197,7 @@ final GoRouter appRouter = GoRouter(
     // ═══════════════════════════════════════════════════════════════════════
     GoRoute(
       path: '/orders',
-      builder: (context, state) => const OrdersListScreen(),
+      redirect: (context, state) => '/home?tab=1',
     ),
     GoRoute(
       path: '/order/:id',

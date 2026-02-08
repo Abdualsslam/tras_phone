@@ -64,7 +64,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   void _navigateToOrdersList() {
-    context.go('/orders');
+    context.go('/home?tab=1');
   }
 
   @override
