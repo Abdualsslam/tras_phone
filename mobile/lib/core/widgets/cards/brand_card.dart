@@ -3,6 +3,8 @@ library;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../../cache/image_cache_config.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../config/theme/app_colors.dart';
 import 'glass_card.dart';
@@ -55,6 +57,7 @@ class GlassBrandCard extends StatelessWidget {
             child: logoUrl != null
                 ? CachedNetworkImage(
                     imageUrl: logoUrl!,
+                    cacheKey: imageCacheKey(logoUrl!),
                     fit: BoxFit.contain,
                     placeholder: (context, url) => Center(
                       child: CircularProgressIndicator(

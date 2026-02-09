@@ -3,6 +3,8 @@ library;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../../cache/image_cache_config.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../config/theme/app_colors.dart';
@@ -76,6 +78,8 @@ class AppImage extends StatelessWidget {
       borderRadius: borderRadius ?? BorderRadius.zero,
       child: CachedNetworkImage(
         imageUrl: imageUrl!,
+        cacheKey: imageCacheKey(imageUrl!),
+        cacheManager: imageCacheManager,
         width: width?.w,
         height: height?.h,
         fit: fit,

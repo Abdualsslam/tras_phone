@@ -65,6 +65,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 await context.read<HomeCubit>().refresh();
                 await context.read<BannersCubit>().loadBanners(
                   placement: BannerPosition.homeTop,
+                  refresh: true,
+                  forceRefresh: true,
                 );
               },
               child: _buildContent(state),

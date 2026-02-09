@@ -1,7 +1,9 @@
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/cache/image_cache_config.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../catalog/domain/entities/category_entity.dart';
@@ -84,24 +86,52 @@ class CategoriesSection extends StatelessWidget {
                             width: 48.w,
                             height: 48.w,
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  AppColors.primary.withValues(alpha: 0.2),
-                                  AppColors.primaryLight.withValues(alpha: 0.1),
-                                ],
-                              ),
-                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12.r),
                               border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.3),
+                                color: AppColors.primary.withValues(alpha: 0.2),
                                 width: 1.5,
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.08),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                            child: Icon(
-                              HomeHelpers.getCategoryIcon(category.slug),
-                              size: 24.sp,
-                              color: AppColors.primary,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10.r),
+                              child: category.image != null &&
+                                      category.image!.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: category.image!,
+                                      cacheKey: imageCacheKey(category.image!),
+                                      cacheManager: imageCacheManager,
+                                      fit: BoxFit.cover,
+                                      width: 48.w,
+                                      height: 48.w,
+                                      placeholder: (context, url) => Center(
+                                        child: SizedBox(
+                                          width: 20.w,
+                                          height: 20.w,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) =>
+                                          Icon(
+                                        HomeHelpers.getCategoryIcon(category.slug),
+                                        size: 24.sp,
+                                        color: AppColors.primary,
+                                      ),
+                                    )
+                                  : Icon(
+                                      HomeHelpers.getCategoryIcon(category.slug),
+                                      size: 24.sp,
+                                      color: AppColors.primary,
+                                    ),
                             ),
                           ),
                           SizedBox(height: 8.h),

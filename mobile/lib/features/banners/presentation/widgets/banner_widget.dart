@@ -3,6 +3,8 @@ library;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/cache/image_cache_config.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/config/theme/app_theme.dart';
@@ -81,6 +83,8 @@ class _BannerContentState extends State<_BannerContent> {
             // Banner Image
             CachedNetworkImage(
               imageUrl: widget.imageUrl,
+              cacheKey: imageCacheKey(widget.imageUrl),
+              cacheManager: imageCacheManager,
               width: double.infinity,
               height: 200.h,
               fit: BoxFit.cover,
