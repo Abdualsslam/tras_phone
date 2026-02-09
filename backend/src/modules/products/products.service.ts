@@ -539,6 +539,15 @@ export class ProductsService {
   }
 
   /**
+   * Get product prices for all price levels
+   */
+  async getPrices(productId: string): Promise<ProductPriceDocument[]> {
+    return this.productPriceModel
+      .find({ productId, isActive: true })
+      .sort({ priceLevelId: 1 });
+  }
+
+  /**
    * Set product prices for all levels
    */
   async setPrices(
