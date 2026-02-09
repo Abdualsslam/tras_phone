@@ -61,6 +61,7 @@ import '../../features/wallet/presentation/cubit/wallet_cubit.dart';
 import '../../features/banners/data/datasources/banners_remote_datasource.dart';
 import '../../features/banners/data/repositories/banners_repository.dart';
 import '../../features/banners/data/services/banners_service.dart';
+import '../../features/banners/data/services/banners_cache_service.dart';
 import '../../features/banners/presentation/cubit/banners_cubit.dart';
 import '../cache/hive_cache_service.dart';
 import '../../features/home/data/services/home_cache_service.dart';
@@ -437,9 +438,17 @@ Future<void> setupDependencies() async {
   // BANNERS FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // Cache
+  getIt.registerLazySingleton<BannersCacheService>(
+    () => BannersCacheService(getIt<HiveCacheService>()),
+  );
+
   // DataSources
   getIt.registerLazySingleton<BannersRemoteDataSource>(
-    () => BannersRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+    () => BannersRemoteDataSourceImpl(
+      apiClient: getIt<ApiClient>(),
+      cacheService: getIt<BannersCacheService>(),
+    ),
   );
 
   // Repository

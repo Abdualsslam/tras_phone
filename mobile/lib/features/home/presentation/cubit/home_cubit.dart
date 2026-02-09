@@ -50,14 +50,16 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
-  /// Refresh - always loads from API (ignores cache)
+  /// Refresh - loads from API in background, keeps current data visible
+  /// Avoids full UI replacement; only updates when new data arrives
   Future<void> refresh() async {
-    emit(const HomeLoading());
-    await _loadFromApi();
+    final hadData = state is HomeLoaded || state is HomeLoadedFromCache;
+    await _loadFromApi(silentFail: hadData);
   }
 
   /// Load data from API and save to cache
-  Future<void> _loadFromApi() async {
+  /// [silentFail] when true, don't emit HomeError on failure (keeps current data)
+  Future<void> _loadFromApi({bool silentFail = false}) async {
     try {
       // Load all data in parallel
       final results = await Future.wait([
@@ -93,7 +95,7 @@ class HomeCubit extends Cubit<HomeState> {
         ),
       );
     } catch (e) {
-      emit(HomeError(e.toString()));
+      if (!silentFail) emit(HomeError(e.toString()));
     }
   }
 

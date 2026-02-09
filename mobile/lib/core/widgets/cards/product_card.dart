@@ -3,6 +3,8 @@ library;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../../cache/image_cache_config.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../config/theme/app_colors.dart';
@@ -245,6 +247,8 @@ class ProductCard extends StatelessWidget {
 
     return CachedNetworkImage(
       imageUrl: imageUrl!,
+      cacheKey: imageCacheKey(imageUrl!),
+      cacheManager: imageCacheManager,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,

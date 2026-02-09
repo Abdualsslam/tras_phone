@@ -14,13 +14,25 @@ class BannersCubit extends Cubit<BannersState> {
         super(const BannersInitial());
 
   /// جلب البانرات
-  Future<void> loadBanners({BannerPosition? placement}) async {
-    emit(const BannersLoading());
+  /// [refresh] when true, keeps current banners visible while loading (no loading state)
+  /// [forceRefresh] when true, bypasses cache and fetches from API
+  Future<void> loadBanners({
+    BannerPosition? placement,
+    bool refresh = false,
+    bool forceRefresh = false,
+  }) async {
+    final hadBanners = state is BannersLoaded && (state as BannersLoaded).banners.isNotEmpty;
+    if (!refresh || !hadBanners) {
+      emit(const BannersLoading());
+    }
     try {
-      final banners = await _service.getBanners(placement: placement);
+      final banners = await _service.getBanners(
+        placement: placement,
+        forceRefresh: forceRefresh,
+      );
       emit(BannersLoaded(banners));
     } catch (e) {
-      emit(BannersError(e.toString()));
+      if (!refresh || !hadBanners) emit(BannersError(e.toString()));
     }
   }
 

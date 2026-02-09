@@ -15,9 +15,15 @@ class BannersService {
       : _repository = repository;
 
   /// جلب البانرات حسب الموضع
-  Future<List<BannerEntity>> getBanners({BannerPosition? placement}) async {
+  Future<List<BannerEntity>> getBanners({
+    BannerPosition? placement,
+    bool forceRefresh = false,
+  }) async {
     try {
-      return await _repository.getBanners(placement: placement);
+      return await _repository.getBanners(
+        placement: placement,
+        forceRefresh: forceRefresh,
+      );
     } catch (e) {
       throw Exception('Failed to fetch banners: ${e.toString()}');
     }
