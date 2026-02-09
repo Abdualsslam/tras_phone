@@ -4,6 +4,8 @@ library;
 import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/cache/image_cache_config.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -180,6 +182,8 @@ class _BrandCard extends StatelessWidget {
                   child: brand.logo != null
                       ? CachedNetworkImage(
                           imageUrl: brand.logo!,
+                          cacheKey: imageCacheKey(brand.logo!),
+                          cacheManager: imageCacheManager,
                           fit: BoxFit.contain,
                           placeholder: (context, url) => Center(
                             child: CircularProgressIndicator(
