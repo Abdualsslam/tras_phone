@@ -158,6 +158,13 @@ export class ProductsService {
         data,
         filters.priceLevelId,
       );
+    } else {
+      // No price level: use default/base price only
+      enrichedData = data.map((p) => {
+        const doc = p.toObject ? p.toObject() : { ...p };
+        doc.price = doc.basePrice ?? 0;
+        return doc;
+      });
     }
 
     return {
@@ -173,11 +180,18 @@ export class ProductsService {
 
   /**
    * Get price level ID for a customer (returns null if not found)
+   * When customer has no price level, use default/base price only
    */
   async getPriceLevelIdForCustomer(customerId: string): Promise<string | null> {
     try {
       const customer = await this.customersService.findById(customerId);
-      return customer?.priceLevelId?.toString() || null;
+      const pl = customer?.priceLevelId;
+      if (!pl) return null;
+      // When populated by findById, pl is { _id, name, discount }; when not populated, it's ObjectId
+      if (typeof pl === 'object' && pl !== null && '_id' in pl) {
+        return (pl as any)._id?.toString() ?? null;
+      }
+      return pl?.toString() ?? null;
     } catch {
       return null;
     }
@@ -367,6 +381,12 @@ export class ProductsService {
           price: await this.getPrice(doc._id.toString(), filters.priceLevelId),
         })),
       );
+    } else {
+      // No price level: use default/base price only
+      enrichedData = formattedData.map((doc) => ({
+        ...doc,
+        price: doc.currentPrice ?? doc.basePrice ?? 0,
+      }));
     }
 
     return {
@@ -419,12 +439,14 @@ export class ProductsService {
       $inc: { viewsCount: 1 },
     });
 
+    const doc: Record<string, any> = product.toObject ? product.toObject() : { ...product };
     if (priceLevelId) {
-      const doc: Record<string, any> = product.toObject ? product.toObject() : { ...product };
       doc.price = await this.getPrice(product._id.toString(), priceLevelId);
-      return doc;
+    } else {
+      // No price level: use default/base price only
+      doc.price = doc.basePrice ?? 0;
     }
-    return product;
+    return doc;
   }
 
   /**
