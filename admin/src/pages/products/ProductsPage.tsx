@@ -198,7 +198,8 @@ export function ProductsPage() {
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [relatedProductsSearch, setRelatedProductsSearch] = useState("");
-  const [relatedProductsDisplayCount, setRelatedProductsDisplayCount] = useState(5);
+  const [relatedProductsDisplayCount, setRelatedProductsDisplayCount] =
+    useState(5);
   const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
 
   // Fetch products
@@ -249,7 +250,12 @@ export function ProductsPage() {
 
   // Fetch products for related products selection
   const { data: availableProductsData } = useQuery({
-    queryKey: ["products-for-related", isAddDialogOpen, isEditMode, selectedProduct?._id],
+    queryKey: [
+      "products-for-related",
+      isAddDialogOpen,
+      isEditMode,
+      selectedProduct?._id,
+    ],
     queryFn: () =>
       productsApi.getAll({
         status: "active",
@@ -272,8 +278,12 @@ export function ProductsPage() {
     });
 
   // Get displayed products (limited by displayCount)
-  const displayedProducts = availableProducts.slice(0, relatedProductsDisplayCount);
-  const hasMoreProducts = availableProducts.length > relatedProductsDisplayCount;
+  const displayedProducts = availableProducts.slice(
+    0,
+    relatedProductsDisplayCount
+  );
+  const hasMoreProducts =
+    availableProducts.length > relatedProductsDisplayCount;
 
   // Fetch product reviews when detail dialog is open
   const { data: productReviews = [] } = useQuery<ProductReview[]>({
@@ -291,7 +301,12 @@ export function ProductsPage() {
 
   // Update form data when product prices are loaded
   useEffect(() => {
-    if (productPrices && productPrices.length > 0 && isEditMode && isAddDialogOpen) {
+    if (
+      productPrices &&
+      productPrices.length > 0 &&
+      isEditMode &&
+      isAddDialogOpen
+    ) {
       const pricesMap: Record<string, string> = {};
       productPrices.forEach((price: any) => {
         if (price.priceLevelId && price.price) {
@@ -318,22 +333,32 @@ export function ProductsPage() {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateProductDto> }) =>
-      productsApi.update(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<CreateProductDto>;
+    }) => productsApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      
+
       // Save price levels prices if any
       const pricesToSave = Object.entries(formData.priceLevelsPrices)
         .filter(([, value]) => value && Number(value) > 0)
-        .map(([priceLevelId, price]) => ({ priceLevelId, price: Number(price) }));
-      
+        .map(([priceLevelId, price]) => ({
+          priceLevelId,
+          price: Number(price),
+        }));
+
       if (pricesToSave.length > 0 && selectedProduct) {
-        productsApi.setProductPrices(selectedProduct._id, pricesToSave).then(() => {
-          queryClient.invalidateQueries({ queryKey: ["products"] });
-        });
+        productsApi
+          .setProductPrices(selectedProduct._id, pricesToSave)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ["products"] });
+          });
       }
-      
+
       setIsAddDialogOpen(false);
       setFormData(initialFormData);
       setIsEditMode(false);
@@ -505,18 +530,27 @@ export function ProductsPage() {
       slug: (product as any).slug || "",
       brandId: (product.brand as any)?._id || "",
       categoryId: (product.category as any)?._id || "",
-      qualityTypeId: (product as any).qualityTypeId || "",
+      qualityTypeId:
+        (product as any).qualityTypeId?._id ||
+        (product as any).qualityTypeId ||
+        "",
       basePrice: String(product.price || ""),
       description: product.description || "",
       descriptionAr: product.descriptionAr || "",
       shortDescription: (product as any).shortDescription || "",
       shortDescriptionAr: (product as any).shortDescriptionAr || "",
-      compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : "",
-      costPrice: (product as any).costPrice ? String((product as any).costPrice) : "",
+      compareAtPrice: product.compareAtPrice
+        ? String(product.compareAtPrice)
+        : "",
+      costPrice: (product as any).costPrice
+        ? String((product as any).costPrice)
+        : "",
       stockQuantity: String(product.stock || 0),
       lowStockThreshold: String((product as any).lowStockThreshold || 5),
       minOrderQuantity: String((product as any).minOrderQuantity || 1),
-      maxOrderQuantity: (product as any).maxOrderQuantity ? String((product as any).maxOrderQuantity) : "",
+      maxOrderQuantity: (product as any).maxOrderQuantity
+        ? String((product as any).maxOrderQuantity)
+        : "",
       status: product.status || "draft",
       isActive: (product as any).isActive ?? true,
       isFeatured: product.featured || false,
@@ -531,8 +565,10 @@ export function ProductsPage() {
       allowBackorder: (product as any).allowBackorder || false,
       tags: (product as any).tags || [],
       specifications: (product as any).specifications || {},
-      compatibleDevices: (product as any).compatibleDevices?.map((d: any) => d._id || d) || [],
-      relatedProducts: (product as any).relatedProducts?.map((p: any) => p._id || p) || [],
+      compatibleDevices:
+        (product as any).compatibleDevices?.map((d: any) => d._id || d) || [],
+      relatedProducts:
+        (product as any).relatedProducts?.map((p: any) => p._id || p) || [],
       priceLevelsPrices: {},
     });
     setFormTagsInput(((product as any).tags || []).join(", "));
@@ -730,7 +766,9 @@ export function ProductsPage() {
                         <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-slate-800 overflow-hidden flex-shrink-0">
                           {(product as any).mainImage || product.images?.[0] ? (
                             <img
-                              src={(product as any).mainImage || product.images[0]}
+                              src={
+                                (product as any).mainImage || product.images[0]
+                              }
                               alt={product.name}
                               className="w-full h-full object-cover"
                             />
@@ -823,22 +861,30 @@ export function ProductsPage() {
       </Card>
 
       {/* Add/Edit Product Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-        setIsAddDialogOpen(open);
-        if (!open) {
-          setIsEditMode(false);
-          setSelectedProduct(null);
-          setFormData(initialFormData);
-          setFormTagsInput("");
-          setRelatedProductsSearch("");
-          setRelatedProductsDisplayCount(5);
-        }
-      }}>
+      <Dialog
+        open={isAddDialogOpen}
+        onOpenChange={(open) => {
+          setIsAddDialogOpen(open);
+          if (!open) {
+            setIsEditMode(false);
+            setSelectedProduct(null);
+            setFormData(initialFormData);
+            setFormTagsInput("");
+            setRelatedProductsSearch("");
+            setRelatedProductsDisplayCount(5);
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{isEditMode ? "تعديل المنتج" : "إضافة منتج جديد"}</DialogTitle>
+            <DialogTitle>
+              {isEditMode ? "تعديل المنتج" : "إضافة منتج جديد"}
+            </DialogTitle>
             <DialogDescription>
-              {isEditMode ? "قم بتعديل بيانات المنتج" : "أدخل بيانات المنتج الجديد"} (الحقول المميزة بـ * إلزامية)
+              {isEditMode
+                ? "قم بتعديل بيانات المنتج"
+                : "أدخل بيانات المنتج الجديد"}{" "}
+              (الحقول المميزة بـ * إلزامية)
             </DialogDescription>
           </DialogHeader>
 
@@ -1172,9 +1218,17 @@ export function ProductsPage() {
                       checked={formData.compatibleDevices.includes(device._id)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          handleFormChange("compatibleDevices", [...formData.compatibleDevices, device._id]);
+                          handleFormChange("compatibleDevices", [
+                            ...formData.compatibleDevices,
+                            device._id,
+                          ]);
                         } else {
-                          handleFormChange("compatibleDevices", formData.compatibleDevices.filter((id) => id !== device._id));
+                          handleFormChange(
+                            "compatibleDevices",
+                            formData.compatibleDevices.filter(
+                              (id) => id !== device._id
+                            )
+                          );
                         }
                       }}
                       className="w-4 h-4 rounded"
@@ -1195,7 +1249,7 @@ export function ProductsPage() {
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
                 المنتجات المشابهة
               </h3>
-              
+
               {/* Search Input */}
               <div className="relative">
                 <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1233,14 +1287,25 @@ export function ProductsPage() {
                       checked={formData.relatedProducts.includes(product._id)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          handleFormChange("relatedProducts", [...formData.relatedProducts, product._id]);
+                          handleFormChange("relatedProducts", [
+                            ...formData.relatedProducts,
+                            product._id,
+                          ]);
                         } else {
-                          handleFormChange("relatedProducts", formData.relatedProducts.filter((id) => id !== product._id));
+                          handleFormChange(
+                            "relatedProducts",
+                            formData.relatedProducts.filter(
+                              (id) => id !== product._id
+                            )
+                          );
                         }
                       }}
                       className="w-4 h-4 rounded"
                     />
-                    <span className="text-sm truncate" title={product.nameAr || product.name}>
+                    <span
+                      className="text-sm truncate"
+                      title={product.nameAr || product.name}
+                    >
                       {product.nameAr || product.name}
                     </span>
                   </label>
@@ -1253,10 +1318,14 @@ export function ProductsPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setRelatedProductsDisplayCount(prev => prev + 5)}
+                  onClick={() =>
+                    setRelatedProductsDisplayCount((prev) => prev + 5)
+                  }
                   className="w-full"
                 >
-                  المزيد ({availableProducts.length - relatedProductsDisplayCount} متبقي)
+                  المزيد (
+                  {availableProducts.length - relatedProductsDisplayCount}{" "}
+                  متبقي)
                 </Button>
               )}
 
@@ -1288,11 +1357,13 @@ export function ProductsPage() {
                 </h3>
                 <div className="space-y-3 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    يمكنك تعيين سعر مختلف لكل مستوى تسعير. اتركه فارغاً لاستخدام السعر الأساسي.
+                    يمكنك تعيين سعر مختلف لكل مستوى تسعير. اتركه فارغاً لاستخدام
+                    السعر الأساسي.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {priceLevels.map((level) => {
-                      const currentPrice = formData.priceLevelsPrices[level._id] || "";
+                      const currentPrice =
+                        formData.priceLevelsPrices[level._id] || "";
                       const basePrice = Number(formData.basePrice) || 0;
                       return (
                         <div key={level._id} className="space-y-2">
@@ -1403,7 +1474,7 @@ export function ProductsPage() {
                   {uploadError}
                 </div>
               )}
-              
+
               {/* Main Image */}
               <div className="space-y-2">
                 <Label>الصورة الرئيسية</Label>
@@ -1434,23 +1505,32 @@ export function ProductsPage() {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        
+
                         if (!isValidImageType(file)) {
-                          setUploadError("نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP");
+                          setUploadError(
+                            "نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP"
+                          );
                           return;
                         }
                         if (!isValidFileSize(file)) {
-                          setUploadError("حجم الملف كبير جداً. الحد الأقصى 10MB");
+                          setUploadError(
+                            "حجم الملف كبير جداً. الحد الأقصى 10MB"
+                          );
                           return;
                         }
-                        
+
                         setUploadError(null);
                         setIsUploadingMainImage(true);
                         try {
-                          const result = await uploadsApi.uploadSingle(file, "products/main");
+                          const result = await uploadsApi.uploadSingle(
+                            file,
+                            "products/main"
+                          );
                           handleFormChange("mainImage", result.url);
                         } catch (error: any) {
-                          setUploadError(error?.response?.data?.message || "فشل رفع الصورة");
+                          setUploadError(
+                            error?.response?.data?.message || "فشل رفع الصورة"
+                          );
                         } finally {
                           setIsUploadingMainImage(false);
                         }
@@ -1498,7 +1578,7 @@ export function ProductsPage() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {/* Add more images button */}
                   <label className="flex flex-col items-center justify-center w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 dark:border-slate-600 hover:border-primary-500 dark:hover:border-primary-500 cursor-pointer transition-colors bg-gray-50 dark:bg-slate-800">
                     <input
@@ -1510,7 +1590,7 @@ export function ProductsPage() {
                       onChange={async (e) => {
                         const files = Array.from(e.target.files || []);
                         if (files.length === 0) return;
-                        
+
                         // Validate all files
                         for (const file of files) {
                           if (!isValidImageType(file)) {
@@ -1518,21 +1598,31 @@ export function ProductsPage() {
                             return;
                           }
                           if (!isValidFileSize(file)) {
-                            setUploadError(`ملف "${file.name}" كبير جداً (الحد 10MB)`);
+                            setUploadError(
+                              `ملف "${file.name}" كبير جداً (الحد 10MB)`
+                            );
                             return;
                           }
                         }
-                        
+
                         setUploadError(null);
                         setIsUploadingGallery(true);
                         try {
-                          const results = await uploadsApi.uploadMultiple(files, "products/gallery");
+                          const results = await uploadsApi.uploadMultiple(
+                            files,
+                            "products/gallery"
+                          );
                           setFormData((prev) => ({
                             ...prev,
-                            images: [...prev.images, ...results.map((r) => r.url)],
+                            images: [
+                              ...prev.images,
+                              ...results.map((r) => r.url),
+                            ],
                           }));
                         } catch (error: any) {
-                          setUploadError(error?.response?.data?.message || "فشل رفع الصور");
+                          setUploadError(
+                            error?.response?.data?.message || "فشل رفع الصور"
+                          );
                         } finally {
                           setIsUploadingGallery(false);
                           e.target.value = "";
@@ -1544,12 +1634,16 @@ export function ProductsPage() {
                     ) : (
                       <>
                         <Plus className="h-6 w-6 text-gray-400" />
-                        <span className="text-xs text-gray-500 mt-1">إضافة</span>
+                        <span className="text-xs text-gray-500 mt-1">
+                          إضافة
+                        </span>
                       </>
                     )}
                   </label>
                 </div>
-                <p className="text-xs text-gray-500">يمكنك اختيار عدة صور دفعة واحدة</p>
+                <p className="text-xs text-gray-500">
+                  يمكنك اختيار عدة صور دفعة واحدة
+                </p>
               </div>
 
               {/* Video */}
@@ -1561,7 +1655,9 @@ export function ProductsPage() {
                 {formData.video ? (
                   <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg border">
                     <Video className="h-5 w-5 text-primary-500" />
-                    <span className="flex-1 text-sm truncate">{formData.video.split('/').pop()}</span>
+                    <span className="flex-1 text-sm truncate">
+                      {formData.video.split("/").pop()}
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleFormChange("video", "")}
@@ -1580,23 +1676,32 @@ export function ProductsPage() {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        
+
                         if (!isValidVideoType(file)) {
-                          setUploadError("نوع الفيديو غير مدعوم. الأنواع المسموحة: MP4, WebM");
+                          setUploadError(
+                            "نوع الفيديو غير مدعوم. الأنواع المسموحة: MP4, WebM"
+                          );
                           return;
                         }
                         if (!isValidFileSize(file, 50)) {
-                          setUploadError("حجم الفيديو كبير جداً. الحد الأقصى 50MB");
+                          setUploadError(
+                            "حجم الفيديو كبير جداً. الحد الأقصى 50MB"
+                          );
                           return;
                         }
-                        
+
                         setUploadError(null);
                         setIsUploadingVideo(true);
                         try {
-                          const result = await uploadsApi.uploadSingle(file, "products/videos");
+                          const result = await uploadsApi.uploadSingle(
+                            file,
+                            "products/videos"
+                          );
                           handleFormChange("video", result.url);
                         } catch (error: any) {
-                          setUploadError(error?.response?.data?.message || "فشل رفع الفيديو");
+                          setUploadError(
+                            error?.response?.data?.message || "فشل رفع الفيديو"
+                          );
                         } finally {
                           setIsUploadingVideo(false);
                         }
@@ -1605,12 +1710,16 @@ export function ProductsPage() {
                     {isUploadingVideo ? (
                       <>
                         <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
-                        <span className="text-sm text-gray-500">جارٍ الرفع...</span>
+                        <span className="text-sm text-gray-500">
+                          جارٍ الرفع...
+                        </span>
                       </>
                     ) : (
                       <>
                         <Upload className="h-6 w-6 text-gray-400" />
-                        <span className="text-sm text-gray-500">اختر فيديو (MP4, WebM - حتى 50MB)</span>
+                        <span className="text-sm text-gray-500">
+                          اختر فيديو (MP4, WebM - حتى 50MB)
+                        </span>
                       </>
                     )}
                   </label>
@@ -1657,8 +1766,14 @@ export function ProductsPage() {
                   multiple
                   value={formData.additionalCategories}
                   onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions, (option) => option.value);
-                    setFormData((prev) => ({ ...prev, additionalCategories: selected }));
+                    const selected = Array.from(
+                      e.target.selectedOptions,
+                      (option) => option.value
+                    );
+                    setFormData((prev) => ({
+                      ...prev,
+                      additionalCategories: selected,
+                    }));
                   }}
                   className="w-full min-h-[100px] rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm"
                 >
@@ -1670,7 +1785,9 @@ export function ProductsPage() {
                       </option>
                     ))}
                 </select>
-                <p className="text-xs text-gray-500">اضغط Ctrl للاختيار المتعدد</p>
+                <p className="text-xs text-gray-500">
+                  اضغط Ctrl للاختيار المتعدد
+                </p>
               </div>
 
               {/* Tags */}
@@ -1684,7 +1801,9 @@ export function ProductsPage() {
                   value={formTagsInput}
                   onChange={(e) => setFormTagsInput(e.target.value)}
                 />
-                <p className="text-xs text-gray-500">أدخل الوسوم مفصولة بفواصل</p>
+                <p className="text-xs text-gray-500">
+                  أدخل الوسوم مفصولة بفواصل
+                </p>
               </div>
             </div>
 
@@ -1728,28 +1847,35 @@ export function ProductsPage() {
               </div>
               {Object.keys(formData.specifications).length > 0 && (
                 <div className="border rounded-lg divide-y dark:divide-slate-700">
-                  {Object.entries(formData.specifications).map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-slate-800"
-                    >
-                      <div>
-                        <span className="font-medium">{key}:</span>{" "}
-                        <span className="text-gray-600 dark:text-gray-400">{value}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newSpecs = { ...formData.specifications };
-                          delete newSpecs[key];
-                          setFormData((prev) => ({ ...prev, specifications: newSpecs }));
-                        }}
-                        className="text-red-500 hover:text-red-700 p-1"
+                  {Object.entries(formData.specifications).map(
+                    ([key, value]) => (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-slate-800"
                       >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
+                        <div>
+                          <span className="font-medium">{key}:</span>{" "}
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {value}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newSpecs = { ...formData.specifications };
+                            delete newSpecs[key];
+                            setFormData((prev) => ({
+                              ...prev,
+                              specifications: newSpecs,
+                            }));
+                          }}
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )
+                  )}
                 </div>
               )}
             </div>
