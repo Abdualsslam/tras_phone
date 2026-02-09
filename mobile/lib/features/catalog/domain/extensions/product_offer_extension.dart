@@ -7,20 +7,20 @@ import '../entities/product_entity.dart';
 extension ProductOfferExtension on ProductEntity {
   /// هل المنتج له عرض مباشر؟
   bool get hasDirectOffer {
-    return compareAtPrice != null && compareAtPrice! > basePrice;
+    return compareAtPrice != null && compareAtPrice! > effectivePrice;
   }
 
   /// حساب نسبة الخصم (كـ double)
   double get discountPercentageDouble {
     if (!hasDirectOffer) return 0.0;
-    return ((compareAtPrice! - basePrice) / compareAtPrice!) * 100;
+    return ((compareAtPrice! - effectivePrice) / compareAtPrice!) * 100;
   }
 
   /// السعر الأصلي (قبل الخصم)
   double get originalPriceForOffer => compareAtPrice ?? basePrice;
 
   /// السعر الحالي (بعد الخصم)
-  double get currentPriceForOffer => basePrice;
+  double get currentPriceForOffer => effectivePrice;
 
   /// نص الخصم للعرض
   String get discountText {
@@ -35,7 +35,7 @@ extension ProductOfferExtension on ProductEntity {
   /// حساب المبلغ الموفّر
   double get savedAmount {
     if (!hasDirectOffer) return 0.0;
-    return compareAtPrice! - basePrice;
+    return compareAtPrice! - effectivePrice;
   }
 
   /// نص المبلغ الموفّر

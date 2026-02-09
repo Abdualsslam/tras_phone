@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
 import '../models/wishlist_item_model.dart';
+import '../../../catalog/data/models/product_model.dart';
 
 /// Abstract interface for wishlist data source
 abstract class WishlistRemoteDataSource {
@@ -63,6 +64,18 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
   WishlistRemoteDataSourceImpl({required ApiClient apiClient})
     : _apiClient = apiClient;
 
+  /// Convert Product JSON (from API doc format) to WishlistItemModel
+  WishlistItemModel _productJsonToWishlistItem(Map<String, dynamic> json) {
+    final productId = json['_id']?.toString() ?? json['id']?.toString() ?? '';
+    final product = ProductModel.fromJson(json);
+    return WishlistItemModel(
+      id: productId,
+      productData: json,
+      productIdString: productId,
+      product: product,
+    );
+  }
+
   @override
   Future<List<WishlistItemModel>> getWishlist() async {
     developer.log('Fetching wishlist', name: 'WishlistDataSource');
@@ -83,10 +96,18 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
 
       return list.map((json) {
         try {
-          if (json is Map<String, dynamic>) {
-            return WishlistItemModel.fromJson(json);
+          if (json is! Map<String, dynamic>) {
+            throw Exception('Invalid wishlist item format');
           }
-          throw Exception('Invalid wishlist item format');
+          // API doc (3-products.md): GET /products/wishlist/my returns Product objects
+          // Some backends return WishlistItemModel {_id, customerId, productId, ...}
+          final isProductFormat = json.containsKey('name') &&
+              json.containsKey('basePrice') &&
+              (json.containsKey('_id') || json.containsKey('id'));
+          if (isProductFormat) {
+            return _productJsonToWishlistItem(json);
+          }
+          return WishlistItemModel.fromJson(json);
         } catch (e) {
           developer.log(
             'Error parsing wishlist item: $e',

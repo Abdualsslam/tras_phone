@@ -26,6 +26,10 @@ abstract class OrdersRemoteDataSource {
   /// Get my orders with optional filtering and pagination
   Future<OrdersResponseData> getMyOrders({
     OrderStatus? status,
+    PaymentStatus? paymentStatus,
+    String? orderNumber,
+    String? sortBy,
+    String? sortOrder,
     int page = 1,
     int limit = 20,
   });
@@ -42,8 +46,8 @@ abstract class OrdersRemoteDataSource {
     String? couponCode,
   });
 
-  /// Cancel order
-  Future<OrderEntity> cancelOrder(String orderId, {String? reason});
+  /// Cancel order (reason is required by API)
+  Future<OrderEntity> cancelOrder(String orderId, {required String reason});
 
   /// Reorder (create new order from existing)
   Future<OrderEntity> reorder(String orderId);
@@ -102,6 +106,10 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
   @override
   Future<OrdersResponseData> getMyOrders({
     OrderStatus? status,
+    PaymentStatus? paymentStatus,
+    String? orderNumber,
+    String? sortBy,
+    String? sortOrder,
     int page = 1,
     int limit = 20,
   }) async {
@@ -112,7 +120,11 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
       queryParameters: {
         'page': page,
         'limit': limit,
-        if (status != null) 'status': status.name,
+        if (status != null) 'status': status.value,
+        if (paymentStatus != null) 'paymentStatus': paymentStatus.name,
+        if (orderNumber != null) 'orderNumber': orderNumber,
+        if (sortBy != null) 'sortBy': sortBy,
+        if (sortOrder != null) 'sortOrder': sortOrder,
       },
     );
 
@@ -197,12 +209,12 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
   }
 
   @override
-  Future<OrderEntity> cancelOrder(String orderId, {String? reason}) async {
+  Future<OrderEntity> cancelOrder(String orderId, {required String reason}) async {
     developer.log('Cancelling order: $orderId', name: 'OrdersDataSource');
 
     final response = await _apiClient.post(
       '${ApiEndpoints.orders}/$orderId/cancel',
-      data: {if (reason != null) 'reason': reason},
+      data: {'reason': reason},
     );
 
     final data = response.data['data'] ?? response.data;

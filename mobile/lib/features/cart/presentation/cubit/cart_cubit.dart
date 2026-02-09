@@ -37,10 +37,11 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Add product to cart
+  /// [unitPrice] is optional - server calculates from customer's price level
   Future<void> addToCart({
     required String productId,
     required int quantity,
-    required double unitPrice,
+    double? unitPrice,
   }) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {

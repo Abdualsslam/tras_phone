@@ -11,6 +11,7 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/cart_entity.dart';
 import '../../domain/entities/cart_item_entity.dart';
+import '../../domain/entities/cart_sync_result_entity.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/cart_state.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -379,7 +380,137 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
-    context.push('/checkout');
+    if (syncResult.hasIssues) {
+      await _showSyncIssuesDialog(context, syncResult);
+    } else {
+      context.push('/checkout');
+    }
+  }
+
+  String _getRemovalReason(String reason) {
+    switch (reason) {
+      case 'out_of_stock':
+        return 'نفذ المخزون';
+      case 'deleted':
+        return 'تم حذف المنتج';
+      case 'inactive':
+        return 'المنتج غير متاح';
+      default:
+        return 'غير متاح';
+    }
+  }
+
+  Future<void> _showSyncIssuesDialog(
+    BuildContext context,
+    CartSyncResultEntity result,
+  ) async {
+    final theme = Theme.of(context);
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('تحديثات السلة'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (result.removedItems.isNotEmpty) ...[
+                Text(
+                  'تم حذف المنتجات التالية:',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                ...result.removedItems.map(
+                  (item) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      item.productNameAr ?? item.productId,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    subtitle: Text(
+                      _getRemovalReason(item.reason),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+              ],
+              if (result.priceChangedItems.isNotEmpty) ...[
+                Text(
+                  'تغيرت أسعار المنتجات التالية:',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                ...result.priceChangedItems.map(
+                  (item) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      item.productNameAr ?? item.productId,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    subtitle: Text(
+                      '${item.oldPrice.toStringAsFixed(0)} → ${item.newPrice.toStringAsFixed(0)} ر.س',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+              ],
+              if (result.quantityAdjustedItems.isNotEmpty) ...[
+                Text(
+                  'تم تعديل كميات المنتجات التالية:',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                ...result.quantityAdjustedItems.map(
+                  (item) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      item.productNameAr ?? item.productId,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    subtitle: Text(
+                      'الكمية المطلوبة: ${item.requestedQuantity}\n'
+                      'الكمية المتاحة: ${item.availableQuantity}\n'
+                      'الكمية النهائية: ${item.finalQuantity}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/checkout');
+            },
+            child: Text('موافق والمتابعة'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

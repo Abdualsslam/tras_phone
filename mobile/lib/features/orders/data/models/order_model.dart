@@ -83,6 +83,9 @@ class OrderModel {
   @JsonKey(name: 'customerId', readValue: _readCustomerId)
   final String customerId;
 
+  /// Price level ID used when order was created (from pricing rules)
+  final String? priceLevelId;
+
   @JsonKey(defaultValue: 'pending')
   final String status;
 
@@ -157,6 +160,7 @@ class OrderModel {
     required this.id,
     required this.orderNumber,
     required this.customerId,
+    this.priceLevelId,
     this.status = 'pending',
     this.subtotal = 0,
     this.taxAmount = 0,
@@ -231,6 +235,7 @@ class OrderModel {
       id: id,
       orderNumber: orderNumber,
       customerId: customerId,
+      priceLevelId: priceLevelId,
       status: OrderStatus.fromString(status),
       subtotal: subtotal,
       taxAmount: taxAmount,

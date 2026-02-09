@@ -49,6 +49,8 @@ class ProductModel {
   @JsonKey(defaultValue: 0.0)
   final double basePrice;
   final double? compareAtPrice;
+  /// Customer tier price (returned when logged in - see 16-pricing-rules)
+  final double? price;
 
   // Inventory
   @JsonKey(defaultValue: 0)
@@ -145,6 +147,7 @@ class ProductModel {
     this.video,
     this.basePrice = 0,
     this.compareAtPrice,
+    this.price,
     this.stockQuantity = 0,
     this.lowStockThreshold = 5,
     this.trackInventory = true,
@@ -262,6 +265,7 @@ class ProductModel {
       video: model.video,
       basePrice: model.basePrice,
       compareAtPrice: model.compareAtPrice,
+      price: model.price,
       stockQuantity: model.stockQuantity,
       lowStockThreshold: model.lowStockThreshold,
       trackInventory: model.trackInventory,
@@ -323,6 +327,7 @@ class ProductModel {
       video: video,
       basePrice: basePrice,
       compareAtPrice: compareAtPrice,
+      tierPrice: price,
       stockQuantity: stockQuantity,
       lowStockThreshold: lowStockThreshold,
       trackInventory: trackInventory,

@@ -145,6 +145,7 @@ class HomeCacheData {
       'video': entity.video,
       'basePrice': entity.basePrice,
       'compareAtPrice': entity.compareAtPrice,
+      if (entity.tierPrice != null) 'price': entity.tierPrice,
       'stockQuantity': entity.stockQuantity,
       'lowStockThreshold': entity.lowStockThreshold,
       'trackInventory': entity.trackInventory,

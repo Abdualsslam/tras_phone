@@ -56,12 +56,21 @@ class AuthInterceptor extends Interceptor {
       return handler.next(options);
     }
     
-    // Skip auth header for public endpoints
+    // Public endpoints: skip token refresh, but add token when available
+    // (e.g. products API returns 'price' per customer tier when token is sent)
     if (_isPublicEndpoint(options.path)) {
       developer.log(
-        'Skipping token check - public endpoint',
+        'Public endpoint - adding token if available (for optional auth e.g. pricing)',
         name: 'AuthInterceptor',
       );
+      final token = await _tokenManager.getAccessToken();
+      if (token != null && token.isNotEmpty) {
+        options.headers['Authorization'] = 'Bearer $token';
+        developer.log(
+          'Added token to public endpoint request',
+          name: 'AuthInterceptor',
+        );
+      }
       return handler.next(options);
     }
 

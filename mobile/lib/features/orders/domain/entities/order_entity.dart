@@ -77,6 +77,8 @@ class OrderEntity extends Equatable {
   final String id;
   final String orderNumber;
   final String customerId;
+  /// Price level ID used when order was created (from pricing rules)
+  final String? priceLevelId;
   final OrderStatus status;
 
   // Amounts
@@ -135,6 +137,7 @@ class OrderEntity extends Equatable {
     required this.id,
     required this.orderNumber,
     required this.customerId,
+    this.priceLevelId,
     required this.status,
     required this.subtotal,
     this.taxAmount = 0,

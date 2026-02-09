@@ -33,6 +33,8 @@ class ProductEntity extends Equatable {
   // Pricing
   final double basePrice;
   final double? compareAtPrice;
+  /// Customer tier price (returned when logged in - see 16-pricing-rules)
+  final double? tierPrice;
 
   // Inventory
   final int stockQuantity;
@@ -108,6 +110,7 @@ class ProductEntity extends Equatable {
     this.video,
     required this.basePrice,
     this.compareAtPrice,
+    this.tierPrice,
     this.stockQuantity = 0,
     this.lowStockThreshold = 5,
     this.trackInventory = true,
@@ -156,13 +159,17 @@ class ProductEntity extends Equatable {
   String? getShortDescription(String locale) =>
       locale == 'ar' ? shortDescriptionAr : shortDescription;
 
+  /// Effective price: customer tier price when logged in, else basePrice
+  double get effectivePrice => tierPrice ?? basePrice;
+
   /// Has discount?
-  bool get hasDiscount => compareAtPrice != null && compareAtPrice! > basePrice;
+  bool get hasDiscount =>
+      compareAtPrice != null && compareAtPrice! > effectivePrice;
 
   /// Discount percentage
   int get discountPercentage {
     if (!hasDiscount) return 0;
-    return ((compareAtPrice! - basePrice) / compareAtPrice! * 100).round();
+    return ((compareAtPrice! - effectivePrice) / compareAtPrice! * 100).round();
   }
 
   /// Is low stock?
@@ -178,8 +185,8 @@ class ProductEntity extends Equatable {
   String? get imageUrl =>
       mainImage ?? (images.isNotEmpty ? images.first : null);
 
-  /// Price (backward compatibility)
-  double get price => basePrice;
+  /// Price (backward compatibility) - returns effectivePrice
+  double get price => effectivePrice;
 
   /// Original price (backward compatibility)
   double? get originalPrice => compareAtPrice;
