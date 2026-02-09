@@ -26,7 +26,10 @@ import {
 import { Tag, TagDocument } from './schemas/tag.schema';
 import { ProductTag, ProductTagDocument } from './schemas/product-tag.schema';
 import { StockAlert, StockAlertDocument } from './schemas/stock-alert.schema';
-import { Customer, CustomerDocument } from '@modules/customers/schemas/customer.schema';
+import {
+  Customer,
+  CustomerDocument,
+} from '@modules/customers/schemas/customer.schema';
 import { CustomersService } from '@modules/customers/customers.service';
 
 /**
@@ -120,7 +123,8 @@ export class ProductsService {
     if (categoryId) query.categoryId = new Types.ObjectId(categoryId);
     if (brandId) query.brandId = new Types.ObjectId(brandId);
     if (qualityTypeId) query.qualityTypeId = new Types.ObjectId(qualityTypeId);
-    if (deviceId) query.compatibleDevices = { $in: [new Types.ObjectId(deviceId)] };
+    if (deviceId)
+      query.compatibleDevices = { $in: [new Types.ObjectId(deviceId)] };
     if (status) query.status = status;
     // Filter by isFeatured field from schema (not random - must be true in database)
     if (isFeatured) query.isFeatured = true;
@@ -137,7 +141,7 @@ export class ProductsService {
     // Convert sortBy field names to match schema fields
     let sortField = sort;
     if (sort === 'price') sortField = 'basePrice';
-    
+
     const sortObj: any = { [sortField]: order === 'desc' ? -1 : 1 };
 
     const [data, total] = await Promise.all([
@@ -161,10 +165,13 @@ export class ProductsService {
     } else {
       // No price level: use default/base price only
       enrichedData = data.map((p) => {
-        const doc = p.toObject ? p.toObject() : { ...p };
+        const doc = (p.toObject ? p.toObject() : { ...p }) as Record<
+          string,
+          any
+        >;
         doc.price = doc.basePrice ?? 0;
         return doc;
-      });
+      }) as unknown as typeof data;
     }
 
     return {
@@ -191,7 +198,7 @@ export class ProductsService {
       if (typeof pl === 'object' && pl !== null && '_id' in pl) {
         return (pl as any)._id?.toString() ?? null;
       }
-      return pl?.toString() ?? null;
+      return (pl as any).toString?.() ?? null;
     } catch {
       return null;
     }
@@ -357,12 +364,16 @@ export class ProductsService {
     const formattedData = data.map((doc) => {
       const product = this.productModel.hydrate(doc) as any;
       // Use discountPercentage from aggregation if available, otherwise calculate
-      const discountPercentage = doc.discountPercentage != null
-        ? Math.round(doc.discountPercentage * 100) / 100
-        : Math.round(
-            ((product.compareAtPrice - product.basePrice) / product.compareAtPrice) * 100 * 100,
-          ) / 100;
-      
+      const discountPercentage =
+        doc.discountPercentage != null
+          ? Math.round(doc.discountPercentage * 100) / 100
+          : Math.round(
+              ((product.compareAtPrice - product.basePrice) /
+                product.compareAtPrice) *
+                100 *
+                100,
+            ) / 100;
+
       return {
         ...product.toObject(),
         hasDirectOffer: true,
@@ -419,7 +430,8 @@ export class ProductsService {
       .populate('compatibleDevices')
       .populate({
         path: 'relatedProducts',
-        select: 'name nameAr slug mainImage basePrice compareAtPrice isActive status',
+        select:
+          'name nameAr slug mainImage basePrice compareAtPrice isActive status',
         match: { isActive: true, status: 'active' },
       });
 
@@ -439,7 +451,9 @@ export class ProductsService {
       $inc: { viewsCount: 1 },
     });
 
-    const doc: Record<string, any> = product.toObject ? product.toObject() : { ...product };
+    const doc: Record<string, any> = product.toObject
+      ? product.toObject()
+      : { ...product };
     if (priceLevelId) {
       doc.price = await this.getPrice(product._id.toString(), priceLevelId);
     } else {
@@ -460,7 +474,7 @@ export class ProductsService {
         const uniqueIds = [...new Set(data.relatedProducts)].filter(
           (relatedId: string) => relatedId !== id,
         );
-        
+
         // Validate: prevent adding the product itself to relatedProducts
         if (data.relatedProducts.includes(id)) {
           throw new BadRequestException(
@@ -468,7 +482,7 @@ export class ProductsService {
             'لا يمكن إضافة المنتج نفسه في المنتجات المشابهة',
           );
         }
-        
+
         data.relatedProducts = uniqueIds.map(
           (relatedId: string) => new Types.ObjectId(relatedId),
         );
@@ -637,9 +651,7 @@ export class ProductsService {
    * Get all price levels (including inactive) - for admin
    */
   async findAllPriceLevelsAdmin(): Promise<PriceLevelDocument[]> {
-    return this.priceLevelModel
-      .find()
-      .sort({ displayOrder: 1, name: 1 });
+    return this.priceLevelModel.find().sort({ displayOrder: 1, name: 1 });
   }
 
   /**
@@ -695,7 +707,9 @@ export class ProductsService {
         code: updateDto.code,
       });
       if (existing) {
-        throw new ConflictException('Price level with this code already exists');
+        throw new ConflictException(
+          'Price level with this code already exists',
+        );
       }
     }
 
