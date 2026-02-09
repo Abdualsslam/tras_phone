@@ -203,8 +203,8 @@ export function DashboardPage() {
                     tickFormatter={(v) => formatNumber(v, locale)}
                   />
                   <Tooltip
-                    formatter={(value: number) => [
-                      formatNumber(value, locale),
+                    formatter={(value: number | undefined) => [
+                      formatNumber(value ?? 0, locale),
                       "",
                     ]}
                   />
