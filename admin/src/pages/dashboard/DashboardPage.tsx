@@ -210,7 +210,7 @@ export function DashboardPage() {
                   />
                   <Bar
                     dataKey="revenue"
-                    fill="hsl(var(--primary))"
+                    fill="#f97316"
                     name="الإيرادات"
                     radius={[4, 4, 0, 0]}
                   />
@@ -481,9 +481,7 @@ export function DashboardPage() {
                   <tr
                     key={order._id}
                     className="border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer"
-                    onClick={() =>
-                      navigate("/orders", { state: { openOrderId: order._id } })
-                    }
+                    onClick={() => navigate(`/orders/${order._id}`)}
                   >
                     <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       {order.orderNumber}

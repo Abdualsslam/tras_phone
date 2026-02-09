@@ -13,6 +13,7 @@ import { ChatBotRule, ChatBotRuleSchema } from './schemas/chat-bot-rule.schema';
 import { SupportAudit, SupportAuditSchema } from './schemas/support-audit.schema';
 import { TicketsService } from './tickets.service';
 import { ChatService } from './chat.service';
+import { SupportController } from './support.controller';
 import { TicketsController } from './tickets.controller';
 import { ChatController } from './chat.controller';
 import { ReportsController } from './controllers/reports.controller';
@@ -53,7 +54,7 @@ import { NotificationsModule } from '@modules/notifications/notifications.module
         UploadsModule,
         NotificationsModule,
     ],
-    controllers: [TicketsController, ChatController, ReportsController],
+    controllers: [SupportController, TicketsController, ChatController, ReportsController],
     providers: [TicketsService, ChatService, SupportGateway, SupportNotificationsService, SLAMonitorService, SupportReportsService, ChatBotService, AuditLogService],
     exports: [TicketsService, ChatService, SupportGateway, SupportNotificationsService, SLAMonitorService, SupportReportsService, ChatBotService, AuditLogService],
 })

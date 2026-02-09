@@ -11,6 +11,8 @@ import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { AuditAdminActivityInterceptor } from './common/interceptors/audit-admin-activity.interceptor';
+import { AuditService } from './modules/audit/audit.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -76,9 +78,11 @@ async function bootstrap() {
 
   // Global filters and interceptors
   app.useGlobalFilters(new GlobalExceptionFilter());
+  const auditService = app.get(AuditService);
   app.useGlobalInterceptors(
     new LoggingInterceptor(),
     new TransformInterceptor(),
+    new AuditAdminActivityInterceptor(auditService),
   );
 
   // Swagger API Documentation

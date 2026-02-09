@@ -163,7 +163,7 @@ export function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("_all");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null,
+    null
   );
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -254,7 +254,7 @@ export function CustomersPage() {
       toast.error(
         error.response?.data?.messageAr ||
           error.response?.data?.message ||
-          "حدث خطأ أثناء تحديث العميل",
+          "حدث خطأ أثناء تحديث العميل"
       );
     },
   });
@@ -425,7 +425,7 @@ export function CustomersPage() {
       toast.error(
         error.response?.data?.messageAr ||
           error.response?.data?.message ||
-          "حدث خطأ أثناء إضافة العميل",
+          "حدث خطأ أثناء إضافة العميل"
       );
     } finally {
       setIsSubmitting(false);
@@ -571,21 +571,21 @@ export function CustomersPage() {
       {/* Search and Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
               <Input
                 placeholder="البحث عن عميل..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="ps-12 h-14 text-base"
+                className="ps-12 pe-4 h-12 sm:h-14 text-base w-full"
               />
             </div>
             <Select
               value={statusFilter || undefined}
               onValueChange={setStatusFilter}
             >
-              <SelectTrigger className="h-8 min-w-[120px] text-sm">
+              <SelectTrigger className="h-9 sm:h-9 w-full sm:w-auto sm:min-w-[130px] shrink-0 text-sm">
                 <SelectValue placeholder="جميع الحالات" />
               </SelectTrigger>
               <SelectContent>
@@ -793,12 +793,12 @@ export function CustomersPage() {
                           {(selectedCustomer as any).businessType === "shop"
                             ? "محل"
                             : (selectedCustomer as any).businessType ===
-                                "technician"
-                              ? "فني"
-                              : (selectedCustomer as any).businessType ===
-                                  "distributor"
-                                ? "موزع"
-                                : "أخرى"}
+                              "technician"
+                            ? "فني"
+                            : (selectedCustomer as any).businessType ===
+                              "distributor"
+                            ? "موزع"
+                            : "أخرى"}
                         </Badge>
                       </div>
                     )}
@@ -932,7 +932,13 @@ export function CustomersPage() {
                         <p className="font-medium text-sm">
                           {typeof (selectedCustomer as any).priceLevelId ===
                           "object"
-                            ? `${(selectedCustomer as any).priceLevelId.nameAr || (selectedCustomer as any).priceLevelId.name} (${(selectedCustomer as any).priceLevelId.discount || 0}%)`
+                            ? `${
+                                (selectedCustomer as any).priceLevelId.nameAr ||
+                                (selectedCustomer as any).priceLevelId.name
+                              } (${
+                                (selectedCustomer as any).priceLevelId
+                                  .discount || 0
+                              }%)`
                             : "-"}
                         </p>
                       </div>
@@ -1092,7 +1098,7 @@ export function CustomersPage() {
                         <p className="font-medium text-sm">
                           {formatDate(
                             (selectedCustomer as any).approvedAt,
-                            locale,
+                            locale
                           )}
                         </p>
                       </div>
@@ -1105,7 +1111,7 @@ export function CustomersPage() {
                         <p className="font-medium text-sm">
                           {formatDate(
                             (selectedCustomer as any).lastOrderAt,
-                            locale,
+                            locale
                           )}
                         </p>
                       </div>
@@ -1205,8 +1211,8 @@ export function CustomersPage() {
               {!addMode
                 ? "اختر طريقة إضافة العميل"
                 : addMode === "fromScratch"
-                  ? "إنشاء حساب ومحل جديد"
-                  : "تحويل مستخدم موجود إلى عميل"}
+                ? "إنشاء حساب ومحل جديد"
+                : "تحويل مستخدم موجود إلى عميل"}
             </DialogDescription>
           </DialogHeader>
 
@@ -1348,7 +1354,7 @@ export function CustomersPage() {
                       onChange={(e) =>
                         handleFormChange(
                           "responsiblePersonName",
-                          e.target.value,
+                          e.target.value
                         )
                       }
                     />
@@ -1481,7 +1487,7 @@ export function CustomersPage() {
                       onChange={(e) =>
                         handleFormChange(
                           "commercialLicenseNumber",
-                          e.target.value,
+                          e.target.value
                         )
                       }
                     />
@@ -1539,7 +1545,7 @@ export function CustomersPage() {
                       onChange={(e) =>
                         handleFormChange(
                           "preferredPaymentMethod",
-                          e.target.value,
+                          e.target.value
                         )
                       }
                       className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
@@ -1556,7 +1562,7 @@ export function CustomersPage() {
                       onChange={(e) =>
                         handleFormChange(
                           "preferredContactMethod",
-                          e.target.value,
+                          e.target.value
                         )
                       }
                       className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm"
@@ -1860,7 +1866,7 @@ export function CustomersPage() {
                     onChange={(e) =>
                       handleFormChange(
                         "commercialLicenseNumber",
-                        e.target.value,
+                        e.target.value
                       )
                     }
                   />

@@ -223,8 +223,8 @@ export class CustomersController {
         type: ApiResponseDto,
     })
     @ApiCommonErrorResponses()
-    async reject(@Param('id') id: string, @Body('reason') reason: string) {
-        const customer = await this.customersService.reject(id, reason);
+    async reject(@Param('id') id: string, @Body('reason') reason: string, @CurrentUser() user: any) {
+        const customer = await this.customersService.reject(id, reason, user?.adminUserId ?? user?.id);
 
         return ResponseBuilder.success(
             customer,

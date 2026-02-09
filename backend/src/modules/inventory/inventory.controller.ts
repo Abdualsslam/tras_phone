@@ -46,6 +46,89 @@ export class InventoryController {
   ) {}
 
   // ═════════════════════════════════════
+  // Stats (must be before parametric routes)
+  // ═════════════════════════════════════
+
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get('stats')
+  @ApiOperation({
+    summary: 'Get inventory stats',
+    description:
+      'Retrieve aggregated inventory statistics for dashboard. Admin only.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Inventory stats retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getStats() {
+    const stats = await this.inventoryService.getInventoryStats();
+    return ResponseBuilder.success(
+      stats,
+      'Inventory stats retrieved',
+      'تم استرجاع إحصائيات المخزون',
+    );
+  }
+
+  // ═════════════════════════════════════
+  // Stock list & Reservations (before products/:productId/stock)
+  // ═════════════════════════════════════
+
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get('stock')
+  @ApiOperation({
+    summary: 'Get all stock',
+    description:
+      'Retrieve stock levels for all products/warehouses with optional filters. Admin only.',
+  })
+  @ApiQuery({ name: 'warehouseId', required: false, type: String })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['in_stock', 'low_stock', 'out_of_stock'],
+    description: 'Filter by stock status',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Stock list retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getAllStock(@Query() query: { warehouseId?: string; status?: string }) {
+    const list = await this.inventoryService.getAllStock(query);
+    return ResponseBuilder.success(
+      list,
+      'Stock retrieved',
+      'تم استرجاع المخزون',
+    );
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get('reservations')
+  @ApiOperation({
+    summary: 'Get reservations',
+    description:
+      'Retrieve all active stock reservations. Admin only.',
+  })
+  @ApiQuery({ name: 'productId', required: false, type: String })
+  @ApiQuery({ name: 'warehouseId', required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description: 'Reservations retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getReservations(@Query() query: any) {
+    const list = await this.inventoryService.getReservations(query);
+    return ResponseBuilder.success(
+      list,
+      'Reservations retrieved',
+      'تم استرجاع الحجوزات',
+    );
+  }
+
+  // ═════════════════════════════════════
   // Warehouses
   // ═════════════════════════════════════
 
@@ -252,10 +335,11 @@ export class InventoryController {
     type: ApiResponseDto,
   })
   @ApiCommonErrorResponses()
-  async adjustStock(@Body() data: any) {
+  async adjustStock(@Body() data: any, @CurrentUser() user: any) {
     const movement = await this.inventoryService.adjustStock({
       ...data,
       movementType: data.quantity > 0 ? 'adjustment_in' : 'adjustment_out',
+      createdBy: user?.adminUserId ?? user?.id,
     });
     return ResponseBuilder.success(
       movement,

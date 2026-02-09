@@ -26,6 +26,8 @@ import { PromotionsService } from '@modules/promotions/promotions.service';
 import { ProductsService } from '@modules/products/products.service';
 import { CustomersService } from '@modules/customers/customers.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { AuditService } from '@modules/audit/audit.service';
+import { AuditAction, AuditResource } from '@modules/audit/schemas/audit-log.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -54,6 +56,7 @@ export class OrdersService {
     private promotionsService: PromotionsService,
     private productsService: ProductsService,
     private customersService: CustomersService,
+    private auditService: AuditService,
   ) {}
 
   /**
@@ -557,6 +560,23 @@ export class OrdersService {
       { $set: { status: newStatus } },
     );
 
+    // Audit log
+    const actorId = userId ?? (newStatus === 'cancelled' ? order.customerId?.toString() : undefined);
+    const actorType = userId ? 'admin' : (newStatus === 'cancelled' ? 'customer' : 'system');
+    const isCritical = ['cancelled', 'refunded'].includes(newStatus);
+    await this.auditService.log({
+      action: newStatus === 'cancelled' ? AuditAction.CANCEL : newStatus === 'refunded' ? AuditAction.REFUND : AuditAction.STATUS_CHANGE,
+      resource: AuditResource.ORDER,
+      resourceId: orderId,
+      resourceName: (order as any).orderNumber ?? orderId,
+      actorType,
+      actorId,
+      description: `Order status changed from ${oldStatus} to ${newStatus}`,
+      descriptionAr: `تم تغيير حالة الطلب من ${oldStatus} إلى ${newStatus}`,
+      severity: isCritical ? 'critical' : 'info',
+      success: true,
+    }).catch(() => undefined);
+
     return updatedOrder;
   }
 
@@ -882,6 +902,20 @@ export class OrdersService {
         adminId,
       );
     }
+
+    // Audit log
+    await this.auditService.log({
+      action: verified ? AuditAction.APPROVE : AuditAction.REJECT,
+      resource: AuditResource.PAYMENT,
+      resourceId: orderId,
+      resourceName: (order as any).orderNumber ?? orderId,
+      actorType: 'admin',
+      actorId: adminId,
+      description: verified ? 'Payment verified' : `Payment rejected: ${rejectionReason ?? 'No reason'}`,
+      descriptionAr: verified ? 'تم التحقق من الدفع' : `تم رفض الدفع: ${rejectionReason ?? 'بدون سبب'}`,
+      severity: verified ? 'info' : 'warning',
+      success: true,
+    }).catch(() => undefined);
 
     return order;
   }

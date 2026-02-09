@@ -26,7 +26,7 @@ import { UploadsService } from '../uploads/uploads.service';
 import { AdvancedSearchDto } from './dto/advanced-search.dto';
 
 @ApiTags('Tickets')
-@Controller('tickets')
+@Controller('support/tickets')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class TicketsController {
@@ -144,9 +144,33 @@ export class TicketsController {
 
     // ==================== Admin Tickets ====================
 
+    @Get()
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Get all tickets (admin) - GET /support/tickets' })
+    async getTicketsList(
+        @Query('status') status?: TicketStatus,
+        @Query('priority') priority?: TicketPriority,
+        @Query('assignedTo') assignedTo?: string,
+        @Query('categoryId') categoryId?: string,
+        @Query('search') search?: string,
+        @Query('page') page?: number,
+        @Query('limit') limit?: number
+    ) {
+        const result = await this.ticketsService.findTickets({
+            status,
+            priority,
+            assignedTo,
+            categoryId,
+            search,
+            page,
+            limit,
+        });
+        return ResponseBuilder.success(result);
+    }
+
     @Get('admin')
     @Roles(UserRole.ADMIN)
-    @ApiOperation({ summary: 'Get all tickets (admin)' })
+    @ApiOperation({ summary: 'Get all tickets (admin) - legacy path' })
     async getAllTickets(
         @Query('status') status?: TicketStatus,
         @Query('priority') priority?: TicketPriority,
@@ -194,11 +218,81 @@ export class TicketsController {
 
     @Get('admin/:id')
     @Roles(UserRole.ADMIN)
-    @ApiOperation({ summary: 'Get ticket details (admin)' })
+    @ApiOperation({ summary: 'Get ticket details (admin) - legacy path' })
     async getTicketDetails(@Param('id') id: string) {
         const ticket = await this.ticketsService.findTicketById(id);
         const messages = await this.ticketsService.getTicketMessages(id, true);
         return ResponseBuilder.success({ ticket, messages });
+    }
+
+    @Get(':id')
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Get ticket details (admin) - GET /support/tickets/:id' })
+    async getTicketDetailsById(@Param('id') id: string) {
+        const ticket = await this.ticketsService.findTicketById(id);
+        const messages = await this.ticketsService.getTicketMessages(id, true);
+        return ResponseBuilder.success({ ticket, messages });
+    }
+
+    @Put(':id/status')
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Update ticket status - PUT /support/tickets/:id/status' })
+    async updateTicketStatusById(
+        @CurrentUser() user: any,
+        @Param('id') id: string,
+        @Body() data: { status: TicketStatus; resolution?: { summary: string; type: string } }
+    ) {
+        const ticket = await this.ticketsService.updateTicketStatus(
+            id,
+            data.status,
+            user.adminId,
+            data.resolution
+        );
+        return ResponseBuilder.success(ticket, 'Status updated successfully');
+    }
+
+    @Put(':id/assign')
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Assign ticket - PUT /support/tickets/:id/assign' })
+    async assignTicketById(
+        @CurrentUser() user: any,
+        @Param('id') id: string,
+        @Body() data: { agentId: string }
+    ) {
+        const ticket = await this.ticketsService.assignTicket(id, data.agentId, user.adminId);
+        return ResponseBuilder.success(ticket, 'Ticket assigned successfully');
+    }
+
+    @Post(':id/reply')
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Reply to ticket - POST /support/tickets/:id/reply' })
+    async replyToTicketById(
+        @CurrentUser() user: any,
+        @Param('id') id: string,
+        @Body() data: { content: string; isInternal?: boolean; attachments?: string[] }
+    ) {
+        const message = await this.ticketsService.addMessage(id, {
+            senderType: MessageSenderType.AGENT,
+            senderId: user.adminId,
+            senderName: user.name,
+            content: data.content,
+            isInternal: data.isInternal,
+            attachments: data.attachments,
+        });
+        return ResponseBuilder.success(message, 'Message added successfully');
+    }
+
+    @Put(':id/close')
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Close ticket - PUT /support/tickets/:id/close' })
+    async closeTicketById(@CurrentUser() user: any, @Param('id') id: string) {
+        const ticket = await this.ticketsService.updateTicketStatus(
+            id,
+            TicketStatus.CLOSED,
+            user.adminId,
+            undefined
+        );
+        return ResponseBuilder.success(ticket, 'Ticket closed successfully');
     }
 
     @Put('admin/:id/status')

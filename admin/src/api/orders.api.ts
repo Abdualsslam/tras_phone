@@ -61,6 +61,13 @@ export interface OrderStats {
     cancelledOrders: number;
     totalRevenue: number;
     todayOrders: number;
+    todayRevenue?: number;
+    thisMonthOrders?: number;
+    thisMonthRevenue?: number;
+    totalPaid?: number;
+    totalUnpaid?: number;
+    byStatus?: Record<string, number>;
+    byPaymentStatus?: Record<string, number>;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -73,8 +80,26 @@ export const ordersApi = {
     // ─────────────────────────────────────────
 
     getStats: async (): Promise<OrderStats> => {
-        const response = await apiClient.get<ApiResponse<OrderStats>>('/orders/stats');
-        return response.data.data;
+        const response = await apiClient.get<ApiResponse<any>>('/orders/stats');
+        const d = response.data.data;
+        // API returns: total, byStatus, byPaymentStatus, totalRevenue, todayOrders, etc.
+        return {
+            totalOrders: d?.total ?? 0,
+            pendingOrders: d?.byStatus?.pending ?? 0,
+            processingOrders: d?.byStatus?.processing ?? 0,
+            shippedOrders: d?.byStatus?.shipped ?? 0,
+            deliveredOrders: d?.byStatus?.delivered ?? 0,
+            cancelledOrders: d?.byStatus?.cancelled ?? 0,
+            totalRevenue: d?.totalRevenue ?? 0,
+            todayOrders: d?.todayOrders ?? 0,
+            todayRevenue: d?.todayRevenue,
+            thisMonthOrders: d?.thisMonthOrders,
+            thisMonthRevenue: d?.thisMonthRevenue,
+            totalPaid: d?.totalPaid,
+            totalUnpaid: d?.totalUnpaid,
+            byStatus: d?.byStatus,
+            byPaymentStatus: d?.byPaymentStatus,
+        };
     },
 
     // ─────────────────────────────────────────

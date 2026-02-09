@@ -50,6 +50,11 @@ import {
   ApiCommonErrorResponses,
   ApiPublicErrorResponses,
 } from '@common/decorators/api-error-responses.decorator';
+import { AuditService } from '../audit/audit.service';
+import {
+  AuditAction,
+  AuditResource,
+} from '../audit/schemas/audit-log.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -63,6 +68,7 @@ export class ProductsController {
     private readonly productsService: ProductsService,
     private readonly productsSearchService: ProductsSearchService,
     private readonly productsSearchSuggestionsService: ProductsSearchSuggestionsService,
+    private readonly auditService: AuditService,
   ) {}
 
   // ═════════════════════════════════════
@@ -588,8 +594,29 @@ export class ProductsController {
     type: ApiResponseDto,
   })
   @ApiCommonErrorResponses()
-  async create(@Body() createProductDto: CreateProductDto) {
+  async create(
+    @Body() createProductDto: CreateProductDto,
+    @CurrentUser() user: any,
+  ) {
     const product = await this.productsService.create(createProductDto);
+
+    await this.auditService
+      .log({
+        action: AuditAction.CREATE,
+        resource: AuditResource.PRODUCT,
+        resourceId: product._id.toString(),
+        resourceName: product.name ?? product.nameAr ?? undefined,
+        actorType: 'admin',
+        actorId: user?.adminUserId ?? user?.id,
+        actorName: user?.fullName ?? undefined,
+        actorEmail: user?.email ?? undefined,
+        description: `Product created: ${product.name ?? product._id.toString()}`,
+        descriptionAr: 'تم إنشاء المنتج',
+        severity: 'info',
+        success: true,
+      })
+      .catch(() => undefined);
+
     return ResponseBuilder.created(
       product,
       'Product created',
@@ -619,8 +646,27 @@ export class ProductsController {
   async update(
     @Param('id') id: string,
     @Body() updateProductDto: UpdateProductDto,
+    @CurrentUser() user: any,
   ) {
     const product = await this.productsService.update(id, updateProductDto);
+
+    await this.auditService
+      .log({
+        action: AuditAction.UPDATE,
+        resource: AuditResource.PRODUCT,
+        resourceId: product._id.toString(),
+        resourceName: product.name ?? product.nameAr ?? undefined,
+        actorType: 'admin',
+        actorId: user?.adminUserId ?? user?.id,
+        actorName: user?.fullName ?? undefined,
+        actorEmail: user?.email ?? undefined,
+        description: `Product updated: ${product.name ?? product._id.toString()}`,
+        descriptionAr: 'تم تحديث المنتج',
+        severity: 'info',
+        success: true,
+      })
+      .catch(() => undefined);
+
     return ResponseBuilder.success(
       product,
       'Product updated',
@@ -647,8 +693,24 @@ export class ProductsController {
     description: 'Product deleted successfully',
   })
   @ApiCommonErrorResponses()
-  async delete(@Param('id') id: string) {
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
     await this.productsService.delete(id);
+    await this.auditService
+      .log({
+        action: AuditAction.DELETE,
+        resource: AuditResource.PRODUCT,
+        resourceId: id,
+        resourceName: undefined,
+        actorType: 'admin',
+        actorId: user?.adminUserId ?? user?.id,
+        actorName: user?.fullName ?? undefined,
+        actorEmail: user?.email ?? undefined,
+        description: `Product deleted: ${id}`,
+        descriptionAr: 'تم حذف المنتج',
+        severity: 'warning',
+        success: true,
+      })
+      .catch(() => undefined);
     return ResponseBuilder.success(null, 'Product deleted', 'تم حذف المنتج');
   }
 

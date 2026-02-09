@@ -30,6 +30,8 @@ import {
   StockTransfer,
   StockTransferDocument,
 } from './schemas/stock-transfer.schema';
+import { AuditService } from '@modules/audit/audit.service';
+import { AuditAction, AuditResource } from '@modules/audit/schemas/audit-log.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -53,7 +55,178 @@ export class InventoryService {
     private inventoryCountModel: Model<InventoryCountDocument>,
     @InjectModel(StockTransfer.name)
     private stockTransferModel: Model<StockTransferDocument>,
+    private auditService: AuditService,
   ) {}
+
+  /**
+   * Get inventory stats for dashboard (totalWarehouses, totalStock, low/out of stock, alerts, today movements).
+   */
+  async getInventoryStats(): Promise<{
+    totalWarehouses: number;
+    totalProducts: number;
+    totalStock: number;
+    lowStockItems: number;
+    outOfStockItems: number;
+    pendingAlerts: number;
+    todayMovements: number;
+  }> {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const [
+      totalWarehouses,
+      pendingAlerts,
+      todayMovements,
+      stockAgg,
+    ] = await Promise.all([
+      this.warehouseModel.countDocuments(),
+      this.lowStockAlertModel.countDocuments({ status: 'pending' }),
+      this.stockMovementModel.countDocuments({
+        createdAt: { $gte: todayStart, $lte: todayEnd },
+      }),
+      this.productStockModel.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalStock: { $sum: '$quantity' },
+            totalProducts: { $addToSet: '$productId' },
+            lowStockItems: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $gt: ['$quantity', 0] },
+                      { $lte: ['$quantity', '$lowStockThreshold'] },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            outOfStockItems: {
+              $sum: { $cond: [{ $eq: ['$quantity', 0] }, 1, 0] },
+            },
+          },
+        },
+      ]),
+    ]);
+
+    const aggResult = stockAgg[0];
+    const totalProducts = aggResult?.totalProducts?.length ?? 0;
+    const totalStock = aggResult?.totalStock ?? 0;
+    const lowStockItems = aggResult?.lowStockItems ?? 0;
+    const outOfStockItems = aggResult?.outOfStockItems ?? 0;
+
+    return {
+      totalWarehouses,
+      totalProducts,
+      totalStock,
+      lowStockItems,
+      outOfStockItems,
+      pendingAlerts,
+      todayMovements,
+    };
+  }
+
+  /**
+   * Get all stock records with optional warehouseId and status filter.
+   */
+  async getAllStock(query?: {
+    warehouseId?: string;
+    status?: string;
+  }): Promise<any[]> {
+    const filter: any = {};
+    if (query?.warehouseId) filter.warehouseId = query.warehouseId;
+
+    const stocks = await this.productStockModel
+      .find(filter)
+      .populate('productId', 'name nameAr sku mainImage')
+      .populate('warehouseId', 'name code')
+      .lean();
+
+    let list = stocks.map((s: any) => {
+      const quantity = s.quantity ?? 0;
+      const reservedQuantity = s.reservedQuantity ?? 0;
+      const availableQuantity = quantity - reservedQuantity;
+      const lowThreshold = s.lowStockThreshold ?? 0;
+      const status =
+        quantity === 0
+          ? 'out_of_stock'
+          : quantity <= lowThreshold
+            ? 'low_stock'
+            : 'in_stock';
+      return {
+        _id: s._id,
+        productId: s.productId?._id ?? s.productId,
+        product: s.productId
+          ? {
+              name: s.productId.name || s.productId.nameAr,
+              sku: s.productId.sku,
+              image: s.productId.mainImage,
+            }
+          : undefined,
+        warehouseId: s.warehouseId?._id ?? s.warehouseId,
+        warehouse: s.warehouseId
+          ? { name: s.warehouseId.name }
+          : undefined,
+        locationId: s.defaultLocationId,
+        quantity,
+        reservedQuantity,
+        availableQuantity,
+        minStockLevel: lowThreshold,
+        maxStockLevel: s.reorderQuantity,
+        status,
+      };
+    });
+
+    if (query?.status && query.status !== 'all') {
+      list = list.filter((s) => s.status === query.status);
+    }
+
+    return list;
+  }
+
+  /**
+   * Get all active (confirmed) reservations with optional filters.
+   */
+  async getReservations(query?: any): Promise<any[]> {
+    const filter: any = { status: 'confirmed' };
+    if (query?.productId) filter.productId = query.productId;
+    if (query?.warehouseId) filter.warehouseId = query.warehouseId;
+    if (query?.referenceId) filter.referenceId = query.referenceId;
+
+    const reservations = await this.stockReservationModel
+      .find(filter)
+      .populate('productId', 'name nameAr sku')
+      .populate('warehouseId', 'name code')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return reservations.map((r: any) => ({
+      _id: r._id,
+      productId: r.productId?._id ?? r.productId,
+      product: r.productId
+        ? {
+            name: r.productId.name || r.productId.nameAr,
+            sku: r.productId.sku,
+          }
+        : undefined,
+      warehouseId: r.warehouseId?._id ?? r.warehouseId,
+      warehouse: r.warehouseId ? { name: r.warehouseId.name } : undefined,
+      quantity: r.quantity,
+      reservationType: r.reservationType,
+      referenceId: r.referenceId,
+      referenceNumber: r.referenceNumber,
+      orderId: r.reservationType === 'order' ? r.referenceId : undefined,
+      orderNumber: r.referenceNumber,
+      status: 'active',
+      expiresAt: r.expiresAt,
+      createdAt: r.createdAt,
+    }));
+  }
 
   /**
    * Get stock for product across all warehouses
@@ -180,6 +353,22 @@ export class InventoryService {
 
     // Check low stock
     await this.checkLowStock(data.productId, data.warehouseId);
+
+    // Audit log (when performed by admin)
+    if (data.createdBy) {
+      await this.auditService.log({
+        action: AuditAction.UPDATE,
+        resource: AuditResource.INVENTORY,
+        resourceId: movement._id.toString(),
+        resourceName: movement.movementNumber,
+        actorType: 'admin',
+        actorId: data.createdBy,
+        description: `Stock adjusted: ${data.movementType} qty ${data.quantity} (${movement.movementNumber})`,
+        descriptionAr: `تم تعديل المخزون: ${data.movementType} كمية ${data.quantity}`,
+        severity: 'info',
+        success: true,
+      }).catch(() => undefined);
+    }
 
     return movement;
   }

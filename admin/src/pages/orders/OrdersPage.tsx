@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -52,7 +53,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 
 const orderStatusVariants: Record<
@@ -98,7 +98,6 @@ const paymentStatusLabels: Record<string, string> = {
 export function OrdersPage() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -119,22 +118,6 @@ export function OrdersPage() {
     reference: "",
   });
   const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
-
-  // Open order details when navigating from dashboard with openOrderId
-  useEffect(() => {
-    const openOrderId = (location.state as { openOrderId?: string })
-      ?.openOrderId;
-    if (openOrderId) {
-      ordersApi
-        .getById(openOrderId)
-        .then((order) => {
-          setSelectedOrder(order);
-          setIsDetailsDialogOpen(true);
-          navigate(location.pathname, { replace: true, state: {} });
-        })
-        .catch(() => {});
-    }
-  }, [location.state, location.pathname, navigate]);
 
   // Fetch stats
   const { data: stats } = useQuery({
@@ -226,8 +209,7 @@ export function OrdersPage() {
   });
 
   const handleViewDetails = (order: Order) => {
-    setSelectedOrder(order);
-    setIsDetailsDialogOpen(true);
+    navigate(`/orders/${order._id}`);
   };
 
   const handleOpenShipment = (order: Order) => {
@@ -439,7 +421,11 @@ export function OrdersPage() {
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
-                  <TableRow key={order._id}>
+                  <TableRow
+                    key={order._id}
+                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800"
+                    onClick={() => navigate(`/orders/${order._id}`)}
+                  >
                     <TableCell className="font-medium text-primary-600">
                       {order.orderNumber}
                     </TableCell>
@@ -474,7 +460,11 @@ export function OrdersPage() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

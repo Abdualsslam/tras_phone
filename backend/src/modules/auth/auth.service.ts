@@ -37,6 +37,10 @@ import {
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
+import { AuditService } from '../audit/audit.service';
+import {
+  LoginStatus,
+} from '../audit/schemas/login-history.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -61,6 +65,7 @@ export class AuthService {
     private passwordResetRequestModel: Model<PasswordResetRequestDocument>,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -447,6 +452,17 @@ export class AuthService {
           status: 'blocked',
           failureReason: 'Account rejected',
         });
+        await this.auditService.logLogin({
+          userType: user.userType as 'admin' | 'customer',
+          userId: user._id.toString(),
+          email: user.email ?? user.phone ?? '',
+          phone: user.phone,
+          status: LoginStatus.BLOCKED,
+          ipAddress: ipAddress || 'unknown',
+          userAgent,
+          failureReason: 'Account rejected',
+          failedAttempts: user.failedLoginAttempts,
+        });
         throw new UnauthorizedException('Your account has been rejected');
       }
     }
@@ -461,6 +477,17 @@ export class AuthService {
         status: 'blocked',
         failureReason: 'Account suspended',
       });
+      await this.auditService.logLogin({
+        userType: user.userType as 'admin' | 'customer',
+        userId: user._id.toString(),
+        email: user.email ?? user.phone ?? '',
+        phone: user.phone,
+        status: LoginStatus.BLOCKED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: 'Account suspended',
+        failedAttempts: user.failedLoginAttempts,
+      });
       throw new UnauthorizedException('Your account has been suspended');
     }
 
@@ -472,6 +499,17 @@ export class AuthService {
         userAgent,
         status: 'blocked',
         failureReason: 'Account deleted',
+      });
+      await this.auditService.logLogin({
+        userType: user.userType as 'admin' | 'customer',
+        userId: user._id.toString(),
+        email: user.email ?? user.phone ?? '',
+        phone: user.phone,
+        status: LoginStatus.BLOCKED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: 'Account deleted',
+        failedAttempts: user.failedLoginAttempts,
       });
       throw new UnauthorizedException('Your account has been deleted');
     }
@@ -485,6 +523,17 @@ export class AuthService {
         userAgent,
         status: 'blocked',
         failureReason: 'Account pending review',
+      });
+      await this.auditService.logLogin({
+        userType: user.userType as 'admin' | 'customer',
+        userId: user._id.toString(),
+        email: user.email ?? user.phone ?? '',
+        phone: user.phone,
+        status: LoginStatus.BLOCKED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: 'Account pending review',
+        failedAttempts: user.failedLoginAttempts,
       });
       throw new UnauthorizedException(
         'Your account is under review. Please wait for activation',
@@ -500,6 +549,17 @@ export class AuthService {
         userAgent,
         status: 'blocked',
         failureReason: `Account status is ${user.status}`,
+      });
+      await this.auditService.logLogin({
+        userType: user.userType as 'admin' | 'customer',
+        userId: user._id.toString(),
+        email: user.email ?? user.phone ?? '',
+        phone: user.phone,
+        status: LoginStatus.BLOCKED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: `Account status is ${user.status}`,
+        failedAttempts: user.failedLoginAttempts,
       });
       throw new UnauthorizedException(
         'Your account is not active. Please verify your account or contact support',
@@ -518,6 +578,17 @@ export class AuthService {
         userAgent,
         status: 'blocked',
         failureReason: 'Account locked',
+      });
+      await this.auditService.logLogin({
+        userType: user.userType as 'admin' | 'customer',
+        userId: user._id.toString(),
+        email: user.email ?? user.phone ?? '',
+        phone: user.phone,
+        status: LoginStatus.BLOCKED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: 'Account locked',
+        failedAttempts: user.failedLoginAttempts,
       });
       throw new UnauthorizedException(
         `Account is locked. Try again in ${minutesLeft} minutes`,
@@ -538,6 +609,17 @@ export class AuthService {
         userAgent,
         status: 'failed',
         failureReason: 'Invalid password',
+      });
+      await this.auditService.logLogin({
+        userType: user.userType as 'admin' | 'customer',
+        userId: user._id.toString(),
+        email: user.email ?? user.phone ?? '',
+        phone: user.phone,
+        status: LoginStatus.FAILED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: 'Invalid password',
+        failedAttempts: user.failedLoginAttempts,
       });
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -574,6 +656,19 @@ export class AuthService {
       userAgent,
     );
 
+    await this.auditService.logLogin({
+      userType: user.userType as 'admin' | 'customer',
+      userId: user._id.toString(),
+      email: user.email ?? user.phone ?? '',
+      phone: user.phone,
+      status: LoginStatus.SUCCESS,
+      ipAddress: ipAddress || 'unknown',
+      userAgent,
+      sessionId: session._id.toString(),
+      failureReason: undefined,
+      failedAttempts: user.failedLoginAttempts,
+    });
+
     return {
       user: user.toJSON(),
       ...tokens,
@@ -584,7 +679,12 @@ export class AuthService {
   /**
    * Login admin by email
    */
-  async adminLogin(email: string, password: string) {
+  async adminLogin(
+    email: string,
+    password: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     // Find admin user by email
     const user = await this.userModel
       .findOne({ email, userType: 'admin' })
@@ -592,20 +692,85 @@ export class AuthService {
       .exec();
 
     if (!user) {
+      await this.logLoginAttempt({
+        identifier: email,
+        identifierType: 'email',
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        status: 'failed',
+        failureReason: 'User not found',
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check if account is suspended or deleted
     if (user.status === 'suspended') {
+      await this.logLoginAttempt({
+        identifier: email,
+        identifierType: 'email',
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        status: 'blocked',
+        failureReason: 'Account suspended',
+      });
+      await this.auditService.logLogin({
+        userType: 'admin',
+        userId: user._id.toString(),
+        email: user.email ?? '',
+        phone: user.phone,
+        status: LoginStatus.BLOCKED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: 'Account suspended',
+        failedAttempts: user.failedLoginAttempts,
+      });
       throw new UnauthorizedException('Your account has been suspended');
     }
 
     if (user.status === 'deleted') {
+      await this.logLoginAttempt({
+        identifier: email,
+        identifierType: 'email',
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        status: 'blocked',
+        failureReason: 'Account deleted',
+      });
+      await this.auditService.logLogin({
+        userType: 'admin',
+        userId: user._id.toString(),
+        email: user.email ?? '',
+        phone: user.phone,
+        status: LoginStatus.BLOCKED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: 'Account deleted',
+        failedAttempts: user.failedLoginAttempts,
+      });
       throw new UnauthorizedException('Your account has been deleted');
     }
 
     // Check if account is pending (under review)
     if (user.status === 'pending') {
+      await this.logLoginAttempt({
+        identifier: email,
+        identifierType: 'email',
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        status: 'blocked',
+        failureReason: 'Account pending review',
+      });
+      await this.auditService.logLogin({
+        userType: 'admin',
+        userId: user._id.toString(),
+        email: user.email ?? '',
+        phone: user.phone,
+        status: LoginStatus.BLOCKED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: 'Account pending review',
+        failedAttempts: user.failedLoginAttempts,
+      });
       throw new UnauthorizedException(
         'Your account is under review. Please wait for activation',
       );
@@ -613,6 +778,25 @@ export class AuthService {
 
     // Check if account is active (must be active to login)
     if (user.status !== 'active') {
+      await this.logLoginAttempt({
+        identifier: email,
+        identifierType: 'email',
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        status: 'blocked',
+        failureReason: `Account status is ${user.status}`,
+      });
+      await this.auditService.logLogin({
+        userType: 'admin',
+        userId: user._id.toString(),
+        email: user.email ?? '',
+        phone: user.phone,
+        status: LoginStatus.BLOCKED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: `Account status is ${user.status}`,
+        failedAttempts: user.failedLoginAttempts,
+      });
       throw new UnauthorizedException(
         'Your account is not active. Please verify your account or contact support',
       );
@@ -623,6 +807,25 @@ export class AuthService {
       const minutesLeft = Math.ceil(
         (user.lockedUntil.getTime() - Date.now()) / 60000,
       );
+      await this.logLoginAttempt({
+        identifier: email,
+        identifierType: 'email',
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        status: 'blocked',
+        failureReason: 'Account locked',
+      });
+      await this.auditService.logLogin({
+        userType: 'admin',
+        userId: user._id.toString(),
+        email: user.email ?? '',
+        phone: user.phone,
+        status: LoginStatus.BLOCKED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: 'Account locked',
+        failedAttempts: user.failedLoginAttempts,
+      });
       throw new UnauthorizedException(
         `Account is locked. Try again in ${minutesLeft} minutes`,
       );
@@ -634,6 +837,25 @@ export class AuthService {
     if (!isPasswordValid) {
       // Increment failed login attempts
       await this.handleFailedLogin(user);
+      await this.logLoginAttempt({
+        identifier: email,
+        identifierType: 'email',
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        status: 'failed',
+        failureReason: 'Invalid password',
+      });
+      await this.auditService.logLogin({
+        userType: 'admin',
+        userId: user._id.toString(),
+        email: user.email ?? '',
+        phone: user.phone,
+        status: LoginStatus.FAILED,
+        ipAddress: ipAddress || 'unknown',
+        userAgent,
+        failureReason: 'Invalid password',
+        failedAttempts: user.failedLoginAttempts,
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -650,6 +872,18 @@ export class AuthService {
 
     // Generate tokens
     const tokens = await this.generateTokens(user);
+
+    await this.auditService.logLogin({
+      userType: 'admin',
+      userId: user._id.toString(),
+      email: user.email ?? '',
+      phone: user.phone,
+      status: LoginStatus.SUCCESS,
+      ipAddress: ipAddress || 'unknown',
+      userAgent,
+      failureReason: undefined,
+      failedAttempts: user.failedLoginAttempts,
+    });
 
     return {
       user: user.toJSON(),

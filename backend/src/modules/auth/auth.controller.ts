@@ -125,10 +125,15 @@ export class AuthController {
     type: ApiResponseDto,
   })
   @ApiPublicErrorResponses()
-  async adminLogin(@Body() adminLoginDto: AdminLoginDto) {
+  async adminLogin(@Body() adminLoginDto: AdminLoginDto, @Req() req: Request) {
+    const ipAddress =
+      req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
     const result = await this.authService.adminLogin(
       adminLoginDto.email,
       adminLoginDto.password,
+      ipAddress,
+      userAgent,
     );
 
     return ResponseBuilder.success(

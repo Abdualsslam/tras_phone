@@ -19,6 +19,8 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CreateAddressDto } from './dto/create-address.dto';
 import { UsersService } from '@modules/users/users.service';
 import { User, UserDocument } from '@modules/users/schemas/user.schema';
+import { AuditService } from '@modules/audit/audit.service';
+import { AuditAction, AuditResource } from '@modules/audit/schemas/audit-log.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -37,6 +39,7 @@ export class CustomersService {
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
     private usersService: UsersService,
+    private auditService: AuditService,
   ) {}
 
   /**
@@ -470,13 +473,26 @@ export class CustomersService {
 
     await this.usersService.update(userId, { status: 'active' });
 
+    await this.auditService.log({
+      action: AuditAction.APPROVE,
+      resource: AuditResource.CUSTOMER,
+      resourceId: id,
+      resourceName: (customer as any).shopName ?? (customer as any).responsiblePersonName ?? id,
+      actorType: 'admin',
+      actorId: adminId,
+      description: `Customer approved: ${(customer as any).shopName ?? id}`,
+      descriptionAr: 'تمت الموافقة على العميل',
+      severity: 'info',
+      success: true,
+    }).catch(() => undefined);
+
     return customer;
   }
 
   /**
    * Reject customer
    */
-  async reject(id: string, reason: string): Promise<CustomerDocument> {
+  async reject(id: string, reason: string, adminId?: string): Promise<CustomerDocument> {
     const customer = await this.customerModel
       .findByIdAndUpdate(
         id,
@@ -504,6 +520,21 @@ export class CustomersService {
         : customer.userId.toString();
 
     await this.usersService.update(userId, { status: 'suspended' });
+
+    if (adminId) {
+      await this.auditService.log({
+        action: AuditAction.REJECT,
+        resource: AuditResource.CUSTOMER,
+        resourceId: id,
+        resourceName: (customer as any).shopName ?? (customer as any).responsiblePersonName ?? id,
+        actorType: 'admin',
+        actorId: adminId,
+        description: `Customer rejected: ${reason}`,
+        descriptionAr: 'تم رفض العميل',
+        severity: 'warning',
+        success: true,
+      }).catch(() => undefined);
+    }
 
     return customer;
   }
