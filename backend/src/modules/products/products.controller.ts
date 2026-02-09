@@ -654,6 +654,34 @@ export class ProductsController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get(':id/prices')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get product prices for all price levels',
+    description: 'Retrieve all price level prices for a product',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Product prices retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getPrices(@Param('id') id: string) {
+    const prices = await this.productsService.getPrices(id);
+    return ResponseBuilder.success(
+      prices,
+      'Prices retrieved',
+      'تم استرجاع الأسعار',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Post(':id/prices')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({

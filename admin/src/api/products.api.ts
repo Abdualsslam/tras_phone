@@ -157,7 +157,10 @@ export const productsApi = {
             shortDescriptionAr: p.shortDescriptionAr,
             category: p.categoryId,
             brand: p.brandId,
-            qualityTypeId: p.qualityTypeId,
+            qualityTypeId:
+                typeof p.qualityTypeId === 'object' && p.qualityTypeId
+                    ? (p.qualityTypeId._id || p.qualityTypeId.id || '')
+                    : (p.qualityTypeId || ''),
             mainImage: p.mainImage,
             images: p.images || [],
             video: p.video,
