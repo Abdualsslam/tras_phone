@@ -90,8 +90,8 @@ export class DashboardService {
       this.getRevenue(thisMonth, new Date()),
       this.getRevenue(lastMonth, lastMonthEnd),
 
-      // Customers
-      this.customerModel.countDocuments({ status: 'active' }),
+      // Customers (status is virtual from approvedAt - use approvedAt for approved/active count)
+      this.customerModel.countDocuments({ approvedAt: { $exists: true, $ne: null } }),
       this.customerModel.countDocuments({ createdAt: { $gte: thisMonth } }),
 
       // Products
@@ -194,6 +194,7 @@ export class DashboardService {
     const result = await this.orderModel.aggregate([
       {
         $match: {
+          customerId: { $exists: true, $ne: null },
           status: { $nin: ['cancelled', 'refunded'] },
         },
       },
@@ -277,7 +278,7 @@ export class DashboardService {
         paymentMethod: 'bank_transfer',
       }),
       this.returnModel.countDocuments({ status: 'pending' }),
-      this.customerModel.countDocuments({ status: 'pending' }),
+      this.customerModel.countDocuments({ approvedAt: { $exists: false } }),
       this.productModel.countDocuments({
         status: 'active',
         $expr: { $lte: ['$stockQuantity', '$lowStockThreshold'] },

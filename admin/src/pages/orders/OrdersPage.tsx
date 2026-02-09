@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -52,6 +52,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useLocation, useNavigate } from "react-router-dom";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 
 const orderStatusVariants: Record<
@@ -97,6 +98,8 @@ const paymentStatusLabels: Record<string, string> = {
 export function OrdersPage() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -116,6 +119,22 @@ export function OrdersPage() {
     reference: "",
   });
   const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
+
+  // Open order details when navigating from dashboard with openOrderId
+  useEffect(() => {
+    const openOrderId = (location.state as { openOrderId?: string })
+      ?.openOrderId;
+    if (openOrderId) {
+      ordersApi
+        .getById(openOrderId)
+        .then((order) => {
+          setSelectedOrder(order);
+          setIsDetailsDialogOpen(true);
+          navigate(location.pathname, { replace: true, state: {} });
+        })
+        .catch(() => {});
+    }
+  }, [location.state, location.pathname, navigate]);
 
   // Fetch stats
   const { data: stats } = useQuery({
@@ -590,7 +609,7 @@ export function OrdersPage() {
                             {formatCurrency(
                               item.totalPrice ?? item.total ?? 0,
                               "SAR",
-                              locale,
+                              locale
                             )}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -601,7 +620,7 @@ export function OrdersPage() {
                                 item.price ??
                                 0,
                               "SAR",
-                              locale,
+                              locale
                             )}
                           </p>
                         </div>
@@ -686,17 +705,17 @@ export function OrdersPage() {
                                 shipment.status === "delivered"
                                   ? "success"
                                   : shipment.status === "shipped"
-                                    ? "default"
-                                    : "warning"
+                                  ? "default"
+                                  : "warning"
                               }
                             >
                               {shipment.status === "pending"
                                 ? "قيد الانتظار"
                                 : shipment.status === "shipped"
-                                  ? "تم الشحن"
-                                  : shipment.status === "delivered"
-                                    ? "تم التوصيل"
-                                    : shipment.status}
+                                ? "تم الشحن"
+                                : shipment.status === "delivered"
+                                ? "تم التوصيل"
+                                : shipment.status}
                             </Badge>
                           </div>
                           <div className="mt-2 text-xs text-gray-500">
