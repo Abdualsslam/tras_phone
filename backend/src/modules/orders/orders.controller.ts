@@ -681,6 +681,33 @@ export class OrdersController {
 
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get(':id/shipments')
+  @ApiOperation({
+    summary: 'Get shipments for order',
+    description: 'Retrieve all shipments associated with a specific order. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Order ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Shipments retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getShipments(@Param('id') id: string) {
+    const shipments = await this.ordersService.getShipments(id);
+    return ResponseBuilder.success(
+      shipments,
+      'Shipments retrieved',
+      'تم استرجاع الشحنات',
+    );
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Put('shipments/:shipmentId/status')
   @ApiOperation({
     summary: 'Update shipment status',

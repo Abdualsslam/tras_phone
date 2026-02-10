@@ -666,6 +666,47 @@ export class OrdersService {
   }
 
   /**
+   * Get shipments for an order
+   */
+  async getShipments(orderId: string): Promise<any[]> {
+    const orderObjectId = Types.ObjectId.isValid(orderId)
+      ? new Types.ObjectId(orderId)
+      : orderId;
+
+    const shipments = await this.shipmentModel
+      .find({ orderId: orderObjectId })
+      .populate('items.productId', 'name nameAr');
+
+    if (!shipments.length) return [];
+
+    return shipments.map((shipment) => {
+      const shipmentObj = shipment.toObject();
+      return {
+        _id: shipmentObj._id,
+        orderId: shipmentObj.orderId,
+        trackingNumber: shipmentObj.trackingNumber,
+        carrier: shipmentObj.carrier,
+        status: shipmentObj.status,
+        items: (shipmentObj.items || []).map((item: any) => {
+          const product: any = item.productId || {};
+          const productId =
+            typeof product === 'object' && product?._id
+              ? product._id.toString()
+              : item.productId?.toString?.() ?? '';
+          return {
+            productId,
+            productName: product.name || product.nameAr || undefined,
+            quantity: item.quantity,
+          };
+        }),
+        shippedAt: shipmentObj.shippedAt,
+        deliveredAt: shipmentObj.deliveredAt,
+        createdAt: shipmentObj.createdAt,
+      };
+    });
+  }
+
+  /**
    * Update shipment status
    */
   async updateShipmentStatus(
