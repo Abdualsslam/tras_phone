@@ -372,13 +372,17 @@ export function OrderDetailsPage() {
                         <div className="w-10 h-10 bg-gray-100 dark:bg-slate-800 rounded-lg" />
                         <div>
                           <p className="font-medium text-gray-900 dark:text-gray-100">
-                            {item.productSnapshot?.name ||
+                            {(i18n.language === "ar"
+                              ? (item as any).nameAr || (item as any).name
+                              : (item as any).name || (item as any).nameAr) ||
+                              item.productSnapshot?.name ||
                               (typeof item.product === "object"
                                 ? item.product?.name
                                 : "-")}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {item.productSnapshot?.sku ||
+                            {(item as any).sku ||
+                              item.productSnapshot?.sku ||
                               (typeof item.product === "object"
                                 ? item.product?.sku
                                 : "-")}
