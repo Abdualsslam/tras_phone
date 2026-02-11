@@ -747,4 +747,40 @@ class CatalogRepositoryImpl implements CatalogRepository {
       ));
     }
   }
+
+  @override
+  Future<Either<Failure, ProductReviewModel?>> getMyReview(
+    String productId,
+  ) async {
+    try {
+      final result = await _remoteDataSource.getMyReview(productId);
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ProductReviewModel>> updateReview({
+    required String productId,
+    required String reviewId,
+    required int rating,
+    String? title,
+    String? comment,
+    List<String>? images,
+  }) async {
+    try {
+      final review = await _remoteDataSource.updateReview(
+        productId: productId,
+        reviewId: reviewId,
+        rating: rating,
+        title: title,
+        comment: comment,
+        images: images,
+      );
+      return Right(review);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
 }

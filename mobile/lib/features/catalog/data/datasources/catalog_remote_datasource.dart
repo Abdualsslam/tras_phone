@@ -133,8 +133,17 @@ abstract class CatalogRemoteDataSource {
 
   // Reviews
   Future<List<ProductReviewModel>> getProductReviews(String productId);
+  Future<ProductReviewModel?> getMyReview(String productId);
   Future<ProductReviewModel> addReview({
     required String productId,
+    required int rating,
+    String? title,
+    String? comment,
+    List<String>? images,
+  });
+  Future<ProductReviewModel> updateReview({
+    required String productId,
+    required String reviewId,
     required int rating,
     String? title,
     String? comment,
@@ -945,6 +954,27 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   }
 
   @override
+  Future<ProductReviewModel?> getMyReview(String productId) async {
+    try {
+      final response = await _apiClient.get(
+        ApiEndpoints.productReviewsMine(productId),
+      );
+      final success = response.data['success'] == true ||
+          response.data['statusCode'] == 200;
+      if (success) {
+        final data = response.data['data'];
+        if (data == null) return null;
+        return ProductReviewModel.fromJson(
+          data is Map<String, dynamic> ? data : Map<String, dynamic>.from(data),
+        );
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
   Future<ProductReviewModel> addReview({
     required String productId,
     required int rating,
@@ -973,6 +1003,34 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       return ProductReviewModel.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr'] ?? 'Failed to add review');
+  }
+
+  @override
+  Future<ProductReviewModel> updateReview({
+    required String productId,
+    required String reviewId,
+    required int rating,
+    String? title,
+    String? comment,
+    List<String>? images,
+  }) async {
+    final response = await _apiClient.put(
+      ApiEndpoints.productReviewUpdate(productId, reviewId),
+      data: {
+        'rating': rating,
+        if (title != null) 'title': title,
+        if (comment != null) 'comment': comment,
+        if (images != null && images.isNotEmpty) 'images': images,
+      },
+    );
+    final success = response.data['success'] == true ||
+        response.data['statusCode'] == 200;
+    if (success) {
+      return ProductReviewModel.fromJson(response.data['data']);
+    }
+    throw Exception(
+      response.data['messageAr'] ?? 'Failed to update review',
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

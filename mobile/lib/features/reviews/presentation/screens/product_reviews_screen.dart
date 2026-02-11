@@ -8,6 +8,9 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../../catalog/domain/repositories/catalog_repository.dart';
 import '../../../catalog/data/models/product_review_model.dart';
+import '../../../catalog/presentation/widgets/add_review_bottom_sheet.dart';
+import '../../../catalog/presentation/widgets/product_review_card.dart';
+import '../../../catalog/presentation/widgets/rating_bar_row.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class ProductReviewsScreen extends StatefulWidget {
@@ -32,6 +35,7 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
   final _catalogRepository = getIt<CatalogRepository>();
 
   List<ProductReviewModel> _reviews = [];
+  ProductReviewModel? _myReview;
   bool _isLoading = true;
   String? _error;
   double? _averageRating;
@@ -51,26 +55,42 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
       _error = null;
     });
 
-    final result = await _catalogRepository.getProductReviews(widget.productId);
+    final reviewsResult =
+        await _catalogRepository.getProductReviews(widget.productId);
+    final myReviewResult =
+        await _catalogRepository.getMyReview(widget.productId);
 
-    result.fold(
-      (failure) => setState(() {
-        _isLoading = false;
-        _error = failure.message;
-        _reviews = [];
-      }),
-      (reviews) => setState(() {
-        _isLoading = false;
-        _reviews = reviews;
-        if (_averageRating == null && reviews.isNotEmpty) {
+    if (!mounted) return;
+
+    String? error;
+    List<ProductReviewModel> reviews = [];
+    ProductReviewModel? myReview;
+
+    reviewsResult.fold(
+      (failure) => error = failure.message,
+      (list) => reviews = list,
+    );
+    myReviewResult.fold(
+      (_) => myReview = null,
+      (r) => myReview = r,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      _error = error;
+      _reviews = reviews;
+      _myReview = myReview;
+      if (error == null && reviews.isNotEmpty) {
+        if (_averageRating == null) {
           _averageRating = reviews
                   .map((r) => r.rating)
                   .reduce((a, b) => a + b) /
               reviews.length;
         }
         if (_reviewsCount == 0) _reviewsCount = reviews.length;
-      }),
-    );
+      }
+    });
   }
 
   Future<void> _onAddReviewPressed() async {
@@ -78,9 +98,10 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _AddReviewBottomSheet(
+      builder: (context) => AddReviewBottomSheet(
         productId: widget.productId,
         productName: widget.productName ?? 'المنتج',
+        existingReview: _myReview,
       ),
     );
     if (added == true && mounted) {
@@ -117,10 +138,10 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
                                 separatorBuilder: (_, __) =>
                                     SizedBox(height: 16.h),
                                 itemBuilder: (context, index) {
-                                  return _buildReviewCard(
-                                    theme,
-                                    isDark,
-                                    _reviews[index],
+                                  return ProductReviewCard(
+                                    theme: theme,
+                                    isDark: isDark,
+                                    review: _reviews[index],
                                   );
                                 },
                               ),
@@ -131,7 +152,7 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _onAddReviewPressed,
         icon: const Icon(Iconsax.edit),
-        label: const Text('أضف تقييم'),
+        label: Text(_myReview != null ? 'تعديل التقييم' : 'أضف تقييم'),
       ),
     );
   }
@@ -245,311 +266,16 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
                           : count / _reviews.length;
                       return Padding(
                         padding: EdgeInsets.only(bottom: 6.h),
-                        child: _buildRatingBar(theme, star, pct),
+                        child: RatingBarRow(
+                          theme: theme,
+                          stars: star,
+                          percentage: pct,
+                        ),
                       );
                     }),
                   ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildRatingBar(ThemeData theme, int stars, double percentage) {
-    return Row(
-      children: [
-        Text('$stars', style: theme.textTheme.bodySmall),
-        SizedBox(width: 4.w),
-        Icon(Iconsax.star5, size: 12.sp, color: Colors.amber),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: Container(
-            height: 6.h,
-            decoration: BoxDecoration(
-              color: AppColors.dividerLight,
-              borderRadius: BorderRadius.circular(3.r),
-            ),
-            child: FractionallySizedBox(
-              widthFactor: percentage.clamp(0.0, 1.0),
-              alignment: Alignment.centerRight,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.amber,
-                  borderRadius: BorderRadius.circular(3.r),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildReviewCard(
-    ThemeData theme,
-    bool isDark,
-    ProductReviewModel review,
-  ) {
-    final displayName = review.customerName ?? review.customerShopName ?? 'مستخدم';
-    final subTitle = review.customerShopName != null && review.customerName != null
-        ? review.customerShopName
-        : null;
-
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 20.r,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                child: Text(
-                  displayName.isNotEmpty ? displayName[0] : '?',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            displayName,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (review.isVerifiedPurchase) ...[
-                          SizedBox(width: 8.w),
-                          Icon(
-                            Iconsax.verify5,
-                            size: 16.sp,
-                            color: AppColors.success,
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (subTitle != null)
-                      Text(
-                        subTitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textTertiaryLight,
-                        ),
-                      ),
-                    Text(
-                      _formatDate(review.createdAt),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textTertiaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Row(
-                children: List.generate(5, (index) {
-                  return Icon(
-                    index < review.rating ? Iconsax.star5 : Iconsax.star,
-                    size: 14.sp,
-                    color: Colors.amber,
-                  );
-                }),
-              ),
-            ],
-          ),
-          if (review.title != null && review.title!.isNotEmpty) ...[
-            SizedBox(height: 8.h),
-            Text(
-              review.title!,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-          if (review.comment != null && review.comment!.isNotEmpty) ...[
-            SizedBox(height: 8.h),
-            Text(review.comment!, style: theme.textTheme.bodyMedium),
-          ],
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    final diff = DateTime.now().difference(date);
-    if (diff.inDays == 0) return 'اليوم';
-    if (diff.inDays == 1) return 'أمس';
-    if (diff.inDays < 7) return 'منذ ${diff.inDays} أيام';
-    return '${date.day}/${date.month}/${date.year}';
-  }
-}
-
-/// Bottom sheet for adding a review
-class _AddReviewBottomSheet extends StatefulWidget {
-  final String productId;
-  final String productName;
-
-  const _AddReviewBottomSheet({
-    required this.productId,
-    required this.productName,
-  });
-
-  @override
-  State<_AddReviewBottomSheet> createState() => _AddReviewBottomSheetState();
-}
-
-class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
-  final _catalogRepository = getIt<CatalogRepository>();
-  int _rating = 0;
-  final _titleController = TextEditingController();
-  final _commentController = TextEditingController();
-  bool _isSubmitting = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _commentController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (_rating < 1 || _rating > 5) {
-      setState(() => _error = 'الرجاء اختيار التقييم (1-5 نجوم)');
-      return;
-    }
-
-    setState(() {
-      _isSubmitting = true;
-      _error = null;
-    });
-
-    final result = await _catalogRepository.addReview(
-      productId: widget.productId,
-      rating: _rating,
-      title: _titleController.text.trim().isEmpty
-          ? null
-          : _titleController.text.trim(),
-      comment: _commentController.text.trim().isEmpty
-          ? null
-          : _commentController.text.trim(),
-    );
-
-    if (!mounted) return;
-
-    result.fold(
-      (failure) => setState(() {
-        _isSubmitting = false;
-        _error = failure.message;
-      }),
-      (_) {
-        Navigator.of(context).pop(true);
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: EdgeInsets.only(
-        left: 24.w,
-        right: 24.w,
-        top: 24.h,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24.h,
-      ),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'أضف تقييم',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              widget.productName,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.textTertiaryLight,
-              ),
-            ),
-            SizedBox(height: 24.h),
-            Text('التقييم (مطلوب)', style: theme.textTheme.titleSmall),
-            SizedBox(height: 8.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (index) {
-                final star = index + 1;
-                return IconButton(
-                  onPressed: () => setState(() => _rating = star),
-                  icon: Icon(
-                    star <= _rating ? Iconsax.star5 : Iconsax.star,
-                    size: 36.sp,
-                    color: Colors.amber,
-                  ),
-                );
-              }),
-            ),
-            SizedBox(height: 24.h),
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'عنوان التقييم (اختياري)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            TextField(
-              controller: _commentController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'التعليق (اختياري)',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-            ),
-            if (_error != null) ...[
-              SizedBox(height: 16.h),
-              Text(
-                _error!,
-                style: TextStyle(color: AppColors.error, fontSize: 12.sp),
-              ),
-            ],
-            SizedBox(height: 24.h),
-            FilledButton(
-              onPressed: _isSubmitting ? null : _submit,
-              child: _isSubmitting
-                  ? SizedBox(
-                      height: 20.h,
-                      width: 20.w,
-                      child: const CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('إرسال التقييم'),
-            ),
-          ],
-        ),
       ),
     );
   }

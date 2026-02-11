@@ -525,21 +525,48 @@ class LoggingInterceptor extends Interceptor {
     return handler.next(options);
   }
 
+  /// Paths that return large lists (e.g. Home featured/new/best-sellers).
+  /// We log only a summary to avoid choking the terminal.
+  static bool _isListEndpoint(String path) {
+    final p = path.split('?').first;
+    if (p == ApiEndpoints.products ||
+        p == ApiEndpoints.productsFeatured ||
+        p == ApiEndpoints.productsNewArrivals ||
+        p == ApiEndpoints.productsBestSellers ||
+        p == ApiEndpoints.productsOnOffer ||
+        p == ApiEndpoints.categories ||
+        p == ApiEndpoints.categoriesTree ||
+        p == ApiEndpoints.brands) {
+      return true;
+    }
+    // e.g. /catalog/brands/id/products, /catalog/categories/id/products
+    if (p.endsWith('/products') && p != ApiEndpoints.products) {
+      return true;
+    }
+    return false;
+  }
+
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     developer.log(
       '← ${response.statusCode} ${response.requestOptions.path}',
       name: 'API',
     );
-    // طباعة البيانات القادمة من الـ API
     final data = response.data;
     if (data != null) {
-      try {
-        final toPrint = data is Map ? data : (data is List ? {'data': data} : {'raw': data});
-        final pretty = _prettyJson(toPrint);
-        developer.log('Response data:\n$pretty', name: 'API');
-      } catch (_) {
-        developer.log('Response data: $data', name: 'API');
+      final path = response.requestOptions.path;
+      if (_isListEndpoint(path)) {
+        final list = data is Map ? data['data'] ?? data : data;
+        final count = list is List ? list.length : 0;
+        developer.log('Response: list of $count items (body not printed)', name: 'API');
+      } else {
+        try {
+          final toPrint = data is Map ? data : (data is List ? {'data': data} : {'raw': data});
+          final pretty = _prettyJson(toPrint);
+          developer.log('Response data:\n$pretty', name: 'API');
+        } catch (_) {
+          developer.log('Response data: $data', name: 'API');
+        }
       }
     }
     return handler.next(response);

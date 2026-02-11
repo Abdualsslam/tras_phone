@@ -150,4 +150,17 @@ abstract class CatalogRepository {
     String? comment,
     List<String>? images,
   });
+
+  /// Get current user's review for a product (null if none or not logged in)
+  Future<Either<Failure, ProductReviewModel?>> getMyReview(String productId);
+
+  /// Update an existing review (owner only)
+  Future<Either<Failure, ProductReviewModel>> updateReview({
+    required String productId,
+    required String reviewId,
+    required int rating,
+    String? title,
+    String? comment,
+    List<String>? images,
+  });
 }
