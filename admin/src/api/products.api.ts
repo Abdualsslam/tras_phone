@@ -270,7 +270,7 @@ export const productsApi = {
     // ─────────────────────────────────────────
 
     getProductReviews: async (productId: string): Promise<ProductReview[]> => {
-        const response = await apiClient.get<ApiResponse<ProductReview[]>>(`/products/${productId}/reviews`);
+        const response = await apiClient.get<ApiResponse<ProductReview[]>>(`/products/${productId}/reviews/admin`);
         return response.data.data;
     },
 

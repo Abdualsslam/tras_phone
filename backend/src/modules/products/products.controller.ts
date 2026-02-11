@@ -406,6 +406,35 @@ export class ProductsController {
     );
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get(':id/reviews/admin')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get all product reviews (admin)',
+    description:
+      'Retrieve all reviews for a product including pending, for moderation. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Reviews retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getReviewsForAdmin(@Param('id') id: string) {
+    const reviews = await this.productsService.getReviewsForAdmin(id);
+    return ResponseBuilder.success(
+      reviews,
+      'Reviews retrieved',
+      'تم استرجاع التقييمات',
+    );
+  }
+
   @Public()
   @Get(':id/reviews')
   @ApiOperation({
@@ -429,6 +458,67 @@ export class ProductsController {
       reviews,
       'Reviews retrieved',
       'تم استرجاع التقييمات',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Put(':id/reviews/:reviewId/approve')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Approve product review',
+    description: 'Approve a pending review. Admin only.',
+  })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  @ApiParam({ name: 'reviewId', description: 'Review ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Review approved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async approveReview(
+    @Param('id') id: string,
+    @Param('reviewId') reviewId: string,
+    @CurrentUser() user: any,
+  ) {
+    const review = await this.productsService.approveReview(
+      id,
+      reviewId,
+      user.adminId ?? user.id,
+    );
+    return ResponseBuilder.success(
+      review,
+      'Review approved',
+      'تم اعتماد التقييم',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Delete(':id/reviews/:reviewId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Delete product review',
+    description: 'Delete a review. Admin only.',
+  })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  @ApiParam({ name: 'reviewId', description: 'Review ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Review deleted successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async deleteReview(
+    @Param('id') id: string,
+    @Param('reviewId') reviewId: string,
+  ) {
+    await this.productsService.deleteReview(id, reviewId);
+    return ResponseBuilder.success(
+      null,
+      'Review deleted',
+      'تم حذف التقييم',
     );
   }
 

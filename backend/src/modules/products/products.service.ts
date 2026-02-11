@@ -624,6 +624,46 @@ export class ProductsService {
       .sort({ createdAt: -1 });
   }
 
+  async getReviewsForAdmin(productId: string): Promise<ProductReviewDocument[]> {
+    return this.productReviewModel
+      .find({ productId })
+      .populate('customerId', 'responsiblePersonName shopName companyName')
+      .sort({ createdAt: -1 });
+  }
+
+  async approveReview(
+    productId: string,
+    reviewId: string,
+    adminId: string,
+  ): Promise<ProductReviewDocument> {
+    const review = await this.productReviewModel.findOneAndUpdate(
+      { _id: reviewId, productId },
+      {
+        status: 'approved',
+        moderatedBy: new Types.ObjectId(adminId),
+        moderatedAt: new Date(),
+      },
+      { new: true },
+    )
+      .populate('customerId', 'responsiblePersonName shopName companyName')
+      .exec();
+    if (!review) throw new NotFoundException('Review not found');
+    await this.updateProductRating(productId);
+    return review;
+  }
+
+  async deleteReview(
+    productId: string,
+    reviewId: string,
+  ): Promise<void> {
+    const review = await this.productReviewModel.findOneAndDelete({
+      _id: reviewId,
+      productId,
+    });
+    if (!review) throw new NotFoundException('Review not found');
+    await this.updateProductRating(productId);
+  }
+
   private async updateProductRating(productId: string): Promise<void> {
     const result = await this.productReviewModel.aggregate([
       {
