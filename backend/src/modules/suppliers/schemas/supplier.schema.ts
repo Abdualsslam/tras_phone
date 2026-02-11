@@ -48,10 +48,23 @@ export class Supplier {
     website?: string;
 
     // ═════════════════════════════════════
-    // Address
+    // Address (object: street, city, country, postalCode)
     // ═════════════════════════════════════
-    @Prop()
-    address?: string;
+    @Prop({
+        type: {
+            street: { type: String },
+            city: { type: String },
+            country: { type: String },
+            postalCode: { type: String },
+        },
+        _id: false,
+    })
+    address?: {
+        street?: string;
+        city?: string;
+        country?: string;
+        postalCode?: string;
+    };
 
     @Prop({ type: Types.ObjectId, ref: 'City' })
     cityId?: Types.ObjectId;
