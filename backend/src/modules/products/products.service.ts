@@ -611,10 +611,51 @@ export class ProductsService {
   // Reviews
   // ═════════════════════════════════════
 
+  async getMyReview(
+    productId: string,
+    customerId: string,
+  ): Promise<ProductReviewDocument | null> {
+    return this.productReviewModel
+      .findOne({ productId, customerId })
+      .populate('customerId', 'responsiblePersonName shopName')
+      .exec();
+  }
+
   async addReview(data: any): Promise<ProductReviewDocument> {
+    const existing = await this.productReviewModel.findOne({
+      productId: data.productId,
+      customerId: data.customerId,
+    });
+    if (existing) {
+      throw new BadRequestException('You have already reviewed this product');
+    }
     const review = await this.productReviewModel.create(data);
     await this.updateProductRating(data.productId);
     return review;
+  }
+
+  async updateReview(
+    productId: string,
+    reviewId: string,
+    customerId: string,
+    data: { rating?: number; title?: string; comment?: string; images?: string[] },
+  ): Promise<ProductReviewDocument> {
+    const review = await this.productReviewModel.findOne({
+      _id: reviewId,
+      productId,
+      customerId,
+    });
+    if (!review) throw new NotFoundException('Review not found');
+    if (data.rating != null) review.rating = data.rating;
+    if (data.title !== undefined) review.title = data.title;
+    if (data.comment !== undefined) review.comment = data.comment;
+    if (data.images !== undefined) review.images = data.images ?? [];
+    await review.save();
+    await this.updateProductRating(productId);
+    return this.productReviewModel
+      .findById(reviewId)
+      .populate('customerId', 'responsiblePersonName shopName')
+      .exec() as Promise<ProductReviewDocument>;
   }
 
   async getReviews(productId: string): Promise<ProductReviewDocument[]> {

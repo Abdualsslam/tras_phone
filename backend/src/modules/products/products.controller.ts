@@ -435,6 +435,29 @@ export class ProductsController {
     );
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/reviews/mine')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get my review for product',
+    description: 'Get current customer\'s review for a product (if any). Use to check if already reviewed.',
+  })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Review or null if not reviewed',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getMyReview(@Param('id') id: string, @CurrentUser() user: any) {
+    const review = await this.productsService.getMyReview(id, user.customerId);
+    return ResponseBuilder.success(
+      review,
+      review ? 'Review found' : 'No review yet',
+      review ? 'تم العثور على التقييم' : 'لم تقم بالتقييم بعد',
+    );
+  }
+
   @Public()
   @Get(':id/reviews')
   @ApiOperation({
@@ -458,6 +481,40 @@ export class ProductsController {
       reviews,
       'Reviews retrieved',
       'تم استرجاع التقييمات',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/reviews/:reviewId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Update my review',
+    description: 'Update your own review. Only the review owner can update.',
+  })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  @ApiParam({ name: 'reviewId', description: 'Review ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Review updated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async updateReview(
+    @Param('id') id: string,
+    @Param('reviewId') reviewId: string,
+    @CurrentUser() user: any,
+    @Body() updateReviewDto: AddReviewDto,
+  ) {
+    const review = await this.productsService.updateReview(
+      id,
+      reviewId,
+      user.customerId,
+      updateReviewDto,
+    );
+    return ResponseBuilder.success(
+      review,
+      'Review updated',
+      'تم تحديث التقييم',
     );
   }
 
