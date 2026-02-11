@@ -392,7 +392,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         }
 
                         return DropdownButtonFormField<CountryModel>(
-                          value: locationsState.selectedCountry,
+                          initialValue: locationsState.selectedCountry,
                           decoration: InputDecoration(
                             prefixIcon: Icon(
                               Iconsax.global,
@@ -486,7 +486,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         }
 
                         return DropdownButtonFormField<CityModel>(
-                          value: safeSelectedCity,
+                          initialValue: safeSelectedCity,
                           decoration: InputDecoration(
                             prefixIcon: Icon(
                               Iconsax.location,

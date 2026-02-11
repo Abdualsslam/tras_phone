@@ -3,7 +3,6 @@ library;
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -23,15 +22,6 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
-    // Load profile when screen is first shown if not already loaded
-    final profileCubit = context.read<ProfileCubit>();
-    final currentState = profileCubit.state;
-    if (currentState is ProfileInitial) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        profileCubit.loadProfile();
-      });
-    }
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,

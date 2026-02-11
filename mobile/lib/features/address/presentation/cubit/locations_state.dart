@@ -1,4 +1,6 @@
 /// Locations State
+library;
+
 import 'package:equatable/equatable.dart';
 import '../../data/models/country_model.dart';
 import '../../data/models/city_model.dart';
@@ -56,14 +58,14 @@ class LocationsState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        countries,
-        cities,
-        markets,
-        selectedCountry,
-        selectedCity,
-        selectedMarket,
-        shippingCalculation,
-        errorMessage,
-      ];
+    status,
+    countries,
+    cities,
+    markets,
+    selectedCountry,
+    selectedCity,
+    selectedMarket,
+    shippingCalculation,
+    errorMessage,
+  ];
 }

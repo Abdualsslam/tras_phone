@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/shimmer/index.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/product_entity.dart';
@@ -27,7 +26,7 @@ class BrandDetailsScreen extends StatefulWidget {
 class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
   final _repository = getIt<CatalogRepository>();
   final ScrollController _scrollController = ScrollController();
-  
+
   BrandEntity? _brand;
   List<ProductEntity> _products = [];
   bool _isLoading = true;
@@ -70,16 +69,13 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
       // Load brand if not provided (required to get brand.id)
       if (_brand == null) {
         final brandResult = await _repository.getBrandBySlug(widget.brandSlug);
-        brandResult.fold(
-          (failure) {
-            setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(failure.message)),
-            );
-            return; // Exit if brand not found
-          },
-          (brand) => _brand = brand,
-        );
+        brandResult.fold((failure) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(failure.message)));
+          return; // Exit if brand not found
+        }, (brand) => _brand = brand);
       }
 
       // Ensure we have brand with ID before loading products
@@ -98,14 +94,14 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
       result.fold(
         (failure) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(failure.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(failure.message)));
         },
         (data) {
           final products = data['products'] as List<ProductEntity>;
           final pagination = data['pagination'] as Map<String, dynamic>?;
-          
+
           setState(() {
             _products = products;
             _pagination = pagination;
@@ -117,9 +113,9 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('حدث خطأ: $e')));
       }
     }
   }
@@ -226,38 +222,37 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
                                   crossAxisSpacing: 12.w,
                                   childAspectRatio: 0.58,
                                 ),
-                            delegate: SliverChildBuilderDelegate((
-                              context,
-                              index,
-                            ) {
-                              if (index < _products.length) {
-                                final product = _products[index];
-                                return ProductCard(
-                                  id: product.id.toString(),
-                                  name: product.name,
-                                  nameAr: product.nameAr,
-                                  imageUrl: product.imageUrl,
-                                  price: product.price,
-                                  originalPrice: product.originalPrice,
-                                  stockQuantity: product.stockQuantity,
-                                  onTap: () => context.push(
-                                    '/product/${product.id}',
-                                    extra: product,
-                                  ),
-                                );
-                              } else if (_isLoadingMore) {
-                                return const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16.0),
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              } else {
-                                return const SizedBox.shrink();
-                              }
-                            },
-                                childCount: _products.length +
-                                    (_isLoadingMore ? 1 : 0)),
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                if (index < _products.length) {
+                                  final product = _products[index];
+                                  return ProductCard(
+                                    id: product.id.toString(),
+                                    name: product.name,
+                                    nameAr: product.nameAr,
+                                    imageUrl: product.imageUrl,
+                                    price: product.price,
+                                    originalPrice: product.originalPrice,
+                                    stockQuantity: product.stockQuantity,
+                                    onTap: () => context.push(
+                                      '/product/${product.id}',
+                                      extra: product,
+                                    ),
+                                  );
+                                } else if (_isLoadingMore) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(16.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+                                } else {
+                                  return const SizedBox.shrink();
+                                }
+                              },
+                              childCount:
+                                  _products.length + (_isLoadingMore ? 1 : 0),
+                            ),
                           ),
                         ),
 
@@ -311,9 +306,7 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
                             imageUrl: brandLogoUrl,
                             fit: BoxFit.contain,
                             placeholder: (context, url) => Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                             errorWidget: (context, url, error) =>
                                 _buildBrandInitial(brandName),

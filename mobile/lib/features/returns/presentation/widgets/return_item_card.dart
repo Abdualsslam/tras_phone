@@ -5,16 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/entities/return_entity.dart';
-import '../../domain/enums/return_enums.dart';
 import '../../../../core/config/theme/app_colors.dart';
 
 class ReturnItemCard extends StatelessWidget {
   final ReturnItemEntity item;
 
-  const ReturnItemCard({
-    super.key,
-    required this.item,
-  });
+  const ReturnItemCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -93,10 +89,7 @@ class ReturnItemCard extends StatelessWidget {
                       style: theme.textTheme.bodySmall,
                     ),
                     SizedBox(width: 8.w),
-                    Text(
-                      '•',
-                      style: theme.textTheme.bodySmall,
-                    ),
+                    Text('•', style: theme.textTheme.bodySmall),
                     SizedBox(width: 8.w),
                     Text(
                       '${item.unitPrice.toStringAsFixed(2)} ر.س',

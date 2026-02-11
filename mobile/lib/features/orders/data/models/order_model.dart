@@ -3,7 +3,6 @@ library;
 
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/order_entity.dart';
-import '../../domain/enums/order_enums.dart';
 import 'shipping_address_model.dart';
 
 part 'order_model.g.dart';
@@ -216,7 +215,10 @@ class OrderModel {
   }
 
   /// Handle shippingAddressId which can be String or populated object
-  static Object? _readShippingAddressId(Map<dynamic, dynamic> json, String key) {
+  static Object? _readShippingAddressId(
+    Map<dynamic, dynamic> json,
+    String key,
+  ) {
     final value = json['shippingAddressId'];
     if (value == null) return null;
     if (value is String) return value;

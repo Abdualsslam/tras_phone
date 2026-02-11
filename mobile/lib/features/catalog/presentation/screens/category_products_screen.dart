@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/shimmer/index.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
@@ -30,7 +29,7 @@ class CategoryProductsScreen extends StatefulWidget {
 class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
   final _repository = getIt<CatalogRepository>();
   final ScrollController _scrollController = ScrollController();
-  
+
   List<ProductEntity> _products = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -82,9 +81,9 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
       result.fold(
         (failure) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(failure.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(failure.message)));
         },
         (data) {
           final products = data['products'] as List<ProductEntity>;
@@ -101,9 +100,9 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('حدث خطأ: $e')));
       }
     }
   }
@@ -314,95 +313,95 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
         if (index < _products.length) {
           final product = _products[index];
           return GestureDetector(
-          onTap: () => context.push('/product/${product.id}', extra: product),
-          child: Container(
-            padding: EdgeInsets.all(12.w),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.cardDark : AppColors.cardLight,
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                // Image
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.asset(
-                    (product.imageUrl ?? '').startsWith('assets/')
-                        ? product.imageUrl ??
-                              'assets/images/products/phone_screen.png'
-                        : 'assets/images/products/phone_screen.png',
-                    width: 80.w,
-                    height: 80.w,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, url, error) => Container(
+            onTap: () => context.push('/product/${product.id}', extra: product),
+            child: Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.cardDark : AppColors.cardLight,
+                borderRadius: BorderRadius.circular(12.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  // Image
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: Image.asset(
+                      (product.imageUrl ?? '').startsWith('assets/')
+                          ? product.imageUrl ??
+                                'assets/images/products/phone_screen.png'
+                          : 'assets/images/products/phone_screen.png',
                       width: 80.w,
                       height: 80.w,
-                      color: AppColors.backgroundLight,
-                      child: Icon(Iconsax.image, size: 30.sp),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, url, error) => Container(
+                        width: 80.w,
+                        height: 80.w,
+                        color: AppColors.backgroundLight,
+                        child: Icon(Iconsax.image, size: 30.sp),
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(width: 12.w),
+                  SizedBox(width: 12.w),
 
-                // Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.nameAr,
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimaryLight,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 4.h),
-                      if (product.originalPrice != null &&
-                          product.originalPrice! > product.price) ...[
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          '${product.originalPrice!.toStringAsFixed(0)} ر.س',
+                          product.nameAr,
                           style: TextStyle(
-                            fontSize: 12.sp,
-                            color: AppColors.textTertiaryLight,
-                            decoration: TextDecoration.lineThrough,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimaryLight,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 4.h),
+                        if (product.originalPrice != null &&
+                            product.originalPrice! > product.price) ...[
+                          Text(
+                            '${product.originalPrice!.toStringAsFixed(0)} ر.س',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: AppColors.textTertiaryLight,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        ],
+                        Text(
+                          '${product.price.toStringAsFixed(0)} ر.س',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
                           ),
                         ),
                       ],
-                      Text(
-                        '${product.price.toStringAsFixed(0)} ر.س',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
 
-                Icon(
-                  Iconsax.arrow_left_2,
-                  size: 20.sp,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                ),
-              ],
+                  Icon(
+                    Iconsax.arrow_left_2,
+                    size: 20.sp,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
+          );
         } else if (_isLoadingMore) {
           return const Center(
             child: Padding(
@@ -509,7 +508,12 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
     );
   }
 
-  Widget _buildSortOption(String sortBy, String sortOrder, String label, bool isDark) {
+  Widget _buildSortOption(
+    String sortBy,
+    String sortOrder,
+    String label,
+    bool isDark,
+  ) {
     final isSelected = _sortBy == sortBy && _sortOrder == sortOrder;
 
     return ListTile(
@@ -539,7 +543,6 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
       ),
     );
   }
-
 
   void _showFilterSheet() {
     final isDark = Theme.of(context).brightness == Brightness.dark;

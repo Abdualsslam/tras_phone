@@ -969,7 +969,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     // تفعيل الزر عند توفر: سلة غير فارغة + عنوان + طريقة دفع
     // التحقق من المخزون والمنتجات غير النشطة يبقى داخل _handlePlaceOrder مع رسالة للمستخدم
     final canPlaceOrder =
-        !session.cart.isEmpty &&
+        session.cart.isNotEmpty &&
         _selectedAddressId != null &&
         session.addresses.isNotEmpty &&
         _selectedPaymentMethodId != null &&

@@ -7,7 +7,6 @@ import '../../../../core/constants/api_endpoints.dart';
 import '../../domain/entities/order_entity.dart';
 import '../../domain/entities/order_stats_entity.dart';
 import '../../domain/entities/bank_account_entity.dart';
-import '../../domain/enums/order_enums.dart';
 import '../models/order_model.dart';
 import '../models/order_stats_model.dart';
 import '../models/bank_account_model.dart';
@@ -139,7 +138,9 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
   }
 
   /// Map API order item format (productSku, productName, etc.) to OrderItemModel format
-  static Map<String, dynamic> _mapApiItemToOrderItemModel(Map<String, dynamic> apiItem) {
+  static Map<String, dynamic> _mapApiItemToOrderItemModel(
+    Map<String, dynamic> apiItem,
+  ) {
     final productId = apiItem['productId'];
     final productIdStr = productId is Map
         ? (productId['_id'] ?? productId['\$oid'])?.toString()
@@ -153,7 +154,9 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
       'quantity': apiItem['quantity'] ?? 0,
       'unitPrice': (apiItem['unitPrice'] as num?)?.toDouble() ?? 0.0,
       'discount': (apiItem['discount'] as num?)?.toDouble() ?? 0.0,
-      'total': ((apiItem['totalPrice'] ?? apiItem['total']) as num?)?.toDouble() ?? 0.0,
+      'total':
+          ((apiItem['totalPrice'] ?? apiItem['total']) as num?)?.toDouble() ??
+          0.0,
     };
   }
 
@@ -197,7 +200,8 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
       ApiEndpoints.orders,
       data: {
         if (shippingAddressId != null) 'shippingAddressId': shippingAddressId,
-        if (shippingAddress != null) 'shippingAddress': shippingAddress.toJson(),
+        if (shippingAddress != null)
+          'shippingAddress': shippingAddress.toJson(),
         if (paymentMethod != null) 'paymentMethod': paymentMethod.value,
         if (customerNotes != null) 'customerNotes': customerNotes,
         if (couponCode != null) 'couponCode': couponCode,
@@ -209,7 +213,10 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
   }
 
   @override
-  Future<OrderEntity> cancelOrder(String orderId, {required String reason}) async {
+  Future<OrderEntity> cancelOrder(
+    String orderId, {
+    required String reason,
+  }) async {
     developer.log('Cancelling order: $orderId', name: 'OrdersDataSource');
 
     final response = await _apiClient.post(
@@ -335,17 +342,17 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
 
   @override
   Future<List<OrderEntity>> getPendingPaymentOrders() async {
-    developer.log(
-      'Fetching pending payment orders',
-      name: 'OrdersDataSource',
-    );
+    developer.log('Fetching pending payment orders', name: 'OrdersDataSource');
 
     final response = await _apiClient.get(ApiEndpoints.ordersPendingPayment);
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
 
     return list
-        .map((json) => OrderModel.fromJson(json as Map<String, dynamic>).toEntity())
+        .map(
+          (json) =>
+              OrderModel.fromJson(json as Map<String, dynamic>).toEntity(),
+        )
         .toList();
   }
 
@@ -359,8 +366,9 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
 
     return list
         .map(
-          (json) => BankAccountModel.fromJson(json as Map<String, dynamic>)
-              .toEntity(),
+          (json) => BankAccountModel.fromJson(
+            json as Map<String, dynamic>,
+          ).toEntity(),
         )
         .toList();
   }

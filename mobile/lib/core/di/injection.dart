@@ -253,7 +253,7 @@ Future<void> setupDependencies() async {
   );
 
   // Cubits
-  getIt.registerFactory<ProfileCubit>(
+  getIt.registerLazySingleton<ProfileCubit>(
     () => ProfileCubit(repository: getIt<ProfileRepository>()),
   );
 
@@ -500,10 +500,12 @@ Future<void> _handleForcedLogout() async {
   await getIt<TokenManager>().clearTokens();
   await getIt<SecureStorage>().deleteAll();
 
-  // Clear product/home cache - prices differ by customer tier
+  // Clear product/home/profile cache - prices differ by customer tier
   try {
     await getIt<ProductCacheService>().clearAll();
     await getIt<HomeCacheService>().clearHomeData();
+    getIt<ProfileCubit>().clearCache();
+    getIt<AddressesCubit>().clearCache();
   } catch (_) {
     // Fail silently
   }

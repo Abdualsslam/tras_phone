@@ -69,14 +69,12 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
               controller: _scrollController,
               padding: EdgeInsets.all(16.w),
               itemCount: state.tickets.length + (state.hasMoreTickets ? 1 : 0),
-              separatorBuilder: (_, _a) => SizedBox(height: 12.h),
+              separatorBuilder: (_, a) => SizedBox(height: 12.h),
               itemBuilder: (context, index) {
                 if (index >= state.tickets.length) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                return TicketCard(
-                  ticket: state.tickets[index],
-                );
+                return TicketCard(ticket: state.tickets[index]);
               },
             ),
           );
@@ -124,11 +122,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Iconsax.warning_2,
-            size: 80.sp,
-            color: AppColors.error,
-          ),
+          Icon(Iconsax.warning_2, size: 80.sp, color: AppColors.error),
           SizedBox(height: 24.h),
           Text(
             'حدث خطأ',
@@ -153,5 +147,4 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       ),
     );
   }
-
 }

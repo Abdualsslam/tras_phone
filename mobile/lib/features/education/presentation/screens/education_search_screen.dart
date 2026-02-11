@@ -22,11 +22,11 @@ class EducationSearchScreen extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => getIt<EducationCategoriesCubit>()..loadCategories(activeOnly: true),
+          create: (context) =>
+              getIt<EducationCategoriesCubit>()
+                ..loadCategories(activeOnly: true),
         ),
-        BlocProvider(
-          create: (context) => getIt<EducationContentCubit>(),
-        ),
+        BlocProvider(create: (context) => getIt<EducationContentCubit>()),
       ],
       child: const _EducationSearchView(),
     );
@@ -61,10 +61,10 @@ class _EducationSearchViewState extends State<_EducationSearchView> {
     setState(() => _hasSearched = true);
 
     context.read<EducationContentCubit>().loadContent(
-          categoryId: _selectedCategoryId,
-          type: _selectedType,
-          search: query.isEmpty ? null : query,
-        );
+      categoryId: _selectedCategoryId,
+      type: _selectedType,
+      search: query.isEmpty ? null : query,
+    );
   }
 
   void _clearSearch() {
@@ -81,9 +81,7 @@ class _EducationSearchViewState extends State<_EducationSearchView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('البحث في المحتوى التعليمي'),
-      ),
+      appBar: AppBar(title: const Text('البحث في المحتوى التعليمي')),
       body: Column(
         children: [
           // Search Header
@@ -123,47 +121,55 @@ class _EducationSearchViewState extends State<_EducationSearchView> {
                   children: [
                     // Category Filter
                     Expanded(
-                      child: BlocBuilder<EducationCategoriesCubit, EducationCategoriesState>(
-                        builder: (context, state) {
-                          if (state is EducationCategoriesLoaded) {
-                            return DropdownButtonFormField<String?>(
-                              value: _selectedCategoryId,
-                              decoration: InputDecoration(
-                                labelText: 'الفئة',
-                                prefixIcon: const Icon(Iconsax.category),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                                filled: true,
-                                fillColor: isDark ? Colors.black12 : Colors.white,
-                              ),
-                              items: [
-                                const DropdownMenuItem(
-                                  value: null,
-                                  child: Text('جميع الفئات'),
-                                ),
-                                ...state.categories.map((category) {
-                                  return DropdownMenuItem(
-                                    value: category.id,
-                                    child: Text(category.nameAr ?? category.name),
-                                  );
-                                }),
-                              ],
-                              onChanged: (value) {
-                                setState(() => _selectedCategoryId = value);
-                              },
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
+                      child:
+                          BlocBuilder<
+                            EducationCategoriesCubit,
+                            EducationCategoriesState
+                          >(
+                            builder: (context, state) {
+                              if (state is EducationCategoriesLoaded) {
+                                return DropdownButtonFormField<String?>(
+                                  initialValue: _selectedCategoryId,
+                                  decoration: InputDecoration(
+                                    labelText: 'الفئة',
+                                    prefixIcon: const Icon(Iconsax.category),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12.r),
+                                    ),
+                                    filled: true,
+                                    fillColor: isDark
+                                        ? Colors.black12
+                                        : Colors.white,
+                                  ),
+                                  items: [
+                                    const DropdownMenuItem(
+                                      value: null,
+                                      child: Text('جميع الفئات'),
+                                    ),
+                                    ...state.categories.map((category) {
+                                      return DropdownMenuItem(
+                                        value: category.id,
+                                        child: Text(
+                                          category.nameAr ?? category.name,
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                  onChanged: (value) {
+                                    setState(() => _selectedCategoryId = value);
+                                  },
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
                     ),
                     SizedBox(width: 12.w),
 
                     // Type Filter
                     Expanded(
                       child: DropdownButtonFormField<ContentType?>(
-                        value: _selectedType,
+                        initialValue: _selectedType,
                         decoration: InputDecoration(
                           labelText: 'النوع',
                           prefixIcon: const Icon(Iconsax.filter),
@@ -174,10 +180,7 @@ class _EducationSearchViewState extends State<_EducationSearchView> {
                           fillColor: isDark ? Colors.black12 : Colors.white,
                         ),
                         items: const [
-                          DropdownMenuItem(
-                            value: null,
-                            child: Text('الكل'),
-                          ),
+                          DropdownMenuItem(value: null, child: Text('الكل')),
                           DropdownMenuItem(
                             value: ContentType.article,
                             child: Text('مقالات'),
@@ -306,10 +309,7 @@ class _EducationSearchViewState extends State<_EducationSearchView> {
             SizedBox(height: 16.h),
             Text(
               title,
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 8.h),
@@ -386,7 +386,9 @@ class _EducationSearchViewState extends State<_EducationSearchView> {
               ),
               child: content.featuredImage == null
                   ? Icon(
-                      content.type == ContentType.video ? Iconsax.video : Iconsax.document_text,
+                      content.type == ContentType.video
+                          ? Iconsax.video
+                          : Iconsax.document_text,
                       size: 32.sp,
                       color: getTypeColor(content.type),
                     )
@@ -399,7 +401,10 @@ class _EducationSearchViewState extends State<_EducationSearchView> {
                 children: [
                   // Type Badge
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 2.h,
+                    ),
                     decoration: BoxDecoration(
                       color: getTypeColor(content.type).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4.r),
@@ -440,7 +445,11 @@ class _EducationSearchViewState extends State<_EducationSearchView> {
                   // Meta
                   Row(
                     children: [
-                      Icon(Iconsax.eye, size: 12.sp, color: AppColors.textSecondaryLight),
+                      Icon(
+                        Iconsax.eye,
+                        size: 12.sp,
+                        color: AppColors.textSecondaryLight,
+                      ),
                       SizedBox(width: 4.w),
                       Text(
                         '${content.viewCount}',

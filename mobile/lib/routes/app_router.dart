@@ -16,7 +16,6 @@ import '../features/auth/presentation/screens/reset_password_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/catalog/presentation/screens/screens.dart';
 import '../features/catalog/presentation/screens/category_products_screen.dart';
-import '../features/catalog/presentation/screens/products_list_screen.dart';
 import '../features/catalog/presentation/screens/brand_details_screen.dart';
 import '../features/catalog/presentation/screens/devices_list_screen.dart';
 import '../features/catalog/presentation/screens/device_products_screen.dart';
@@ -130,13 +129,9 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/home',
       builder: (context, state) {
-        final tabIndex = int.tryParse(
-              state.uri.queryParameters['tab'] ?? '0',
-            ) ??
-            0;
-        return MainNavigationShell(
-          initialIndex: tabIndex.clamp(0, 4),
-        );
+        final tabIndex =
+            int.tryParse(state.uri.queryParameters['tab'] ?? '0') ?? 0;
+        return MainNavigationShell(initialIndex: tabIndex.clamp(0, 4));
       },
     ),
 
@@ -195,10 +190,7 @@ final GoRouter appRouter = GoRouter(
     // ═══════════════════════════════════════════════════════════════════════
     // ORDER ROUTES
     // ═══════════════════════════════════════════════════════════════════════
-    GoRoute(
-      path: '/orders',
-      redirect: (context, state) => '/home?tab=1',
-    ),
+    GoRoute(path: '/orders', redirect: (context, state) => '/home?tab=1'),
     GoRoute(
       path: '/order/:id',
       builder: (context, state) {
@@ -239,7 +231,9 @@ final GoRouter appRouter = GoRouter(
         return ProductReviewsScreen(
           productId: id,
           productName: extra is Map ? extra['productName'] as String? : null,
-          averageRating: extra is Map ? extra['averageRating'] as double? : null,
+          averageRating: extra is Map
+              ? extra['averageRating'] as double?
+              : null,
           reviewsCount: extra is Map ? extra['reviewsCount'] as int? : null,
         );
       },
@@ -249,7 +243,9 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final id = state.pathParameters['id'] ?? '';
         final extra = state.extra;
-        final productName = extra is Map ? extra['productName'] as String? : null;
+        final productName = extra is Map
+            ? extra['productName'] as String?
+            : null;
         return WriteReviewScreen(
           productId: id,
           productName: productName ?? 'المنتج',

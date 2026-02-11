@@ -1,4 +1,6 @@
 /// Locations Remote DataSource
+library;
+
 import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
@@ -39,7 +41,7 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
   final ApiClient _apiClient;
 
   LocationsRemoteDataSourceImpl({required ApiClient apiClient})
-      : _apiClient = apiClient;
+    : _apiClient = apiClient;
 
   @override
   Future<List<CountryModel>> getCountries() async {
@@ -52,28 +54,43 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
     print(response.data);
     print('═══════════════════════════════════════════════════════');
 
-    developer.log('Countries API response: success=${response.data['success']}, data type=${response.data['data']?.runtimeType}', name: 'LocationsDataSource');
-    
+    developer.log(
+      'Countries API response: success=${response.data['success']}, data type=${response.data['data']?.runtimeType}',
+      name: 'LocationsDataSource',
+    );
+
     // Check if data exists (some APIs return data directly without success field)
     final data = response.data['data'] ?? response.data;
-    
+
     // If data is a List, parse it regardless of success field
     if (data is List) {
-      developer.log('Parsing ${data.length} countries', name: 'LocationsDataSource');
-      final countries = data
-          .map((c) => CountryModel.fromJson(c))
-          .toList();
-      developer.log('Parsed ${countries.length} countries successfully', name: 'LocationsDataSource');
+      developer.log(
+        'Parsing ${data.length} countries',
+        name: 'LocationsDataSource',
+      );
+      final countries = data.map((c) => CountryModel.fromJson(c)).toList();
+      developer.log(
+        'Parsed ${countries.length} countries successfully',
+        name: 'LocationsDataSource',
+      );
       return countries;
     }
-    
+
     // If success is explicitly false or error message exists, throw error
     if (response.data['success'] == false) {
-      throw Exception(response.data['messageAr'] ?? response.data['message'] ?? 'Failed to get countries');
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to get countries',
+      );
     }
-    
+
     // If no data found, throw error
-    throw Exception(response.data['messageAr'] ?? response.data['message'] ?? 'No countries data found');
+    throw Exception(
+      response.data['messageAr'] ??
+          response.data['message'] ??
+          'No countries data found',
+    );
   }
 
   @override
@@ -83,14 +100,14 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
     print('🏙️ [LocationsDataSource] Cities API Request:');
     print('   Endpoint: ${ApiEndpoints.locationsCities}');
     print('   CountryId: $countryId');
-    print('   Query Parameters: ${countryId != null ? {'countryId': countryId} : {}}');
+    print(
+      '   Query Parameters: ${countryId != null ? {'countryId': countryId} : {}}',
+    );
     print('═══════════════════════════════════════════════════════');
 
     final response = await _apiClient.get(
       ApiEndpoints.locationsCities,
-      queryParameters: {
-        if (countryId != null) 'countryId': countryId,
-      },
+      queryParameters: {if (countryId != null) 'countryId': countryId},
     );
 
     // Print full response to terminal
@@ -101,11 +118,14 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
     print(response.data);
     print('═══════════════════════════════════════════════════════');
 
-    developer.log('Cities API response: status=${response.data['status']}, success=${response.data['success']}, data type=${response.data['data']?.runtimeType}, countryId=$countryId', name: 'LocationsDataSource');
-    
+    developer.log(
+      'Cities API response: status=${response.data['status']}, success=${response.data['success']}, data type=${response.data['data']?.runtimeType}, countryId=$countryId',
+      name: 'LocationsDataSource',
+    );
+
     // Check if data exists (some APIs return data directly without success field)
     final data = response.data['data'] ?? response.data;
-    
+
     // Print data details
     if (data is List) {
       print('📋 [LocationsDataSource] Data List Details:');
@@ -125,48 +145,66 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
       }
       print('═══════════════════════════════════════════════════════');
     } else {
-      print('⚠️ [LocationsDataSource] Data is NOT a List! Type: ${data?.runtimeType}');
+      print(
+        '⚠️ [LocationsDataSource] Data is NOT a List! Type: ${data?.runtimeType}',
+      );
       print('   Data value: $data');
       print('═══════════════════════════════════════════════════════');
     }
-    
+
     // If data is a List, parse it regardless of success field
     if (data is List) {
-      developer.log('Parsing ${data.length} cities', name: 'LocationsDataSource');
-      final cities = data
-          .map((c) {
-            developer.log('Parsing city: $c', name: 'LocationsDataSource');
-            return CityModel.fromJson(c);
-          })
-          .toList();
-      
+      developer.log(
+        'Parsing ${data.length} cities',
+        name: 'LocationsDataSource',
+      );
+      final cities = data.map((c) {
+        developer.log('Parsing city: $c', name: 'LocationsDataSource');
+        return CityModel.fromJson(c);
+      }).toList();
+
       print('✅ [LocationsDataSource] Parsed Cities:');
       for (var i = 0; i < cities.length; i++) {
         final city = cities[i];
-        print('   [$i] ${city.nameAr} (id: ${city.id}) - Capital: ${city.isCapital}');
+        print(
+          '   [$i] ${city.nameAr} (id: ${city.id}) - Capital: ${city.isCapital}',
+        );
       }
       if (cities.isEmpty) {
         print('   ⚠️ No cities parsed - list is empty');
       }
       print('═══════════════════════════════════════════════════════');
-      
-      developer.log('Parsed ${cities.length} cities successfully', name: 'LocationsDataSource');
+
+      developer.log(
+        'Parsed ${cities.length} cities successfully',
+        name: 'LocationsDataSource',
+      );
       return cities;
     }
-    
+
     // If success is explicitly false or error message exists, throw error
-    if (response.data['success'] == false || response.data['status'] == 'error') {
-      throw Exception(response.data['messageAr'] ?? response.data['message'] ?? 'Failed to get cities');
+    if (response.data['success'] == false ||
+        response.data['status'] == 'error') {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to get cities',
+      );
     }
-    
+
     // If no data found, throw error
-    throw Exception(response.data['messageAr'] ?? response.data['message'] ?? 'No cities data found');
+    throw Exception(
+      response.data['messageAr'] ??
+          response.data['message'] ??
+          'No cities data found',
+    );
   }
 
   @override
   Future<CityModel> getCityById(String cityId) async {
-    final response =
-        await _apiClient.get('${ApiEndpoints.locationsCities}/$cityId');
+    final response = await _apiClient.get(
+      '${ApiEndpoints.locationsCities}/$cityId',
+    );
 
     if (response.data['success'] == true) {
       return CityModel.fromJson(response.data['data']);
@@ -176,8 +214,9 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
 
   @override
   Future<List<MarketModel>> getMarketsByCity(String cityId) async {
-    final response = await _apiClient
-        .get('${ApiEndpoints.locationsCities}/$cityId/markets');
+    final response = await _apiClient.get(
+      '${ApiEndpoints.locationsCities}/$cityId/markets',
+    );
 
     if (response.data['success'] == true) {
       return (response.data['data'] as List)
@@ -189,8 +228,9 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
 
   @override
   Future<MarketModel> getMarketById(String marketId) async {
-    final response =
-        await _apiClient.get('${ApiEndpoints.locationsMarkets}/$marketId');
+    final response = await _apiClient.get(
+      '${ApiEndpoints.locationsMarkets}/$marketId',
+    );
 
     if (response.data['success'] == true) {
       return MarketModel.fromJson(response.data['data']);
@@ -217,7 +257,8 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
       return ShippingCalculationModel.fromJson(response.data['data']);
     }
     throw Exception(
-        response.data['messageAr'] ?? 'Failed to calculate shipping');
+      response.data['messageAr'] ?? 'Failed to calculate shipping',
+    );
   }
 
   @override
@@ -230,6 +271,7 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
           .toList();
     }
     throw Exception(
-        response.data['messageAr'] ?? 'Failed to get shipping zones');
+      response.data['messageAr'] ?? 'Failed to get shipping zones',
+    );
   }
 }

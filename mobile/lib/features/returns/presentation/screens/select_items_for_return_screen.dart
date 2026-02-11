@@ -10,7 +10,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../../orders/domain/entities/order_entity.dart';
-import '../../../orders/domain/enums/order_enums.dart';
 import '../../../orders/presentation/cubit/orders_cubit.dart';
 import '../../../orders/presentation/cubit/orders_state.dart';
 import '../../data/models/return_model.dart';
@@ -22,7 +21,8 @@ class SelectItemsForReturnScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => getIt<OrdersCubit>()..loadOrders(status: OrderStatus.delivered),
+      create: (context) =>
+          getIt<OrdersCubit>()..loadOrders(status: OrderStatus.delivered),
       child: const _SelectItemsForReturnView(),
     );
   }
@@ -32,7 +32,8 @@ class _SelectItemsForReturnView extends StatefulWidget {
   const _SelectItemsForReturnView();
 
   @override
-  State<_SelectItemsForReturnView> createState() => _SelectItemsForReturnViewState();
+  State<_SelectItemsForReturnView> createState() =>
+      _SelectItemsForReturnViewState();
 }
 
 class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
@@ -60,11 +61,7 @@ class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Iconsax.warning_2,
-                    size: 64.sp,
-                    color: AppColors.error,
-                  ),
+                  Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
                   SizedBox(height: 16.h),
                   Text(
                     state.message,
@@ -74,8 +71,8 @@ class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
                   SizedBox(height: 16.h),
                   ElevatedButton(
                     onPressed: () => context.read<OrdersCubit>().loadOrders(
-                          status: OrderStatus.delivered,
-                        ),
+                      status: OrderStatus.delivered,
+                    ),
                     child: const Text('إعادة المحاولة'),
                   ),
                 ],
@@ -177,10 +174,7 @@ class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
     // Convert selectedItems to List<CreateReturnItemRequest>
     final items = _selectedItems.entries
         .map(
-          (e) => CreateReturnItemRequest(
-            orderItemId: e.key,
-            quantity: e.value,
-          ),
+          (e) => CreateReturnItemRequest(orderItemId: e.key, quantity: e.value),
         )
         .toList();
 
@@ -225,7 +219,8 @@ class _OrderCard extends StatelessWidget {
           // Note: In production, order items should have unique IDs from the API
           // For now, we use a combination that should be unique
           // The backend will need to provide orderItemId in the API response
-          final orderItemId = '${order.id}_${item.productId}_${item.variantId ?? ''}_$index';
+          final orderItemId =
+              '${order.id}_${item.productId}_${item.variantId ?? ''}_$index';
           final isSelected = selectedItems.containsKey(orderItemId);
 
           return CheckboxListTile(
