@@ -147,6 +147,8 @@ export interface Product {
     dimensions?: string;
     color?: string;
     relatedProducts?: string[];
+    averageRating?: number;
+    reviewsCount?: number;
     createdAt: string;
     updatedAt: string;
 }

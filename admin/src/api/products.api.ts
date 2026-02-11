@@ -104,7 +104,7 @@ export interface ProductPrice {
 
 export interface ProductReview {
     _id: string;
-    customerId: string;
+    customerId: string | { _id: string; shopName?: string; companyName?: string; responsiblePersonName?: string };
     customer?: {
         _id: string;
         companyName: string;
@@ -112,8 +112,10 @@ export interface ProductReview {
     };
     rating: number;
     comment?: string;
-    isVerified: boolean;
-    isApproved: boolean;
+    status?: 'pending' | 'approved' | 'rejected';
+    isVerified?: boolean;
+    isVerifiedPurchase?: boolean;
+    isApproved?: boolean;
     createdAt: string;
 }
 
@@ -182,6 +184,8 @@ export const productsApi = {
             weight: p.weight,
             dimensions: p.dimensions,
             color: p.color,
+            averageRating: p.averageRating ?? 0,
+            reviewsCount: p.reviewsCount ?? 0,
             createdAt: p.createdAt,
             updatedAt: p.updatedAt,
         }));

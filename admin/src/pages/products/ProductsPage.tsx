@@ -2100,11 +2100,13 @@ export function ProductsPage() {
                   {productReviews.map((review) => (
                     <Card key={review._id}>
                       <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
+                            <div className="flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-medium">
-                                {review.customer?.companyName || "عميل"}
+                                {(review.customerId as any)?.shopName ||
+                                  (review.customerId as any)?.companyName ||
+                                  "عميل"}
                               </span>
                               <div className="flex items-center">
                                 {[...Array(5)].map((_, i) => (
@@ -2123,18 +2125,18 @@ export function ProductsPage() {
                               {review.comment}
                             </p>
                             <div className="flex gap-2 mt-2">
-                              {review.isApproved ? (
+                              {review.status === "approved" ? (
                                 <Badge variant="success">معتمد</Badge>
                               ) : (
                                 <Badge variant="warning">قيد المراجعة</Badge>
                               )}
-                              {review.isVerified && (
+                              {review.isVerifiedPurchase && (
                                 <Badge variant="secondary">مشتري حقيقي</Badge>
                               )}
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            {!review.isApproved && (
+                            {review.status !== "approved" && (
                               <Button
                                 size="sm"
                                 variant="outline"
