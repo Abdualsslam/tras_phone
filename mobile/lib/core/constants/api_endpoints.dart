@@ -62,6 +62,9 @@ class ApiEndpoints {
   static const String wishlistMy = '/products/wishlist/my';
   static String productWishlist(String id) => '/products/$id/wishlist';
   static String productReviews(String id) => '/products/$id/reviews';
+  static String productReviewsMine(String id) => '/products/$id/reviews/mine';
+  static String productReviewUpdate(String productId, String reviewId) =>
+      '/products/$productId/reviews/$reviewId';
   static const String reviews = '/reviews';
   static const String myReviews = '/customer/reviews';
   static const String pendingReviews = '/customer/pending-reviews';
