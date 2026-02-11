@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
@@ -207,13 +208,26 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         );
       }
     } catch (e) {
-      // Revert on error
       if (mounted) {
         setState(() {
-          _isFavorite = wasFavorite;
           _isLoadingWishlist = false;
         });
 
+        // 409 = المنتج موجود فعلاً في المفضلة → نحدّث الواجهة ولا نعتبره خطأ
+        if (e is DioException && e.response?.statusCode == 409) {
+          setState(() => _isFavorite = true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('المنتج موجود في المفضلة'),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return;
+        }
+
+        setState(() => _isFavorite = wasFavorite);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(

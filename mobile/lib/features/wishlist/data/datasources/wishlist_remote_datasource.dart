@@ -292,16 +292,31 @@ class WishlistRemoteDataSourceImpl implements WishlistRemoteDataSource {
     developer.log('Checking wishlist: $productId', name: 'WishlistDataSource');
 
     try {
-      // Try to get the full wishlist and check if product is in it
+      // 1) استخدم endpoint التحقق إن وُجد (أسرع وأدق)
+      final response = await _apiClient.get(ApiEndpoints.productWishlistCheck(productId));
+      final data = response.data['data'] ?? response.data;
+      if (data is Map && data.containsKey('inWishlist')) {
+        return data['inWishlist'] == true;
+      }
+    } catch (e) {
+      developer.log(
+        'Check wishlist endpoint failed, falling back to full list: $e',
+        name: 'WishlistDataSource',
+      );
+    }
+
+    // 2) Fallback: جلب القائمة والتحقق
+    try {
       final wishlist = await getWishlist();
-      return wishlist.any((item) => item.productId == productId);
+      final normalizedProductId = productId.toString().trim();
+      return wishlist.any((item) =>
+          item.productId.toString().trim() == normalizedProductId);
     } catch (e) {
       developer.log(
         'Error checking wishlist status: $e',
         name: 'WishlistDataSource',
         error: e,
       );
-      // Return false if check fails
       return false;
     }
   }
