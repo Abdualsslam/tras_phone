@@ -2,7 +2,6 @@
 library;
 
 import 'package:json_annotation/json_annotation.dart';
-import '../../domain/enums/return_enums.dart';
 import '../../domain/entities/return_entity.dart';
 
 part 'return_model.g.dart';
@@ -132,18 +131,19 @@ class ReturnModel {
 
   /// هل الطلب نشط؟
   bool get isActive => ![
-        ReturnStatus.completed,
-        ReturnStatus.cancelled,
-        ReturnStatus.rejected,
-      ].contains(statusEnum);
+    ReturnStatus.completed,
+    ReturnStatus.cancelled,
+    ReturnStatus.rejected,
+  ].contains(statusEnum);
 
   /// المبلغ الصافي للاسترداد
   double get netRefund => totalItemsValue - restockingFee - shippingDeduction;
 
   DateTime? get createdAtDate => DateTime.tryParse(createdAt);
   DateTime? get updatedAtDate => DateTime.tryParse(updatedAt);
-  DateTime? get scheduledPickupDateParsed =>
-      scheduledPickupDate != null ? DateTime.tryParse(scheduledPickupDate!) : null;
+  DateTime? get scheduledPickupDateParsed => scheduledPickupDate != null
+      ? DateTime.tryParse(scheduledPickupDate!)
+      : null;
   DateTime? get approvedAtDate =>
       approvedAt != null ? DateTime.tryParse(approvedAt!) : null;
   DateTime? get rejectedAtDate =>

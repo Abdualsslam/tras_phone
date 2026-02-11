@@ -6,7 +6,6 @@ import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/return_entity.dart';
 import '../../domain/repositories/returns_repository.dart';
-import '../../domain/enums/return_enums.dart';
 import '../datasources/returns_remote_datasource.dart';
 import '../models/return_model.dart';
 
@@ -15,7 +14,7 @@ class ReturnsRepositoryImpl implements ReturnsRepository {
   final ReturnsRemoteDataSource _remoteDataSource;
 
   ReturnsRepositoryImpl({required ReturnsRemoteDataSource remoteDataSource})
-      : _remoteDataSource = remoteDataSource;
+    : _remoteDataSource = remoteDataSource;
 
   @override
   Future<Either<Failure, List<ReturnEntity>>> getMyReturns({

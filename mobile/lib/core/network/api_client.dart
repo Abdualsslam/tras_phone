@@ -13,7 +13,7 @@ import '../storage/local_storage.dart';
 class ApiClient {
   late final Dio _dio;
   TokenManager? _tokenManager;
-  LocalStorage? _localStorage;
+  final LocalStorage? _localStorage;
 
   ApiClient({LocalStorage? localStorage}) : _localStorage = localStorage {
     _dio = Dio(
@@ -230,13 +230,15 @@ class ApiClient {
       'Your account is under review. Please wait for activation':
           'حسابك قيد المراجعة. يرجى انتظار التفعيل',
       'Your account has been rejected': 'تم رفض حسابك',
-      'Invalid credentials': 'رقم الجوال أو كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى',
+      'Invalid credentials':
+          'رقم الجوال أو كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى',
       'User not found': 'المستخدم غير موجود',
       'Account is locked': 'الحساب مقفل',
       'Account suspended': 'الحساب معلق',
       'Email already exists': 'البريد الإلكتروني مستخدم بالفعل',
       'Phone number already exists': 'رقم الهاتف مستخدم بالفعل',
-      'User with this phone or email already exists': 'المستخدم موجود بالفعل. رقم الجوال أو البريد الإلكتروني مستخدم',
+      'User with this phone or email already exists':
+          'المستخدم موجود بالفعل. رقم الجوال أو البريد الإلكتروني مستخدم',
       'Invalid token': 'رمز غير صحيح',
       'Token expired': 'انتهت صلاحية الرمز',
       'Unauthorized': 'غير مصرح',
@@ -257,7 +259,7 @@ class ApiClient {
 
     final statusCode = response.statusCode;
     final data = response.data;
-    
+
     // Extract error message, handling both String and List types
     String extractMessage(dynamic value) {
       if (value is String) return value;
@@ -266,49 +268,53 @@ class ApiClient {
       }
       return value?.toString() ?? 'خطأ في الخادم';
     }
-    
+
     final locale = _getCurrentLocale();
-    
+
     // Extract both English and Arabic messages from response
     String? messageEn;
     String? messageAr;
     if (data is Map) {
-      messageEn = data['message'] != null ? extractMessage(data['message']) : null;
-      messageAr = data['messageAr'] != null ? extractMessage(data['messageAr']) : null;
+      messageEn = data['message'] != null
+          ? extractMessage(data['message'])
+          : null;
+      messageAr = data['messageAr'] != null
+          ? extractMessage(data['messageAr'])
+          : null;
     }
-    
+
     // Check if this is an account under review error (before choosing locale message)
-    final isAccountUnderReview = 
-        (messageEn != null && (
-          messageEn == AccountUnderReviewException.englishMessage ||
-          messageEn.contains('account is under review') ||
-          messageEn.contains('under review'))) ||
-        (messageAr != null && (
-          messageAr == AccountUnderReviewException.arabicMessage ||
-          messageAr.contains('قيد المراجعة')));
-    
+    final isAccountUnderReview =
+        (messageEn != null &&
+            (messageEn == AccountUnderReviewException.englishMessage ||
+                messageEn.contains('account is under review') ||
+                messageEn.contains('under review'))) ||
+        (messageAr != null &&
+            (messageAr == AccountUnderReviewException.arabicMessage ||
+                messageAr.contains('قيد المراجعة')));
+
     // Check if this is an account rejected error (before choosing locale message)
-    final isAccountRejected = 
-        (messageEn != null && (
-          messageEn == AccountRejectedException.englishMessage ||
-          messageEn.contains('account has been rejected') ||
-          messageEn.contains('has been rejected'))) ||
-        (messageAr != null && (
-          messageAr == AccountRejectedException.arabicMessage ||
-          messageAr.contains('تم رفض') ||
-          messageAr.contains('رفض حسابك')));
-    
+    final isAccountRejected =
+        (messageEn != null &&
+            (messageEn == AccountRejectedException.englishMessage ||
+                messageEn.contains('account has been rejected') ||
+                messageEn.contains('has been rejected'))) ||
+        (messageAr != null &&
+            (messageAr == AccountRejectedException.arabicMessage ||
+                messageAr.contains('تم رفض') ||
+                messageAr.contains('رفض حسابك')));
+
     // Check if this is a user already exists error (before choosing locale message)
-    final isUserAlreadyExists = 
-        (messageEn != null && (
-          messageEn == ConflictException.userAlreadyExistsEn ||
-          messageEn.contains('phone or email already exists') ||
-          messageEn.contains('already exists'))) ||
-        (messageAr != null && (
-          messageAr == ConflictException.userAlreadyExistsAr ||
-          messageAr.contains('موجود بالفعل') ||
-          messageAr.contains('مستخدم بالفعل')));
-    
+    final isUserAlreadyExists =
+        (messageEn != null &&
+            (messageEn == ConflictException.userAlreadyExistsEn ||
+                messageEn.contains('phone or email already exists') ||
+                messageEn.contains('already exists'))) ||
+        (messageAr != null &&
+            (messageAr == ConflictException.userAlreadyExistsAr ||
+                messageAr.contains('موجود بالفعل') ||
+                messageAr.contains('مستخدم بالفعل')));
+
     // Choose message based on locale: prefer messageAr for Arabic, message for others
     String message;
     if (data is Map) {
@@ -343,16 +349,16 @@ class ApiClient {
         // Return AccountUnderReviewException if detected
         if (isAccountUnderReview) {
           return AccountUnderReviewException(
-            message: locale == 'ar' 
-                ? AccountUnderReviewException.arabicMessage 
+            message: locale == 'ar'
+                ? AccountUnderReviewException.arabicMessage
                 : AccountUnderReviewException.englishMessage,
           );
         }
         // Return AccountRejectedException if detected
         if (isAccountRejected) {
           return AccountRejectedException(
-            message: locale == 'ar' 
-                ? AccountRejectedException.arabicMessage 
+            message: locale == 'ar'
+                ? AccountRejectedException.arabicMessage
                 : AccountRejectedException.englishMessage,
           );
         }
@@ -365,8 +371,8 @@ class ApiClient {
         // Return ConflictException for user already exists
         if (isUserAlreadyExists) {
           return ConflictException(
-            message: locale == 'ar' 
-                ? ConflictException.userAlreadyExistsAr 
+            message: locale == 'ar'
+                ? ConflictException.userAlreadyExistsAr
                 : ConflictException.userAlreadyExistsEn,
           );
         }

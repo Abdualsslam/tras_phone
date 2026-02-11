@@ -20,10 +20,7 @@ class CreateReturnScreen extends StatefulWidget {
   /// Pre-selected items from SelectItemsForReturnScreen
   final List<CreateReturnItemRequest>? preSelectedItems;
 
-  const CreateReturnScreen({
-    super.key,
-    this.preSelectedItems,
-  });
+  const CreateReturnScreen({super.key, this.preSelectedItems});
 
   @override
   State<CreateReturnScreen> createState() => _CreateReturnScreenState();
@@ -120,7 +117,9 @@ class _CreateReturnViewState extends State<_CreateReturnView> {
                     Container(
                       padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+                        color: isDark
+                            ? AppColors.cardDark
+                            : AppColors.cardLight,
                         borderRadius: BorderRadius.circular(16.r),
                       ),
                       child: Row(
@@ -200,19 +199,22 @@ class _CreateReturnViewState extends State<_CreateReturnView> {
                               borderRadius: BorderRadius.circular(14.r),
                             ),
                             filled: true,
-                            fillColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+                            fillColor: isDark
+                                ? AppColors.cardDark
+                                : AppColors.cardLight,
                             hintText: 'اختر السبب',
                           ),
-                          value: _selectedReason,
-                          items: state.reasons
-                              .where((r) => r.isActive)
-                              .map((reason) {
+                          initialValue: _selectedReason,
+                          items: state.reasons.where((r) => r.isActive).map((
+                            reason,
+                          ) {
                             return DropdownMenuItem(
                               value: reason,
                               child: Text(reason.getName('ar')),
                             );
                           }).toList(),
-                          onChanged: (reason) => setState(() => _selectedReason = reason),
+                          onChanged: (reason) =>
+                              setState(() => _selectedReason = reason),
                           validator: (value) {
                             if (value == null) {
                               return 'يرجى اختيار سبب الإرجاع';
@@ -248,7 +250,10 @@ class _CreateReturnViewState extends State<_CreateReturnView> {
                                 SizedBox(width: 4.w),
                                 Text(
                                   '*',
-                                  style: TextStyle(color: Colors.red, fontSize: 14.sp),
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 14.sp,
+                                  ),
                                 ),
                               ],
                             ),
@@ -304,7 +309,9 @@ class _CreateReturnViewState extends State<_CreateReturnView> {
                     decoration: InputDecoration(
                       hintText: 'اشرح سبب الإرجاع بالتفصيل...',
                       filled: true,
-                      fillColor: isDark ? AppColors.cardDark : AppColors.cardLight,
+                      fillColor: isDark
+                          ? AppColors.cardDark
+                          : AppColors.cardLight,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14.r),
                         borderSide: BorderSide.none,
@@ -353,7 +360,9 @@ class _CreateReturnViewState extends State<_CreateReturnView> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isSubmitting ? null : () => _submitReturn(context, preSelectedItems),
+                      onPressed: _isSubmitting
+                          ? null
+                          : () => _submitReturn(context, preSelectedItems),
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 16.h),
                         shape: RoundedRectangleBorder(

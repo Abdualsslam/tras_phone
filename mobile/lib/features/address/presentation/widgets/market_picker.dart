@@ -1,4 +1,6 @@
 /// Market Picker Widget - اختيار الحي/السوق
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/market_model.dart';
@@ -9,11 +11,7 @@ class MarketPicker extends StatelessWidget {
   final Function(MarketModel)? onMarketSelected;
   final String locale;
 
-  const MarketPicker({
-    super.key,
-    this.onMarketSelected,
-    this.locale = 'ar',
-  });
+  const MarketPicker({super.key, this.onMarketSelected, this.locale = 'ar'});
 
   @override
   Widget build(BuildContext context) {

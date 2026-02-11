@@ -1,7 +1,6 @@
 /// Cart Remote DataSource - Real API implementation
 library;
 
-import 'dart:convert';
 import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
@@ -277,15 +276,7 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
     print('[API] ← ${response.statusCode} $path');
 
     final data = response.data['data'] ?? response.data;
-    // طباعة البيانات القادمة من الـ API
-    try {
-      final pretty = const JsonEncoder.withIndent(
-        '  ',
-      ).convert(data is Map ? data : {'data': data});
-      print('[API] Response data:\n$pretty');
-    } catch (_) {
-      print('[API] Response data: $data');
-    }
+
     return CheckoutSessionModel.fromJson(data).toEntity();
   }
 }

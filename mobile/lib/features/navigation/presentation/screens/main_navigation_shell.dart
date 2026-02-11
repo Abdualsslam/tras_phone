@@ -14,6 +14,8 @@ import '../../../cart/presentation/cubit/cart_state.dart';
 import '../../../cart/presentation/screens/cart_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 import '../../../orders/presentation/screens/orders_list_screen.dart';
+import '../../../profile/presentation/cubit/profile_cubit.dart';
+import '../../../profile/presentation/cubit/profile_state.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../wishlist/presentation/screens/wishlist_screen.dart';
 
@@ -59,6 +61,14 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     if (_currentIndex != index) {
       HapticFeedback.lightImpact();
       setState(() => _currentIndex = index);
+
+      // Load profile data lazily when navigating to Profile tab
+      if (index == 4) {
+        final profileCubit = context.read<ProfileCubit>();
+        if (profileCubit.state is ProfileInitial) {
+          profileCubit.loadProfile();
+        }
+      }
     }
   }
 

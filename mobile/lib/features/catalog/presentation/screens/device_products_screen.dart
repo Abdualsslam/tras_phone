@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/shimmer/index.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
@@ -80,9 +79,9 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
       result.fold(
         (failure) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(failure.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(failure.message)));
         },
         (data) {
           final products = data['products'] as List<ProductEntity>;
@@ -99,9 +98,9 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('حدث خطأ: $e')));
       }
     }
   }
@@ -175,7 +174,9 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+                  color: isDark
+                      ? AppColors.surfaceDark
+                      : AppColors.surfaceLight,
                   border: Border(
                     bottom: BorderSide(
                       color: isDark
@@ -291,7 +292,12 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
     );
   }
 
-  Widget _buildSortOption(String sortBy, String sortOrder, String label, bool isDark) {
+  Widget _buildSortOption(
+    String sortBy,
+    String sortOrder,
+    String label,
+    bool isDark,
+  ) {
     final isSelected = _sortBy == sortBy && _sortOrder == sortOrder;
 
     return ListTile(

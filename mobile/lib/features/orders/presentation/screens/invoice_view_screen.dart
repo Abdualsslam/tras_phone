@@ -38,7 +38,9 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
       _error = null;
     });
     try {
-      final order = await context.read<OrdersCubit>().getOrderById(widget.orderId);
+      final order = await context.read<OrdersCubit>().getOrderById(
+        widget.orderId,
+      );
       if (mounted) {
         setState(() {
           _order = order;
@@ -494,14 +496,14 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
           ),
           Expanded(
             child: Text(
-              '${price.toStringAsFixed(0)}',
+              price.toStringAsFixed(0),
               style: TextStyle(fontSize: 12.sp),
               textAlign: TextAlign.center,
             ),
           ),
           Expanded(
             child: Text(
-              '${total.toStringAsFixed(0)}',
+              total.toStringAsFixed(0),
               style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
               textAlign: TextAlign.end,
             ),
@@ -551,7 +553,9 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
       ),
     );
     try {
-      final url = await context.read<OrdersCubit>().getOrderInvoice(widget.orderId);
+      final url = await context.read<OrdersCubit>().getOrderInvoice(
+        widget.orderId,
+      );
       if (url.isNotEmpty && mounted) {
         final uri = Uri.tryParse(url);
         if (uri != null && await canLaunchUrl(uri)) {
@@ -595,7 +599,9 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
 
   Future<void> _shareInvoice(BuildContext context) async {
     try {
-      final url = await context.read<OrdersCubit>().getOrderInvoice(widget.orderId);
+      final url = await context.read<OrdersCubit>().getOrderInvoice(
+        widget.orderId,
+      );
       if (url.isNotEmpty && mounted) {
         await Share.share(
           'فاتورة الطلب ${_order?.orderNumber ?? widget.orderId}\n$url',

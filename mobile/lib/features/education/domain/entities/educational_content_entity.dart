@@ -168,39 +168,39 @@ class EducationalContentEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        title,
-        titleAr,
-        slug,
-        categoryId,
-        category,
-        type,
-        excerpt,
-        excerptAr,
-        content,
-        contentAr,
-        featuredImage,
-        videoUrl,
-        videoDuration,
-        attachments,
-        relatedProducts,
-        relatedContent,
-        tags,
-        metaTitle,
-        metaDescription,
-        status,
-        publishedAt,
-        isFeatured,
-        viewCount,
-        likeCount,
-        shareCount,
-        readingTime,
-        difficulty,
-        createdBy,
-        updatedBy,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    title,
+    titleAr,
+    slug,
+    categoryId,
+    category,
+    type,
+    excerpt,
+    excerptAr,
+    content,
+    contentAr,
+    featuredImage,
+    videoUrl,
+    videoDuration,
+    attachments,
+    relatedProducts,
+    relatedContent,
+    tags,
+    metaTitle,
+    metaDescription,
+    status,
+    publishedAt,
+    isFeatured,
+    viewCount,
+    likeCount,
+    shareCount,
+    readingTime,
+    difficulty,
+    createdBy,
+    updatedBy,
+    createdAt,
+    updatedAt,
+  ];
 
   /// الحصول على العنوان حسب اللغة
   String getTitle(String locale) =>
@@ -225,14 +225,12 @@ class EducationalContentEntity extends Equatable {
     if (videoDuration == null) return null;
     final minutes = videoDuration! ~/ 60;
     final seconds = videoDuration! % 60;
-    return '${minutes}:${seconds.toString().padLeft(2, '0')}';
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   /// وقت القراءة بصيغة قابلة للقراءة
   String get readingTimeFormatted {
     if (readingTime == null) return '';
-    return readingTime == 1
-        ? 'دقيقة واحدة'
-        : '$readingTime دقائق';
+    return readingTime == 1 ? 'دقيقة واحدة' : '$readingTime دقائق';
   }
 }

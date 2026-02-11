@@ -1,4 +1,6 @@
 /// Locations Cubit
+library;
+
 import 'dart:developer' as developer;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/datasources/locations_remote_datasource.dart';
@@ -11,86 +13,107 @@ class LocationsCubit extends Cubit<LocationsState> {
   final LocationsRemoteDataSource _dataSource;
 
   LocationsCubit({required LocationsRemoteDataSource dataSource})
-      : _dataSource = dataSource,
-        super(const LocationsState());
+    : _dataSource = dataSource,
+      super(const LocationsState());
 
   /// تحميل الدول
   Future<void> loadCountries() async {
     emit(state.copyWith(status: LocationsStatus.loading));
     try {
       final countries = await _dataSource.getCountries();
-      developer.log('Loaded ${countries.length} countries', name: 'LocationsCubit');
-      
+      developer.log(
+        'Loaded ${countries.length} countries',
+        name: 'LocationsCubit',
+      );
+
       if (countries.isEmpty) {
         developer.log('No countries found', name: 'LocationsCubit');
-        emit(state.copyWith(
-          status: LocationsStatus.success,
-          countries: countries,
-        ));
+        emit(
+          state.copyWith(status: LocationsStatus.success, countries: countries),
+        );
         return;
       }
-      
+
       final defaultCountry = countries.firstWhere(
         (c) => c.isDefault,
         orElse: () => countries.first,
       );
-      developer.log('Default country: ${defaultCountry.nameAr} (${defaultCountry.id})', name: 'LocationsCubit');
-      
-      emit(state.copyWith(
-        status: LocationsStatus.success,
-        countries: countries,
-        selectedCountry: defaultCountry,
-      ));
+      developer.log(
+        'Default country: ${defaultCountry.nameAr} (${defaultCountry.id})',
+        name: 'LocationsCubit',
+      );
+
+      emit(
+        state.copyWith(
+          status: LocationsStatus.success,
+          countries: countries,
+          selectedCountry: defaultCountry,
+        ),
+      );
       // تحميل مدن الدولة الافتراضية
       await loadCities(countryId: defaultCountry.id);
     } catch (e) {
-      developer.log('Error loading countries: $e', name: 'LocationsCubit', error: e);
-      emit(state.copyWith(
-        status: LocationsStatus.failure,
-        errorMessage: e.toString(),
-      ));
+      developer.log(
+        'Error loading countries: $e',
+        name: 'LocationsCubit',
+        error: e,
+      );
+      emit(
+        state.copyWith(
+          status: LocationsStatus.failure,
+          errorMessage: e.toString(),
+        ),
+      );
     }
   }
 
   /// تحميل المدن
   Future<void> loadCities({String? countryId}) async {
     try {
-      developer.log('Loading cities for countryId: $countryId', name: 'LocationsCubit');
+      developer.log(
+        'Loading cities for countryId: $countryId',
+        name: 'LocationsCubit',
+      );
       final cities = await _dataSource.getCities(countryId: countryId);
       developer.log('Loaded ${cities.length} cities', name: 'LocationsCubit');
-      
-      emit(state.copyWith(
-        status: LocationsStatus.success,
-        cities: cities,
-      ));
-      
-      developer.log('Cities state updated: ${cities.length} cities in state', name: 'LocationsCubit');
+
+      emit(state.copyWith(status: LocationsStatus.success, cities: cities));
+
+      developer.log(
+        'Cities state updated: ${cities.length} cities in state',
+        name: 'LocationsCubit',
+      );
     } catch (e) {
-      developer.log('Error loading cities: $e', name: 'LocationsCubit', error: e);
-      emit(state.copyWith(
-        status: LocationsStatus.failure,
-        errorMessage: e.toString(),
-      ));
+      developer.log(
+        'Error loading cities: $e',
+        name: 'LocationsCubit',
+        error: e,
+      );
+      emit(
+        state.copyWith(
+          status: LocationsStatus.failure,
+          errorMessage: e.toString(),
+        ),
+      );
     }
   }
 
   /// تحديد الدولة
   void selectCountry(CountryModel country) {
-    emit(state.copyWith(
-      selectedCountry: country,
-      selectedCity: null,
-      selectedMarket: null,
-      markets: [],
-    ));
+    emit(
+      state.copyWith(
+        selectedCountry: country,
+        selectedCity: null,
+        selectedMarket: null,
+        markets: [],
+      ),
+    );
     loadCities(countryId: country.id);
   }
 
   /// تحديد المدينة
   Future<void> selectCity(CityModel city) async {
-    emit(state.copyWith(
-      selectedCity: city,
-      selectedMarket: null,
-    ));
+    emit(state.copyWith(selectedCity: city, selectedMarket: null));
     // تحميل الأسواق
     await loadMarkets(city.id);
   }
@@ -124,9 +147,7 @@ class LocationsCubit extends Cubit<LocationsState> {
       );
       emit(state.copyWith(shippingCalculation: calculation));
     } catch (e) {
-      emit(state.copyWith(
-        errorMessage: e.toString(),
-      ));
+      emit(state.copyWith(errorMessage: e.toString()));
     }
   }
 

@@ -13,6 +13,7 @@ import '../../../../routes/app_router.dart';
 import '../../../notifications/services/push_notification_manager.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../../catalog/data/services/product_cache_service.dart';
+import '../../../profile/presentation/cubit/profile_cubit.dart';
 import '../../../home/data/services/home_cache_service.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -193,13 +194,15 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
-  /// Clear product and home caches when auth state changes (login/logout)
+  /// Clear product, home, and profile caches when auth state changes (login/logout)
   /// Prices differ by customer tier - cached data becomes stale
   Future<void> _clearProductCachesOnAuthChange() async {
     try {
       await getIt<ProductCacheService>().clearAll();
       await getIt<HomeCacheService>().clearHomeData();
-      developer.log('Cleared product and home caches on auth change', name: 'AuthCubit');
+      getIt<ProfileCubit>().clearCache();
+      getIt<AddressesCubit>().clearCache();
+      developer.log('Cleared product, home, and profile caches on auth change', name: 'AuthCubit');
     } catch (e) {
       developer.log('Failed to clear caches on auth change: $e', name: 'AuthCubit');
       // Fail silently - not critical

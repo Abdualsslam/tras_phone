@@ -3,7 +3,6 @@ library;
 
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/return_entity.dart';
-import '../../domain/enums/return_enums.dart';
 
 abstract class ReturnsState extends Equatable {
   const ReturnsState();
@@ -36,7 +35,13 @@ class ReturnsLoaded extends ReturnsState {
   });
 
   @override
-  List<Object?> get props => [returns, total, filterStatus, currentPage, hasMore];
+  List<Object?> get props => [
+    returns,
+    total,
+    filterStatus,
+    currentPage,
+    hasMore,
+  ];
 }
 
 class ReturnsError extends ReturnsState {

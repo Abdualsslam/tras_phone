@@ -1,4 +1,6 @@
 /// City Selector Widget - اختيار المدينة
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/city_model.dart';
@@ -26,7 +28,9 @@ class CitySelector extends StatelessWidget {
         }
 
         if (state.cities.isEmpty) {
-          return Text(locale == 'ar' ? 'لا توجد مدن متاحة' : 'No cities available');
+          return Text(
+            locale == 'ar' ? 'لا توجد مدن متاحة' : 'No cities available',
+          );
         }
 
         return DropdownButtonFormField<CityModel>(
@@ -34,7 +38,7 @@ class CitySelector extends StatelessWidget {
             labelText: labelText ?? (locale == 'ar' ? 'المدينة' : 'City'),
             border: const OutlineInputBorder(),
           ),
-          value: state.selectedCity,
+          initialValue: state.selectedCity,
           items: state.cities.map((city) {
             return DropdownMenuItem(
               value: city,

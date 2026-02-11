@@ -9,7 +9,6 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/shimmer/index.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../data/datasources/catalog_remote_datasource.dart';
@@ -66,10 +65,12 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-
   Future<void> _loadAutocompleteSuggestions(String query) async {
     try {
-      final suggestions = await _dataSource.getAutocompleteSuggestions(query, limit: 5);
+      final suggestions = await _dataSource.getAutocompleteSuggestions(
+        query,
+        limit: 5,
+      );
       if (mounted) {
         setState(() {
           _autocompleteSuggestions = suggestions;
@@ -421,11 +422,7 @@ class _SearchScreenState extends State<SearchScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Iconsax.tag,
-                  size: 14.sp,
-                  color: AppColors.primary,
-                ),
+                Icon(Iconsax.tag, size: 14.sp, color: AppColors.primary),
                 SizedBox(width: 6.w),
                 Text(
                   tag,

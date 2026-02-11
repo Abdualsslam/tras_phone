@@ -5,7 +5,6 @@ import 'package:equatable/equatable.dart';
 import '../../domain/entities/order_entity.dart';
 import '../../domain/entities/order_stats_entity.dart';
 import '../../domain/entities/bank_account_entity.dart';
-import '../../domain/enums/order_enums.dart';
 
 abstract class OrdersState extends Equatable {
   const OrdersState();
@@ -28,8 +27,12 @@ class OrdersLoaded extends OrdersState {
   final OrderStatus? filterStatus;
   final OrderStatsEntity? stats;
 
-  const OrdersLoaded(this.orders,
-      {this.total = 0, this.filterStatus, this.stats});
+  const OrdersLoaded(
+    this.orders, {
+    this.total = 0,
+    this.filterStatus,
+    this.stats,
+  });
 
   @override
   List<Object?> get props => [orders, total, filterStatus, stats];

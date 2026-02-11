@@ -20,18 +20,20 @@ class ProfileCubit extends Cubit<ProfileState> {
     : _repository = repository,
       super(const ProfileInitial());
 
+  /// Clear profile cache (e.g. on logout)
+  void clearCache() {
+    emit(const ProfileInitial());
+  }
+
   /// Load customer profile
   Future<void> loadProfile() async {
     emit(const ProfileLoading());
     try {
       // Print request URL
       _printRequestUrl();
-      
+
       final customer = await _repository.getProfile();
-      
-      // Print all profile data to terminal
-      _printProfileData(customer);
-      
+
       emit(ProfileLoaded(customer));
     } catch (e) {
       developer.log('Error loading profile: $e', name: 'ProfileCubit');
@@ -50,91 +52,6 @@ class ProfileCubit extends Cubit<ProfileState> {
     print('URL: $fullUrl');
     print('Endpoint: ${ApiEndpoints.profile}');
     print('Base URL: ${AppConfig.baseUrl}');
-    print(separator + '\n');
-  }
-
-  /// Print all profile data to terminal in a formatted way
-  void _printProfileData(customer) {
-    final separator = List.filled(80, '=').join();
-    print('\n$separator');
-    print('📋 PROFILE DATA - جميع بيانات البروفايل');
-    print(separator);
-    
-    // Basic Information
-    print('\n🔹 Basic Information - المعلومات الأساسية:');
-    print('  ID: ${customer.id}');
-    print('  User ID: ${customer.userId ?? "N/A"}');
-    print('  Responsible Person Name: ${customer.responsiblePersonName}');
-    print('  Shop Name (EN): ${customer.shopName}');
-    print('  Shop Name (AR): ${customer.shopNameAr ?? "N/A"}');
-    print('  Business Type: ${customer.businessType.displayName}');
-    print('  Is Approved: ${customer.isApproved}');
-    
-    // User Information
-    if (customer.user != null) {
-      print('\n🔹 User Information - معلومات المستخدم:');
-      print('  User ID: ${customer.user!.id}');
-      print('  Phone: ${customer.user!.phone}');
-      print('  Email: ${customer.user!.email ?? "N/A"}');
-      print('  User Type: ${customer.user!.userType}');
-      print('  Status: ${customer.user!.status}');
-      print('  Is Active: ${customer.user!.isActive}');
-      print('  Referral Code: ${customer.user!.referralCode ?? "N/A"}');
-      print('  Last Login: ${customer.user!.lastLoginAt?.toString() ?? "N/A"}');
-      print('  Created At: ${customer.user!.createdAt}');
-      print('  Updated At: ${customer.user!.updatedAt}');
-    }
-    
-    // Location Information
-    print('\n🔹 Location Information - معلومات الموقع:');
-    print('  City ID: ${customer.cityId ?? "N/A"}');
-    print('  Market ID: ${customer.marketId ?? "N/A"}');
-    print('  Address: ${customer.address ?? "N/A"}');
-    print('  Latitude: ${customer.latitude ?? "N/A"}');
-    print('  Longitude: ${customer.longitude ?? "N/A"}');
-    
-    // Pricing & Credit
-    print('\n🔹 Pricing & Credit - التسعير والائتمان:');
-    print('  Price Level ID: ${customer.priceLevelId ?? "N/A"}');
-    print('  Credit Limit: ${customer.creditLimit.toStringAsFixed(2)} ر.س');
-    print('  Credit Used: ${customer.creditUsed.toStringAsFixed(2)} ر.س');
-    print('  Available Credit: ${customer.availableCredit.toStringAsFixed(2)} ر.س');
-    
-    // Wallet
-    print('\n🔹 Wallet - المحفظة:');
-    print('  Wallet Balance: ${customer.walletBalance.toStringAsFixed(2)} ر.س');
-    
-    // Loyalty
-    print('\n🔹 Loyalty - الولاء:');
-    print('  Loyalty Points: ${customer.loyaltyPoints}');
-    print('  Loyalty Tier: ${customer.loyaltyTier.displayName}');
-    
-    // Statistics
-    print('\n🔹 Statistics - الإحصائيات:');
-    print('  Total Orders: ${customer.totalOrders}');
-    print('  Total Spent: ${customer.totalSpent.toStringAsFixed(2)} ر.س');
-    print('  Average Order Value: ${customer.averageOrderValue.toStringAsFixed(2)} ر.س');
-    print('  Last Order At: ${customer.lastOrderAt?.toString() ?? "N/A"}');
-    
-    // Preferences
-    print('\n🔹 Preferences - التفضيلات:');
-    print('  Preferred Payment Method: ${customer.preferredPaymentMethod?.displayName ?? "N/A"}');
-    print('  Preferred Shipping Time: ${customer.preferredShippingTime ?? "N/A"}');
-    print('  Preferred Contact Method: ${customer.preferredContactMethod.displayName}');
-    
-    // Social Media
-    print('\n🔹 Social Media - وسائل التواصل:');
-    print('  Instagram Handle: ${customer.instagramHandle ?? "N/A"}');
-    print('  Twitter Handle: ${customer.twitterHandle ?? "N/A"}');
-    
-    // Timestamps
-    print('\n🔹 Timestamps - الطوابع الزمنية:');
-    print('  Approved At: ${customer.approvedAt?.toString() ?? "N/A"}');
-    print('  Created At: ${customer.createdAt}');
-    print('  Updated At: ${customer.updatedAt}');
-    
-    print('\n$separator');
-    print('✅ Profile data printed successfully - تم طباعة بيانات البروفايل بنجاح');
     print('$separator\n');
   }
 
@@ -158,19 +75,21 @@ class ProfileCubit extends Cubit<ProfileState> {
       if (success) {
         // Account deleted successfully - emit a success state
         // Note: We still return bool for compatibility
-        emit(ProfileLoaded(
-          // Create a minimal customer entity for success state
-          // This won't be used but satisfies the state requirement
-          CustomerEntity(
-            id: '',
-            userId: '',
-            responsiblePersonName: '',
-            shopName: '',
-            cityId: '',
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
+        emit(
+          ProfileLoaded(
+            // Create a minimal customer entity for success state
+            // This won't be used but satisfies the state requirement
+            CustomerEntity(
+              id: '',
+              userId: '',
+              responsiblePersonName: '',
+              shopName: '',
+              cityId: '',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
           ),
-        ));
+        );
       } else {
         emit(const ProfileError('فشل حذف الحساب'));
       }
@@ -191,6 +110,12 @@ class AddressesCubit extends Cubit<AddressesState> {
   AddressesCubit({required ProfileRepository repository})
     : _repository = repository,
       super(const AddressesInitial());
+
+  /// Clear addresses cache (e.g. on logout)
+  void clearCache() {
+    _addresses = [];
+    emit(const AddressesInitial());
+  }
 
   /// Load all addresses
   Future<void> loadAddresses() async {

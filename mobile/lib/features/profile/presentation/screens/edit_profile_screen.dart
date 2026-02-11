@@ -39,7 +39,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _selectedContactMethod;
 
   List<Map<String, dynamic>> _cities = [];
-  List<Map<String, dynamic>> _markets = [];
+  final List<Map<String, dynamic>> _markets = [];
   bool _loadingCities = false;
   bool _loadingMarkets = false;
 
@@ -81,7 +81,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _selectedCityId = customer.cityId;
       _selectedPaymentMethod = customer.preferredPaymentMethod?.value;
       _selectedShippingTime = customer.preferredShippingTime;
-      _selectedContactMethod = customer.preferredContactMethod.toString().split('.').last;
+      _selectedContactMethod = customer.preferredContactMethod
+          .toString()
+          .split('.')
+          .last;
 
       // Load cities if we have a country (assuming Saudi Arabia for now)
       if (_selectedCityId != null) {
@@ -161,12 +164,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           }
         },
         builder: (context, state) {
-          if (state is ProfileLoading && _responsiblePersonNameController.text.isEmpty) {
+          if (state is ProfileLoading &&
+              _responsiblePersonNameController.text.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
           final customer = state is ProfileLoaded ? state.customer : null;
-          if (customer != null && _responsiblePersonNameController.text.isEmpty) {
+          if (customer != null &&
+              _responsiblePersonNameController.text.isEmpty) {
             _loadInitialData(customer);
           }
 
@@ -232,7 +237,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         child: Text(type.displayName),
                       );
                     }).toList(),
-                    onChanged: (value) => setState(() => _selectedBusinessType = value),
+                    onChanged: (value) =>
+                        setState(() => _selectedBusinessType = value),
                     validator: (value) {
                       if (value == null) {
                         return 'الرجاء اختيار نوع العمل';
@@ -250,7 +256,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     icon: Iconsax.location,
                     value: _selectedCityId,
                     items: _cities.map((city) {
-                      final id = city['_id']?.toString() ?? city['id']?.toString() ?? '';
+                      final id =
+                          city['_id']?.toString() ??
+                          city['id']?.toString() ??
+                          '';
                       final name = city['nameAr'] ?? city['name'] ?? '';
                       return DropdownMenuItem<String>(
                         value: id,
@@ -260,7 +269,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     onChanged: (value) {
                       setState(() {
                         _selectedCityId = value;
-                        _selectedMarketId = null; // Reset market when city changes
+                        _selectedMarketId =
+                            null; // Reset market when city changes
                       });
                       _loadMarkets(value);
                     },
@@ -278,14 +288,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       icon: Iconsax.shop,
                       value: _selectedMarketId,
                       items: _markets.map((market) {
-                        final id = market['_id']?.toString() ?? market['id']?.toString() ?? '';
+                        final id =
+                            market['_id']?.toString() ??
+                            market['id']?.toString() ??
+                            '';
                         final name = market['nameAr'] ?? market['name'] ?? '';
                         return DropdownMenuItem<String>(
                           value: id,
                           child: Text(name),
                         );
                       }).toList(),
-                      onChanged: (value) => setState(() => _selectedMarketId = value),
+                      onChanged: (value) =>
+                          setState(() => _selectedMarketId = value),
                       isLoading: _loadingMarkets,
                     ),
                   if (_selectedCityId != null) SizedBox(height: 16.h),
@@ -314,7 +328,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         child: Text(method.displayName),
                       );
                     }).toList(),
-                    onChanged: (value) => setState(() => _selectedPaymentMethod = value),
+                    onChanged: (value) =>
+                        setState(() => _selectedPaymentMethod = value),
                   ),
                   SizedBox(height: 16.h),
 
@@ -327,10 +342,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     value: _selectedShippingTime,
                     items: const [
                       DropdownMenuItem(value: 'morning', child: Text('صباحاً')),
-                      DropdownMenuItem(value: 'afternoon', child: Text('بعد الظهر')),
+                      DropdownMenuItem(
+                        value: 'afternoon',
+                        child: Text('بعد الظهر'),
+                      ),
                       DropdownMenuItem(value: 'evening', child: Text('مساءً')),
                     ],
-                    onChanged: (value) => setState(() => _selectedShippingTime = value),
+                    onChanged: (value) =>
+                        setState(() => _selectedShippingTime = value),
                   ),
                   SizedBox(height: 16.h),
 
@@ -347,7 +366,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         child: Text(method.displayName),
                       );
                     }).toList(),
-                    onChanged: (value) => setState(() => _selectedContactMethod = value),
+                    onChanged: (value) =>
+                        setState(() => _selectedContactMethod = value),
                   ),
                   SizedBox(height: 16.h),
 
@@ -461,7 +481,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     VoidCallback? onLoad,
   }) {
     return DropdownButtonFormField<T>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: AppColors.textSecondaryLight),
@@ -489,11 +509,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               )
             : onLoad != null && items.isEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: onLoad,
-                  )
-                : null,
+            ? IconButton(icon: const Icon(Icons.refresh), onPressed: onLoad)
+            : null,
       ),
       items: items,
       onChanged: onChanged,

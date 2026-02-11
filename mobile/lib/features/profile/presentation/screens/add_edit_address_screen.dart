@@ -109,8 +109,9 @@ class _AddEditAddressScreenState extends State<AddEditAddressScreen> {
                 icon: Iconsax.location,
                 maxLines: 3,
                 validator: (value) {
-                  if (value?.isEmpty ?? true)
+                  if (value?.isEmpty ?? true) {
                     return 'يرجى إدخال تفاصيل العنوان';
+                  }
                   return null;
                 },
               ),

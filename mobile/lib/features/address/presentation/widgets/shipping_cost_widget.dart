@@ -1,4 +1,6 @@
 /// Shipping Cost Widget - عرض تكلفة الشحن
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/locations_cubit.dart';

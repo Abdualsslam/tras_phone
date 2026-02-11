@@ -4,15 +4,11 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/return_entity.dart';
-import '../../domain/enums/return_enums.dart';
 
 class ReturnStatusCard extends StatelessWidget {
   final ReturnEntity returnRequest;
 
-  const ReturnStatusCard({
-    super.key,
-    required this.returnRequest,
-  });
+  const ReturnStatusCard({super.key, required this.returnRequest});
 
   @override
   Widget build(BuildContext context) {
@@ -57,10 +53,7 @@ class ReturnStatusCard extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'مبلغ الاسترداد',
-                      style: theme.textTheme.bodyMedium,
-                    ),
+                    Text('مبلغ الاسترداد', style: theme.textTheme.bodyMedium),
                     Text(
                       '${returnRequest.refundAmount.toStringAsFixed(2)} ر.س',
                       style: theme.textTheme.titleMedium?.copyWith(
@@ -84,7 +77,11 @@ class ReturnStatusCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.red[700], size: 20.sp),
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.red[700],
+                      size: 20.sp,
+                    ),
                     SizedBox(width: 8.w),
                     Expanded(
                       child: Text(
@@ -142,10 +139,7 @@ class ReturnStatusCard extends StatelessWidget {
       children: [
         Text(
           'حالة الطلب',
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
         ),
         SizedBox(height: 12.h),
         Row(

@@ -158,7 +158,7 @@ class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
           ),
           SizedBox(height: 16.h),
           DropdownButtonFormField<String>(
-            value: _currentStatus,
+            initialValue: _currentStatus,
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
@@ -289,7 +289,7 @@ class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
             ),
           ),
           SizedBox(height: 16.h),
-          ..._items.map((item) => _buildItemRow(item, isDark)).toList(),
+          ..._items.map((item) => _buildItemRow(item, isDark)),
         ],
       ),
     );
