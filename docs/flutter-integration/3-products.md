@@ -31,6 +31,8 @@ class Product {
 
   // العلاقات
   final String brandId;
+  final String? brandName;
+  final String? brandNameAr;
   final String categoryId;
   final List<String> additionalCategories;
   final String qualityTypeId;
@@ -107,6 +109,8 @@ class Product {
     this.shortDescription,
     this.shortDescriptionAr,
     required this.brandId,
+    this.brandName,
+    this.brandNameAr,
     required this.categoryId,
     required this.additionalCategories,
     required this.qualityTypeId,
@@ -161,7 +165,9 @@ class Product {
       shortDescriptionAr: json['shortDescriptionAr'],
       brandId: json['brandId'] is String
           ? json['brandId']
-          : json['brandId']['_id'],
+          : json['brandId']['_id'] ?? json['brandId']['id'],
+      brandName: json['brandName'] as String? ?? (json['brandId'] is Map ? json['brandId']['name'] : null),
+      brandNameAr: json['brandNameAr'] as String? ?? (json['brandId'] is Map ? json['brandId']['nameAr'] : null),
       categoryId: json['categoryId'] is String
           ? json['categoryId']
           : json['categoryId']['_id'],
@@ -578,10 +584,11 @@ class ProductsService {
   - `qualityTypeId`: معلومات نوع الجودة كاملة
   - `compatibleDevices`: قائمة الأجهزة المتوافقة مع معلوماتها
   - `relatedProducts`: منتجات ذات صلة (فقط المنتجات النشطة)
+- **اسماء البراند:** يُرجع API الحقول `brandName` و `brandNameAr` في مستوى المنتج مباشرة لسهولة العرض في التطبيق
 
 **Response:**
 
-```dart
+```json
 {
   "success": true,
   "data": {
@@ -606,7 +613,9 @@ class ProductsService {
     "warrantyDays": 90,
     "averageRating": 4.5,
     "reviewsCount": 12,
-    "brandId": { "_id": "...", "name": "Apple", ... },
+    "brandId": { "_id": "...", "name": "Apple", "nameAr": "آبل", ... },
+    "brandName": "Apple",
+    "brandNameAr": "آبل",
     "categoryId": { "_id": "...", "name": "Screens", ... },
     "qualityTypeId": { "_id": "...", "name": "Original", ... },
     ...
@@ -628,6 +637,15 @@ Future<Product> getProduct(String identifier) async {
   }
   throw Exception(response.data['messageAr']);
 }
+```
+
+**عرض اسم البراند في التطبيق:**
+
+```dart
+// استخدم brandName أو brandNameAr حسب اللغة
+Text(product.brandNameAr ?? product.brandName ?? '')  // العربي أولاً
+// أو
+Text(product.brandName ?? product.brandNameAr ?? '')  // الإنجليزي أولاً
 ```
 
 ---

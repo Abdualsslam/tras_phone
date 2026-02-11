@@ -457,8 +457,11 @@ export class ProductsService {
     if (priceLevelId) {
       doc.price = await this.getPrice(product._id.toString(), priceLevelId);
     } else {
-      // No price level: use default/base price only
       doc.price = doc.basePrice ?? 0;
+    }
+    if (doc.brandId && typeof doc.brandId === 'object') {
+      doc.brandName = doc.brandId.name;
+      doc.brandNameAr = doc.brandId.nameAr;
     }
     return doc;
   }
