@@ -610,6 +610,21 @@ export class ProductsService {
     return this.wishlistModel.find({ customerId }).populate('productId');
   }
 
+  /**
+   * Check if a product is in the customer's wishlist.
+   * Used by the app to show correct heart state without fetching full wishlist.
+   */
+  async isInWishlist(
+    customerId: string,
+    productId: string,
+  ): Promise<boolean> {
+    const count = await this.wishlistModel.countDocuments({
+      customerId,
+      productId,
+    });
+    return count > 0;
+  }
+
   // ═════════════════════════════════════
   // Reviews
   // ═════════════════════════════════════

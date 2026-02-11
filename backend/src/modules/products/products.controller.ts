@@ -932,6 +932,26 @@ export class ProductsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get(':id/wishlist/check')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Check if product is in wishlist' })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  async checkWishlist(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    const inWishlist = await this.productsService.isInWishlist(
+      user.customerId,
+      id,
+    );
+    return ResponseBuilder.success(
+      { inWishlist },
+      'Wishlist status checked',
+      'تم التحقق من حالة المفضلة',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post(':id/wishlist')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Add to wishlist' })
