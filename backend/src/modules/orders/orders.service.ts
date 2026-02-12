@@ -509,8 +509,10 @@ export class OrdersService {
 
     const oldStatus = order.status;
 
-    // Validate status transition
-    this.validateStatusTransition(oldStatus, newStatus);
+    // Validate status transition (allow admin to skip intermediate steps)
+    // If userId is provided, it's an admin action - allow more flexible transitions
+    const isAdminAction = !!userId;
+    this.validateStatusTransition(oldStatus, newStatus, isAdminAction);
 
     // Update order
     const updateData: any = { status: newStatus };
@@ -582,8 +584,15 @@ export class OrdersService {
 
   /**
    * Validate status transition
+   * @param from - Current status
+   * @param to - Target status
+   * @param isAdminAction - If true, allows admin to skip intermediate steps
    */
-  private validateStatusTransition(from: string, to: string): void {
+  private validateStatusTransition(
+    from: string,
+    to: string,
+    isAdminAction: boolean = false,
+  ): void {
     const validTransitions: Record<string, string[]> = {
       pending: ['confirmed', 'cancelled'],
       confirmed: ['processing', 'cancelled'],
@@ -597,6 +606,100 @@ export class OrdersService {
       refunded: [],
     };
 
+    // If admin action, allow more flexible transitions
+    if (isAdminAction) {
+      // Allow admin to skip intermediate steps from pending
+      if (from === 'pending') {
+        const adminAllowedFromPending = [
+          'confirmed',
+          'processing',
+          'ready_for_pickup',
+          'shipped',
+          'out_for_delivery',
+          'delivered',
+          'completed',
+          'cancelled',
+        ];
+        if (adminAllowedFromPending.includes(to)) {
+          return;
+        }
+      }
+
+      // Allow admin to skip intermediate steps from confirmed
+      if (from === 'confirmed') {
+        const adminAllowedFromConfirmed = [
+          'processing',
+          'ready_for_pickup',
+          'shipped',
+          'out_for_delivery',
+          'delivered',
+          'completed',
+          'cancelled',
+        ];
+        if (adminAllowedFromConfirmed.includes(to)) {
+          return;
+        }
+      }
+
+      // Allow admin to skip intermediate steps from processing
+      if (from === 'processing') {
+        const adminAllowedFromProcessing = [
+          'ready_for_pickup',
+          'shipped',
+          'out_for_delivery',
+          'delivered',
+          'completed',
+          'cancelled',
+        ];
+        if (adminAllowedFromProcessing.includes(to)) {
+          return;
+        }
+      }
+
+      // Allow admin to skip intermediate steps from ready_for_pickup
+      if (from === 'ready_for_pickup') {
+        const adminAllowedFromReady = [
+          'shipped',
+          'out_for_delivery',
+          'delivered',
+          'completed',
+          'cancelled',
+        ];
+        if (adminAllowedFromReady.includes(to)) {
+          return;
+        }
+      }
+
+      // Allow admin to skip intermediate steps from shipped
+      if (from === 'shipped') {
+        const adminAllowedFromShipped = [
+          'out_for_delivery',
+          'delivered',
+          'completed',
+        ];
+        if (adminAllowedFromShipped.includes(to)) {
+          return;
+        }
+      }
+
+      // Allow admin to skip intermediate steps from out_for_delivery
+      if (from === 'out_for_delivery') {
+        const adminAllowedFromOutForDelivery = ['delivered', 'completed'];
+        if (adminAllowedFromOutForDelivery.includes(to)) {
+          return;
+        }
+      }
+
+      // Allow admin to skip intermediate steps from delivered
+      if (from === 'delivered') {
+        const adminAllowedFromDelivered = ['completed', 'refunded'];
+        if (adminAllowedFromDelivered.includes(to)) {
+          return;
+        }
+      }
+    }
+
+    // Standard validation for non-admin actions
     if (!validTransitions[from]?.includes(to)) {
       throw new BadRequestException(`Cannot transition from ${from} to ${to}`);
     }
