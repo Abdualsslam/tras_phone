@@ -559,6 +559,28 @@ export class OrdersController {
     );
   }
 
+  @Get('pending-payment')
+  @ApiOperation({
+    summary: 'Get pending payment orders',
+    description: 'Get all orders with pending bank transfer payments',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Orders retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async getPendingPaymentOrders(@CurrentUser() user: any) {
+    const orders = await this.ordersService.getPendingPaymentOrders(
+      user.customerId,
+    );
+    return ResponseBuilder.success(
+      orders,
+      'Pending payment orders retrieved',
+      'تم استرجاع الطلبات بانتظار الدفع',
+    );
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get order details',
@@ -902,28 +924,6 @@ export class OrdersController {
       result,
       'Order rated successfully',
       'تم تقييم الطلب بنجاح',
-    );
-  }
-
-  @Get('pending-payment')
-  @ApiOperation({
-    summary: 'Get pending payment orders',
-    description: 'Get all orders with pending bank transfer payments',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Orders retrieved successfully',
-    type: ApiResponseDto,
-  })
-  @ApiAuthErrorResponses()
-  async getPendingPaymentOrders(@CurrentUser() user: any) {
-    const orders = await this.ordersService.getPendingPaymentOrders(
-      user.customerId,
-    );
-    return ResponseBuilder.success(
-      orders,
-      'Pending payment orders retrieved',
-      'تم استرجاع الطلبات بانتظار الدفع',
     );
   }
 }
