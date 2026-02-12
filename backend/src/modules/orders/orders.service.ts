@@ -82,6 +82,7 @@ export class OrdersService {
         (typeof item.productId === 'object' &&
           (item.productId?.mainImage || item.productId?.images?.[0]));
       return {
+        _id: item._id?.toString?.() ?? item.id?.toString?.(),
         productId,
         sku: item.productSku ?? item.sku ?? '',
         name: item.productName ?? item.name ?? '',
@@ -111,6 +112,7 @@ export class OrdersService {
         productId = productId.toString();
       }
       return {
+        _id: item._id?.toString?.() ?? item.id?.toString?.(),
         productId: productId ?? '',
         sku: item.sku ?? '',
         name: item.name ?? '',

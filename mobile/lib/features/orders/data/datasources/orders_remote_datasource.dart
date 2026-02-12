@@ -145,7 +145,12 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     final productIdStr = productId is Map
         ? (productId['_id'] ?? productId['\$oid'])?.toString()
         : productId?.toString();
+    final orderItemId = apiItem['_id'] ?? apiItem['id'];
+    final orderItemIdStr = orderItemId is Map
+        ? (orderItemId['\$oid'] ?? orderItemId['_id'])?.toString()
+        : orderItemId?.toString();
     return {
+      if (orderItemIdStr != null && orderItemIdStr.isNotEmpty) '_id': orderItemIdStr,
       'productId': productIdStr ?? '',
       'sku': apiItem['productSku'] ?? apiItem['sku'] ?? '',
       'name': apiItem['productName'] ?? apiItem['name'] ?? '',
