@@ -216,11 +216,10 @@ class _OrderCard extends StatelessWidget {
         children: order.items.asMap().entries.map((entry) {
           final index = entry.key;
           final item = entry.value;
-          // Note: In production, order items should have unique IDs from the API
-          // For now, we use a combination that should be unique
-          // The backend will need to provide orderItemId in the API response
-          final orderItemId =
-              '${order.id}_${item.productId}_${item.variantId ?? ''}_$index';
+          // Use item.id (MongoDB ObjectId) when API provides it; fallback to composite ID
+          final orderItemId = (item.id != null && item.id!.isNotEmpty)
+              ? item.id!
+              : '${order.id}_${item.productId}_${item.variantId ?? ''}_$index';
           final isSelected = selectedItems.containsKey(orderItemId);
 
           return CheckboxListTile(

@@ -178,7 +178,7 @@ class _ReturnsListViewState extends State<_ReturnsListView> {
   ) {
     return InkWell(
       onTap: () {
-        context.push('/returns/${returnRequest.id}');
+        context.push('/return/${returnRequest.id}');
       },
       child: Container(
         padding: EdgeInsets.all(16.w),

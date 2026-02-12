@@ -8,6 +8,8 @@ export '../enums/order_enums.dart';
 
 /// Order item entity
 class OrderItemEntity extends Equatable {
+  /// MongoDB ObjectId for order item - used for returns API (orderItemId)
+  final String? id;
   final String productId;
   final String? variantId;
   final String? sku;
@@ -21,6 +23,7 @@ class OrderItemEntity extends Equatable {
   final Map<String, dynamic>? attributes;
 
   const OrderItemEntity({
+    this.id,
     required this.productId,
     this.variantId,
     this.sku,
@@ -38,7 +41,7 @@ class OrderItemEntity extends Equatable {
       locale == 'ar' && nameAr != null ? nameAr! : name;
 
   @override
-  List<Object?> get props => [productId, variantId, quantity];
+  List<Object?> get props => [id, productId, variantId, quantity];
 }
 
 /// Shipping address entity

@@ -10,6 +10,9 @@ part 'order_model.g.dart';
 /// Order Item Model
 @JsonSerializable()
 class OrderItemModel {
+  /// MongoDB ObjectId for order item - used for returns API (orderItemId)
+  @JsonKey(name: '_id', readValue: _readOrderItemId)
+  final String? id;
   @JsonKey(name: 'productId', readValue: _readProductId)
   final String productId;
   final String? variantId;
@@ -27,6 +30,7 @@ class OrderItemModel {
   final Map<String, dynamic>? attributes;
 
   const OrderItemModel({
+    this.id,
     required this.productId,
     this.variantId,
     this.sku,
@@ -39,6 +43,17 @@ class OrderItemModel {
     this.total = 0,
     this.attributes,
   });
+
+  /// Handle _id for order item (MongoDB ObjectId)
+  static Object? _readOrderItemId(Map<dynamic, dynamic> json, String key) {
+    final value = json['_id'] ?? json['id'];
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) {
+      return value['\$oid']?.toString() ?? value.toString();
+    }
+    return value.toString();
+  }
 
   /// Handle productId which can be String or populated object
   static Object? _readProductId(Map<dynamic, dynamic> json, String key) {
@@ -56,6 +71,7 @@ class OrderItemModel {
 
   OrderItemEntity toEntity() {
     return OrderItemEntity(
+      id: id,
       productId: productId,
       variantId: variantId,
       sku: sku,

@@ -118,6 +118,8 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           SizedBox(height: 12.h),
                           _buildWalletCard(theme, isDark, customer),
+                          SizedBox(height: 12.h),
+                          _buildReturnsCard(context, theme, isDark),
                           SizedBox(height: 24.h),
 
                           // Logout Button
@@ -912,6 +914,103 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReturnsCard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => context.push('/returns'),
+        borderRadius: BorderRadius.circular(18.r),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          Colors.white.withValues(alpha: 0.08),
+                          Colors.white.withValues(alpha: 0.04),
+                        ]
+                      : [
+                          Colors.white.withValues(alpha: 0.9),
+                          Colors.white.withValues(alpha: 0.7),
+                        ],
+                ),
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : Colors.orange.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42.w,
+                    height: 42.w,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.orange.withValues(alpha: 0.2),
+                          Colors.orange.withValues(alpha: 0.08),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Icon(
+                      Iconsax.rotate_left,
+                      size: 20.sp,
+                      color: Colors.orange,
+                    ),
+                  ),
+                  SizedBox(width: 16.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppLocalizations.of(context)!.returns,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          'عرض وإدارة طلبات الإرجاع',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Iconsax.arrow_left_2,
+                    size: 20.sp,
+                    color: Colors.orange,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

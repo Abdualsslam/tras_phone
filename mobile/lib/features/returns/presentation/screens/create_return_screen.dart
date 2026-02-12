@@ -41,7 +41,7 @@ class _CreateReturnScreenState extends State<CreateReturnScreen> {
                 behavior: SnackBarBehavior.floating,
               ),
             );
-            context.pushReplacement('/returns/${state.returnRequest.id}');
+            context.pushReplacement('/return/${state.returnRequest.id}');
           } else if (state is CreateReturnError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

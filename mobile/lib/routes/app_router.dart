@@ -45,6 +45,7 @@ import '../features/reviews/presentation/screens/my_reviews_screen.dart';
 import '../features/returns/presentation/screens/returns_list_screen.dart';
 import '../features/returns/presentation/screens/create_return_screen.dart';
 import '../features/returns/presentation/screens/return_details_screen.dart';
+import '../features/returns/presentation/screens/select_items_for_return_screen.dart';
 import '../features/returns/data/models/return_model.dart';
 import '../features/support/presentation/screens/support_tickets_screen.dart';
 import '../features/support/presentation/screens/ticket_chat_screen.dart';
@@ -259,6 +260,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/returns',
       builder: (context, state) => const ReturnsListScreen(),
+    ),
+    GoRoute(
+      path: '/returns/select-items',
+      builder: (context, state) => const SelectItemsForReturnScreen(),
     ),
     GoRoute(
       path: '/returns/create',

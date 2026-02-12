@@ -68,6 +68,13 @@ class _OrdersListScreenState extends State<OrdersListScreen>
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.orders),
+        actions: [
+          IconButton(
+            icon: const Icon(Iconsax.rotate_left),
+            onPressed: () => context.push('/returns'),
+            tooltip: AppLocalizations.of(context)!.returns,
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(48.h),
           child: TabBar(
@@ -126,6 +133,9 @@ class _OrdersListScreenState extends State<OrdersListScreen>
 
           final tab = _tabs[_tabController.index];
           final stats = state is OrdersLoaded ? state.stats : null;
+          final showStats = stats != null &&
+              tab.status == null &&
+              !tab.isPendingPayment;
           return RefreshIndicator(
             onRefresh: tab.isPendingPayment
                 ? () => context.read<OrdersCubit>().loadPendingPaymentOrders()
@@ -135,7 +145,7 @@ class _OrdersListScreenState extends State<OrdersListScreen>
             child: ListView(
               padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 100.h),
               children: [
-                if (stats != null) ...[
+                if (showStats) ...[
                   _OrderStatsCard(stats: stats, isDark: isDark),
                   SizedBox(height: 16.h),
                 ],

@@ -663,6 +663,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     final order = _order!;
     final canUploadReceipt = order.paymentMethod == OrderPaymentMethod.bankTransfer &&
         order.paymentStatus == PaymentStatus.unpaid;
+    final canReturn = order.status == OrderStatus.delivered ||
+        order.status == OrderStatus.completed;
 
     return Wrap(
       spacing: 8.w,
@@ -681,6 +683,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             ),
             icon: const Icon(Iconsax.document_upload, size: 18),
             label: const Text('رفع إيصال'),
+          ),
+        if (canReturn)
+          OutlinedButton.icon(
+            onPressed: () => context.push('/returns/select-items'),
+            icon: const Icon(Iconsax.rotate_left, size: 18),
+            label: const Text('طلب إرجاع'),
           ),
       ],
     );
