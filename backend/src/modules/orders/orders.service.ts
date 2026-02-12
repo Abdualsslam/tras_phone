@@ -328,6 +328,20 @@ export class OrdersService {
     // Create invoice
     await this.createInvoice(order);
 
+    // Update customer statistics (totalOrders, totalSpent, averageOrderValue, lastOrderAt)
+    try {
+      await this.customersService.updateStatistics(customerId, order.total);
+      this.logger.debug(
+        `createOrder: updated statistics for customerId=${customerId}, orderTotal=${order.total}`,
+      );
+    } catch (error) {
+      // Log error but don't fail order creation if statistics update fails
+      this.logger.warn(
+        `createOrder: failed to update statistics for customerId=${customerId}`,
+        error,
+      );
+    }
+
     // Return order with items merged (client format)
     const mappedItems = this.mapOrderItemsToClientFormat(
       insertedItems as OrderItemDocument[],
@@ -1073,12 +1087,16 @@ export class OrdersService {
     rating: number,
     comment?: string,
   ): Promise<OrderDocument> {
-    const order = await this.orderModel.findOne({
-      _id: orderId,
-      customerId: new Types.ObjectId(customerId),
-    });
-
+    const order = await this.orderModel.findById(orderId);
     if (!order) throw new NotFoundException('Order not found');
+
+    // Verify order belongs to customer (handle both ObjectId and populated customerId)
+    const orderCustomerId = (
+      (order.customerId as any)?._id ?? order.customerId
+    )?.toString();
+    if (orderCustomerId !== customerId) {
+      throw new NotFoundException('Order not found');
+    }
 
     // Can only rate delivered or completed orders
     if (!['delivered', 'completed'].includes(order.status)) {

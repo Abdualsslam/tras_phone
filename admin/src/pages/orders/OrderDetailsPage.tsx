@@ -33,6 +33,20 @@ import {
 } from "@/components/ui/dialog";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
+// Single source of truth for order statuses (matches backend)
+const ORDER_STATUS_KEYS = [
+  "pending",
+  "confirmed",
+  "processing",
+  "ready_for_pickup",
+  "shipped",
+  "out_for_delivery",
+  "delivered",
+  "completed",
+  "cancelled",
+  "refunded",
+] as const;
+
 const orderStatusVariants: Record<
   string,
   "success" | "warning" | "danger" | "default"
@@ -40,8 +54,11 @@ const orderStatusVariants: Record<
   pending: "warning",
   confirmed: "default",
   processing: "default",
+  ready_for_pickup: "default",
   shipped: "success",
+  out_for_delivery: "success",
   delivered: "success",
+  completed: "success",
   cancelled: "danger",
   refunded: "danger",
 };
@@ -50,11 +67,26 @@ const orderStatusLabels: Record<string, string> = {
   pending: "قيد الانتظار",
   confirmed: "مؤكد",
   processing: "قيد المعالجة",
+  ready_for_pickup: "جاهز للاستلام",
   shipped: "تم الشحن",
+  out_for_delivery: "خارج للتوصيل",
   delivered: "تم التوصيل",
+  completed: "مكتمل",
   cancelled: "ملغي",
   refunded: "مسترد",
 };
+
+// Main flow for stepper (display order)
+const ORDER_STATUS_FLOW: string[] = [
+  "pending",
+  "confirmed",
+  "processing",
+  "ready_for_pickup",
+  "shipped",
+  "out_for_delivery",
+  "delivered",
+  "completed",
+];
 
 const paymentStatusVariants: Record<string, "success" | "warning" | "danger"> =
   {
@@ -83,6 +115,7 @@ export function OrderDetailsPage() {
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [noteContent, setNoteContent] = useState("");
   const [newStatus, setNewStatus] = useState("");
+  const [statusDialogNote, setStatusDialogNote] = useState("");
   const [shipmentData, setShipmentData] = useState({
     trackingNumber: "",
     carrier: "",
@@ -209,9 +242,28 @@ export function OrderDetailsPage() {
     });
   };
 
-  const handleUpdateStatus = () => {
-    if (!orderId || !newStatus) return;
-    updateStatusMutation.mutate({ orderId, status: newStatus });
+  const handleUpdateStatus = (overrideStatus?: string) => {
+    const status = overrideStatus ?? newStatus;
+    if (!orderId || !status) return;
+    updateStatusMutation.mutate({
+      orderId,
+      status,
+      note: statusDialogNote.trim() || undefined,
+    });
+  };
+
+  const handleOpenStatusDialog = () => {
+    if (order) {
+      setNewStatus(order.status);
+      setStatusDialogNote("");
+      updateStatusMutation.reset();
+      setIsStatusDialogOpen(true);
+    }
+  };
+
+  const handleCloseStatusDialog = (open: boolean) => {
+    if (!open) setStatusDialogNote("");
+    setIsStatusDialogOpen(open);
   };
 
   if (isLoading || !order) {
@@ -269,10 +321,7 @@ export function OrderDetailsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              setNewStatus(order.status);
-              setIsStatusDialogOpen(true);
-            }}
+            onClick={handleOpenStatusDialog}
           >
             <RefreshCw className="h-4 w-4" />
             تحديث الحالة
@@ -336,8 +385,12 @@ export function OrderDetailsPage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     حالة الطلب
                   </p>
-                  <Badge variant={orderStatusVariants[order.status]}>
-                    {orderStatusLabels[order.status]}
+                  <Badge
+                    variant={
+                      orderStatusVariants[order.status] ?? "default"
+                    }
+                  >
+                    {orderStatusLabels[order.status] ?? order.status}
                   </Badge>
                 </div>
                 <div>
@@ -699,8 +752,8 @@ export function OrderDetailsPage() {
       </Dialog>
 
       {/* Update Status Dialog */}
-      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-        <DialogContent className="max-w-md">
+      <Dialog open={isStatusDialogOpen} onOpenChange={handleCloseStatusDialog}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <RefreshCw className="h-5 w-5" />
@@ -708,31 +761,125 @@ export function OrderDetailsPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Current status */}
+            <div className="rounded-lg bg-gray-50 dark:bg-slate-800 px-3 py-2">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                الحالة الحالية
+              </p>
+              <p className="font-medium text-gray-900 dark:text-gray-100">
+                {order
+                  ? orderStatusLabels[order.status] ?? order.status
+                  : ""}
+              </p>
+            </div>
+
+            {/* Stepper: main flow */}
             <div className="space-y-2">
-              <Label>الحالة الجديدة</Label>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                مسار الطلب
+              </p>
+              <div className="flex flex-wrap gap-1 overflow-x-auto pb-1">
+                {ORDER_STATUS_FLOW.map((statusKey, idx) => {
+                  const isCurrent =
+                    order && order.status === statusKey;
+                  return (
+                    <div
+                      key={statusKey}
+                      className="flex items-center gap-1 shrink-0"
+                    >
+                      <span
+                        className={`rounded px-2 py-1 text-xs font-medium ${
+                          isCurrent
+                            ? "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 dark:ring-offset-slate-900"
+                            : "bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300"
+                        }`}
+                      >
+                        {orderStatusLabels[statusKey]}
+                      </span>
+                      {idx < ORDER_STATUS_FLOW.length - 1 && (
+                        <span className="text-gray-300 dark:text-slate-600">
+                          →
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quick actions */}
+            <div className="space-y-2">
+              <Label>اختصارات سريعة</Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { status: "confirmed", label: "تأكيد الطلب" },
+                  { status: "processing", label: "قيد المعالجة" },
+                  { status: "shipped", label: "تم الشحن" },
+                  { status: "delivered", label: "تم التوصيل" },
+                  { status: "completed", label: "مكتمل" },
+                  { status: "cancelled", label: "إلغاء" },
+                ].map(({ status, label }) => (
+                  <Button
+                    key={status}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={
+                      updateStatusMutation.isPending ||
+                      (order?.status === status)
+                    }
+                    onClick={() => handleUpdateStatus(status)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Full dropdown */}
+            <div className="space-y-2">
+              <Label>أو اختر حالة أخرى</Label>
               <select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
                 className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm"
               >
-                <option value="pending">قيد الانتظار</option>
-                <option value="confirmed">مؤكد</option>
-                <option value="processing">قيد المعالجة</option>
-                <option value="shipped">تم الشحن</option>
-                <option value="delivered">تم التوصيل</option>
-                <option value="cancelled">ملغي</option>
+                {ORDER_STATUS_KEYS.map((key) => (
+                  <option key={key} value={key}>
+                    {orderStatusLabels[key]}
+                  </option>
+                ))}
               </select>
             </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label>ملاحظة (اختياري)</Label>
+              <Textarea
+                placeholder="ملاحظة لتسجيل تغيير الحالة..."
+                value={statusDialogNote}
+                onChange={(e) => setStatusDialogNote(e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+
+            {/* API error */}
+            {updateStatusMutation.isError && (
+              <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+                {(updateStatusMutation.error as Error)?.message ??
+                  "فشل تحديث الحالة"}
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
-              onClick={() => setIsStatusDialogOpen(false)}
+              onClick={() => handleCloseStatusDialog(false)}
             >
               إلغاء
             </Button>
             <Button
-              onClick={handleUpdateStatus}
+              onClick={() => handleUpdateStatus()}
               disabled={updateStatusMutation.isPending}
             >
               {updateStatusMutation.isPending && (
