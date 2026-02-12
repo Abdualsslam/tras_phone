@@ -6,24 +6,6 @@ part of 'return_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-PickupAddress _$PickupAddressFromJson(Map<String, dynamic> json) =>
-    PickupAddress(
-      fullName: json['fullName'] as String,
-      phone: json['phone'] as String,
-      address: json['address'] as String,
-      city: json['city'] as String,
-      notes: json['notes'] as String?,
-    );
-
-Map<String, dynamic> _$PickupAddressToJson(PickupAddress instance) =>
-    <String, dynamic>{
-      'fullName': instance.fullName,
-      'phone': instance.phone,
-      'address': instance.address,
-      'city': instance.city,
-      'notes': instance.notes,
-    };
-
 ReturnModel _$ReturnModelFromJson(Map<String, dynamic> json) => ReturnModel(
   id: ReturnModel._idFromJson(json['_id']),
   returnNumber: json['returnNumber'] as String,
@@ -43,9 +25,6 @@ ReturnModel _$ReturnModelFromJson(Map<String, dynamic> json) => ReturnModel(
   restockingFee: (json['restockingFee'] as num?)?.toDouble() ?? 0,
   shippingDeduction: (json['shippingDeduction'] as num?)?.toDouble() ?? 0,
   refundAmount: (json['refundAmount'] as num?)?.toDouble() ?? 0,
-  pickupAddress: json['pickupAddress'] == null
-      ? null
-      : PickupAddress.fromJson(json['pickupAddress'] as Map<String, dynamic>),
   scheduledPickupDate: json['scheduledPickupDate'] as String?,
   pickupTrackingNumber: json['pickupTrackingNumber'] as String?,
   exchangeOrderId: json['exchangeOrderId'] as String?,
@@ -76,7 +55,6 @@ Map<String, dynamic> _$ReturnModelToJson(ReturnModel instance) =>
       'restockingFee': instance.restockingFee,
       'shippingDeduction': instance.shippingDeduction,
       'refundAmount': instance.refundAmount,
-      'pickupAddress': instance.pickupAddress,
       'scheduledPickupDate': instance.scheduledPickupDate,
       'pickupTrackingNumber': instance.pickupTrackingNumber,
       'exchangeOrderId': instance.exchangeOrderId,
@@ -171,9 +149,6 @@ CreateReturnRequest _$CreateReturnRequestFromJson(
   items: (json['items'] as List<dynamic>)
       .map((e) => CreateReturnItemRequest.fromJson(e as Map<String, dynamic>))
       .toList(),
-  pickupAddress: json['pickupAddress'] == null
-      ? null
-      : PickupAddress.fromJson(json['pickupAddress'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$CreateReturnRequestToJson(
@@ -184,7 +159,6 @@ Map<String, dynamic> _$CreateReturnRequestToJson(
   'customerNotes': instance.customerNotes,
   'customerImages': instance.customerImages,
   'items': instance.items,
-  'pickupAddress': instance.pickupAddress,
 };
 
 CreateReturnItemRequest _$CreateReturnItemRequestFromJson(

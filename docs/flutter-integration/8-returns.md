@@ -37,7 +37,6 @@ class ReturnRequest {
   final double restockingFee;
   final double shippingDeduction;
   final double refundAmount;
-  final PickupAddress? pickupAddress;
   final DateTime? scheduledPickupDate;
   final String? pickupTrackingNumber;
   final String? exchangeOrderId;
@@ -64,7 +63,6 @@ class ReturnRequest {
     required this.restockingFee,
     required this.shippingDeduction,
     required this.refundAmount,
-    this.pickupAddress,
     this.scheduledPickupDate,
     this.pickupTrackingNumber,
     this.exchangeOrderId,
@@ -104,9 +102,6 @@ class ReturnRequest {
       restockingFee: (json['restockingFee'] ?? 0).toDouble(),
       shippingDeduction: (json['shippingDeduction'] ?? 0).toDouble(),
       refundAmount: (json['refundAmount'] ?? 0).toDouble(),
-      pickupAddress: json['pickupAddress'] != null 
-          ? PickupAddress.fromJson(json['pickupAddress']) 
-          : null,
       scheduledPickupDate: json['scheduledPickupDate'] != null 
           ? DateTime.parse(json['scheduledPickupDate']) 
           : null,
@@ -258,46 +253,6 @@ class ReturnReason {
 
   /// الحصول على الاسم حسب اللغة
   String getName(String locale) => locale == 'ar' ? nameAr : name;
-}
-```
-
-### PickupAddress Model
-
-```dart
-class PickupAddress {
-  final String fullName;
-  final String phone;
-  final String address;
-  final String city;
-  final String? notes;
-
-  PickupAddress({
-    required this.fullName,
-    required this.phone,
-    required this.address,
-    required this.city,
-    this.notes,
-  });
-
-  factory PickupAddress.fromJson(Map<String, dynamic> json) {
-    return PickupAddress(
-      fullName: json['fullName'] ?? '',
-      phone: json['phone'] ?? '',
-      address: json['address'] ?? '',
-      city: json['city'] ?? '',
-      notes: json['notes'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'fullName': fullName,
-      'phone': phone,
-      'address': address,
-      'city': city,
-      if (notes != null) 'notes': notes,
-    };
-  }
 }
 ```
 
@@ -651,14 +606,7 @@ Future<List<ReturnRequest>> getMyReturns({
   "customerImages": [
     "https://example.com/image1.jpg",
     "https://example.com/image2.jpg"
-  ],
-  "pickupAddress": {
-    "fullName": "أحمد محمد",
-    "phone": "+966501234567",
-    "address": "شارع الملك فهد، حي العليا",
-    "city": "الرياض",
-    "notes": "بجانب مسجد الراجحي"
-  }
+  ]
 }
 ```
 
@@ -670,12 +618,6 @@ Future<List<ReturnRequest>> getMyReturns({
   - `quantity`: مطلوب، رقم >= 1
 - `customerNotes`: اختياري، نص
 - `customerImages`: اختياري، مصفوفة من URLs
-- `pickupAddress`: اختياري، كائن يحتوي على:
-  - `fullName`: مطلوب، نص
-  - `phone`: مطلوب، نص
-  - `address`: مطلوب، نص
-  - `city`: مطلوب، نص
-  - `notes`: اختياري، نص
 
 > **💡 الأسعار والفواتير تُجلب تلقائياً**: 
 > - لا حاجة لإرسال أسعار المنتجات - يتم جلبها من الفواتير الأصلية
@@ -706,13 +648,6 @@ Future<List<ReturnRequest>> getMyReturns({
     "restockingFee": 0,
     "shippingDeduction": 0,
     "refundAmount": 0,
-    "pickupAddress": {
-      "fullName": "أحمد محمد",
-      "phone": "+966501234567",
-      "address": "شارع الملك فهد، حي العليا",
-      "city": "الرياض",
-      "notes": "بجانب مسجد الراجحي"
-    },
     "createdAt": "2024-01-16T14:00:00Z",
     "updatedAt": "2024-01-16T14:00:00Z"
   },
@@ -731,7 +666,6 @@ Future<ReturnRequest> createReturn({
   required List<ReturnItemRequest> items,
   String? customerNotes,
   List<String>? customerImages,
-  PickupAddress? pickupAddress,
 }) async {
   final response = await _dio.post('/returns', data: {
     'returnType': returnType.toApiString(),
@@ -739,7 +673,6 @@ Future<ReturnRequest> createReturn({
     'items': items.map((i) => i.toJson()).toList(),
     if (customerNotes != null) 'customerNotes': customerNotes,
     if (customerImages != null) 'customerImages': customerImages,
-    if (pickupAddress != null) 'pickupAddress': pickupAddress.toJson(),
   });
   
   if (response.data['success']) {
@@ -807,13 +740,6 @@ class ReturnItemRequest {
       "restockingFee": 20.00,
       "shippingDeduction": 0,
       "refundAmount": 480.00,
-      "pickupAddress": {
-        "fullName": "أحمد محمد",
-        "phone": "+966501234567",
-        "address": "شارع الملك فهد، حي العليا",
-        "city": "الرياض",
-        "notes": "بجانب مسجد الراجحي"
-      },
       "scheduledPickupDate": "2024-01-18T10:00:00Z",
       "approvedAt": "2024-01-16T14:30:00Z",
       "createdAt": "2024-01-15T10:30:00Z",
@@ -919,7 +845,6 @@ class ReturnsService {
     required List<ReturnItemRequest> items,
     String? customerNotes,
     List<String>? customerImages,
-    PickupAddress? pickupAddress,
   }) async {
     final response = await _dio.post('/returns', data: {
       'returnType': returnType.toApiString(),
@@ -927,7 +852,6 @@ class ReturnsService {
       'items': items.map((i) => i.toJson()).toList(),
       if (customerNotes != null) 'customerNotes': customerNotes,
       if (customerImages != null) 'customerImages': customerImages,
-      if (pickupAddress != null) 'pickupAddress': pickupAddress.toJson(),
     });
     
     if (response.data['success']) {

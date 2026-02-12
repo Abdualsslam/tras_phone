@@ -28,44 +28,6 @@ export class ReturnItemDto {
   quantity: number;
 }
 
-export class PickupAddressDto {
-  @ApiProperty({
-    description: 'Full name for pickup',
-    example: 'أحمد محمد',
-  })
-  @IsString()
-  fullName: string;
-
-  @ApiProperty({
-    description: 'Phone number for pickup',
-    example: '+966501234567',
-  })
-  @IsString()
-  phone: string;
-
-  @ApiProperty({
-    description: 'Pickup address',
-    example: 'شارع الملك فهد، حي العليا',
-  })
-  @IsString()
-  address: string;
-
-  @ApiProperty({
-    description: 'City',
-    example: 'الرياض',
-  })
-  @IsString()
-  city: string;
-
-  @ApiPropertyOptional({
-    description: 'Additional notes for pickup',
-    example: 'بجانب مسجد الراجحي',
-  })
-  @IsOptional()
-  @IsString()
-  notes?: string;
-}
-
 export class CreateReturnRequestDto {
   @ApiProperty({
     description: 'Return type',
@@ -109,13 +71,4 @@ export class CreateReturnRequestDto {
   @IsArray()
   @IsString({ each: true })
   customerImages?: string[];
-
-  @ApiPropertyOptional({
-    description: 'Pickup address',
-    type: PickupAddressDto,
-  })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => PickupAddressDto)
-  pickupAddress?: PickupAddressDto;
 }

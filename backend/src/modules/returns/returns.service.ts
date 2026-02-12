@@ -60,7 +60,6 @@ export class ReturnsService {
     }[];
     customerNotes?: string;
     customerImages?: string[];
-    pickupAddress?: any;
   }): Promise<ReturnRequestDocument> {
     const returnNumber = await this.generateReturnNumber();
 
@@ -108,7 +107,6 @@ export class ReturnsService {
       reasonId: data.reasonId,
       customerNotes: data.customerNotes,
       customerImages: data.customerImages,
-      pickupAddress: data.pickupAddress,
       totalItemsValue,
       status: 'pending',
     });

@@ -204,54 +204,6 @@ class _ReturnDetailsView extends StatelessWidget {
                   ),
                   SizedBox(height: 16.h),
 
-                  // Pickup Address
-                  if (returnRequest.pickupAddress != null)
-                    _buildInfoCard(
-                      context,
-                      theme,
-                      isDark,
-                      'عنوان الاستلام',
-                      [
-                        _buildInfoRow(
-                          context,
-                          theme,
-                          isDark,
-                          'الاسم',
-                          returnRequest.pickupAddress!.fullName,
-                        ),
-                        _buildInfoRow(
-                          context,
-                          theme,
-                          isDark,
-                          'الهاتف',
-                          returnRequest.pickupAddress!.phone,
-                        ),
-                        _buildInfoRow(
-                          context,
-                          theme,
-                          isDark,
-                          'العنوان',
-                          returnRequest.pickupAddress!.address,
-                        ),
-                        _buildInfoRow(
-                          context,
-                          theme,
-                          isDark,
-                          'المدينة',
-                          returnRequest.pickupAddress!.city,
-                        ),
-                        if (returnRequest.pickupAddress!.notes != null)
-                          _buildInfoRow(
-                            context,
-                            theme,
-                            isDark,
-                            'ملاحظات',
-                            returnRequest.pickupAddress!.notes!,
-                          ),
-                      ],
-                    ),
-                  if (returnRequest.pickupAddress != null) SizedBox(height: 16.h),
-
                   // Cancel Button (if pending)
                   if (returnRequest.canCancel)
                     OutlinedButton(

@@ -14,7 +14,6 @@ import '../../domain/enums/return_enums.dart';
 import '../cubit/create_return_cubit.dart';
 import '../cubit/create_return_state.dart';
 import '../widgets/image_uploader.dart';
-import '../widgets/pickup_address_form.dart';
 
 class CreateReturnScreen extends StatefulWidget {
   /// Pre-selected items from SelectItemsForReturnScreen
@@ -73,7 +72,6 @@ class _CreateReturnViewState extends State<_CreateReturnView> {
   ReturnReasonEntity? _selectedReason;
   final _notesController = TextEditingController();
   List<String> _uploadedImages = [];
-  PickupAddress? _pickupAddress;
   bool _isSubmitting = false;
 
   @override
@@ -318,14 +316,6 @@ class _CreateReturnViewState extends State<_CreateReturnView> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 16.h),
-
-                  // Pickup Address (optional)
-                  PickupAddressForm(
-                    onAddressChanged: (address) {
-                      setState(() => _pickupAddress = address);
-                    },
-                  ),
                   SizedBox(height: 24.h),
 
                   // Policy Notice
@@ -446,7 +436,6 @@ class _CreateReturnViewState extends State<_CreateReturnView> {
           ? _notesController.text.trim()
           : null,
       customerImages: imageUrls.isNotEmpty ? imageUrls : null,
-      pickupAddress: _pickupAddress,
     );
 
     await cubit.createReturn(request);

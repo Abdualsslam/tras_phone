@@ -6,39 +6,6 @@ import '../../domain/entities/return_entity.dart';
 
 part 'return_model.g.dart';
 
-/// عنوان الاستلام
-@JsonSerializable()
-class PickupAddress {
-  final String fullName;
-  final String phone;
-  final String address;
-  final String city;
-  final String? notes;
-
-  const PickupAddress({
-    required this.fullName,
-    required this.phone,
-    required this.address,
-    required this.city,
-    this.notes,
-  });
-
-  factory PickupAddress.fromJson(Map<String, dynamic> json) =>
-      _$PickupAddressFromJson(json);
-  Map<String, dynamic> toJson() => _$PickupAddressToJson(this);
-
-  /// Convert to domain entity
-  PickupAddressEntity toEntity() {
-    return PickupAddressEntity(
-      fullName: fullName,
-      phone: phone,
-      address: address,
-      city: city,
-      notes: notes,
-    );
-  }
-}
-
 /// Return Request Model
 @JsonSerializable()
 class ReturnModel {
@@ -60,7 +27,6 @@ class ReturnModel {
   final double restockingFee;
   final double shippingDeduction;
   final double refundAmount;
-  final PickupAddress? pickupAddress;
   final String? scheduledPickupDate;
   final String? pickupTrackingNumber;
   final String? exchangeOrderId;
@@ -87,7 +53,6 @@ class ReturnModel {
     this.restockingFee = 0,
     this.shippingDeduction = 0,
     this.refundAmount = 0,
-    this.pickupAddress,
     this.scheduledPickupDate,
     this.pickupTrackingNumber,
     this.exchangeOrderId,
@@ -168,7 +133,6 @@ class ReturnModel {
       restockingFee: restockingFee,
       shippingDeduction: shippingDeduction,
       refundAmount: refundAmount,
-      pickupAddress: pickupAddress?.toEntity(),
       scheduledPickupDate: scheduledPickupDateParsed,
       pickupTrackingNumber: pickupTrackingNumber,
       exchangeOrderId: exchangeOrderId,
@@ -317,7 +281,6 @@ class CreateReturnRequest {
   final String? customerNotes;
   final List<String>? customerImages;
   final List<CreateReturnItemRequest> items;
-  final PickupAddress? pickupAddress;
 
   const CreateReturnRequest({
     required this.returnType,
@@ -325,7 +288,6 @@ class CreateReturnRequest {
     this.customerNotes,
     this.customerImages,
     required this.items,
-    this.pickupAddress,
   });
 
   factory CreateReturnRequest.fromJson(Map<String, dynamic> json) =>

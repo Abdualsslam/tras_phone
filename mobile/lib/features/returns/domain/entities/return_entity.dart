@@ -6,26 +6,6 @@ import '../enums/return_enums.dart';
 
 export '../enums/return_enums.dart';
 
-/// Pickup Address Entity
-class PickupAddressEntity extends Equatable {
-  final String fullName;
-  final String phone;
-  final String address;
-  final String city;
-  final String? notes;
-
-  const PickupAddressEntity({
-    required this.fullName,
-    required this.phone,
-    required this.address,
-    required this.city,
-    this.notes,
-  });
-
-  @override
-  List<Object?> get props => [fullName, phone, address, city, notes];
-}
-
 /// Return Item Entity
 class ReturnItemEntity extends Equatable {
   final String id;
@@ -132,7 +112,6 @@ class ReturnEntity extends Equatable {
   final double restockingFee;
   final double shippingDeduction;
   final double refundAmount;
-  final PickupAddressEntity? pickupAddress;
   final DateTime? scheduledPickupDate;
   final String? pickupTrackingNumber;
   final String? exchangeOrderId;
@@ -159,7 +138,6 @@ class ReturnEntity extends Equatable {
     required this.restockingFee,
     required this.shippingDeduction,
     required this.refundAmount,
-    this.pickupAddress,
     this.scheduledPickupDate,
     this.pickupTrackingNumber,
     this.exchangeOrderId,

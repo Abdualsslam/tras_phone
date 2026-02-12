@@ -72,15 +72,6 @@ export class ReturnRequest {
     // ═════════════════════════════════════
     // Pickup
     // ═════════════════════════════════════
-    @Prop({ type: Object })
-    pickupAddress?: {
-        fullName: string;
-        phone: string;
-        address: string;
-        city: string;
-        notes?: string;
-    };
-
     @Prop({ type: Date })
     scheduledPickupDate?: Date;
 

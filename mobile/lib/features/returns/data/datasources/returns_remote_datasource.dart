@@ -101,7 +101,6 @@ class ReturnsRemoteDataSourceImpl implements ReturnsRemoteDataSource {
           restockingFee: returnModel.restockingFee,
           shippingDeduction: returnModel.shippingDeduction,
           refundAmount: returnModel.refundAmount,
-          pickupAddress: returnModel.pickupAddress,
           scheduledPickupDate: returnModel.scheduledPickupDate,
           pickupTrackingNumber: returnModel.pickupTrackingNumber,
           exchangeOrderId: returnModel.exchangeOrderId,
