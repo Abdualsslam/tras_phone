@@ -382,11 +382,13 @@ export class CartService {
         const cart = await this.getCart(customerId);
         this.logger.debug(`syncCart: customerId=${customerId}, cartId=${cart._id}, existingItems=${cart.items?.length ?? 0}`);
 
-        // Get customer for priceLevelId (customerId is Customer._id, so use findById)
+        // Get customer's price level ID in a safe way
+        // Use ProductsService helper which correctly handles populated vs ObjectId priceLevelId
         let priceLevelId: string;
         try {
-            const customer = await this.customersService.findById(customerId);
-            priceLevelId = customer?.priceLevelId?.toString() || '';
+            const resolvedPriceLevelId =
+                await this.productsService.getPriceLevelIdForCustomer(customerId);
+            priceLevelId = resolvedPriceLevelId || '';
         } catch (e) {
             priceLevelId = '';
         }
