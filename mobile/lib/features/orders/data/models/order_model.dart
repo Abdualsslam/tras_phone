@@ -83,6 +83,7 @@ class OrderModel {
   final String customerId;
 
   /// Price level ID used when order was created (from pricing rules)
+  @JsonKey(name: 'priceLevelId', readValue: _readPriceLevelId)
   final String? priceLevelId;
 
   @JsonKey(defaultValue: 'pending')
@@ -220,6 +221,20 @@ class OrderModel {
     String key,
   ) {
     final value = json['shippingAddressId'];
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) {
+      return value['_id']?.toString() ?? value['\$oid']?.toString();
+    }
+    return value.toString();
+  }
+
+  /// Handle priceLevelId which can be String or populated object
+  static Object? _readPriceLevelId(
+    Map<dynamic, dynamic> json,
+    String key,
+  ) {
+    final value = json['priceLevelId'];
     if (value == null) return null;
     if (value is String) return value;
     if (value is Map) {

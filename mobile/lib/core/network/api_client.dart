@@ -25,6 +25,10 @@ class ApiClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
+        // Accept both 200 and 201 as successful responses
+        validateStatus: (status) {
+          return status != null && status >= 200 && status < 300;
+        },
       ),
     );
   }
@@ -209,7 +213,7 @@ class ApiClient {
   /// Get current locale from storage or system
   String _getCurrentLocale() {
     if (_localStorage != null) {
-      final savedLocale = _localStorage!.getString(StorageKeys.locale);
+      final savedLocale = _localStorage.getString(StorageKeys.locale);
       if (savedLocale != null) {
         return savedLocale;
       }

@@ -40,7 +40,7 @@ OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => OrderModel(
   id: OrderModel._readId(json, 'id') as String,
   orderNumber: json['orderNumber'] as String,
   customerId: OrderModel._readCustomerId(json, 'customerId') as String,
-  priceLevelId: json['priceLevelId'] as String?,
+  priceLevelId: OrderModel._readPriceLevelId(json, 'priceLevelId') as String?,
   status: json['status'] as String? ?? 'pending',
   subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
   taxAmount: (json['taxAmount'] as num?)?.toDouble() ?? 0.0,
