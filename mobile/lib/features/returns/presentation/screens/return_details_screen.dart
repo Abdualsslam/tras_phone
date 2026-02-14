@@ -312,20 +312,21 @@ class _ReturnDetailsView extends StatelessWidget {
   }
 
   void _showCancelDialog(BuildContext context, String returnId) {
+    final cubit = context.read<ReturnDetailsCubit>();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('إلغاء طلب الإرجاع'),
         content: const Text('هل أنت متأكد من إلغاء طلب الإرجاع؟'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('لا'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              context.read<ReturnDetailsCubit>().cancelReturn(returnId);
+              Navigator.pop(dialogContext);
+              cubit.cancelReturn(returnId);
             },
             child: Text(
               'نعم، إلغاء',
