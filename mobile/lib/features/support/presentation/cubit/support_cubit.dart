@@ -5,6 +5,7 @@ import 'package:injectable/injectable.dart';
 
 import '../../data/datasources/support_remote_datasource.dart';
 import '../../data/models/support_model.dart';
+import '../../utils/support_error_helper.dart';
 
 part 'support_state.dart';
 
@@ -26,52 +27,39 @@ class SupportCubit extends Cubit<SupportState> {
     } catch (e) {
       emit(state.copyWith(
         status: SupportStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
     }
   }
 
-  /// تحميل تذاكري
-  Future<void> loadMyTickets({
-    TicketStatus? status,
-    bool refresh = false,
-  }) async {
+  /// تحميل تذاكري (جميع التذاكر - لا pagination حسب التوثيق)
+  Future<void> loadMyTickets({bool refresh = false}) async {
     try {
-      if (refresh) {
-        emit(state.copyWith(
-          status: SupportStatus.loading,
-          tickets: [],
-          currentPage: 1,
-          hasMoreTickets: true,
-        ));
-      } else {
-        emit(state.copyWith(status: SupportStatus.loading));
-      }
+      emit(state.copyWith(
+        status: SupportStatus.loading,
+        tickets: refresh ? [] : null,
+      ));
 
-      final page = refresh ? 1 : state.currentPage;
-      final tickets = await _dataSource.getMyTickets(
-        status: status,
-        page: page,
-      );
+      final tickets = await _dataSource.getMyTickets();
 
       emit(state.copyWith(
         status: SupportStatus.loaded,
-        tickets: refresh ? tickets : [...state.tickets, ...tickets],
-        currentPage: page + 1,
-        hasMoreTickets: tickets.length >= 10,
+        tickets: tickets,
+        hasMoreTickets: false,
+        currentPage: 1,
       ));
     } catch (e) {
       emit(state.copyWith(
         status: SupportStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
     }
   }
 
-  /// تحميل المزيد من التذاكر
-  Future<void> loadMoreTickets({TicketStatus? status}) async {
-    if (!state.hasMoreTickets || state.status == SupportStatus.loading) return;
-    await loadMyTickets(status: status);
+  /// تحميل المزيد من التذاكر (بدون pagination من API = إعادة جلب للحديث)
+  Future<void> loadMoreTickets() async {
+    if (state.status == SupportStatus.loading) return;
+    await loadMyTickets(refresh: true);
   }
 
   /// تحميل تفاصيل تذكرة مع الرسائل
@@ -90,7 +78,7 @@ class SupportCubit extends Cubit<SupportState> {
     } catch (e) {
       emit(state.copyWith(
         status: SupportStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
     }
   }
@@ -105,7 +93,7 @@ class SupportCubit extends Cubit<SupportState> {
     } catch (e) {
       emit(state.copyWith(
         status: SupportStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
     }
   }
@@ -141,7 +129,7 @@ class SupportCubit extends Cubit<SupportState> {
     } catch (e) {
       emit(state.copyWith(
         status: SupportStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
       return null;
     }
@@ -166,29 +154,38 @@ class SupportCubit extends Cubit<SupportState> {
     } catch (e) {
       emit(state.copyWith(
         status: SupportStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
       return null;
     }
   }
 
-  /// تقييم التذكرة
+  /// تقييم التذكرة - يحدّث التذكرة المحددة في الـ state إن وُجدت
   Future<bool> rateTicket({
     required String ticketId,
     required int rating,
     String? feedback,
   }) async {
     try {
-      await _dataSource.rateTicket(
+      final updated = await _dataSource.rateTicket(
         ticketId: ticketId,
         rating: rating,
         feedback: feedback,
       );
+      final newTickets = state.tickets.map((t) {
+        if (t.id == ticketId) return updated;
+        return t;
+      }).toList();
+      emit(state.copyWith(
+        tickets: newTickets,
+        selectedTicket:
+            state.selectedTicket?.id == ticketId ? updated : state.selectedTicket,
+      ));
       return true;
     } catch (e) {
       emit(state.copyWith(
         status: SupportStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
       return false;
     }
@@ -204,7 +201,7 @@ class SupportCubit extends Cubit<SupportState> {
     } catch (e) {
       emit(state.copyWith(
         status: SupportStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
       return [];
     }
@@ -229,7 +226,7 @@ class SupportCubit extends Cubit<SupportState> {
     } catch (e) {
       emit(state.copyWith(
         status: SupportStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
       return [];
     }

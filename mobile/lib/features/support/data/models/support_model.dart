@@ -860,7 +860,7 @@ class ChatMessageModel {
 /// طلب إنشاء تذكرة
 @JsonSerializable()
 class CreateTicketRequest {
-  @JsonKey(name: 'category')
+  @JsonKey(name: 'categoryId')
   final String categoryId;
   final String subject;
   final String description;
@@ -868,6 +868,7 @@ class CreateTicketRequest {
   final String? orderId;
   final String? productId;
   final List<String>? attachments;
+  final String? source;
 
   const CreateTicketRequest({
     required this.categoryId,
@@ -877,6 +878,7 @@ class CreateTicketRequest {
     this.orderId,
     this.productId,
     this.attachments,
+    this.source,
   });
 
   factory CreateTicketRequest.fromJson(Map<String, dynamic> json) =>
