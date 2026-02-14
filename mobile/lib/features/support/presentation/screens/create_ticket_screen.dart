@@ -7,6 +7,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../../profile/presentation/cubit/profile_cubit.dart';
+import '../../../profile/presentation/cubit/profile_state.dart';
 import '../../data/models/support_model.dart';
 import '../cubit/support_cubit.dart';
 import '../widgets/attachment_picker.dart';
@@ -81,38 +85,65 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Category Selection
-                  Text(
-                    'التصنيف',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  if (state.status == SupportStatus.loading &&
-                      state.categories.isEmpty)
-                    const Center(child: CircularProgressIndicator())
-                  else
-                    Wrap(
-                      spacing: 8.w,
-                      runSpacing: 8.h,
-                      children: state.categories.map((cat) {
-                        final isSelected = _selectedCategory?.id == cat.id;
-                        return ChoiceChip(
-                          label: Text(cat.getName('ar')),
-                          selected: isSelected,
-                          onSelected: (_) {
-                            setState(() => _selectedCategory = cat);
-                          },
-                          selectedColor: AppColors.primary.withValues(alpha: 0.2),
-                          labelStyle: TextStyle(
-                            color:
-                                isSelected ? AppColors.primary : null,
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : null,
+                  FormField<TicketCategoryModel?>(
+                    initialValue: _selectedCategory,
+                    validator: (value) =>
+                        value == null ? 'اختر تصنيف التذكرة' : null,
+                    builder: (formFieldState) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'التصنيف',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        );
-                      }).toList(),
-                    ),
+                          SizedBox(height: 8.h),
+                          if (state.status == SupportStatus.loading &&
+                              state.categories.isEmpty)
+                            const Center(child: CircularProgressIndicator())
+                          else
+                            Wrap(
+                              spacing: 8.w,
+                              runSpacing: 8.h,
+                              children: state.categories.map((cat) {
+                                final isSelected =
+                                    _selectedCategory?.id == cat.id;
+                                return ChoiceChip(
+                                  label: Text(cat.getName('ar')),
+                                  selected: isSelected,
+                                  onSelected: (_) {
+                                    setState(() {
+                                      _selectedCategory = cat;
+                                      formFieldState.didChange(cat);
+                                    });
+                                  },
+                                  selectedColor:
+                                      AppColors.primary.withValues(alpha: 0.2),
+                                  labelStyle: TextStyle(
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : null,
+                                    fontWeight:
+                                        isSelected ? FontWeight.w600 : null,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          if (formFieldState.hasError) ...[
+                            SizedBox(height: 8.h),
+                            Text(
+                              formFieldState.errorText!,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.error,
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
                   SizedBox(height: 16.h),
 
                   // Priority Selection
@@ -271,69 +302,95 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   }
 
 
-  Future<void> _submitTicket() async {
-    if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('اختر تصنيف التذكرة'),
-          backgroundColor: AppColors.warning,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-        ),
-      );
-      return;
+  String _getCustomerName(BuildContext context) {
+    final profileState = context.read<ProfileCubit>().state;
+    if (profileState is ProfileLoaded) {
+      return profileState.customer.responsiblePersonName;
     }
+    if (profileState is ProfileUpdated) {
+      return profileState.customer.responsiblePersonName;
+    }
+    final authState = context.read<AuthCubit>().state;
+    if (authState is AuthAuthenticated) {
+      return authState.user.phone; // fallback when profile not loaded
+    }
+    return 'عميل';
+  }
 
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isSubmitting = true);
+  String _getCustomerEmail(BuildContext context) {
+    final profileState = context.read<ProfileCubit>().state;
+    String? email;
+    if (profileState is ProfileLoaded) {
+      email = profileState.customer.user?.email ??
+          profileState.customer.user?.phone;
+    } else if (profileState is ProfileUpdated) {
+      email = profileState.customer.user?.email ??
+          profileState.customer.user?.phone;
+    }
+    if (email != null && email.isNotEmpty) return email;
 
-      try {
-        // Upload attachments first if any
-        List<String> attachmentUrls = [];
-        if (_attachmentPaths.isNotEmpty) {
-          attachmentUrls = await context.read<SupportCubit>().uploadAttachments(
-                _attachmentPaths,
-              );
-        }
+    final authState = context.read<AuthCubit>().state;
+    if (authState is AuthAuthenticated) {
+      email = authState.user.email ?? authState.user.phone;
+    }
+    return email?.isNotEmpty == true ? email! : 'contact@tras.phone';
+  }
 
-        final ticket = await context.read<SupportCubit>().createTicket(
-              categoryId: _selectedCategory!.id,
-              subject: _subjectController.text,
-              description: _descriptionController.text,
-              priority: _selectedPriority,
-              orderId: widget.orderId,
-              productId: widget.productId,
-              attachments: attachmentUrls.isNotEmpty ? attachmentUrls : null,
+  Future<void> _submitTicket() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategory == null) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      // Upload attachments first if any
+      List<String> attachmentUrls = [];
+      if (_attachmentPaths.isNotEmpty) {
+        attachmentUrls = await context.read<SupportCubit>().uploadAttachments(
+              _attachmentPaths,
             );
+      }
 
-        if (ticket != null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('تم إرسال التذكرة بنجاح'),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-            ),
+      final customerName = _getCustomerName(context);
+      final customerEmail = _getCustomerEmail(context);
+
+      final ticket = await context.read<SupportCubit>().createTicket(
+            categoryId: _selectedCategory!.id,
+            subject: _subjectController.text,
+            description: _descriptionController.text,
+            priority: _selectedPriority,
+            orderId: widget.orderId,
+            productId: widget.productId,
+            attachments: attachmentUrls.isNotEmpty ? attachmentUrls : null,
+            customerName: customerName,
+            customerEmail: customerEmail,
           );
-          context.pop();
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('فشل إرسال التذكرة: $e'),
-              backgroundColor: AppColors.error,
+
+      if (ticket != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('تم إرسال التذكرة بنجاح'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
             ),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() => _isSubmitting = false);
-        }
+          ),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل إرسال التذكرة: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
       }
     }
   }
