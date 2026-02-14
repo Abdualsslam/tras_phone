@@ -148,23 +148,37 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     developer.log('Fetching my ticket: $ticketId', name: 'SupportDataSource');
 
     final response = await _apiClient.get(ApiEndpoints.ticketDetails(ticketId));
+    final payload = _unwrapSupportResponse(response.data);
 
-    if (response.data['success'] != true) {
+    if (payload['success'] != true) {
       throw Exception(
-        response.data['messageAr'] ??
+        payload['messageAr'] ??
+            payload['message'] ??
+            response.data['messageAr'] ??
             response.data['message'] ??
             'Failed to load ticket',
       );
     }
 
-    final data = response.data['data'] ?? response.data;
+    final data = payload['data'] ?? response.data['data'] ?? response.data;
+    final ticketData = data is Map ? data['ticket'] ?? data : null;
+    final messagesJson = data is Map ? data['messages'] as List<dynamic>? : null;
 
-    // Parse ticket and messages
-    final ticket = TicketModel.fromJson(data['ticket'] ?? data);
-    final messagesJson = data['messages'] as List<dynamic>?;
+    if (ticketData is! Map) {
+      throw Exception(
+        payload['messageAr'] ??
+            payload['message'] ??
+            'Invalid ticket response',
+      );
+    }
+
+    final ticket =
+        TicketModel.fromJson(Map<String, dynamic>.from(ticketData));
     final messages = messagesJson != null
         ? messagesJson
-            .map((m) => TicketMessageModel.fromJson(m))
+            .whereType<Map>()
+            .map((m) =>
+                TicketMessageModel.fromJson(Map<String, dynamic>.from(m)))
             .toList()
         : <TicketMessageModel>[];
 
@@ -193,16 +207,27 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
       data: body,
     );
 
-    if (response.data['success'] != true) {
+    final payload = _unwrapSupportResponse(response.data);
+
+    if (payload['success'] != true) {
       throw Exception(
-        response.data['messageAr'] ??
+        payload['messageAr'] ??
+            payload['message'] ??
+            response.data['messageAr'] ??
             response.data['message'] ??
             'Failed to create ticket',
       );
     }
 
-    final data = response.data['data'] ?? response.data;
-    return TicketModel.fromJson(data);
+    final data = payload['data'];
+    if (data is! Map) {
+      throw Exception(
+        payload['messageAr'] ??
+            payload['message'] ??
+            'Invalid ticket response',
+      );
+    }
+    return TicketModel.fromJson(Map<String, dynamic>.from(data));
   }
 
   @override

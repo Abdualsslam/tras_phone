@@ -457,7 +457,7 @@ class TicketModel {
   final TicketCustomerInfo customer;
   @JsonKey(includeFromJson: false, includeToJson: false)
   final String? categoryId;
-  @JsonKey(name: 'category')
+  @JsonKey(name: 'category', fromJson: _categoryFromJson)
   final TicketCategoryModel? category;
   final String subject;
   final String description;
@@ -913,6 +913,19 @@ class StartChatRequest {
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
+
+/// تحويل category من String أو Map إلى TicketCategoryModel
+TicketCategoryModel? _categoryFromJson(dynamic value) {
+  if (value == null) return null;
+  if (value is String) return null;
+  if (value is Map<String, dynamic>) {
+    return TicketCategoryModel.fromJson(value);
+  }
+  if (value is Map) {
+    return TicketCategoryModel.fromJson(Map<String, dynamic>.from(value));
+  }
+  return null;
+}
 
 /// قراءة الـ ID من الـ JSON
 Object? _readId(Map<dynamic, dynamic> json, String key) =>
