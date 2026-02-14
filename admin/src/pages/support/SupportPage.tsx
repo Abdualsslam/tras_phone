@@ -53,6 +53,11 @@ import {
 } from 'lucide-react';
 import { getInitials, formatDate } from '@/lib/utils';
 
+function getCustomerDisplayName(customer: any): string {
+    if (!customer || typeof customer !== 'object' || customer.buffer) return 'عميل';
+    return (customer.companyName ?? customer.name ?? customer.email ?? 'عميل') as string;
+}
+
 const statusLabels: Record<string, string> = {
     open: 'مفتوح',
     in_progress: 'قيد المعالجة',
@@ -400,7 +405,7 @@ export function SupportPage() {
                                                 >
                                                     <div className="flex items-start gap-3">
                                                         <Avatar>
-                                                            <AvatarFallback>{getInitials((ticket.customer as any)?.companyName ?? (ticket.customer as any)?.name ?? 'عميل')}</AvatarFallback>
+                                                            <AvatarFallback>{getInitials(getCustomerDisplayName(ticket.customer))}</AvatarFallback>
                                                         </Avatar>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2">
@@ -414,7 +419,7 @@ export function SupportPage() {
                                                             </div>
                                                             <p className="text-sm text-gray-900 dark:text-gray-100 mt-1 truncate">{ticket.subject}</p>
                                                             <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                                                                <span>{(ticket.customer as any)?.companyName ?? (ticket.customer as any)?.name ?? '-'}</span>
+                                                                <span>{getCustomerDisplayName(ticket.customer)}</span>
                                                                 <span>{formatDate(ticket.createdAt, locale)}</span>
                                                             </div>
                                                         </div>

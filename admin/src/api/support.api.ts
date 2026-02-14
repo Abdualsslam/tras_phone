@@ -72,9 +72,12 @@ export const supportApi = {
     // ─────────────────────────────────────────
 
     getAllTickets: async (params?: TicketsQueryParams): Promise<PaginatedResponse<Ticket>> => {
-        const response = await apiClient.get<ApiResponse<PaginatedResponse<Ticket> | { tickets: Ticket[]; total: number }>>('/support/tickets', { params });
-        const data = response.data.data;
-        // Backend returns { tickets, total }; normalize to { items, pagination }
+        const response = await apiClient.get<any>('/support/tickets', { params });
+        // Handle double-wrapped response: data may be { success, data: { tickets, total } } or directly { tickets, total }
+        let data = response.data?.data;
+        if (data?.data && typeof data.data === 'object' && 'tickets' in data.data) {
+            data = data.data;
+        }
         if (data && 'tickets' in data) {
             const total = data.total ?? 0;
             const limit = (params?.limit as number) ?? 20;
@@ -91,8 +94,7 @@ export const supportApi = {
                 },
             };
         }
-        const fallback = { items: [] as Ticket[], pagination: { total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPreviousPage: false } };
-        return (data as PaginatedResponse<Ticket>) ?? fallback;
+        return { items: [] as Ticket[], pagination: { total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPreviousPage: false } };
     },
 
     getTicket: async (id: string): Promise<TicketDetails> => {
@@ -130,8 +132,10 @@ export const supportApi = {
     // ─────────────────────────────────────────
 
     getCategories: async (): Promise<TicketCategory[]> => {
-        const response = await apiClient.get<ApiResponse<TicketCategory[]>>('/support/categories');
-        return response.data.data;
+        const response = await apiClient.get<any>('/support/categories');
+        const data = response.data?.data;
+        const arr = data?.data ?? data;
+        return Array.isArray(arr) ? arr : [];
     },
 
     createCategory: async (data: Omit<TicketCategory, '_id'>): Promise<TicketCategory> => {
@@ -153,8 +157,10 @@ export const supportApi = {
     // ─────────────────────────────────────────
 
     getCannedResponses: async (): Promise<CannedResponse[]> => {
-        const response = await apiClient.get<ApiResponse<CannedResponse[]>>('/support/canned-responses');
-        return response.data.data;
+        const response = await apiClient.get<any>('/support/canned-responses');
+        const data = response.data?.data;
+        const arr = data?.data ?? data;
+        return Array.isArray(arr) ? arr : [];
     },
 
     createCannedResponse: async (data: Omit<CannedResponse, '_id' | 'usageCount' | 'createdBy' | 'createdAt'>): Promise<CannedResponse> => {
@@ -181,8 +187,23 @@ export const supportApi = {
     // ─────────────────────────────────────────
 
     getStats: async (): Promise<SupportStats> => {
-        const response = await apiClient.get<ApiResponse<SupportStats>>('/support/stats');
-        return response.data.data;
+        const response = await apiClient.get<any>('/support/stats');
+        let data = response.data?.data;
+        if (data?.data && typeof data.data === 'object') {
+            data = data.data;
+        }
+        if (!data || typeof data !== 'object') {
+            return { open: 0, inProgress: 0, resolved: 0, avgResponseTime: 0, todayTickets: 0, satisfactionRate: 0 };
+        }
+        const byStatus = data.byStatus ?? {};
+        return {
+            open: byStatus.open ?? 0,
+            inProgress: byStatus.in_progress ?? 0,
+            resolved: byStatus.resolved ?? 0,
+            avgResponseTime: data.avgResolutionTimeMinutes ?? data.avgResponseTime ?? 0,
+            todayTickets: data.todayTickets ?? 0,
+            satisfactionRate: data.satisfactionRate ?? 0,
+        };
     },
 };
 
