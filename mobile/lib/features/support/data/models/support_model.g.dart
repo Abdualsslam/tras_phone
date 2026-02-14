@@ -111,9 +111,7 @@ TicketModel _$TicketModelFromJson(Map<String, dynamic> json) => TicketModel(
   customer: TicketCustomerInfo.fromJson(
     json['customer'] as Map<String, dynamic>,
   ),
-  category: json['category'] == null
-      ? null
-      : TicketCategoryModel.fromJson(json['category'] as Map<String, dynamic>),
+  category: _categoryFromJson(json['category']),
   subject: json['subject'] as String,
   description: json['description'] as String,
   status: TicketModel._statusFromJson(json['status'] as String),

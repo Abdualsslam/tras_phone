@@ -192,17 +192,59 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                   onRefresh: () async {
                     await context.read<SupportCubit>().loadTicketDetails(widget.ticketId);
                   },
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: EdgeInsets.all(16.w),
-                    itemCount: state.messages.length,
-                    itemBuilder: (context, index) {
-                      return TicketMessageBubble(
-                        message: state.messages[index],
-                        isDark: isDark,
-                      );
-                    },
-                  ),
+                  child: state.messages.isEmpty
+                      ? ListView(
+                          padding: EdgeInsets.all(16.w),
+                          children: [
+                            Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24.w),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Iconsax.message_text,
+                                      size: 48.sp,
+                                      color: isDark
+                                          ? AppColors.textTertiaryDark
+                                          : AppColors.textTertiaryLight,
+                                    ),
+                                    SizedBox(height: 16.h),
+                                    Text(
+                                      'لا توجد رسائل بعد',
+                                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                        color: isDark
+                                            ? AppColors.textSecondaryDark
+                                            : AppColors.textSecondaryLight,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8.h),
+                                    Text(
+                                      'اكتب رسالتك أدناه وسيرد فريق الدعم قريباً',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: isDark
+                                            ? AppColors.textTertiaryDark
+                                            : AppColors.textTertiaryLight,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: EdgeInsets.all(16.w),
+                          itemCount: state.messages.length,
+                          itemBuilder: (context, index) {
+                            return TicketMessageBubble(
+                              message: state.messages[index],
+                              isDark: isDark,
+                            );
+                          },
+                        ),
                 ),
               ),
 
