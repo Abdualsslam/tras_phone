@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsBoolean, IsArray, IsEnum, IsMongoId, Min, IsNumber } from 'class-validator';
+import { IsOptional, IsString, IsBoolean, IsArray, IsEnum, IsMongoId, Min, IsNumber, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaginationQueryDto } from '@common/dto/pagination-query.dto';
 import { ProductFilterQueryDto } from './product-filter-query.dto';
@@ -159,7 +159,7 @@ export class SearchSuggestionsQueryDto {
     description: 'Partial search query' 
   })
   @IsString()
-  @Min(2)
+  @MinLength(2)
   query: string;
 
   @ApiProperty({ 
@@ -182,7 +182,7 @@ export class AutocompleteQueryDto {
     description: 'Partial search query' 
   })
   @IsString()
-  @Min(1)
+  @MinLength(1)
   query: string;
 
   @ApiProperty({ 
