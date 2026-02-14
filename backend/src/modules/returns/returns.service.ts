@@ -152,7 +152,7 @@ export class ReturnsService {
    */
   async findAll(
     filters?: any,
-  ): Promise<{ data: ReturnRequestDocument[]; total: number }> {
+  ): Promise<{ data: any[]; total: number }> {
     const {
       page = 1,
       limit = 20,
