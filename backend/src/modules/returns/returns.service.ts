@@ -175,7 +175,7 @@ export class ReturnsService {
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
-    const [data, total] = await Promise.all([
+    const [returnRequests, total] = await Promise.all([
       this.returnRequestModel
         .find(query)
         .populate('customerId', 'shopName responsiblePersonName phone')
@@ -183,9 +183,33 @@ export class ReturnsService {
         .populate('reasonId', 'name nameAr')
         .skip((page - 1) * limit)
         .limit(limit)
-        .sort({ createdAt: -1 }),
+        .sort({ createdAt: -1 })
+        .lean(),
       this.returnRequestModel.countDocuments(query),
     ]);
+
+    if (returnRequests.length === 0) {
+      return { data: [], total };
+    }
+
+    const returnIds = returnRequests.map((r) => r._id);
+    const items = await this.returnItemModel
+      .find({ returnRequestId: { $in: returnIds } })
+      .populate('productId', 'name nameAr mainImage')
+      .lean();
+
+    const itemsByReturnId = new Map<string, any[]>();
+    for (const item of items) {
+      const rid = String(item.returnRequestId);
+      const list = itemsByReturnId.get(rid) || [];
+      list.push(item);
+      itemsByReturnId.set(rid, list);
+    }
+
+    const data = returnRequests.map((r) => ({
+      ...r,
+      items: itemsByReturnId.get(String(r._id)) || [],
+    }));
 
     return { data, total };
   }
