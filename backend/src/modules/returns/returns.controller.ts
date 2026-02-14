@@ -200,6 +200,39 @@ export class ReturnsController {
     );
   }
 
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Cancel return request',
+    description:
+      'Cancel a pending return request. Only the customer who created it can cancel.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Return request ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Return request cancelled successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async cancelReturn(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    const returnRequest = await this.returnsService.cancelReturnRequest(
+      id,
+      user.customerId,
+    );
+    return ResponseBuilder.success(
+      returnRequest,
+      'Return cancelled',
+      'تم إلغاء طلب الإرجاع',
+    );
+  }
+
   // ═════════════════════════════════════
   // Admin Endpoints
   // ═════════════════════════════════════

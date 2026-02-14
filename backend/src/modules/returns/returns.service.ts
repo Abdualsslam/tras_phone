@@ -243,6 +243,29 @@ export class ReturnsService {
   }
 
   /**
+   * Cancel return request (customer-initiated, pending only)
+   */
+  async cancelReturnRequest(
+    id: string,
+    customerId: string,
+  ): Promise<ReturnRequestDocument> {
+    const returnRequest = await this.returnRequestModel.findById(id);
+    if (!returnRequest)
+      throw new NotFoundException('Return request not found');
+
+    if (returnRequest.status !== 'pending')
+      throw new BadRequestException(
+        'Only pending return requests can be cancelled',
+      );
+
+    const requestCustomerId = returnRequest.customerId?.toString?.();
+    if (requestCustomerId !== customerId)
+      throw new BadRequestException('You can only cancel your own return');
+
+    return this.updateStatus(id, 'cancelled', undefined, 'Cancelled by customer');
+  }
+
+  /**
    * Update return status
    */
   async updateStatus(
