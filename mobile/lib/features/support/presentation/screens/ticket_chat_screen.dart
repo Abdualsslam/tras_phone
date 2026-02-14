@@ -1,6 +1,7 @@
 /// Ticket Chat Screen - Chat interface for support ticket
 library;
 
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,6 +9,8 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/services/socket_service.dart';
+import '../../data/models/support_model.dart';
 import '../cubit/support_cubit.dart';
 import '../widgets/ticket_message_bubble.dart';
 
@@ -30,15 +33,37 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
   final _scrollController = ScrollController();
   final List<String> _selectedAttachments = [];
   bool _isSending = false;
+  Function? _unsubTicketMessage;
 
   @override
   void initState() {
     super.initState();
     context.read<SupportCubit>().loadTicketDetails(widget.ticketId);
+    _setupWebSocket();
+  }
+
+  void _setupWebSocket() {
+    SocketService().joinTicket(widget.ticketId);
+    _unsubTicketMessage = SocketService().on('ticket:message', _onTicketMessage);
+  }
+
+  void _onTicketMessage(dynamic data) {
+    if (!mounted) return;
+    try {
+      final map = Map<String, dynamic>.from(data as Map);
+      final message = TicketMessageModel.fromJson(map);
+      if (message.ticketId == widget.ticketId) {
+        context.read<SupportCubit>().addMessageFromSocket(message);
+      }
+    } catch (e) {
+      developer.log('Failed to parse ticket:message: $e', name: 'TicketChatScreen');
+    }
   }
 
   @override
   void dispose() {
+    SocketService().leaveTicket(widget.ticketId);
+    _unsubTicketMessage?.call();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();

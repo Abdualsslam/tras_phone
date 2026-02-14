@@ -1,12 +1,14 @@
 /// Live Chat Screen - Real-time chat with support
 library;
 
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/services/socket_service.dart';
 import '../../data/models/support_model.dart';
 import '../cubit/live_chat_cubit.dart';
 import '../widgets/rating_dialog.dart';
@@ -21,6 +23,11 @@ class LiveChatScreen extends StatefulWidget {
 class _LiveChatScreenState extends State<LiveChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  Function? _unsubChatMessage;
+  Function? _unsubSessionUpdated;
+  Function? _unsubSessionAccepted;
+  Function? _unsubSessionWaiting;
+  String? _joinedSessionId;
 
   final _quickReplies = [
     'استفسار عن طلب',
@@ -33,10 +40,73 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
   void initState() {
     super.initState();
     context.read<LiveChatCubit>().initChat();
+    _setupWebSocketListeners();
+  }
+
+  void _setupWebSocketListeners() {
+    final socket = SocketService();
+    _unsubChatMessage = socket.on('chat:message', _onChatMessage);
+    _unsubSessionUpdated = socket.on('chat:session:updated', _onSessionUpdated);
+    _unsubSessionAccepted = socket.on('chat:session:accepted', _onSessionUpdated);
+    _unsubSessionWaiting = socket.on('chat:session:waiting', _onSessionWaiting);
+  }
+
+  void _onChatMessage(dynamic data) {
+    if (!mounted) return;
+    try {
+      final map = Map<String, dynamic>.from(data as Map);
+      final message = ChatMessageModel.fromJson(map);
+      context.read<LiveChatCubit>().addMessage(message);
+    } catch (e) {
+      developer.log('Failed to parse chat:message: $e', name: 'LiveChatScreen');
+    }
+  }
+
+  void _onSessionUpdated(dynamic data) {
+    if (!mounted) return;
+    try {
+      final map = Map<String, dynamic>.from(data as Map);
+      final statusStr = map['status'] as String? ?? 'active';
+      final status = ChatSessionStatus.fromString(statusStr);
+      context.read<LiveChatCubit>().updateSessionStatus(status);
+    } catch (e) {
+      developer.log('Failed to parse session update: $e', name: 'LiveChatScreen');
+    }
+  }
+
+  void _onSessionWaiting(dynamic data) {
+    if (!mounted) return;
+    context.read<LiveChatCubit>().updateSessionStatus(ChatSessionStatus.waiting);
+  }
+
+  void _joinChatRoom(String? sessionId) {
+    if (sessionId != null && sessionId.isNotEmpty) {
+      SocketService().joinChat(sessionId);
+    }
+  }
+
+  void _leaveChatRoom(String? sessionId) {
+    if (sessionId != null && sessionId.isNotEmpty) {
+      SocketService().leaveChat(sessionId);
+      _joinedSessionId = null;
+    }
+    _unsubChatMessage?.call();
+    _unsubSessionUpdated?.call();
+    _unsubSessionAccepted?.call();
+    _unsubSessionWaiting?.call();
+  }
+
+  void _ensureJoinedChat(ChatSessionModel? session) {
+    if (session != null && session.id != _joinedSessionId) {
+      _leaveChatRoom(_joinedSessionId);
+      _joinChatRoom(session.id);
+      _joinedSessionId = session.id;
+    }
   }
 
   @override
   void dispose() {
+    _leaveChatRoom(_joinedSessionId);
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -128,6 +198,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
       ),
       body: BlocConsumer<LiveChatCubit, LiveChatState>(
         listener: (context, state) {
+          _ensureJoinedChat(state.session);
           if (state.status == LiveChatStatus.error && state.error != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

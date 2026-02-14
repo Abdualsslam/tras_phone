@@ -240,4 +240,11 @@ class SupportCubit extends Cubit<SupportState> {
   void clearSelectedTicket() {
     emit(state.copyWith(selectedTicket: null, messages: []));
   }
+
+  /// إضافة رسالة من WebSocket (للتحديثات الفورية)
+  void addMessageFromSocket(TicketMessageModel message) {
+    if (state.selectedTicket?.id != message.ticketId) return;
+    if (state.messages.any((m) => m.id == message.id)) return;
+    emit(state.copyWith(messages: [...state.messages, message]));
+  }
 }

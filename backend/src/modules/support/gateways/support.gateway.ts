@@ -9,9 +9,12 @@ import {
     MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { Customer } from '@modules/customers/schemas/customer.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -35,6 +38,7 @@ export class SupportGateway implements OnGatewayInit, OnGatewayConnection, OnGat
     constructor(
         private jwtService: JwtService,
         private configService: ConfigService,
+        @InjectModel(Customer.name) private customerModel: Model<Customer>,
     ) { }
 
     afterInit(server: Server) {
@@ -57,26 +61,35 @@ export class SupportGateway implements OnGatewayInit, OnGatewayConnection, OnGat
                 secret: this.configService.get<string>('JWT_SECRET'),
             });
 
-            // Store user info in socket
             client.data.user = payload;
-            client.data.userId = payload.customerId || payload.adminId;
-            client.data.userType = payload.customerId ? 'customer' : 'admin';
+            let userId = payload.customerId || payload.adminId;
+            let userType = payload.customerId ? 'customer' : 'admin';
 
-            // Store connection
-            this.connectedUsers.set(client.data.userId, client);
+            // Resolve customerId for mobile (JWT has sub=User id)
+            if (!userId && payload.sub) {
+                const customer = await this.customerModel
+                    .findOne({ userId: new Types.ObjectId(payload.sub) })
+                    .select('_id')
+                    .lean();
+                if (customer) {
+                    userId = (customer as any)._id.toString();
+                    userType = 'customer';
+                } else {
+                    userId = payload.sub;
+                }
+            }
 
-            // Join user-specific room
-            client.join(`user:${client.data.userId}`);
+            client.data.userId = userId;
+            client.data.userType = userType;
 
-            this.logger.log(`Client connected: ${client.id} (User: ${client.data.userId}, Type: ${client.data.userType})`);
+            this.connectedUsers.set(userId, client);
+            client.join(`user:${userId}`);
 
-            // Send connection confirmation
-            client.emit('connected', {
-                userId: client.data.userId,
-                userType: client.data.userType,
-            });
-        } catch (error) {
-            this.logger.error(`Connection error for client ${client.id}:`, error.message);
+            this.logger.log(`Client connected: ${client.id} (User: ${userId}, Type: ${userType})`);
+
+            client.emit('connected', { userId, userType });
+        } catch (error: any) {
+            this.logger.error(`Connection error for client ${client.id}:`, error?.message);
             client.disconnect();
         }
     }

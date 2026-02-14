@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Customer, CustomerSchema } from '@modules/customers/schemas/customer.schema';
 import { TicketCategory, TicketCategorySchema } from './schemas/ticket-category.schema';
 import { Ticket, TicketSchema } from './schemas/ticket.schema';
 import { TicketMessage, TicketMessageSchema } from './schemas/ticket-message.schema';
@@ -30,6 +31,7 @@ import { NotificationsModule } from '@modules/notifications/notifications.module
 @Module({
     imports: [
         MongooseModule.forFeature([
+            { name: Customer.name, schema: CustomerSchema },
             { name: TicketCategory.name, schema: TicketCategorySchema },
             { name: Ticket.name, schema: TicketSchema },
             { name: TicketMessage.name, schema: TicketMessageSchema },

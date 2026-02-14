@@ -7,8 +7,11 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/network/token_manager.dart';
 import '../../../../core/services/biometric_service.dart';
+import '../../../../core/services/socket_service.dart';
 import '../../../../routes/app_router.dart';
 import '../../../notifications/services/push_notification_manager.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
@@ -51,6 +54,7 @@ class AuthCubit extends Cubit<AuthState> {
     if (cachedUser != null) {
       developer.log('Using cached user, going to AuthAuthenticated', name: 'AuthCubit');
       emit(AuthAuthenticated(cachedUser));
+      _connectSocket();
       // Initialize push notifications for already logged in user
       _initializePushNotifications();
       // Optionally refresh profile in background
@@ -69,6 +73,7 @@ class AuthCubit extends Cubit<AuthState> {
       (user) {
         developer.log('getProfile success: ${user.phone}', name: 'AuthCubit');
         emit(AuthAuthenticated(user));
+        _connectSocket();
         // Initialize push notifications for already logged in user
         _initializePushNotifications();
       },
@@ -110,6 +115,7 @@ class AuthCubit extends Cubit<AuthState> {
         // Clear product/home cache so fresh data with tier prices is fetched
         await _clearProductCachesOnAuthChange();
         emit(AuthAuthenticated(user));
+        _connectSocket();
         // Save credentials for biometric login if enabled
         final biometricService = getIt<BiometricService>();
         if (await biometricService.isEnabled()) {
@@ -184,6 +190,7 @@ class AuthCubit extends Cubit<AuthState> {
         // Clear product/home cache so fresh data with tier prices is fetched
         await _clearProductCachesOnAuthChange();
         emit(AuthAuthenticated(user));
+        _connectSocket();
         // Initialize push notifications after successful registration
         _initializePushNotifications();
         // Update FCM token after successful registration
@@ -470,11 +477,26 @@ class AuthCubit extends Cubit<AuthState> {
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (_) async {
+        SocketService().disconnect();
         // Clear product/home cache so fresh data with base prices is fetched
         await _clearProductCachesOnAuthChange();
         emit(const AuthUnauthenticated(isFirstLaunch: false));
       },
     );
+  }
+
+  /// Connect WebSocket for real-time chat & tickets
+  Future<void> _connectSocket() async {
+    try {
+      final tokenManager = getIt<TokenManager>();
+      final token = await tokenManager.getAccessToken();
+      if (token != null && token.isNotEmpty) {
+        SocketService().connect(token, AppConfig.baseUrl);
+        developer.log('WebSocket connected', name: 'AuthCubit');
+      }
+    } catch (e) {
+      developer.log('Failed to connect WebSocket: $e', name: 'AuthCubit');
+    }
   }
 
   /// Get current user
