@@ -23,6 +23,7 @@ import {
 import { ReturnsService } from './returns.service';
 import { ReturnsController } from './returns.controller';
 import { AuthModule } from '@modules/auth/auth.module';
+import { UploadsModule } from '@modules/uploads/uploads.module';
 import { OrderItem, OrderItemSchema } from '@modules/orders/schemas/order-item.schema';
 import { WalletModule } from '@modules/wallet/wallet.module';
 
@@ -48,6 +49,7 @@ import { WalletModule } from '@modules/wallet/wallet.module';
       inject: [ConfigService],
     }),
     AuthModule,
+    UploadsModule,
     forwardRef(() => WalletModule),
   ],
   controllers: [ReturnsController],

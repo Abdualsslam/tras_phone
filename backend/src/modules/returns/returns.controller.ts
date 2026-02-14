@@ -7,9 +7,13 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
   HttpCode,
   HttpStatus,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -33,6 +37,7 @@ import { UserRole } from '@common/enums/user-role.enum';
 import { CurrentUser } from '@decorators/current-user.decorator';
 import { Public } from '@decorators/public.decorator';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
+import { UploadsService } from '@modules/uploads/uploads.service';
 import {
   CreateReturnRequestDto,
   UpdateReturnStatusDto,
@@ -50,7 +55,10 @@ import {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class ReturnsController {
-  constructor(private readonly returnsService: ReturnsService) {}
+  constructor(
+    private readonly returnsService: ReturnsService,
+    private readonly uploadsService: UploadsService,
+  ) {}
 
   // ═════════════════════════════════════
   // Public
@@ -132,6 +140,38 @@ export class ReturnsController {
       returnRequest,
       'Return request created',
       'تم إنشاء طلب الإرجاع',
+    );
+  }
+
+  @Post('upload-image')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiOperation({
+    summary: 'Upload return image',
+    description: 'Upload an image for return request (e.g. product defect photo). Returns the image URL.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Image uploaded successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async uploadImage(
+    @UploadedFile()
+    file?: { buffer: Buffer; originalname?: string; mimetype?: string },
+  ) {
+    if (!file?.buffer) {
+      throw new BadRequestException('No image file provided');
+    }
+    const result = await this.uploadsService.uploadFromBuffer(
+      file.buffer,
+      file.originalname || 'return-image.jpg',
+      file.mimetype || 'image/jpeg',
+      'returns',
+    );
+    return ResponseBuilder.created(
+      { url: result.url, key: result.key },
+      'Image uploaded',
+      'تم رفع الصورة',
     );
   }
 

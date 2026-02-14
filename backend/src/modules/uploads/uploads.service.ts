@@ -95,6 +95,56 @@ export class UploadsService {
     }
 
     /**
+     * Upload from buffer (e.g. from multipart/form-data)
+     */
+    async uploadFromBuffer(
+        buffer: Buffer,
+        filename: string,
+        mimetype: string,
+        folder: string = 'products',
+    ): Promise<UploadedFile> {
+        const isImage = this.ALLOWED_IMAGE_TYPES.includes(mimetype);
+        const isVideo = this.ALLOWED_VIDEO_TYPES.includes(mimetype);
+
+        if (!isImage && !isVideo) {
+            throw new BadRequestException(
+                `Invalid file type: ${mimetype}. Allowed: images and videos`,
+            );
+        }
+
+        const maxSize = isVideo ? this.MAX_VIDEO_SIZE : this.MAX_IMAGE_SIZE;
+        if (buffer.length > maxSize) {
+            throw new BadRequestException(
+                `File too large. Maximum size is ${maxSize / 1024 / 1024}MB`,
+            );
+        }
+
+        const ext = this.getExtensionFromMime(mimetype);
+        const safeFilename = this.sanitizeFilename(filename) + ext;
+
+        const result = await this.storageService.upload({
+            file: buffer,
+            filename: safeFilename,
+            mimetype,
+            folder,
+            isPublic: true,
+        });
+
+        if (!result.success) {
+            this.logger.error(`Upload failed: ${result.error}`);
+            throw new BadRequestException(`Upload failed: ${result.error}`);
+        }
+
+        return {
+            url: result.url!,
+            key: result.key!,
+            filename: safeFilename,
+            mimetype,
+            size: buffer.length,
+        };
+    }
+
+    /**
      * Upload multiple files
      */
     async uploadMultiple(
