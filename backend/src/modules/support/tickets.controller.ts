@@ -73,12 +73,17 @@ export class TicketsController {
     @Post()
     @ApiOperation({ summary: 'Create a new ticket' })
     async createTicket(@CurrentUser() user: any, @Body() data: any) {
+        // Prefer user from JWT; fallback to data.customer when body provides it (e.g. mobile app)
+        const customerData = data?.customer;
+        const customerName = user.name ?? customerData?.name ?? user.phone ?? 'عميل';
+        const customerEmail = user.email ?? customerData?.email ?? user.phone;
+
         const ticket = await this.ticketsService.createTicket({
             customer: {
                 customerId: user.customerId,
-                name: user.name,
-                email: user.email,
-                phone: user.phone,
+                name: customerName,
+                email: customerEmail,
+                phone: user.phone ?? customerData?.phone,
             },
             categoryId: data.categoryId,
             subject: data.subject,

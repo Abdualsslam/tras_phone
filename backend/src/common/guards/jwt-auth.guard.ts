@@ -89,13 +89,20 @@ export class JwtAuthGuard implements CanActivate {
           userObj.fullName = adminUser.fullName;
         }
       } else {
-        // Customer (app user): resolve real Customer _id for cart/orders (Cart refs Customer, not User)
+        // Customer (app user): resolve real Customer _id and profile for tickets/support
         const customer = await this.customerModel
           .findOne({ userId: new Types.ObjectId(user._id.toString()) })
-          .select('_id')
+          .select('_id responsiblePersonName shopName')
           .lean();
         if (customer) {
-          userObj.customerId = (customer as any)._id.toString();
+          const cust = customer as any;
+          userObj.customerId = cust._id.toString();
+          // Name for tickets/support (required by Ticket schema)
+          userObj.name = cust.responsiblePersonName || cust.shopName || user.phone;
+        }
+        // Email for tickets: User.email or fallback to phone (contact identifier)
+        if (!userObj.email && user.phone) {
+          userObj.email = user.phone;
         }
       }
 
