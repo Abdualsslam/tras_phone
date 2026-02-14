@@ -392,7 +392,7 @@ export function SupportPage() {
                                         </div>
                                     ) : (
                                         <div className="divide-y dark:divide-slate-700">
-                                            {tickets.map((ticket) => (
+                                            {tickets.map((ticket: Ticket) => (
                                                 <div
                                                     key={ticket._id}
                                                     onClick={() => setSelectedTicket(ticket)}
