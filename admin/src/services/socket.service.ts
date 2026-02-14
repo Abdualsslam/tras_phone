@@ -17,8 +17,11 @@ class SocketService {
             return;
         }
 
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const wsUrl = baseUrl.replace('/api/v1', '');
+        const defaultApiUrl = import.meta.env.PROD
+            ? 'https://api-trasphone.smartagency-ye.com/api/v1'
+            : 'http://localhost:3000/api/v1';
+        const baseUrl = import.meta.env.VITE_API_URL || defaultApiUrl;
+        const wsUrl = baseUrl.replace(/\/api\/v1\/?$/, '');
 
         this.socket = io(`${wsUrl}/support`, {
             auth: { token },
