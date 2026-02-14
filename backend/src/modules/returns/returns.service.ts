@@ -77,28 +77,81 @@ export class ReturnsService {
 
     // 2. Verify all items belong to the same customer
     const orderIds = [...new Set(orderItems.map((i) => i.orderId._id.toString()))];
-    
-    // Verify customer ownership of all orders
-    // This would require Order model access - for now we trust the orderItems exist
 
-    // 3. Calculate total value from actual invoice prices
+    // 2b. Get quantity already reserved in other active return requests (pending, approved, etc.)
+    const activeStatuses = [
+      'pending',
+      'approved',
+      'pickup_scheduled',
+      'picked_up',
+      'inspecting',
+    ];
+    const pendingByOrderItem = await this.returnItemModel.aggregate([
+      {
+        $lookup: {
+          from: 'return_requests',
+          localField: 'returnRequestId',
+          foreignField: '_id',
+          as: 'request',
+        },
+      },
+      { $unwind: '$request' },
+      {
+        $match: {
+          'request.status': { $in: activeStatuses },
+          orderItemId: { $in: orderItemIds },
+        },
+      },
+      {
+        $group: {
+          _id: '$orderItemId',
+          reservedQty: { $sum: '$quantity' },
+        },
+      },
+    ]);
+    const reservedMap = new Map<string, number>();
+    for (const row of pendingByOrderItem) {
+      reservedMap.set(
+        row._id.toString(),
+        (reservedMap.get(row._id.toString()) || 0) + row.reservedQty,
+      );
+    }
+
+    // 3. Aggregate requested quantity per orderItemId (in case same item appears twice)
+    const requestedByOrderItem = new Map<string, number>();
+    for (const item of data.items) {
+      const key = item.orderItemId;
+      requestedByOrderItem.set(
+        key,
+        (requestedByOrderItem.get(key) || 0) + item.quantity,
+      );
+    }
+
+    // 4. Calculate total value and validate
     const totalItemsValue = data.items.reduce((sum, item) => {
       const orderItem = orderItems.find(
         (oi) => oi._id.toString() === item.orderItemId,
       );
       if (!orderItem) {
-        throw new BadRequestException(`Order item ${item.orderItemId} not found`);
-      }
-      const returnableQty = orderItem.quantity - (orderItem.returnedQuantity || 0);
-      if (item.quantity > returnableQty) {
         throw new BadRequestException(
-          `Return quantity exceeds returnable quantity (${returnableQty} of ${orderItem.quantity}) for item ${item.orderItemId}`,
+          `Order item ${item.orderItemId} not found`,
+        );
+      }
+      const orderItemIdStr = (orderItem._id as Types.ObjectId).toString();
+      const baseReturnable =
+        orderItem.quantity - (orderItem.returnedQuantity || 0);
+      const reservedQty = reservedMap.get(orderItemIdStr) || 0;
+      const returnableQty = Math.max(0, baseReturnable - reservedQty);
+      const totalRequested = requestedByOrderItem.get(orderItemIdStr) || 0;
+      if (totalRequested > returnableQty) {
+        throw new BadRequestException(
+          `Return quantity exceeds returnable quantity (${returnableQty} of ${orderItem.quantity}${reservedQty > 0 ? `, ${reservedQty} already in other return requests` : ''}) for item ${item.orderItemId}`,
         );
       }
       return sum + item.quantity * orderItem.unitPrice;
     }, 0);
 
-    // 4. Create return request with orderIds array
+    // 5. Create return request with orderIds array
     const returnRequest = await this.returnRequestModel.create({
       returnNumber,
       orderIds: orderIds.map(id => new Types.ObjectId(id)),
@@ -111,7 +164,7 @@ export class ReturnsService {
       status: 'pending',
     });
 
-    // 5. Create return items using data from invoice
+    // 6. Create return items using data from invoice
     const returnItems = data.items.map((item) => {
       const orderItem = orderItems.find(
         (oi) => oi._id.toString() === item.orderItemId,

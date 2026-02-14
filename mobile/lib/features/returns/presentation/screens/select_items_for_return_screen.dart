@@ -203,6 +203,8 @@ class _OrderCard extends StatelessWidget {
 
     final returnableItems =
         order.items.where((i) => i.returnableQuantity > 0).toList();
+    final fullyReturnedItems =
+        order.items.where((i) => i.isFullyReturned).toList();
 
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
@@ -217,8 +219,15 @@ class _OrderCard extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        subtitle: Text('${returnableItems.length} منتج قابل للإرجاع'),
-        children: returnableItems.asMap().entries.map((entry) {
+        subtitle: Text(
+          returnableItems.isNotEmpty
+              ? '${returnableItems.length} منتج قابل للإرجاع${fullyReturnedItems.isNotEmpty ? ' • ${fullyReturnedItems.length} مرتجع بالكامل' : ''}'
+              : fullyReturnedItems.isNotEmpty
+                  ? '${fullyReturnedItems.length} منتج مرتجع بالكامل'
+                  : 'لا يوجد منتجات للإرجاع',
+        ),
+        children: [
+          ...returnableItems.asMap().entries.map((entry) {
           final index = entry.key;
           final item = entry.value;
           final orderItemId = (item.id != null && item.id!.isNotEmpty)
@@ -280,9 +289,13 @@ class _OrderCard extends StatelessWidget {
                         style: theme.textTheme.bodySmall,
                       ),
                       Text(
-                        'القابلة للإرجاع: $returnableQty من ${item.quantity}',
+                        item.isPartiallyReturned
+                            ? 'تم استرجاع ${item.returnedQuantity}، المتبقي للإرجاع: $returnableQty من ${item.quantity}'
+                            : 'القابلة للإرجاع: $returnableQty من ${item.quantity}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textTertiaryLight,
+                          color: item.isPartiallyReturned
+                              ? AppColors.warning
+                              : AppColors.textTertiaryLight,
                         ),
                       ),
                       SizedBox(height: 8.h),
@@ -339,7 +352,95 @@ class _OrderCard extends StatelessWidget {
               ],
             ),
           );
-        }).toList(),
+        }),
+          ...fullyReturnedItems.map((item) {
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              child: Opacity(
+                opacity: 0.7,
+                child: Row(
+                  children: [
+                    if (item.image != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8.r),
+                        child: CachedNetworkImage(
+                          imageUrl: item.image!,
+                          width: 50.w,
+                          height: 50.w,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey[300],
+                          ),
+                          errorWidget: (context, url, e) => Icon(
+                            Iconsax.image,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        width: 50.w,
+                        height: 50.w,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Icon(Icons.image, color: Colors.grey[600]),
+                      ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.getName('ar'),
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.lineThrough,
+                                    decorationColor: AppColors.textTertiaryLight,
+                                    color: AppColors.textTertiaryLight,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8.w,
+                                  vertical: 4.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.textTertiaryLight
+                                      .withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Text(
+                                  'مرتجع بالكامل',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 11.sp,
+                                    color: AppColors.textTertiaryLight,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            'تم استرجاع ${item.quantity} من ${item.quantity}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.textTertiaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
