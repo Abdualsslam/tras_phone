@@ -16,18 +16,15 @@ abstract class SupportRemoteDataSource {
   // ═══════════════════════════════════════════════════════════════════════════
 
   /// جلب فئات التذاكر (Public)
-  Future<List<TicketCategoryModel>> getCategories();
+  /// [activeOnly] جلب الفئات النشطة فقط (default: true حسب التوثيق)
+  Future<List<TicketCategoryModel>> getCategories({bool activeOnly = true});
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MY TICKETS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// جلب تذاكري
-  Future<List<TicketModel>> getMyTickets({
-    TicketStatus? status,
-    int page = 1,
-    int limit = 10,
-  });
+  /// جلب تذاكري (جميع تذاكر العميل - لا query params حسب التوثيق)
+  Future<List<TicketModel>> getMyTickets();
 
   /// جلب تفاصيل تذكرتي مع الرسائل
   Future<Map<String, dynamic>> getMyTicketById(String ticketId);
@@ -42,8 +39,8 @@ abstract class SupportRemoteDataSource {
     List<String>? attachments,
   });
 
-  /// تقييم التذكرة
-  Future<void> rateTicket({
+  /// تقييم التذكرة - يرجع التذكرة المحدثة
+  Future<TicketModel> rateTicket({
     required String ticketId,
     required int rating,
     String? feedback,
@@ -92,10 +89,22 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
   // ═══════════════════════════════════════════════════════════════════════════
 
   @override
-  Future<List<TicketCategoryModel>> getCategories() async {
+  Future<List<TicketCategoryModel>> getCategories(
+      {bool activeOnly = true}) async {
     developer.log('Fetching ticket categories', name: 'SupportDataSource');
 
-    final response = await _apiClient.get(ApiEndpoints.ticketCategories);
+    final response = await _apiClient.get(
+      ApiEndpoints.ticketCategories,
+      queryParameters: {'activeOnly': activeOnly.toString()},
+    );
+
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to load categories',
+      );
+    }
 
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
@@ -108,21 +117,18 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
   // ═══════════════════════════════════════════════════════════════════════════
 
   @override
-  Future<List<TicketModel>> getMyTickets({
-    TicketStatus? status,
-    int page = 1,
-    int limit = 10,
-  }) async {
-    developer.log('Fetching my tickets (page: $page)', name: 'SupportDataSource');
+  Future<List<TicketModel>> getMyTickets() async {
+    developer.log('Fetching my tickets', name: 'SupportDataSource');
 
-    final response = await _apiClient.get(
-      ApiEndpoints.myTickets,
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-        if (status != null) 'status': status.apiValue,
-      },
-    );
+    final response = await _apiClient.get(ApiEndpoints.myTickets);
+
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to load tickets',
+      );
+    }
 
     final data = response.data['data'] ?? response.data;
     final List<dynamic> list = data is List ? data : [];
@@ -135,6 +141,15 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     developer.log('Fetching my ticket: $ticketId', name: 'SupportDataSource');
 
     final response = await _apiClient.get(ApiEndpoints.ticketDetails(ticketId));
+
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to load ticket',
+      );
+    }
+
     final data = response.data['data'] ?? response.data;
 
     // Parse ticket and messages
@@ -156,10 +171,21 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
   Future<TicketModel> createTicket(CreateTicketRequest request) async {
     developer.log('Creating ticket', name: 'SupportDataSource');
 
+    final body = request.toJson();
+    body['source'] = request.source ?? 'mobile_app';
+
     final response = await _apiClient.post(
       ApiEndpoints.tickets,
-      data: request.toJson(),
+      data: body,
     );
+
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to create ticket',
+      );
+    }
 
     final data = response.data['data'] ?? response.data;
     return TicketModel.fromJson(data);
@@ -184,12 +210,20 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
       },
     );
 
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to send message',
+      );
+    }
+
     final data = response.data['data'] ?? response.data;
     return TicketMessageModel.fromJson(data);
   }
 
   @override
-  Future<void> rateTicket({
+  Future<TicketModel> rateTicket({
     required String ticketId,
     required int rating,
     String? feedback,
@@ -205,8 +239,15 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     );
 
     if (response.data['success'] != true) {
-      throw Exception(response.data['messageAr'] ?? 'Failed to rate ticket');
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to rate ticket',
+      );
     }
+
+    final data = response.data['data'] ?? response.data;
+    return TicketModel.fromJson(data);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -230,6 +271,14 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
       },
     );
 
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to start chat',
+      );
+    }
+
     final data = response.data['data'] ?? response.data;
     return ChatSessionModel.fromJson(data);
   }
@@ -240,11 +289,15 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
 
     final response = await _apiClient.get(ApiEndpoints.chatMySession);
 
-    if (response.data['success'] == true) {
-      if (response.data['data'] == null) return null;
-      return ChatSessionModel.fromJson(response.data['data']);
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to load session',
+      );
     }
-    return null;
+    if (response.data['data'] == null) return null;
+    return ChatSessionModel.fromJson(response.data['data']);
   }
 
   @override
@@ -261,6 +314,14 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
         'messageType': messageType.apiValue,
       },
     );
+
+    if (response.data['success'] != true) {
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to send message',
+      );
+    }
 
     final data = response.data['data'] ?? response.data;
     return ChatMessageModel.fromJson(data);
@@ -279,7 +340,11 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     );
 
     if (response.data['success'] != true) {
-      throw Exception(response.data['messageAr'] ?? 'Failed to end chat');
+      throw Exception(
+        response.data['messageAr'] ??
+            response.data['message'] ??
+            'Failed to end chat',
+      );
     }
   }
 

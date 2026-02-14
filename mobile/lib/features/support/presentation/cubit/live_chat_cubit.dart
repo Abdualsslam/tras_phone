@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 
 import '../../data/datasources/support_remote_datasource.dart';
 import '../../data/models/support_model.dart';
+import '../../utils/support_error_helper.dart';
 
 part 'live_chat_state.dart';
 
@@ -39,7 +40,7 @@ class LiveChatCubit extends Cubit<LiveChatState> {
     } catch (e) {
       emit(state.copyWith(
         status: LiveChatStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
     }
   }
@@ -69,7 +70,7 @@ class LiveChatCubit extends Cubit<LiveChatState> {
     } catch (e) {
       emit(state.copyWith(
         status: LiveChatStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
     }
   }
@@ -91,7 +92,7 @@ class LiveChatCubit extends Cubit<LiveChatState> {
       emit(state.copyWith(
         isSending: false,
         status: LiveChatStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
     }
   }
@@ -109,7 +110,7 @@ class LiveChatCubit extends Cubit<LiveChatState> {
     } catch (e) {
       emit(state.copyWith(
         status: LiveChatStatus.error,
-        error: e.toString(),
+        error: getSupportErrorMessage(e),
       ));
     }
   }

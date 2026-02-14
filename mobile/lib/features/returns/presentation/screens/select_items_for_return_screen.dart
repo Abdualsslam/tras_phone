@@ -81,7 +81,10 @@ class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
           }
 
           if (state is OrdersLoaded) {
-            final eligibleOrders = state.orders;
+            final eligibleOrders = state.orders
+                .where((order) =>
+                    order.items.any((i) => i.returnableQuantity > 0))
+                .toList();
 
             if (eligibleOrders.isEmpty) {
               return Center(

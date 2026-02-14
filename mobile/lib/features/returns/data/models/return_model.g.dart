@@ -137,19 +137,20 @@ Map<String, dynamic> _$ReturnReasonModelToJson(ReturnReasonModel instance) =>
       'isActive': instance.isActive,
     };
 
-CreateReturnRequest _$CreateReturnRequestFromJson(
-  Map<String, dynamic> json,
-) => CreateReturnRequest(
-  returnType: json['returnType'] as String,
-  reasonId: json['reasonId'] as String,
-  customerNotes: json['customerNotes'] as String?,
-  customerImages: (json['customerImages'] as List<dynamic>?)
-      ?.map((e) => e as String)
-      .toList(),
-  items: (json['items'] as List<dynamic>)
-      .map((e) => CreateReturnItemRequest.fromJson(e as Map<String, dynamic>))
-      .toList(),
-);
+CreateReturnRequest _$CreateReturnRequestFromJson(Map<String, dynamic> json) =>
+    CreateReturnRequest(
+      returnType: json['returnType'] as String,
+      reasonId: json['reasonId'] as String,
+      customerNotes: json['customerNotes'] as String?,
+      customerImages: (json['customerImages'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+      items: (json['items'] as List<dynamic>)
+          .map(
+            (e) => CreateReturnItemRequest.fromJson(e as Map<String, dynamic>),
+          )
+          .toList(),
+    );
 
 Map<String, dynamic> _$CreateReturnRequestToJson(
   CreateReturnRequest instance,

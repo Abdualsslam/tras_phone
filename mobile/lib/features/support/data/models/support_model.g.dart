@@ -416,7 +416,7 @@ const _$ChatMessageTypeEnumMap = {
 
 CreateTicketRequest _$CreateTicketRequestFromJson(Map<String, dynamic> json) =>
     CreateTicketRequest(
-      categoryId: json['category'] as String,
+      categoryId: json['categoryId'] as String,
       subject: json['subject'] as String,
       description: json['description'] as String,
       priority: json['priority'] as String?,
@@ -425,18 +425,20 @@ CreateTicketRequest _$CreateTicketRequestFromJson(Map<String, dynamic> json) =>
       attachments: (json['attachments'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList(),
+      source: json['source'] as String?,
     );
 
 Map<String, dynamic> _$CreateTicketRequestToJson(
   CreateTicketRequest instance,
 ) => <String, dynamic>{
-  'category': instance.categoryId,
+  'categoryId': instance.categoryId,
   'subject': instance.subject,
   'description': instance.description,
   'priority': instance.priority,
   'orderId': instance.orderId,
   'productId': instance.productId,
   'attachments': instance.attachments,
+  'source': instance.source,
 };
 
 StartChatRequest _$StartChatRequestFromJson(Map<String, dynamic> json) =>

@@ -8,6 +8,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../data/models/support_model.dart';
+import '../../utils/support_error_helper.dart';
 import '../cubit/support_cubit.dart';
 import '../widgets/ticket_status_badge.dart';
 import '../widgets/ticket_priority_badge.dart';
@@ -86,7 +87,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل إرسال الرسالة: $e'),
+            content: Text(getSupportErrorMessage(e)),
             backgroundColor: AppColors.error,
           ),
         );

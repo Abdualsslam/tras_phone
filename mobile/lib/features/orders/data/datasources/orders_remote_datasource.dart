@@ -155,6 +155,10 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     final returnableQuantity =
         (apiItem['returnableQuantity'] as num?)?.toInt() ??
         (quantity - returnedQuantity).clamp(0, quantity);
+    final reservedQuantity =
+        (apiItem['reservedQuantity'] as num?)?.toInt() ?? 0;
+    final isEffectivelyFullyReturned =
+        apiItem['isEffectivelyFullyReturned'] as bool? ?? false;
     return {
       if (orderItemIdStr != null && orderItemIdStr.isNotEmpty) '_id': orderItemIdStr,
       'productId': productIdStr ?? '',
@@ -165,6 +169,8 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
       'quantity': quantity,
       'returnedQuantity': returnedQuantity,
       'returnableQuantity': returnableQuantity,
+      'reservedQuantity': reservedQuantity,
+      'isEffectivelyFullyReturned': isEffectivelyFullyReturned,
       'unitPrice': (apiItem['unitPrice'] as num?)?.toDouble() ?? 0.0,
       'discount': (apiItem['discount'] as num?)?.toDouble() ?? 0.0,
       'total':
