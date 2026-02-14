@@ -134,6 +134,8 @@ class ReturnStatusCard extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final activeColor = statuses[currentIndex].color;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -143,44 +145,34 @@ class ReturnStatusCard extends StatelessWidget {
         ),
         SizedBox(height: 12.h),
         Row(
-          children: statuses.asMap().entries.map((entry) {
-            final index = entry.key;
-            final status = entry.value;
-            final isCompleted = index <= currentIndex;
-            final isLast = index == statuses.length - 1;
-
-            return Expanded(
-              child: Row(
-                children: [
-                  Column(
-                    children: [
-                      Container(
-                        width: 24.w,
-                        height: 24.w,
-                        decoration: BoxDecoration(
-                          color: isCompleted ? status.color : Colors.grey[300],
-                          shape: BoxShape.circle,
-                        ),
-                        child: isCompleted
-                            ? Icon(
-                                Icons.check,
-                                size: 14.sp,
-                                color: Colors.white,
-                              )
-                            : null,
-                      ),
-                      if (!isLast)
-                        Container(
-                          width: 2.w,
-                          height: 30.h,
-                          color: isCompleted ? status.color : Colors.grey[300],
-                        ),
-                    ],
-                  ),
-                ],
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            for (int i = 0; i < statuses.length; i++) ...[
+              Container(
+                width: 24.w,
+                height: 24.w,
+                decoration: BoxDecoration(
+                  color: i <= currentIndex ? activeColor : Colors.grey[300],
+                  shape: BoxShape.circle,
+                ),
+                child: i <= currentIndex
+                    ? Icon(
+                        Icons.check,
+                        size: 14.sp,
+                        color: Colors.white,
+                      )
+                    : null,
               ),
-            );
-          }).toList(),
+              if (i < statuses.length - 1)
+                Expanded(
+                  child: Container(
+                    height: 2.h,
+                    margin: EdgeInsets.symmetric(horizontal: 2.w),
+                    color: i < currentIndex ? activeColor : Colors.grey[300],
+                  ),
+                ),
+            ],
+          ],
         ),
       ],
     );

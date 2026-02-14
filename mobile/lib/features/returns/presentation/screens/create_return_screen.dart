@@ -10,7 +10,6 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../data/models/return_model.dart';
 import '../../domain/entities/return_entity.dart';
-import '../../domain/enums/return_enums.dart';
 import '../cubit/create_return_cubit.dart';
 import '../cubit/create_return_state.dart';
 import '../widgets/image_uploader.dart';
@@ -229,69 +228,16 @@ class _CreateReturnViewState extends State<_CreateReturnView> {
                   ),
                   SizedBox(height: 16.h),
 
-                  // Images (if required)
-                  BlocBuilder<CreateReturnCubit, CreateReturnState>(
-                    builder: (context, state) {
-                      if (state is CreateReturnReasonsLoaded &&
-                          _selectedReason?.requiresPhoto == true) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  'صور المنتج',
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                SizedBox(width: 4.w),
-                                Text(
-                                  '*',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 14.sp,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 8.h),
-                            ImageUploader(
-                              images: _uploadedImages,
-                              onImagesChanged: (images) {
-                                setState(() => _uploadedImages = images);
-                              },
-                              required: true,
-                            ),
-                            SizedBox(height: 16.h),
-                          ],
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-
-                  // Optional Images
-                  if (_selectedReason?.requiresPhoto != true)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'صور المنتج (اختياري)',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        ImageUploader(
-                          images: _uploadedImages,
-                          onImagesChanged: (images) {
-                            setState(() => _uploadedImages = images);
-                          },
-                        ),
-                        SizedBox(height: 16.h),
-                      ],
+                  // Images (optional) - title is shown inside ImageUploader
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 16.h),
+                    child: ImageUploader(
+                      images: _uploadedImages,
+                      onImagesChanged: (images) {
+                        setState(() => _uploadedImages = images);
+                      },
                     ),
+                  ),
 
                   // Notes
                   Text(
@@ -399,16 +345,6 @@ class _CreateReturnViewState extends State<_CreateReturnView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('يرجى اختيار سبب الإرجاع'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-
-    if (_selectedReason!.requiresPhoto && _uploadedImages.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى إرفاق صور للمنتج'),
           backgroundColor: AppColors.error,
         ),
       );

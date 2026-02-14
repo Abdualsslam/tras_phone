@@ -55,10 +55,12 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
       _error = null;
     });
 
-    final reviewsResult =
-        await _catalogRepository.getProductReviews(widget.productId);
-    final myReviewResult =
-        await _catalogRepository.getMyReview(widget.productId);
+    final reviewsResult = await _catalogRepository.getProductReviews(
+      widget.productId,
+    );
+    final myReviewResult = await _catalogRepository.getMyReview(
+      widget.productId,
+    );
 
     if (!mounted) return;
 
@@ -70,10 +72,7 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
       (failure) => error = failure.message,
       (list) => reviews = list,
     );
-    myReviewResult.fold(
-      (_) => myReview = null,
-      (r) => myReview = r,
-    );
+    myReviewResult.fold((_) => myReview = null, (r) => myReview = r);
 
     if (!mounted) return;
     setState(() {
@@ -82,12 +81,9 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
       _reviews = reviews;
       _myReview = myReview;
       if (error == null && reviews.isNotEmpty) {
-        if (_averageRating == null) {
-          _averageRating = reviews
-                  .map((r) => r.rating)
-                  .reduce((a, b) => a + b) /
-              reviews.length;
-        }
+        _averageRating ??=
+            reviews.map((r) => r.rating).reduce((a, b) => a + b) /
+            reviews.length;
         if (_reviewsCount == 0) _reviewsCount = reviews.length;
       }
     });
@@ -116,39 +112,36 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.reviews),
-      ),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.reviews)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _buildError(theme, isDark)
-              : Column(
-                  children: [
-                    _buildRatingSummary(theme, isDark),
-                    Divider(height: 1, color: AppColors.dividerLight),
-                    Expanded(
-                      child: _reviews.isEmpty
-                          ? _buildEmptyState(theme, isDark)
-                          : RefreshIndicator(
-                              onRefresh: _loadReviews,
-                              child: ListView.separated(
-                                padding: EdgeInsets.all(16.w),
-                                itemCount: _reviews.length,
-                                separatorBuilder: (_, __) =>
-                                    SizedBox(height: 16.h),
-                                itemBuilder: (context, index) {
-                                  return ProductReviewCard(
-                                    theme: theme,
-                                    isDark: isDark,
-                                    review: _reviews[index],
-                                  );
-                                },
-                              ),
-                            ),
-                    ),
-                  ],
+          ? _buildError(theme, isDark)
+          : Column(
+              children: [
+                _buildRatingSummary(theme, isDark),
+                Divider(height: 1, color: AppColors.dividerLight),
+                Expanded(
+                  child: _reviews.isEmpty
+                      ? _buildEmptyState(theme, isDark)
+                      : RefreshIndicator(
+                          onRefresh: _loadReviews,
+                          child: ListView.separated(
+                            padding: EdgeInsets.all(16.w),
+                            itemCount: _reviews.length,
+                            separatorBuilder: (_, __) => SizedBox(height: 16.h),
+                            itemBuilder: (context, index) {
+                              return ProductReviewCard(
+                                theme: theme,
+                                isDark: isDark,
+                                review: _reviews[index],
+                              );
+                            },
+                          ),
+                        ),
                 ),
+              ],
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _onAddReviewPressed,
         icon: const Icon(Iconsax.edit),
@@ -164,11 +157,7 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Iconsax.warning_2,
-              size: 64.sp,
-              color: AppColors.error,
-            ),
+            Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
             SizedBox(height: 16.h),
             Text(
               _error!,
@@ -199,10 +188,7 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
               color: AppColors.textTertiaryLight,
             ),
             SizedBox(height: 16.h),
-            Text(
-              'لا توجد تقييمات بعد',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('لا توجد تقييمات بعد', style: theme.textTheme.titleMedium),
             SizedBox(height: 8.h),
             Text(
               'كن أول من يقيم هذا المنتج',
@@ -259,8 +245,9 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
                 : Column(
                     children: List.generate(5, (i) {
                       final star = 5 - i;
-                      final count =
-                          _reviews.where((r) => r.rating == star).length;
+                      final count = _reviews
+                          .where((r) => r.rating == star)
+                          .length;
                       final pct = _reviews.isEmpty
                           ? 0.0
                           : count / _reviews.length;
