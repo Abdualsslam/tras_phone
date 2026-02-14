@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { Admin, LoginRequest } from '@/types';
 import { authApi } from '@/api/auth.api';
+import { socketService } from '@/services/socket.service';
 
 interface AuthContextType {
     user: Admin | null;
@@ -82,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
             // Ignore logout errors
         } finally {
+            socketService.disconnect();
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');

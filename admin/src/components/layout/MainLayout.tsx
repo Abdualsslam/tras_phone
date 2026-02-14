@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { useSocket } from '@/hooks/useSocket';
 
 export function MainLayout() {
+    useSocket(); // Keep WebSocket connected for support & live chat
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const { i18n } = useTranslation();

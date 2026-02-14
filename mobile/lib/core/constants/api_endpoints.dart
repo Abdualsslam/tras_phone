@@ -119,18 +119,18 @@ class ApiEndpoints {
   static const String returnReasons = '/returns/reasons';
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SUPPORT
+  // SUPPORT (backend controller: support/tickets)
   // ═══════════════════════════════════════════════════════════════════════════
-  static const String ticketCategories = '/tickets/categories';
-  static const String myTickets = '/tickets/my';
-  static const String tickets = '/tickets';
+  static const String ticketCategories = '/support/tickets/categories';
+  static const String myTickets = '/support/tickets/my';
+  static const String tickets = '/support/tickets';
   static const String supportCategories = '/support/categories';
-  static const String ticketUpload = '/tickets/upload';
+  static const String ticketUpload = '/support/tickets/upload';
 
-  // Ticket endpoints
-  static String ticketDetails(String id) => '/tickets/my/$id';
-  static String ticketMessages(String id) => '/tickets/my/$id/messages';
-  static String ticketRate(String id) => '/tickets/my/$id/rate';
+  // Ticket endpoints (customer: my tickets)
+  static String ticketDetails(String id) => '/support/tickets/my/$id';
+  static String ticketMessages(String id) => '/support/tickets/my/$id/messages';
+  static String ticketRate(String id) => '/support/tickets/my/$id/rate';
 
   // Live Chat
   static const String chatStart = '/chat/start';

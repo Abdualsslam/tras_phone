@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { chatApi, type ChatSession } from "@/api/chat.api";
+import { useSocket } from "@/hooks/useSocket";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,7 @@ import { getInitials, formatDate, cn } from "@/lib/utils";
 export function LiveChatPage() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const { joinChat, leaveChat, on } = useSocket();
   const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +60,7 @@ export function LiveChatPage() {
     queryKey: ["chat-session", selectedSession?._id],
     queryFn: () => chatApi.getSession(selectedSession!._id),
     enabled: !!selectedSession?._id,
-    refetchInterval: 3000,
+    refetchInterval: 15000, // Fallback refresh; WebSocket provides real-time updates
   });
 
   // Mutations
@@ -92,6 +94,42 @@ export function LiveChatPage() {
       setSelectedSession(null);
     },
   });
+
+  // Join/leave chat room for real-time messages
+  useEffect(() => {
+    if (!selectedSession?._id) return;
+    joinChat(selectedSession._id);
+    return () => leaveChat(selectedSession._id);
+  }, [selectedSession?._id, joinChat, leaveChat]);
+
+  // WebSocket: real-time chat events
+  useEffect(() => {
+    const unsubMessage = on("chat:message", (data: { sessionId?: string; session?: string }) => {
+      const sessionId = data?.sessionId ?? data?.session;
+      if (sessionId === selectedSession?._id) {
+        queryClient.invalidateQueries({ queryKey: ["chat-session", sessionId] });
+      }
+    });
+    const unsubUpdated = on("chat:session:updated", () => {
+      queryClient.invalidateQueries({ queryKey: ["chat-my-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["chat-session"] });
+    });
+    const unsubWaiting = on("chat:session:waiting", () => {
+      queryClient.invalidateQueries({ queryKey: ["chat-waiting"] });
+      queryClient.invalidateQueries({ queryKey: ["chat-stats"] });
+    });
+    const unsubAccepted = on("chat:session:accepted", () => {
+      queryClient.invalidateQueries({ queryKey: ["chat-waiting"] });
+      queryClient.invalidateQueries({ queryKey: ["chat-my-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["chat-stats"] });
+    });
+    return () => {
+      unsubMessage();
+      unsubUpdated();
+      unsubWaiting();
+      unsubAccepted();
+    };
+  }, [selectedSession?._id, on, queryClient]);
 
   // Auto scroll to bottom
   useEffect(() => {

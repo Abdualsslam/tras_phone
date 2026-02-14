@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supportApi, type TicketCategory, type CannedResponse } from '@/api/support.api';
 import type { Ticket } from '@/types';
+import { useSocket } from '@/hooks/useSocket';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,6 +84,7 @@ const priorityColors: Record<string, string> = {
 export function SupportPage() {
     const { t, i18n } = useTranslation();
     const queryClient = useQueryClient();
+    const { joinTicket, leaveTicket, on } = useSocket();
     const locale = i18n.language === 'ar' ? 'ar-SA' : 'en-US';
 
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -105,6 +107,43 @@ export function SupportPage() {
         content: '',
         isActive: true,
     });
+
+    // Join/leave ticket room for real-time updates
+    useEffect(() => {
+        if (!selectedTicket?._id) return;
+        joinTicket(selectedTicket._id);
+        return () => leaveTicket(selectedTicket._id);
+    }, [selectedTicket?._id, joinTicket, leaveTicket]);
+
+    // WebSocket: real-time ticket events
+    useEffect(() => {
+        const unsubCreated = on('ticket:created', () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+            queryClient.invalidateQueries({ queryKey: ['support-stats'] });
+        });
+        const unsubCreatedAdmin = on('ticket:created:admin', () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+            queryClient.invalidateQueries({ queryKey: ['support-stats'] });
+        });
+        const unsubUpdated = on('ticket:updated', () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+            queryClient.invalidateQueries({ queryKey: ['support-stats'] });
+        });
+        const unsubMessage = on('ticket:message', () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+        });
+        const unsubAssigned = on('ticket:assigned', () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+            queryClient.invalidateQueries({ queryKey: ['support-stats'] });
+        });
+        return () => {
+            unsubCreated();
+            unsubCreatedAdmin();
+            unsubUpdated();
+            unsubMessage();
+            unsubAssigned();
+        };
+    }, [selectedTicket?._id, on, queryClient]);
 
     // Queries
     const { data: ticketsData, isLoading } = useQuery({
