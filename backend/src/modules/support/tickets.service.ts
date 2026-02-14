@@ -661,16 +661,14 @@ export class TicketsService {
         });
     }
 
-    async findCannedResponses(agentId: string, categoryId?: string): Promise<CannedResponse[]> {
-        const query: any = {
-            isActive: true,
-            $or: [
-                { isPersonal: false },
-                { isPersonal: true, createdBy: new Types.ObjectId(agentId) },
-            ],
-        };
-        if (categoryId) {
-            query.$or.push({ category: new Types.ObjectId(categoryId) });
+    async findCannedResponses(agentId: string | undefined, categoryId?: string): Promise<CannedResponse[]> {
+        const orConditions: any[] = [{ isPersonal: false }];
+        if (agentId && Types.ObjectId.isValid(agentId)) {
+            orConditions.push({ isPersonal: true, createdBy: new Types.ObjectId(agentId) });
+        }
+        const query: any = { isActive: true, $or: orConditions };
+        if (categoryId && Types.ObjectId.isValid(categoryId)) {
+            query.$or = [...query.$or, { category: new Types.ObjectId(categoryId) }];
         }
         return this.cannedResponseModel.find(query).sort({ usageCount: -1 }).exec();
     }

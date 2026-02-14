@@ -72,8 +72,27 @@ export const supportApi = {
     // ─────────────────────────────────────────
 
     getAllTickets: async (params?: TicketsQueryParams): Promise<PaginatedResponse<Ticket>> => {
-        const response = await apiClient.get<ApiResponse<PaginatedResponse<Ticket>>>('/support/tickets', { params });
-        return response.data.data;
+        const response = await apiClient.get<ApiResponse<PaginatedResponse<Ticket> | { tickets: Ticket[]; total: number }>>('/support/tickets', { params });
+        const data = response.data.data;
+        // Backend returns { tickets, total }; normalize to { items, pagination }
+        if (data && 'tickets' in data) {
+            const total = data.total ?? 0;
+            const limit = (params?.limit as number) ?? 20;
+            const page = (params?.page as number) ?? 1;
+            return {
+                items: Array.isArray(data.tickets) ? data.tickets : [],
+                pagination: {
+                    total,
+                    page,
+                    limit,
+                    totalPages: limit > 0 ? Math.ceil(total / limit) : 0,
+                    hasNextPage: page * limit < total,
+                    hasPreviousPage: page > 1,
+                },
+            };
+        }
+        const fallback = { items: [] as Ticket[], pagination: { total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPreviousPage: false } };
+        return (data as PaginatedResponse<Ticket>) ?? fallback;
     },
 
     getTicket: async (id: string): Promise<TicketDetails> => {

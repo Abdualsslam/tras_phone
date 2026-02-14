@@ -86,6 +86,7 @@ export class JwtAuthGuard implements CanActivate {
         if (adminUser) {
           userObj.isSuperAdmin = adminUser.isSuperAdmin || false;
           userObj.adminUserId = adminUser._id.toString();
+          userObj.adminId = adminUser._id.toString(); // alias for support/orders controllers
           userObj.fullName = adminUser.fullName;
         }
       } else {
