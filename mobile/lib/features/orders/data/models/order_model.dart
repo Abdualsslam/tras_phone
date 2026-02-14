@@ -21,6 +21,10 @@ class OrderItemModel {
   final String? nameAr;
   final String? image;
   final int quantity;
+  @JsonKey(defaultValue: 0)
+  final int returnedQuantity;
+  @JsonKey(defaultValue: 0)
+  final int returnableQuantity;
   @JsonKey(defaultValue: 0.0)
   final double unitPrice;
   @JsonKey(defaultValue: 0.0)
@@ -38,6 +42,8 @@ class OrderItemModel {
     this.nameAr,
     this.image,
     required this.quantity,
+    this.returnedQuantity = 0,
+    this.returnableQuantity = 0,
     this.unitPrice = 0,
     this.discount = 0,
     this.total = 0,
@@ -79,6 +85,9 @@ class OrderItemModel {
       nameAr: nameAr,
       image: image,
       quantity: quantity,
+      returnedQuantity: returnedQuantity,
+      returnableQuantity:
+          returnableQuantity > 0 ? returnableQuantity : (quantity - returnedQuantity),
       unitPrice: unitPrice,
       discount: discount,
       total: total,

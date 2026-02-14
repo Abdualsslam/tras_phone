@@ -81,6 +81,16 @@ export class OrdersService {
         item.productImage ||
         (typeof item.productId === 'object' &&
           (item.productId?.mainImage || item.productId?.images?.[0]));
+      const quantity = item.quantity ?? 0;
+      const returnedQuantity = item.returnedQuantity ?? 0;
+      const returnableQuantity = Math.max(0, quantity - returnedQuantity);
+      const effectiveQuantity = returnableQuantity;
+      const returnStatus =
+        returnedQuantity === 0
+          ? 'none'
+          : returnedQuantity >= quantity
+            ? 'full'
+            : 'partial';
       return {
         _id: item._id?.toString?.() ?? item.id?.toString?.(),
         productId,
@@ -88,7 +98,11 @@ export class OrdersService {
         name: item.productName ?? item.name ?? '',
         nameAr: item.productNameAr ?? item.nameAr ?? null,
         image: productImage ?? item.image ?? null,
-        quantity: item.quantity ?? 0,
+        quantity,
+        returnedQuantity,
+        returnableQuantity,
+        effectiveQuantity,
+        returnStatus,
         unitPrice: item.unitPrice ?? 0,
         discount: item.discount ?? 0,
         total: item.totalPrice ?? item.total ?? 0,
@@ -111,6 +125,15 @@ export class OrdersService {
       } else if (productId != null) {
         productId = productId.toString();
       }
+      const quantity = item.quantity ?? 0;
+      const returnedQuantity = item.returnedQuantity ?? 0;
+      const returnableQuantity = Math.max(0, quantity - returnedQuantity);
+      const returnStatus =
+        returnedQuantity === 0
+          ? 'none'
+          : returnedQuantity >= quantity
+            ? 'full'
+            : 'partial';
       return {
         _id: item._id?.toString?.() ?? item.id?.toString?.(),
         productId: productId ?? '',
@@ -118,7 +141,11 @@ export class OrdersService {
         name: item.name ?? '',
         nameAr: item.nameAr ?? null,
         image: item.image ?? null,
-        quantity: item.quantity ?? 0,
+        quantity,
+        returnedQuantity,
+        returnableQuantity,
+        effectiveQuantity: returnableQuantity,
+        returnStatus,
         unitPrice: item.unitPrice ?? 0,
         discount: item.discount ?? 0,
         total: item.total ?? 0,

@@ -17,6 +17,8 @@ class OrderItemEntity extends Equatable {
   final String? nameAr;
   final String? image;
   final int quantity;
+  final int returnedQuantity;
+  final int returnableQuantity;
   final double unitPrice;
   final double discount;
   final double total;
@@ -31,11 +33,17 @@ class OrderItemEntity extends Equatable {
     this.nameAr,
     this.image,
     required this.quantity,
+    this.returnedQuantity = 0,
+    this.returnableQuantity = 0,
     required this.unitPrice,
     this.discount = 0,
     required this.total,
     this.attributes,
   });
+
+  int get effectiveQuantity => returnableQuantity > 0 ? returnableQuantity : (quantity - returnedQuantity);
+  bool get isFullyReturned => returnedQuantity >= quantity && quantity > 0;
+  bool get isPartiallyReturned => returnedQuantity > 0 && returnedQuantity < quantity;
 
   String getName(String locale) =>
       locale == 'ar' && nameAr != null ? nameAr! : name;

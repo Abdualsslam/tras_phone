@@ -149,6 +149,12 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     final orderItemIdStr = orderItemId is Map
         ? (orderItemId['\$oid'] ?? orderItemId['_id'])?.toString()
         : orderItemId?.toString();
+    final quantity = (apiItem['quantity'] as num?)?.toInt() ?? 0;
+    final returnedQuantity =
+        (apiItem['returnedQuantity'] as num?)?.toInt() ?? 0;
+    final returnableQuantity =
+        (apiItem['returnableQuantity'] as num?)?.toInt() ??
+        (quantity - returnedQuantity).clamp(0, quantity);
     return {
       if (orderItemIdStr != null && orderItemIdStr.isNotEmpty) '_id': orderItemIdStr,
       'productId': productIdStr ?? '',
@@ -156,7 +162,9 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
       'name': apiItem['productName'] ?? apiItem['name'] ?? '',
       'nameAr': apiItem['productNameAr'] ?? apiItem['nameAr'],
       'image': apiItem['productImage'] ?? apiItem['image'],
-      'quantity': apiItem['quantity'] ?? 0,
+      'quantity': quantity,
+      'returnedQuantity': returnedQuantity,
+      'returnableQuantity': returnableQuantity,
       'unitPrice': (apiItem['unitPrice'] as num?)?.toDouble() ?? 0.0,
       'discount': (apiItem['discount'] as num?)?.toDouble() ?? 0.0,
       'total':

@@ -304,6 +304,10 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
                   item.unitPrice,
                   item.total,
                   isDark,
+                  returnedQuantity: item.returnedQuantity,
+                  effectiveQuantity: item.effectiveQuantity,
+                  isPartiallyReturned: item.isPartiallyReturned,
+                  isFullyReturned: item.isFullyReturned,
                 ),
               ),
 
@@ -470,8 +474,17 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
     int qty,
     double price,
     double total,
-    bool isDark,
-  ) {
+    bool isDark, {
+    int returnedQuantity = 0,
+    int? effectiveQuantity,
+    bool isPartiallyReturned = false,
+    bool isFullyReturned = false,
+  }) {
+    final effective = effectiveQuantity ?? (qty - returnedQuantity);
+    final displayQty = returnedQuantity > 0 ? effective : qty;
+    final displayTotal =
+        returnedQuantity > 0 ? (effective * price) : total;
+
     return Container(
       padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
       decoration: BoxDecoration(
@@ -485,11 +498,47 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
         children: [
           Expanded(
             flex: 3,
-            child: Text(name, style: TextStyle(fontSize: 12.sp)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Flexible(child: Text(name, style: TextStyle(fontSize: 12.sp))),
+                    if (returnedQuantity > 0) ...[
+                      SizedBox(width: 6.w),
+                      Chip(
+                        label: Text(
+                          isFullyReturned ? 'مرتجع' : 'مرتجع جزئياً',
+                          style: TextStyle(fontSize: 10.sp),
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 6.w,
+                          vertical: 2.h,
+                        ),
+                        backgroundColor: AppColors.warning.withValues(alpha: 0.15),
+                      ),
+                    ],
+                  ],
+                ),
+                if (returnedQuantity > 0 && qty > effective)
+                  Padding(
+                    padding: EdgeInsets.only(top: 4.h),
+                    child: Text(
+                      'الأصلية: $qty، المرتجع: $returnedQuantity، المتبقي: $effective',
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
           Expanded(
             child: Text(
-              '$qty',
+              '$displayQty',
               style: TextStyle(fontSize: 12.sp),
               textAlign: TextAlign.center,
             ),
@@ -503,7 +552,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
           ),
           Expanded(
             child: Text(
-              total.toStringAsFixed(0),
+              displayTotal.toStringAsFixed(0),
               style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
               textAlign: TextAlign.end,
             ),

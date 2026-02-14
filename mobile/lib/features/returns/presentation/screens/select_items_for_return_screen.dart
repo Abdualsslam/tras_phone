@@ -121,9 +121,9 @@ class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
                 return _OrderCard(
                   order: order,
                   selectedItems: _selectedItems,
-                  onItemToggle: (orderItemId, quantity) {
+                  onItemQuantityChanged: (orderItemId, quantity) {
                     setState(() {
-                      if (_selectedItems.containsKey(orderItemId)) {
+                      if (quantity <= 0) {
                         _selectedItems.remove(orderItemId);
                       } else {
                         _selectedItems[orderItemId] = quantity;
@@ -138,7 +138,8 @@ class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
           return const SizedBox.shrink();
         },
       ),
-      bottomNavigationBar: _selectedItems.isNotEmpty
+      bottomNavigationBar:
+          _selectedItems.values.any((q) => q > 0)
           ? SafeArea(
               child: Container(
                 padding: EdgeInsets.all(16.w),
@@ -158,7 +159,7 @@ class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
                     padding: EdgeInsets.symmetric(vertical: 16.h),
                   ),
                   child: Text(
-                    'متابعة (${_selectedItems.length} منتج)',
+                    'متابعة (${_selectedItems.values.where((q) => q > 0).length} منتج)',
                     style: TextStyle(fontSize: 16.sp),
                   ),
                 ),
@@ -169,10 +170,11 @@ class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
   }
 
   void _proceed(BuildContext context) {
-    if (_selectedItems.isEmpty) return;
+    final selected = _selectedItems.entries.where((e) => e.value > 0);
+    if (selected.isEmpty) return;
 
     // Convert selectedItems to List<CreateReturnItemRequest>
-    final items = _selectedItems.entries
+    final items = selected
         .map(
           (e) => CreateReturnItemRequest(orderItemId: e.key, quantity: e.value),
         )
@@ -186,18 +188,21 @@ class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
 class _OrderCard extends StatelessWidget {
   final OrderEntity order;
   final Map<String, int> selectedItems;
-  final Function(String, int) onItemToggle;
+  final Function(String, int) onItemQuantityChanged;
 
   const _OrderCard({
     required this.order,
     required this.selectedItems,
-    required this.onItemToggle,
+    required this.onItemQuantityChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final returnableItems =
+        order.items.where((i) => i.returnableQuantity > 0).toList();
 
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
@@ -209,41 +214,25 @@ class _OrderCard extends StatelessWidget {
         title: Text(
           'طلب ${order.orderNumber}',
           style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        subtitle: Text('${order.items.length} منتج'),
-        children: order.items.asMap().entries.map((entry) {
+        subtitle: Text('${returnableItems.length} منتج قابل للإرجاع'),
+        children: returnableItems.asMap().entries.map((entry) {
           final index = entry.key;
           final item = entry.value;
-          // Use item.id (MongoDB ObjectId) when API provides it; fallback to composite ID
           final orderItemId = (item.id != null && item.id!.isNotEmpty)
               ? item.id!
               : '${order.id}_${item.productId}_${item.variantId ?? ''}_$index';
-          final isSelected = selectedItems.containsKey(orderItemId);
+          final returnableQty = item.returnableQuantity;
+          final selectedQty = selectedItems[orderItemId] ?? 0;
 
-          return CheckboxListTile(
-            value: isSelected,
-            onChanged: (checked) {
-              onItemToggle(orderItemId, item.quantity);
-            },
-            title: Text(item.getName('ar')),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            child: Row(
               children: [
-                SizedBox(height: 4.h),
-                Text(
-                  'السعر: ${item.unitPrice.toStringAsFixed(2)} ر.س',
-                  style: theme.textTheme.bodySmall,
-                ),
-                Text(
-                  'الكمية: ${item.quantity}',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-            secondary: item.image != null
-                ? ClipRRect(
+                if (item.image != null)
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(8.r),
                     child: CachedNetworkImage(
                       imageUrl: item.image!,
@@ -264,7 +253,8 @@ class _OrderCard extends StatelessWidget {
                       ),
                     ),
                   )
-                : Container(
+                else
+                  Container(
                     width: 50.w,
                     height: 50.w,
                     decoration: BoxDecoration(
@@ -273,6 +263,81 @@ class _OrderCard extends StatelessWidget {
                     ),
                     child: Icon(Icons.image, color: Colors.grey[600]),
                   ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.getName('ar'),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'السعر: ${item.unitPrice.toStringAsFixed(2)} ر.س',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      Text(
+                        'القابلة للإرجاع: $returnableQty من ${item.quantity}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.textTertiaryLight,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      Row(
+                        children: [
+                          IconButton.filled(
+                            onPressed: selectedQty <= 0
+                                ? null
+                                : () => onItemQuantityChanged(
+                                      orderItemId,
+                                      selectedQty <= 0 ? 0 : selectedQty - 1,
+                                    ),
+                            icon: Icon(Icons.remove, size: 18.sp),
+                            style: IconButton.styleFrom(
+                              padding: EdgeInsets.all(8.w),
+                              minimumSize: Size(36.w, 36.h),
+                            ),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12.w),
+                            child: Text(
+                              selectedQty > 0 ? '$selectedQty' : '0',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          IconButton.filled(
+                            onPressed: selectedQty >= returnableQty
+                                ? null
+                                : () => onItemQuantityChanged(
+                                      orderItemId,
+                                      selectedQty + 1,
+                                    ),
+                            icon: Icon(Icons.add, size: 18.sp),
+                            style: IconButton.styleFrom(
+                              padding: EdgeInsets.all(8.w),
+                              minimumSize: Size(36.w, 36.h),
+                            ),
+                          ),
+                          if (selectedQty <= 0) ...[
+                            SizedBox(width: 8.w),
+                            TextButton(
+                              onPressed: () =>
+                                  onItemQuantityChanged(orderItemId, 1),
+                              child: const Text('إرجاع'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           );
         }).toList(),
       ),

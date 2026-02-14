@@ -444,57 +444,100 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   Widget _buildProductItem(ThemeData theme, bool isDark, OrderItemEntity item) {
-    return Row(
-      children: [
-        Container(
-          width: 50.w,
-          height: 50.w,
-          decoration: BoxDecoration(
-            color: AppColors.backgroundLight,
-            borderRadius: BorderRadius.circular(8.r),
+    final hasReturn = item.returnedQuantity > 0;
+    final displayQty = hasReturn ? item.effectiveQuantity : item.quantity;
+    final displayTotal =
+        hasReturn ? (item.effectiveQuantity * item.unitPrice) : item.total;
+
+    return Container(
+      padding: hasReturn ? EdgeInsets.all(8.w) : null,
+      decoration: hasReturn
+          ? BoxDecoration(
+              color: AppColors.warning.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(
+                color: AppColors.warning.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            )
+          : null,
+      child: Row(
+        children: [
+          Container(
+            width: 50.w,
+            height: 50.w,
+            decoration: BoxDecoration(
+              color: AppColors.backgroundLight,
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: item.image != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: Image.network(
+                      item.image!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          Icon(Iconsax.image,
+                              color: AppColors.textTertiaryLight),
+                    ),
+                  )
+                : Icon(Iconsax.image, color: AppColors.textTertiaryLight),
           ),
-          child: item.image != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    item.image!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        Icon(Iconsax.image, color: AppColors.textTertiaryLight),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.nameAr ?? item.name,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (hasReturn) ...[
+                      SizedBox(width: 6.w),
+                      Chip(
+                        label: Text(
+                          item.isFullyReturned ? 'مرتجع' : 'مرتجع جزئياً',
+                          style: TextStyle(fontSize: 10.sp),
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 6.w,
+                          vertical: 2.h,
+                        ),
+                        backgroundColor:
+                            AppColors.warning.withValues(alpha: 0.15),
+                      ),
+                    ],
+                  ],
+                ),
+                Text(
+                  hasReturn
+                      ? 'الكمية الفعلية: $displayQty × ${item.unitPrice.toStringAsFixed(0)} ر.س'
+                      : '${item.quantity} × ${item.unitPrice.toStringAsFixed(0)} ر.س',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textTertiaryLight,
                   ),
-                )
-              : Icon(Iconsax.image, color: AppColors.textTertiaryLight),
-        ),
-        SizedBox(width: 12.w),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.nameAr ?? item.name,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                '${item.quantity} × ${item.unitPrice.toStringAsFixed(0)} ر.س',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.textTertiaryLight,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        Text(
-          '${item.total.toStringAsFixed(0)} ر.س',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.primary,
+          Text(
+            '${displayTotal.toStringAsFixed(0)} ر.س',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

@@ -89,10 +89,10 @@ export class ReturnsService {
       if (!orderItem) {
         throw new BadRequestException(`Order item ${item.orderItemId} not found`);
       }
-      // Validate quantity
-      if (item.quantity > orderItem.quantity) {
+      const returnableQty = orderItem.quantity - (orderItem.returnedQuantity || 0);
+      if (item.quantity > returnableQty) {
         throw new BadRequestException(
-          `Return quantity exceeds ordered quantity for item ${item.orderItemId}`,
+          `Return quantity exceeds returnable quantity (${returnableQty} of ${orderItem.quantity}) for item ${item.orderItemId}`,
         );
       }
       return sum + item.quantity * orderItem.unitPrice;
@@ -407,10 +407,25 @@ export class ReturnsService {
     });
 
     // Update return request status
-    await this.updateStatus(
-      (refund.returnRequestId as any)._id.toString(),
-      'completed',
-    );
+    const returnRequestId = (refund.returnRequestId as any)._id.toString();
+    await this.updateStatus(returnRequestId, 'completed');
+
+    // Update OrderItem.returnedQuantity for each return item
+    const returnItems = await this.returnItemModel.find({
+      returnRequestId: new Types.ObjectId(returnRequestId),
+    });
+    for (const ri of returnItems) {
+      const result = await this.orderItemModel.findByIdAndUpdate(
+        ri.orderItemId,
+        { $inc: { returnedQuantity: ri.quantity } },
+        { new: true },
+      );
+      if (result && result.returnedQuantity >= result.quantity) {
+        await this.orderItemModel.findByIdAndUpdate(ri.orderItemId, {
+          $set: { status: 'returned' },
+        });
+      }
+    }
 
     return refund;
   }
