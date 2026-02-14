@@ -48,6 +48,54 @@ export class ReturnsService {
   ) {}
 
   /**
+   * Get reserved quantity per order item from active return requests
+   * (all statuses except cancelled and rejected)
+   */
+  async getReservedQuantitiesByOrderItemIds(
+    orderItemIds: Types.ObjectId[],
+  ): Promise<Map<string, number>> {
+    const activeStatuses = [
+      'pending',
+      'approved',
+      'pickup_scheduled',
+      'picked_up',
+      'inspecting',
+      'completed',
+    ];
+    const result = await this.returnItemModel.aggregate<{
+      _id: Types.ObjectId;
+      reservedQty: number;
+    }>([
+      {
+        $lookup: {
+          from: 'return_requests',
+          localField: 'returnRequestId',
+          foreignField: '_id',
+          as: 'request',
+        },
+      },
+      { $unwind: '$request' },
+      {
+        $match: {
+          'request.status': { $in: activeStatuses },
+          orderItemId: { $in: orderItemIds },
+        },
+      },
+      {
+        $group: {
+          _id: '$orderItemId',
+          reservedQty: { $sum: '$quantity' },
+        },
+      },
+    ]);
+    const map = new Map<string, number>();
+    for (const row of result) {
+      map.set(row._id.toString(), row.reservedQty);
+    }
+    return map;
+  }
+
+  /**
    * Create return request
    */
   async createReturnRequest(data: {

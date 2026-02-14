@@ -19,6 +19,8 @@ class OrderItemEntity extends Equatable {
   final int quantity;
   final int returnedQuantity;
   final int returnableQuantity;
+  final int reservedQuantity;
+  final bool isEffectivelyFullyReturned;
   final double unitPrice;
   final double discount;
   final double total;
@@ -35,15 +37,25 @@ class OrderItemEntity extends Equatable {
     required this.quantity,
     this.returnedQuantity = 0,
     this.returnableQuantity = 0,
+    this.reservedQuantity = 0,
+    this.isEffectivelyFullyReturned = false,
     required this.unitPrice,
     this.discount = 0,
     required this.total,
     this.attributes,
   });
 
-  int get effectiveQuantity => returnableQuantity > 0 ? returnableQuantity : (quantity - returnedQuantity);
-  bool get isFullyReturned => returnedQuantity >= quantity && quantity > 0;
-  bool get isPartiallyReturned => returnedQuantity > 0 && returnedQuantity < quantity;
+  int get effectiveQuantity =>
+      returnableQuantity > 0
+          ? returnableQuantity
+          : (quantity - returnedQuantity - reservedQuantity).clamp(0, quantity);
+  /// Crossed out when: fully returned OR in active return (pending/approved/etc - not cancelled)
+  bool get isFullyReturned =>
+      isEffectivelyFullyReturned ||
+      (returnedQuantity >= quantity && quantity > 0);
+  bool get isPartiallyReturned =>
+      (returnedQuantity + reservedQuantity) > 0 &&
+      (returnedQuantity + reservedQuantity) < quantity;
 
   String getName(String locale) =>
       locale == 'ar' && nameAr != null ? nameAr! : name;

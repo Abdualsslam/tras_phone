@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -30,6 +30,7 @@ import { ProductsModule } from '@modules/products/products.module';
 import { InventoryModule } from '@modules/inventory/inventory.module';
 import { CustomersModule } from '@modules/customers/customers.module';
 import { WalletModule } from '@modules/wallet/wallet.module';
+import { ReturnsModule } from '@modules/returns/returns.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { WalletModule } from '@modules/wallet/wallet.module';
     InventoryModule,
     CustomersModule,
     WalletModule,
+    forwardRef(() => ReturnsModule),
   ],
   controllers: [
     CartController,

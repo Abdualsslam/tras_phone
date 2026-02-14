@@ -25,6 +25,10 @@ class OrderItemModel {
   final int returnedQuantity;
   @JsonKey(defaultValue: 0)
   final int returnableQuantity;
+  @JsonKey(defaultValue: 0)
+  final int reservedQuantity;
+  @JsonKey(defaultValue: false)
+  final bool isEffectivelyFullyReturned;
   @JsonKey(defaultValue: 0.0)
   final double unitPrice;
   @JsonKey(defaultValue: 0.0)
@@ -44,6 +48,8 @@ class OrderItemModel {
     required this.quantity,
     this.returnedQuantity = 0,
     this.returnableQuantity = 0,
+    this.reservedQuantity = 0,
+    this.isEffectivelyFullyReturned = false,
     this.unitPrice = 0,
     this.discount = 0,
     this.total = 0,
@@ -86,8 +92,12 @@ class OrderItemModel {
       image: image,
       quantity: quantity,
       returnedQuantity: returnedQuantity,
-      returnableQuantity:
-          returnableQuantity > 0 ? returnableQuantity : (quantity - returnedQuantity),
+      returnableQuantity: returnableQuantity > 0
+          ? returnableQuantity
+          : (quantity - returnedQuantity - reservedQuantity).clamp(0, quantity),
+      reservedQuantity: reservedQuantity,
+      isEffectivelyFullyReturned:
+          isEffectivelyFullyReturned || (returnedQuantity >= quantity),
       unitPrice: unitPrice,
       discount: discount,
       total: total,

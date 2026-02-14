@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -28,6 +30,7 @@ import { CustomersService } from '@modules/customers/customers.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { AuditService } from '@modules/audit/audit.service';
 import { AuditAction, AuditResource } from '@modules/audit/schemas/audit-log.schema';
+import { ReturnsService } from '@modules/returns/returns.service';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -57,6 +60,8 @@ export class OrdersService {
     private productsService: ProductsService,
     private customersService: CustomersService,
     private auditService: AuditService,
+    @Inject(forwardRef(() => ReturnsService))
+    private returnsService: ReturnsService,
   ) {}
 
   /**
@@ -67,10 +72,12 @@ export class OrdersService {
   }
 
   /**
-   * Map OrderItem documents (from order_items collection) to client format
+   * Map OrderItem documents (from order_items collection) to client format.
+   * reservedByOrderItemId: quantity reserved in active returns (pending, approved, etc. - not cancelled/rejected)
    */
   private mapOrderItemsToClientFormat(
     items: OrderItemDocument[] | any[],
+    reservedByOrderItemId?: Map<string, number>,
   ): any[] {
     return items.map((item) => {
       const productId =
@@ -83,16 +90,21 @@ export class OrdersService {
           (item.productId?.mainImage || item.productId?.images?.[0]));
       const quantity = item.quantity ?? 0;
       const returnedQuantity = item.returnedQuantity ?? 0;
-      const returnableQuantity = Math.max(0, quantity - returnedQuantity);
+      const orderItemIdStr = item._id?.toString?.() ?? item.id?.toString?.() ?? '';
+      const reservedQty =
+        reservedByOrderItemId?.get(orderItemIdStr) ?? 0;
+      const effectiveReturned = returnedQuantity + reservedQty;
+      const returnableQuantity = Math.max(0, quantity - effectiveReturned);
       const effectiveQuantity = returnableQuantity;
+      const isEffectivelyFullyReturned = effectiveReturned >= quantity;
       const returnStatus =
-        returnedQuantity === 0
+        effectiveReturned === 0
           ? 'none'
-          : returnedQuantity >= quantity
+          : effectiveReturned >= quantity
             ? 'full'
             : 'partial';
       return {
-        _id: item._id?.toString?.() ?? item.id?.toString?.(),
+        _id: orderItemIdStr,
         productId,
         sku: item.productSku ?? item.sku ?? '',
         name: item.productName ?? item.name ?? '',
@@ -100,9 +112,11 @@ export class OrdersService {
         image: productImage ?? item.image ?? null,
         quantity,
         returnedQuantity,
+        reservedQuantity: reservedQty,
         returnableQuantity,
         effectiveQuantity,
         returnStatus,
+        isEffectivelyFullyReturned,
         unitPrice: item.unitPrice ?? 0,
         discount: item.discount ?? 0,
         total: item.totalPrice ?? item.total ?? 0,
@@ -438,12 +452,22 @@ export class OrdersService {
       itemsByOrderId.set(oid, list);
     }
 
+    const orderItemIds = allItems.map((i) =>
+      typeof i._id === 'string' ? new Types.ObjectId(i._id) : i._id,
+    );
+    const reservedMap =
+      orderItemIds.length > 0
+        ? await this.returnsService.getReservedQuantitiesByOrderItemIds(
+            orderItemIds,
+          )
+        : new Map<string, number>();
+
     const data = orders.map((order) => {
       const orderObj = order.toObject();
       const orderItems = itemsByOrderId.get(order._id.toString()) || [];
       const mappedItems =
         orderItems.length > 0
-          ? this.mapOrderItemsToClientFormat(orderItems)
+          ? this.mapOrderItemsToClientFormat(orderItems, reservedMap)
           : this.mapEmbeddedOrderItemsToClientFormat(orderObj.items || []);
       return {
         ...orderObj,
@@ -496,10 +520,20 @@ export class OrdersService {
   async findById(id: string): Promise<any> {
     const { order, items, history } = await this.findOrderAndItems(id);
     const orderObj = order.toObject();
+    let reservedMap = new Map<string, number>();
+    if (items.length > 0) {
+      const orderItemIds = items.map((i) =>
+        typeof i._id === 'string' ? new Types.ObjectId(i._id) : i._id,
+      );
+      reservedMap =
+        await this.returnsService.getReservedQuantitiesByOrderItemIds(
+          orderItemIds,
+        );
+    }
     // Use order_items if available, otherwise fallback to embedded order.items
     const mappedItems =
       items.length > 0
-        ? this.mapOrderItemsToClientFormat(items)
+        ? this.mapOrderItemsToClientFormat(items, reservedMap)
         : this.mapEmbeddedOrderItemsToClientFormat(orderObj.items || []);
     return {
       ...orderObj,
