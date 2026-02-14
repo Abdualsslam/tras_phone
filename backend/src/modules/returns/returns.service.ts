@@ -19,8 +19,13 @@ import {
   SupplierReturnBatch,
   SupplierReturnBatchDocument,
 } from './schemas/supplier-return-batch.schema';
-import { OrderItem, OrderItemDocument } from '@modules/orders/schemas/order-item.schema';
+import {
+  OrderItem,
+  OrderItemDocument,
+} from '@modules/orders/schemas/order-item.schema';
+import { Order, OrderDocument } from '@modules/orders/schemas/order.schema';
 import { WalletService } from '@modules/wallet/wallet.service';
+import { CustomersService } from '@modules/customers/customers.service';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -43,8 +48,11 @@ export class ReturnsService {
     private supplierReturnBatchModel: Model<SupplierReturnBatchDocument>,
     @InjectModel(OrderItem.name)
     private orderItemModel: Model<OrderItemDocument>,
+    @InjectModel(Order.name)
+    private orderModel: Model<OrderDocument>,
     @Inject(forwardRef(() => WalletService))
     private walletService: WalletService,
+    private customersService: CustomersService,
   ) {}
 
   /**
@@ -492,6 +500,18 @@ export class ReturnsService {
       $set: { refundAmount: data.amount },
     });
 
+    // Add refund amount to customer wallet immediately
+    await this.walletService.credit({
+      customerId: returnRequest.customerId.toString(),
+      amount: data.amount,
+      transactionType: 'order_refund',
+      referenceType: 'refund',
+      referenceId: refund._id.toString(),
+      referenceNumber: refund.refundNumber,
+      description: 'Refund for return request',
+      descriptionAr: `استرداد مبلغ المرتجع ${returnRequest.returnNumber}`,
+    });
+
     return refund;
   }
 
@@ -518,17 +538,16 @@ export class ReturnsService {
 
     if (!refund) throw new NotFoundException('Refund not found');
 
-    // Automatic wallet credit for all refunds
-    await this.walletService.credit({
-      customerId: refund.customerId.toString(),
-      amount: refund.amount,
-      transactionType: 'order_refund',
-      referenceType: 'refund',
-      referenceId: refund._id.toString(),
-      referenceNumber: refund.refundNumber,
-      description: 'Refund for return request',
-      descriptionAr: `استرداد مبلغ المرتجع ${(refund.returnRequestId as any).returnNumber}`,
-    });
+    // Wallet credit is done in processRefund - no double credit here
+
+    // Decrement credit used when refund is for an order paid with credit
+    const order = await this.orderModel.findById(refund.orderId);
+    if (order?.paymentMethod === 'credit') {
+      await this.customersService.decrementCreditUsed(
+        refund.customerId.toString(),
+        refund.amount,
+      );
+    }
 
     // Update return request status
     const returnRequestId = (refund.returnRequestId as any)._id.toString();

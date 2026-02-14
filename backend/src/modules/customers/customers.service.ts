@@ -603,6 +603,37 @@ export class CustomersService {
   }
 
   /**
+   * Increment credit used (when order is placed on credit)
+   */
+  async incrementCreditUsed(
+    customerId: string,
+    amount: number,
+  ): Promise<CustomerDocument> {
+    const customer = await this.customerModel.findByIdAndUpdate(
+      customerId,
+      { $inc: { creditUsed: amount } },
+      { new: true },
+    );
+    if (!customer) throw new NotFoundException('Customer not found');
+    return customer;
+  }
+
+  /**
+   * Decrement credit used (when payment is made or order is cancelled)
+   */
+  async decrementCreditUsed(
+    customerId: string,
+    amount: number,
+  ): Promise<CustomerDocument> {
+    const customer = await this.customerModel.findById(customerId);
+    if (!customer) throw new NotFoundException('Customer not found');
+    const newCreditUsed = Math.max(0, (customer.creditUsed ?? 0) - amount);
+    customer.creditUsed = newCreditUsed;
+    await customer.save();
+    return customer;
+  }
+
+  /**
    * Update statistics after order
    */
   async updateStatistics(

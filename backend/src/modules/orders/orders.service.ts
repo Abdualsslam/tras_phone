@@ -29,7 +29,10 @@ import { ProductsService } from '@modules/products/products.service';
 import { CustomersService } from '@modules/customers/customers.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { AuditService } from '@modules/audit/audit.service';
-import { AuditAction, AuditResource } from '@modules/audit/schemas/audit-log.schema';
+import {
+  AuditAction,
+  AuditResource,
+} from '@modules/audit/schemas/audit-log.schema';
 import { ReturnsService } from '@modules/returns/returns.service';
 
 /**
@@ -83,16 +86,16 @@ export class OrdersService {
       const productId =
         typeof item.productId === 'object' && item.productId?._id
           ? item.productId._id.toString()
-          : item.productId?.toString?.() ?? item.productId;
+          : (item.productId?.toString?.() ?? item.productId);
       const productImage =
         item.productImage ||
         (typeof item.productId === 'object' &&
           (item.productId?.mainImage || item.productId?.images?.[0]));
       const quantity = item.quantity ?? 0;
       const returnedQuantity = item.returnedQuantity ?? 0;
-      const orderItemIdStr = item._id?.toString?.() ?? item.id?.toString?.() ?? '';
-      const reservedQty =
-        reservedByOrderItemId?.get(orderItemIdStr) ?? 0;
+      const orderItemIdStr =
+        item._id?.toString?.() ?? item.id?.toString?.() ?? '';
+      const reservedQty = reservedByOrderItemId?.get(orderItemIdStr) ?? 0;
       const effectiveReturned = returnedQuantity + reservedQty;
       const returnableQuantity = Math.max(0, quantity - effectiveReturned);
       const effectiveQuantity = returnableQuantity;
@@ -224,6 +227,19 @@ export class OrdersService {
     const discount = cart.discount; // Other discounts (promotions)
     const total =
       subtotal - discount - couponDiscount + taxAmount + shippingCost;
+
+    // Validate credit limit when paying with credit
+    if (data.paymentMethod === 'credit') {
+      const customer = await this.customersService.findById(customerId);
+      const creditLimit = customer?.creditLimit ?? 0;
+      const creditUsed = customer?.creditUsed ?? 0;
+      const availableCredit = creditLimit - creditUsed;
+      if (total > availableCredit) {
+        throw new BadRequestException(
+          `حد الائتمان غير كافٍ. المتاح: ${availableCredit.toFixed(2)} ر.س، المطلوب: ${total.toFixed(2)} ر.س`,
+        );
+      }
+    }
 
     // Get customer's price level for order record
     let priceLevelId: Types.ObjectId | undefined;
@@ -371,6 +387,11 @@ export class OrdersService {
     // Create invoice
     await this.createInvoice(order);
 
+    // Increment credit used when order is placed on credit
+    if (data.paymentMethod === 'credit') {
+      await this.customersService.incrementCreditUsed(customerId, order.total);
+    }
+
     // Update customer statistics (totalOrders, totalSpent, averageOrderValue, lastOrderAt)
     try {
       await this.customersService.updateStatistics(customerId, order.total);
@@ -399,9 +420,7 @@ export class OrdersService {
   /**
    * Find orders with filters
    */
-  async findAll(
-    filters?: any,
-  ): Promise<{ data: any[]; total: number }> {
+  async findAll(filters?: any): Promise<{ data: any[]; total: number }> {
     const {
       page = 1,
       limit = 20,
@@ -499,9 +518,7 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Order not found');
 
     const orderIdForQuery =
-      typeof order._id === 'string'
-        ? new Types.ObjectId(order._id)
-        : order._id;
+      typeof order._id === 'string' ? new Types.ObjectId(order._id) : order._id;
     const [items, history] = await Promise.all([
       this.orderItemModel
         .find({ orderId: orderIdForQuery })
@@ -562,9 +579,7 @@ export class OrdersService {
     }
 
     if (!this.isOrderCancellable(order.status)) {
-      throw new BadRequestException(
-        'لا يمكن إلغاء الطلب بعد مرحلة التجهيز',
-      );
+      throw new BadRequestException('لا يمكن إلغاء الطلب بعد مرحلة التجهيز');
     }
 
     await this.updateStatus(orderId, 'cancelled', undefined, reason);
@@ -610,6 +625,12 @@ export class OrdersService {
       case 'cancelled':
         updateData.cancelledAt = new Date();
         updateData.cancellationReason = notes;
+        if (order.paymentMethod === 'credit') {
+          await this.customersService.decrementCreditUsed(
+            order.customerId.toString(),
+            order.total,
+          );
+        }
         break;
     }
 
@@ -640,21 +661,34 @@ export class OrdersService {
     );
 
     // Audit log
-    const actorId = userId ?? (newStatus === 'cancelled' ? order.customerId?.toString() : undefined);
-    const actorType = userId ? 'admin' : (newStatus === 'cancelled' ? 'customer' : 'system');
+    const actorId =
+      userId ??
+      (newStatus === 'cancelled' ? order.customerId?.toString() : undefined);
+    const actorType = userId
+      ? 'admin'
+      : newStatus === 'cancelled'
+        ? 'customer'
+        : 'system';
     const isCritical = ['cancelled', 'refunded'].includes(newStatus);
-    await this.auditService.log({
-      action: newStatus === 'cancelled' ? AuditAction.CANCEL : newStatus === 'refunded' ? AuditAction.REFUND : AuditAction.STATUS_CHANGE,
-      resource: AuditResource.ORDER,
-      resourceId: orderId,
-      resourceName: (order as any).orderNumber ?? orderId,
-      actorType,
-      actorId,
-      description: `Order status changed from ${oldStatus} to ${newStatus}`,
-      descriptionAr: `تم تغيير حالة الطلب من ${oldStatus} إلى ${newStatus}`,
-      severity: isCritical ? 'critical' : 'info',
-      success: true,
-    }).catch(() => undefined);
+    await this.auditService
+      .log({
+        action:
+          newStatus === 'cancelled'
+            ? AuditAction.CANCEL
+            : newStatus === 'refunded'
+              ? AuditAction.REFUND
+              : AuditAction.STATUS_CHANGE,
+        resource: AuditResource.ORDER,
+        resourceId: orderId,
+        resourceName: (order as any).orderNumber ?? orderId,
+        actorType,
+        actorId,
+        description: `Order status changed from ${oldStatus} to ${newStatus}`,
+        descriptionAr: `تم تغيير حالة الطلب من ${oldStatus} إلى ${newStatus}`,
+        severity: isCritical ? 'critical' : 'info',
+        success: true,
+      })
+      .catch(() => undefined);
 
     return updatedOrder;
   }
@@ -783,7 +817,7 @@ export class OrdersService {
           const productId =
             typeof product === 'object' && product?._id
               ? product._id.toString()
-              : item.productId?.toString?.() ?? '';
+              : (item.productId?.toString?.() ?? '');
           return {
             productId,
             productName: product.name || product.nameAr || undefined,
@@ -879,6 +913,14 @@ export class OrdersService {
         },
       },
     );
+
+    // Decrement credit used when customer pays off a credit order
+    if (order.paymentMethod === 'credit') {
+      await this.customersService.decrementCreditUsed(
+        order.customerId.toString(),
+        data.amount,
+      );
+    }
 
     return payment;
   }
@@ -1036,18 +1078,24 @@ export class OrdersService {
     }
 
     // Audit log
-    await this.auditService.log({
-      action: verified ? AuditAction.APPROVE : AuditAction.REJECT,
-      resource: AuditResource.PAYMENT,
-      resourceId: orderId,
-      resourceName: (order as any).orderNumber ?? orderId,
-      actorType: 'admin',
-      actorId: adminId,
-      description: verified ? 'Payment verified' : `Payment rejected: ${rejectionReason ?? 'No reason'}`,
-      descriptionAr: verified ? 'تم التحقق من الدفع' : `تم رفض الدفع: ${rejectionReason ?? 'بدون سبب'}`,
-      severity: verified ? 'info' : 'warning',
-      success: true,
-    }).catch(() => undefined);
+    await this.auditService
+      .log({
+        action: verified ? AuditAction.APPROVE : AuditAction.REJECT,
+        resource: AuditResource.PAYMENT,
+        resourceId: orderId,
+        resourceName: (order as any).orderNumber ?? orderId,
+        actorType: 'admin',
+        actorId: adminId,
+        description: verified
+          ? 'Payment verified'
+          : `Payment rejected: ${rejectionReason ?? 'No reason'}`,
+        descriptionAr: verified
+          ? 'تم التحقق من الدفع'
+          : `تم رفض الدفع: ${rejectionReason ?? 'بدون سبب'}`,
+        severity: verified ? 'info' : 'warning',
+        success: true,
+      })
+      .catch(() => undefined);
 
     return order;
   }

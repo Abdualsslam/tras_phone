@@ -24,8 +24,13 @@ import { ReturnsService } from './returns.service';
 import { ReturnsController } from './returns.controller';
 import { AuthModule } from '@modules/auth/auth.module';
 import { UploadsModule } from '@modules/uploads/uploads.module';
-import { OrderItem, OrderItemSchema } from '@modules/orders/schemas/order-item.schema';
+import {
+  OrderItem,
+  OrderItemSchema,
+} from '@modules/orders/schemas/order-item.schema';
+import { Order, OrderSchema } from '@modules/orders/schemas/order.schema';
 import { WalletModule } from '@modules/wallet/wallet.module';
+import { CustomersModule } from '@modules/customers/customers.module';
 
 @Module({
   imports: [
@@ -37,6 +42,7 @@ import { WalletModule } from '@modules/wallet/wallet.module';
       { name: ReturnReason.name, schema: ReturnReasonSchema },
       { name: SupplierReturnBatch.name, schema: SupplierReturnBatchSchema },
       { name: OrderItem.name, schema: OrderItemSchema },
+      { name: Order.name, schema: OrderSchema },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -50,6 +56,7 @@ import { WalletModule } from '@modules/wallet/wallet.module';
     }),
     AuthModule,
     UploadsModule,
+    CustomersModule,
     forwardRef(() => WalletModule),
   ],
   controllers: [ReturnsController],
