@@ -166,7 +166,8 @@ export class SupportGateway implements OnGatewayInit, OnGatewayConnection, OnGat
             });
 
             this.logger.log(`Ticket message sent via socket: ${data.ticketId}`);
-            return { success: true, message: message.toObject ? message.toObject() : message };
+            const plainMessage = (message as any).toObject?.() ?? message;
+            return { success: true, message: plainMessage };
         } catch (error: any) {
             this.logger.error(`ticket:message:send error: ${error?.message}`);
             return { success: false, error: error?.message || 'Failed to send message' };
