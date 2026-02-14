@@ -18,6 +18,9 @@ OrderItemModel _$OrderItemModelFromJson(Map<String, dynamic> json) =>
       quantity: (json['quantity'] as num).toInt(),
       returnedQuantity: (json['returnedQuantity'] as num?)?.toInt() ?? 0,
       returnableQuantity: (json['returnableQuantity'] as num?)?.toInt() ?? 0,
+      reservedQuantity: (json['reservedQuantity'] as num?)?.toInt() ?? 0,
+      isEffectivelyFullyReturned:
+          json['isEffectivelyFullyReturned'] as bool? ?? false,
       unitPrice: (json['unitPrice'] as num?)?.toDouble() ?? 0.0,
       discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
       total: (json['total'] as num?)?.toDouble() ?? 0.0,
@@ -36,6 +39,8 @@ Map<String, dynamic> _$OrderItemModelToJson(OrderItemModel instance) =>
       'quantity': instance.quantity,
       'returnedQuantity': instance.returnedQuantity,
       'returnableQuantity': instance.returnableQuantity,
+      'reservedQuantity': instance.reservedQuantity,
+      'isEffectivelyFullyReturned': instance.isEffectivelyFullyReturned,
       'unitPrice': instance.unitPrice,
       'discount': instance.discount,
       'total': instance.total,
