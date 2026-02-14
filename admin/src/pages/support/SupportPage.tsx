@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supportApi, type TicketCategory, type CannedResponse, type TicketDetails, type TicketMessage } from '@/api/support.api';
+import { supportApi, type TicketCategory, type CannedResponse, type TicketMessage } from '@/api/support.api';
 import type { Ticket } from '@/types';
 import { useSocket } from '@/hooks/useSocket';
 import { Button } from '@/components/ui/button';
@@ -154,11 +154,6 @@ export function SupportPage() {
         };
     }, [selectedTicket?._id, on, queryClient]);
 
-    // Auto scroll to bottom when messages change
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [ticketDetails?.messages]);
-
     // Queries
     const { data: ticketsData, isLoading } = useQuery({
         queryKey: ['tickets'],
@@ -175,6 +170,11 @@ export function SupportPage() {
         queryFn: () => supportApi.getTicket(selectedTicket!._id),
         enabled: !!selectedTicket?._id,
     });
+
+    // Auto scroll to bottom when messages change
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [ticketDetails?.messages]);
 
     const { data: categoriesData, isLoading: categoriesLoading } = useQuery<TicketCategory[] | unknown>({
         queryKey: ['ticket-categories'],
