@@ -379,7 +379,8 @@ class AuthInterceptor extends Interceptor {
         options: Options(headers: {'Authorization': 'Bearer $refreshToken'}),
       );
 
-      if (response.statusCode == 200 && response.data != null) {
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.data != null) {
         developer.log('Refresh response: ${response.data}', name: 'AuthInterceptor');
         await _tokenManager.saveTokensFromResponse(response.data);
 

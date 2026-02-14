@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../../../core/services/socket_service.dart';
 import '../../data/datasources/support_remote_datasource.dart';
 import '../../data/models/support_model.dart';
 import '../../utils/support_error_helper.dart';
@@ -139,13 +140,32 @@ class SupportCubit extends Cubit<SupportState> {
     }
   }
 
-  /// إضافة رسالة للتذكرة
+  /// إضافة رسالة للتذكرة (WebSocket أولاً، ثم POST كاحتياط)
   Future<TicketMessageModel?> addMessage({
     required String ticketId,
     required String content,
     List<String>? attachments,
   }) async {
     try {
+      final socket = SocketService();
+
+      // Try WebSocket first when connected
+      if (socket.isConnected) {
+        final msgJson = await socket.sendTicketMessage(
+          ticketId: ticketId,
+          content: content,
+          attachments: attachments,
+        );
+        if (msgJson != null) {
+          final message = TicketMessageModel.fromJson(msgJson);
+          emit(state.copyWith(
+            messages: [...state.messages, message],
+          ));
+          return message;
+        }
+      }
+
+      // Fallback to REST API
       final message = await _dataSource.addMessageToTicket(
         ticketId: ticketId,
         content: content,

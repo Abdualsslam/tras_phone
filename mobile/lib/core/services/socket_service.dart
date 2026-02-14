@@ -1,8 +1,9 @@
 /// Socket Service - WebSocket service for real-time communication
 library;
 
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'dart:async';
 import 'dart:developer' as developer;
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class SocketService {
   static final SocketService _instance = SocketService._internal();
@@ -18,12 +19,15 @@ class SocketService {
       return;
     }
 
-    final wsUrl = baseUrl.replaceAll('/api/v1', '');
+    // Build socket URL with explicit port to avoid :0 (502) - Socket.IO bug
+    final uri = Uri.parse(baseUrl.replaceAll('/api/v1', ''));
+    final port = uri.port != 0 ? uri.port : (uri.scheme == 'https' ? 443 : 80);
+    final socketUrl = '${uri.scheme}://${uri.host}:$port/support';
 
     _socket = IO.io(
-      '$wsUrl/support',
+      socketUrl,
       IO.OptionBuilder()
-          .setTransports(['websocket', 'polling'])
+          .setTransports(['websocket', 'polling']) // WebSocket first, polling fallback
           .setAuth({'token': token})
           .enableReconnection()
           .setReconnectionDelay(1000)
@@ -90,6 +94,42 @@ class SocketService {
   /// Leave ticket room
   void leaveTicket(String ticketId) {
     _socket?.emit('ticket:leave', {'ticketId': ticketId});
+  }
+
+  /// Send ticket message via WebSocket (returns message data on success)
+  Future<Map<String, dynamic>?> sendTicketMessage({
+    required String ticketId,
+    required String content,
+    List<String>? attachments,
+  }) async {
+    final socket = _socket;
+    if (socket == null || !socket.connected) {
+      return null;
+    }
+
+    final completer = Completer<Map<String, dynamic>?>();
+    socket.emitWithAck(
+      'ticket:message:send',
+      {
+        'ticketId': ticketId,
+        'content': content,
+        if (attachments != null) 'attachments': attachments,
+      },
+      ack: (response) {
+        if (!completer.isCompleted) {
+          if (response is Map && response['success'] == true) {
+            final msg = response['message'];
+            completer.complete(
+              msg is Map ? Map<String, dynamic>.from(msg) : null,
+            );
+          } else {
+            completer.complete(null);
+          }
+        }
+      },
+    );
+
+    return completer.future;
   }
 
   /// Join chat room

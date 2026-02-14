@@ -249,16 +249,28 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
       },
     );
 
-    if (response.data['success'] != true) {
+    final payload = _unwrapSupportResponse(response.data);
+
+    if (payload['success'] != true) {
       throw Exception(
-        response.data['messageAr'] ??
+        payload['messageAr'] ??
+            payload['message'] ??
+            response.data['messageAr'] ??
             response.data['message'] ??
             'Failed to send message',
       );
     }
 
-    final data = response.data['data'] ?? response.data;
-    return TicketMessageModel.fromJson(data);
+    // Message object is in payload['data'] (nested: data.data = message)
+    final data = payload['data'];
+    if (data is! Map) {
+      throw Exception(
+        payload['messageAr'] ??
+            payload['message'] ??
+            'Invalid message response',
+      );
+    }
+    return TicketMessageModel.fromJson(Map<String, dynamic>.from(data));
   }
 
   @override

@@ -9,12 +9,14 @@ import {
     MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Customer } from '@modules/customers/schemas/customer.schema';
+import { TicketsService } from '../tickets.service';
+import { MessageSenderType } from '../schemas/ticket-message.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -39,6 +41,7 @@ export class SupportGateway implements OnGatewayInit, OnGatewayConnection, OnGat
         private jwtService: JwtService,
         private configService: ConfigService,
         @InjectModel(Customer.name) private customerModel: Model<Customer>,
+        @Inject(forwardRef(() => TicketsService)) private ticketsService: TicketsService,
     ) { }
 
     afterInit(server: Server) {
@@ -123,6 +126,51 @@ export class SupportGateway implements OnGatewayInit, OnGatewayConnection, OnGat
         client.leave(`ticket:${data.ticketId}`);
         this.logger.log(`Client ${client.id} left ticket room: ${data.ticketId}`);
         return { success: true, ticketId: data.ticketId };
+    }
+
+    /**
+     * Send message to ticket (customer) - via WebSocket instead of REST POST
+     */
+    @SubscribeMessage('ticket:message:send')
+    async handleTicketMessageSend(
+        @ConnectedSocket() client: Socket,
+        @MessageBody() data: { ticketId: string; content: string; attachments?: string[] },
+    ) {
+        try {
+            const userId = client.data.userId;
+            const userType = client.data.userType;
+
+            if (userType !== 'customer') {
+                return { success: false, error: 'Only customers can send ticket messages via socket' };
+            }
+
+            // Verify ticket ownership
+            const ticket = await this.ticketsService.findTicketById(data.ticketId);
+            if (!ticket || ticket.customer?.customerId?.toString() !== userId) {
+                return { success: false, error: 'Ticket not found' };
+            }
+
+            // Get customer name
+            const customer = await this.customerModel
+                .findById(userId)
+                .select('name')
+                .lean();
+            const senderName = (customer as any)?.name || 'Customer';
+
+            const message = await this.ticketsService.addMessage(data.ticketId, {
+                senderType: MessageSenderType.CUSTOMER,
+                senderId: userId,
+                senderName,
+                content: data.content,
+                attachments: data.attachments,
+            });
+
+            this.logger.log(`Ticket message sent via socket: ${data.ticketId}`);
+            return { success: true, message: message.toObject ? message.toObject() : message };
+        } catch (error: any) {
+            this.logger.error(`ticket:message:send error: ${error?.message}`);
+            return { success: false, error: error?.message || 'Failed to send message' };
+        }
     }
 
     /**
