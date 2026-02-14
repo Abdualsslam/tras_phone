@@ -98,16 +98,20 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
       queryParameters: {'activeOnly': activeOnly.toString()},
     );
 
-    if (response.data['success'] != true) {
+    final payload = _unwrapSupportResponse(response.data);
+
+    if (payload['success'] != true) {
       throw Exception(
-        response.data['messageAr'] ??
+        payload['messageAr'] ??
+            payload['message'] ??
+            response.data['messageAr'] ??
             response.data['message'] ??
             'Failed to load categories',
       );
     }
 
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
+    final data = payload['data'];
+    final List<dynamic> list = data is List ? data : const [];
 
     return list.map((json) => TicketCategoryModel.fromJson(json)).toList();
   }
@@ -121,17 +125,20 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
     developer.log('Fetching my tickets', name: 'SupportDataSource');
 
     final response = await _apiClient.get(ApiEndpoints.myTickets);
+    final payload = _unwrapSupportResponse(response.data);
 
-    if (response.data['success'] != true) {
+    if (payload['success'] != true) {
       throw Exception(
-        response.data['messageAr'] ??
+        payload['messageAr'] ??
+            payload['message'] ??
+            response.data['messageAr'] ??
             response.data['message'] ??
             'Failed to load tickets',
       );
     }
 
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
+    final data = payload['data'];
+    final List<dynamic> list = data is List ? data : const [];
 
     return list.map((json) => TicketModel.fromJson(json)).toList();
   }
@@ -173,6 +180,13 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
 
     final body = request.toJson();
     body['source'] = request.source ?? 'mobile_app';
+
+    if (request.customerName != null && request.customerEmail != null) {
+      body['customer'] = {
+        'name': request.customerName,
+        'email': request.customerEmail,
+      };
+    }
 
     final response = await _apiClient.post(
       ApiEndpoints.tickets,
@@ -404,6 +418,16 @@ class SupportRemoteDataSourceImpl implements SupportRemoteDataSource {
       ));
     }
     return results;
+  }
+
+  /// Unwrap nested API response: { status, data: { success, data: [...] } }
+  Map<String, dynamic> _unwrapSupportResponse(dynamic raw) {
+    if (raw is! Map<String, dynamic>) return {};
+    final inner = raw['data'];
+    if (inner is Map<String, dynamic> && inner.containsKey('success')) {
+      return inner;
+    }
+    return raw;
   }
 
   /// Get MIME type from file extension

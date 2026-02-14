@@ -869,6 +869,10 @@ class CreateTicketRequest {
   final String? productId;
   final List<String>? attachments;
   final String? source;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? customerName;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? customerEmail;
 
   const CreateTicketRequest({
     required this.categoryId,
@@ -879,6 +883,8 @@ class CreateTicketRequest {
     this.productId,
     this.attachments,
     this.source,
+    this.customerName,
+    this.customerEmail,
   });
 
   factory CreateTicketRequest.fromJson(Map<String, dynamic> json) =>

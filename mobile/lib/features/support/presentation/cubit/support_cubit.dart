@@ -107,6 +107,8 @@ class SupportCubit extends Cubit<SupportState> {
     String? orderId,
     String? productId,
     List<String>? attachments,
+    String? customerName,
+    String? customerEmail,
   }) async {
     try {
       emit(state.copyWith(status: SupportStatus.loading));
@@ -119,6 +121,8 @@ class SupportCubit extends Cubit<SupportState> {
           orderId: orderId,
           productId: productId,
           attachments: attachments,
+          customerName: customerName,
+          customerEmail: customerEmail,
         ),
       );
       emit(state.copyWith(

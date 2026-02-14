@@ -119,7 +119,9 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
         SizedBox(height: 8.h),
         // Add Button
         if (widget.attachments.length < widget.maxAttachments)
-          Row(
+          Wrap(
+            spacing: 8.w,
+            runSpacing: 8.h,
             children: [
               if (widget.allowImages) ...[
                 OutlinedButton.icon(
@@ -133,7 +135,6 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
                     ),
                   ),
                 ),
-                SizedBox(width: 8.w),
                 OutlinedButton.icon(
                   onPressed: _takePhoto,
                   icon: Icon(Iconsax.camera, size: 18.sp),
