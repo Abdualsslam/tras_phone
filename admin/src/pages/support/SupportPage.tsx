@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supportApi, type TicketCategory, type CannedResponse } from '@/api/support.api';
+import { supportApi, type TicketCategory, type CannedResponse, type TicketDetails, type TicketMessage } from '@/api/support.api';
 import type { Ticket } from '@/types';
 import { useSocket } from '@/hooks/useSocket';
 import { Button } from '@/components/ui/button';
@@ -51,7 +51,7 @@ import {
     Trash2,
     Copy,
 } from 'lucide-react';
-import { getInitials, formatDate } from '@/lib/utils';
+import { getInitials, formatDate, cn } from '@/lib/utils';
 
 function getCustomerDisplayName(customer: any): string {
     if (!customer || typeof customer !== 'object' || customer.buffer) return 'عميل';
@@ -94,6 +94,7 @@ export function SupportPage() {
 
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
     const [replyContent, setReplyContent] = useState('');
+    const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
     const [isCannedDialogOpen, setIsCannedDialogOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<TicketCategory | null>(null);
@@ -136,6 +137,9 @@ export function SupportPage() {
         });
         const unsubMessage = on('ticket:message', () => {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
+            if (selectedTicket?._id) {
+                queryClient.invalidateQueries({ queryKey: ['ticket-details', selectedTicket._id] });
+            }
         });
         const unsubAssigned = on('ticket:assigned', () => {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
@@ -150,6 +154,11 @@ export function SupportPage() {
         };
     }, [selectedTicket?._id, on, queryClient]);
 
+    // Auto scroll to bottom when messages change
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [ticketDetails?.messages]);
+
     // Queries
     const { data: ticketsData, isLoading } = useQuery({
         queryKey: ['tickets'],
@@ -159,6 +168,12 @@ export function SupportPage() {
     const { data: stats } = useQuery({
         queryKey: ['support-stats'],
         queryFn: supportApi.getStats,
+    });
+
+    const { data: ticketDetails, isLoading: ticketDetailsLoading } = useQuery({
+        queryKey: ['ticket-details', selectedTicket?._id],
+        queryFn: () => supportApi.getTicket(selectedTicket!._id),
+        enabled: !!selectedTicket?._id,
     });
 
     const { data: categoriesData, isLoading: categoriesLoading } = useQuery<TicketCategory[] | unknown>({
@@ -177,8 +192,9 @@ export function SupportPage() {
     const replyMutation = useMutation({
         mutationFn: ({ ticketId, content }: { ticketId: string; content: string }) =>
             supportApi.replyToTicket(ticketId, { content }),
-        onSuccess: () => {
+        onSuccess: (_, { ticketId }) => {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
+            queryClient.invalidateQueries({ queryKey: ['ticket-details', ticketId] });
             setReplyContent('');
         },
     });
@@ -385,7 +401,7 @@ export function SupportPage() {
                 <TabsContent value="tickets" className="mt-4">
                     <div className="grid lg:grid-cols-3 gap-6">
                         {/* Tickets List */}
-                        <div className="lg:col-span-2 space-y-4">
+                        <div className="space-y-4">
                             <Card>
                                 <CardHeader className="pb-4">
                                     <CardTitle className="text-lg">التذاكر</CardTitle>
@@ -396,26 +412,25 @@ export function SupportPage() {
                                             <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
                                         </div>
                                     ) : (
-                                        <div className="divide-y dark:divide-slate-700">
+                                        <div className="divide-y dark:divide-slate-700 max-h-[500px] overflow-y-auto">
                                             {tickets.map((ticket: Ticket) => (
                                                 <div
                                                     key={ticket._id}
                                                     onClick={() => setSelectedTicket(ticket)}
-                                                    className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors ${selectedTicket?._id === ticket._id ? 'bg-primary-50 dark:bg-primary-900/20' : ''}`}
+                                                    className={cn(
+                                                        'p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors',
+                                                        selectedTicket?._id === ticket._id && 'bg-primary-50 dark:bg-primary-900/20'
+                                                    )}
                                                 >
                                                     <div className="flex items-start gap-3">
-                                                        <Avatar>
-                                                            <AvatarFallback>{getInitials(getCustomerDisplayName(ticket.customer))}</AvatarFallback>
+                                                        <Avatar className="h-9 w-9">
+                                                            <AvatarFallback className="text-xs">{getInitials(getCustomerDisplayName(ticket.customer))}</AvatarFallback>
                                                         </Avatar>
                                                         <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-2 flex-wrap">
                                                                 <span className="font-medium text-gray-900 dark:text-gray-100">{ticket.ticketNumber}</span>
-                                                                <Badge variant={statusVariants[ticket.status]}>
-                                                                    {statusLabels[ticket.status]}
-                                                                </Badge>
-                                                                <span className={`text-xs ${priorityColors[ticket.priority]}`}>
-                                                                    ● {priorityLabels[ticket.priority]}
-                                                                </span>
+                                                                <Badge variant={statusVariants[ticket.status]}>{statusLabels[ticket.status]}</Badge>
+                                                                <span className={cn('text-xs', priorityColors[ticket.priority])}>● {priorityLabels[ticket.priority]}</span>
                                                             </div>
                                                             <p className="text-sm text-gray-900 dark:text-gray-100 mt-1 truncate">{ticket.subject}</p>
                                                             <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
@@ -427,9 +442,7 @@ export function SupportPage() {
                                                 </div>
                                             ))}
                                             {tickets.length === 0 && (
-                                                <div className="py-12 text-center text-gray-500">
-                                                    لا توجد تذاكر
-                                                </div>
+                                                <div className="py-12 text-center text-gray-500">لا توجد تذاكر</div>
                                             )}
                                         </div>
                                     )}
@@ -437,73 +450,118 @@ export function SupportPage() {
                             </Card>
                         </div>
 
-                        {/* Quick Reply */}
-                        <div className="space-y-4">
-                            <Card>
-                                <CardHeader className="pb-4">
-                                    <CardTitle className="text-lg">رد سريع</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {selectedTicket ? (
-                                        <div className="space-y-4">
-                                            <div>
-                                                <p className="text-sm text-gray-500">التذكرة</p>
-                                                <p className="font-medium">{selectedTicket.ticketNumber}</p>
+                        {/* Chat Area */}
+                        <div className="lg:col-span-2">
+                            <Card className="h-[600px] flex flex-col">
+                                {selectedTicket ? (
+                                    <>
+                                        <CardHeader className="pb-3 border-b dark:border-slate-700">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar>
+                                                        <AvatarFallback>{getInitials(getCustomerDisplayName(selectedTicket.customer))}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-medium">{selectedTicket.ticketNumber}</p>
+                                                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[200px]">{selectedTicket.subject}</p>
+                                                        <p className="text-xs text-gray-500">{getCustomerDisplayName(selectedTicket.customer)}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant={statusVariants[selectedTicket.status]}>{statusLabels[selectedTicket.status]}</Badge>
+                                                    <Badge variant="outline" className={priorityColors[selectedTicket.priority]}>● {priorityLabels[selectedTicket.priority]}</Badge>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-sm text-gray-500">الموضوع</p>
-                                                <p className="font-medium">{selectedTicket.subject}</p>
-                                            </div>
-                                            <Textarea
-                                                placeholder="اكتب ردك هنا..."
-                                                value={replyContent}
-                                                onChange={(e) => setReplyContent(e.target.value)}
-                                                className="h-32"
-                                            />
-                                            <Button
-                                                className="w-full"
-                                                onClick={handleReply}
-                                                disabled={!replyContent.trim() || replyMutation.isPending}
-                                            >
-                                                {replyMutation.isPending ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                ) : (
-                                                    <Send className="h-4 w-4" />
-                                                )}
-                                                إرسال الرد
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-8 text-gray-500">
-                                            <User className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                                            <p>اختر تذكرة للرد عليها</p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                        </CardHeader>
 
-                            {/* Quick Canned Responses */}
-                            {selectedTicket && cannedResponses.length > 0 && (
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">ردود جاهزة</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-2">
-                                        {cannedResponses.slice(0, 5).map((canned) => (
-                                            <Button
-                                                key={canned._id}
-                                                variant="outline"
-                                                size="sm"
-                                                className="w-full justify-start text-start h-auto py-2"
-                                                onClick={() => handleUseCannedResponse(canned)}
-                                            >
-                                                <Copy className="h-3 w-3 shrink-0" />
-                                                <span className="truncate">{canned.title}</span>
-                                            </Button>
-                                        ))}
+                                        {/* Messages */}
+                                        <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+                                            {ticketDetailsLoading ? (
+                                                <div className="flex items-center justify-center h-full">
+                                                    <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+                                                </div>
+                                            ) : (() => {
+                                                const messages = Array.isArray(ticketDetails?.messages) ? ticketDetails.messages : [];
+                                                if (messages.length === 0) {
+                                                    return (
+                                                        <div className="flex items-center justify-center h-full text-gray-500">
+                                                            <p>لا توجد رسائل</p>
+                                                        </div>
+                                                    );
+                                                }
+                                                return (
+                                                    <>
+                                                        {messages.map((msg: TicketMessage) => {
+                                                            const isAgent = msg.sender === 'admin' || msg.senderType === 'agent';
+                                                            return (
+                                                                <div key={msg._id} className={cn('flex', isAgent ? 'justify-end' : 'justify-start')}>
+                                                                    <div
+                                                                        className={cn(
+                                                                            'max-w-[70%] rounded-2xl px-4 py-2',
+                                                                            msg.isInternal && 'border border-amber-300 dark:border-amber-600',
+                                                                            isAgent
+                                                                                ? 'bg-primary-600 text-white rounded-br-sm'
+                                                                                : 'bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-gray-100 rounded-bl-sm'
+                                                                        )}
+                                                                    >
+                                                                        {msg.isInternal && (
+                                                                            <span className="text-xs text-amber-600 dark:text-amber-400 block mb-1">ملاحظة داخلية</span>
+                                                                        )}
+                                                                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                                                        <p className={cn('text-xs mt-1', isAgent ? 'text-primary-200' : 'text-gray-500')}>
+                                                                            {msg.senderName} · {new Date(msg.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        <div ref={messagesEndRef} />
+                                                    </>
+                                                );
+                                            })()}
+                                        </CardContent>
+
+                                        {/* Reply Input */}
+                                        <div className="p-4 border-t dark:border-slate-700 space-y-3">
+                                            {cannedResponses.length > 0 && (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {cannedResponses.slice(0, 5).map((canned) => (
+                                                        <Button
+                                                            key={canned._id}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-7 text-xs"
+                                                            onClick={() => handleUseCannedResponse(canned)}
+                                                        >
+                                                            <Copy className="h-3 w-3 shrink-0" />
+                                                            {canned.title}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            <div className="flex gap-2">
+                                                <Textarea
+                                                    placeholder="اكتب ردك هنا..."
+                                                    value={replyContent}
+                                                    onChange={(e) => setReplyContent(e.target.value)}
+                                                    className="min-h-[80px] resize-none"
+                                                />
+                                                <Button onClick={handleReply} disabled={!replyContent.trim() || replyMutation.isPending} className="self-end">
+                                                    {replyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                                    إرسال
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <CardContent className="flex-1 flex items-center justify-center text-gray-500">
+                                        <div className="text-center">
+                                            <User className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                                            <p>اختر تذكرة لعرض المحادثة</p>
+                                        </div>
                                     </CardContent>
-                                </Card>
-                            )}
+                                )}
+                            </Card>
                         </div>
                     </div>
                 </TabsContent>

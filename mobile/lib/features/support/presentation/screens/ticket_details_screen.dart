@@ -1,12 +1,14 @@
 /// Ticket Details Screen - Support ticket details and chat
 library;
 
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/services/socket_service.dart';
 import '../../data/models/support_model.dart';
 import '../../utils/support_error_helper.dart';
 import '../cubit/support_cubit.dart';
@@ -29,15 +31,39 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
   final _scrollController = ScrollController();
   final List<String> _selectedAttachments = [];
   bool _isSending = false;
+  Function? _unsubTicketMessage;
 
   @override
   void initState() {
     super.initState();
     context.read<SupportCubit>().loadTicketDetails(widget.ticketId);
+    _setupWebSocket();
+  }
+
+  void _setupWebSocket() {
+    SocketService().joinTicket(widget.ticketId);
+    _unsubTicketMessage = SocketService().on('ticket:message', _onTicketMessage);
+  }
+
+  void _onTicketMessage(dynamic data) {
+    if (!mounted) return;
+    try {
+      final map = Map<String, dynamic>.from(data as Map);
+      final message = TicketMessageModel.fromJson(map);
+      if (message.ticketId == widget.ticketId) {
+        context.read<SupportCubit>().addMessageFromSocket(message);
+        _scrollToBottom();
+      }
+    } catch (e) {
+      developer.log('Failed to parse ticket:message: $e',
+          name: 'TicketDetailsScreen');
+    }
   }
 
   @override
   void dispose() {
+    SocketService().leaveTicket(widget.ticketId);
+    _unsubTicketMessage?.call();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();

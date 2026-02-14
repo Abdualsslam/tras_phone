@@ -8,10 +8,12 @@ import type { ApiResponse, Ticket, PaginatedResponse } from '@/types';
 export interface TicketMessage {
     _id: string;
     content: string;
-    sender: 'customer' | 'admin';
+    sender?: 'customer' | 'admin';
+    senderType?: 'customer' | 'agent' | 'system';
     senderName: string;
     attachments?: string[];
     createdAt: string;
+    isInternal?: boolean;
 }
 
 export interface TicketDetails extends Ticket {
@@ -98,8 +100,18 @@ export const supportApi = {
     },
 
     getTicket: async (id: string): Promise<TicketDetails> => {
-        const response = await apiClient.get<ApiResponse<TicketDetails>>(`/support/tickets/${id}`);
-        return response.data.data;
+        const response = await apiClient.get<any>(`/support/tickets/${id}`);
+        let data = response.data?.data;
+        if (data?.data && typeof data.data === 'object' && 'ticket' in data.data) {
+            data = data.data;
+        }
+        if (data && 'ticket' in data && Array.isArray(data.messages)) {
+            return { ...data.ticket, messages: data.messages };
+        }
+        if (data && Array.isArray(data.messages)) {
+            return data as TicketDetails;
+        }
+        return { ...data, messages: [] };
     },
 
     updateTicketStatus: async (id: string, status: string): Promise<Ticket> => {
