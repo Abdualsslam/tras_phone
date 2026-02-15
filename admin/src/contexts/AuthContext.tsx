@@ -4,6 +4,34 @@ import { authApi } from '@/api/auth.api';
 import { socketService } from '@/services/socket.service';
 import { canAccess, extractUserPermissions } from '@/lib/access-control';
 
+const hasAdminAccessPayload = (user: Admin | null | undefined): boolean => {
+    if (!user) return false;
+    return (
+        typeof user.isSuperAdmin === 'boolean' ||
+        typeof user.canAccessWeb === 'boolean' ||
+        Array.isArray(user.permissions) ||
+        Array.isArray(user.roles) ||
+        !!user.role
+    );
+};
+
+const mergeAccessProfile = (baseUser: Admin, fallbackUser?: Admin | null): Admin => {
+    if (!fallbackUser) return baseUser;
+    if (hasAdminAccessPayload(baseUser)) return baseUser;
+
+    return {
+        ...baseUser,
+        isSuperAdmin: fallbackUser.isSuperAdmin,
+        canAccessWeb: fallbackUser.canAccessWeb,
+        canAccessMobile: fallbackUser.canAccessMobile,
+        permissions: fallbackUser.permissions,
+        roles: fallbackUser.roles,
+        role: fallbackUser.role,
+        featureFlags: fallbackUser.featureFlags,
+        features: fallbackUser.features,
+    };
+};
+
 interface AuthContextType {
     user: Admin | null;
     token: string | null;
@@ -31,12 +59,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (savedToken && savedUser) {
                 try {
                     // Set user from localStorage first for immediate UI
-                    setUser(JSON.parse(savedUser));
+                    const cachedUser = JSON.parse(savedUser) as Admin;
+                    setUser(cachedUser);
                     setToken(savedToken);
                     // Verify token is still valid (interceptor will handle refresh if needed)
                     const profile = await authApi.getProfile();
-                    setUser(profile);
-                    localStorage.setItem('user', JSON.stringify(profile));
+                    const mergedProfile = mergeAccessProfile(profile, cachedUser);
+                    setUser(mergedProfile);
+                    localStorage.setItem('user', JSON.stringify(mergedProfile));
                 } catch {
                     // Check if token was refreshed during the request
                     const currentToken = localStorage.getItem('accessToken');
@@ -44,9 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         // Token was refreshed, retry getting profile
                         try {
                             const profile = await authApi.getProfile();
-                            setUser(profile);
+                            const cachedUser = savedUser ? (JSON.parse(savedUser) as Admin) : null;
+                            const mergedProfile = mergeAccessProfile(profile, cachedUser);
+                            setUser(mergedProfile);
                             setToken(currentToken);
-                            localStorage.setItem('user', JSON.stringify(profile));
+                            localStorage.setItem('user', JSON.stringify(mergedProfile));
                         } catch {
                             // Still failed, clear storage
                             localStorage.removeItem('accessToken');
@@ -79,8 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         try {
             const profile = await authApi.getProfile();
-            localStorage.setItem('user', JSON.stringify(profile));
-            setUser(profile);
+            const mergedProfile = mergeAccessProfile(profile, response.user);
+            localStorage.setItem('user', JSON.stringify(mergedProfile));
+            setUser(mergedProfile);
         } catch {
             localStorage.setItem('user', JSON.stringify(response.user));
             setUser(response.user);
