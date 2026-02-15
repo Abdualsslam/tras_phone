@@ -59,7 +59,15 @@
     "content": "المحتوى",
     "educationalContent": "المحتوى التعليمي",
     "audit": "سجل المراجعة",
-    "liveChat": "المحادثات المباشرة"
+    "liveChat": "المحادثات المباشرة",
+    "noItems": "لا توجد أقسام متاحة لهذا الحساب"
+  },
+  "sidebarGroups": {
+    "overview": "نظرة عامة",
+    "operations": "العمليات",
+    "catalog": "الكتالوج والمحتوى",
+    "procurement": "الموردون والمشتريات",
+    "administration": "الإدارة"
   },
   "dashboard": {
     "title": "لوحة التحكم",

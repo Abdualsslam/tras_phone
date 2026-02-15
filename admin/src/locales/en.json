@@ -59,7 +59,15 @@
     "content": "Content",
     "educationalContent": "Educational Content",
     "audit": "Audit Logs",
-    "liveChat": "Live Chat"
+    "liveChat": "Live Chat",
+    "noItems": "No sections available for this account"
+  },
+  "sidebarGroups": {
+    "overview": "Overview",
+    "operations": "Operations",
+    "catalog": "Catalog & Content",
+    "procurement": "Suppliers & Purchasing",
+    "administration": "Administration"
   },
   "dashboard": {
     "title": "Dashboard",

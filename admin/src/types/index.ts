@@ -27,6 +27,26 @@ export interface PaginatedResponse<T> {
     pagination: PaginationMeta;
 }
 
+export interface PermissionDescriptor {
+    _id?: string;
+    name?: string;
+    permission?: string;
+    module?: string;
+    action?: string;
+}
+
+export interface AccessRequirement {
+    anyOf?: string[];
+    allOf?: string[];
+}
+
+export interface AdminRole {
+    _id?: string;
+    name?: string;
+    nameAr?: string;
+    permissions?: Array<string | PermissionDescriptor>;
+}
+
 // Auth types
 export interface LoginRequest {
     email: string;
@@ -61,6 +81,11 @@ export interface Admin {
     updatedAt: string;
     totalOrdersProcessed?: number;
     totalCustomersManaged?: number;
+    permissions?: Array<string | PermissionDescriptor>;
+    roles?: Array<string | AdminRole>;
+    role?: string | AdminRole;
+    featureFlags?: string[];
+    features?: string[];
 }
 
 export interface Role {

@@ -1,13 +1,16 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { Admin, LoginRequest } from '@/types';
+import { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from 'react';
+import type { AccessRequirement, Admin, LoginRequest } from '@/types';
 import { authApi } from '@/api/auth.api';
 import { socketService } from '@/services/socket.service';
+import { canAccess, extractUserPermissions } from '@/lib/access-control';
 
 interface AuthContextType {
     user: Admin | null;
     token: string | null;
+    permissions: string[];
     isAuthenticated: boolean;
     isLoading: boolean;
+    hasAccess: (requirement?: AccessRequirement, requiredFeatureFlags?: string[]) => boolean;
     login: (credentials: LoginRequest) => Promise<void>;
     logout: () => Promise<void>;
 }
@@ -92,13 +95,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const permissions = useMemo(() => extractUserPermissions(user), [user]);
+
+    const hasAccessTo = (requirement?: AccessRequirement, requiredFeatureFlags?: string[]) =>
+        canAccess(user, requirement, requiredFeatureFlags);
+
     return (
         <AuthContext.Provider
             value={{
                 user,
                 token,
+                permissions,
                 isAuthenticated: !!user,
                 isLoading,
+                hasAccess: hasAccessTo,
                 login,
                 logout,
             }}
