@@ -20,6 +20,8 @@ import '../../../orders/domain/enums/order_enums.dart';
 import '../../../orders/domain/entities/payment_method_entity.dart';
 import '../../../orders/data/models/shipping_address_model.dart';
 import '../../../profile/domain/entities/address_entity.dart';
+import '../../../wallet/presentation/cubit/wallet_cubit.dart';
+import '../../../wallet/presentation/cubit/wallet_state.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -32,6 +34,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
   String? _selectedAddressId;
   String? _selectedPaymentMethodId;
   CouponValidation? _appliedCoupon;
+  bool _useWalletBalance = false;
+  final TextEditingController _walletAmountController = TextEditingController();
 
   @override
   void initState() {
@@ -39,11 +43,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     WidgetsBinding.instance.addObserver(this);
     // Load checkout session (cart + addresses + payment methods)
     context.read<CheckoutSessionCubit>().loadSession();
+    context.read<WalletCubit>().loadBalance();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _walletAmountController.dispose();
     super.dispose();
   }
 
@@ -398,6 +404,133 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
                                       _selectedPaymentMethodId == method.id,
                                 );
                               }).toList(),
+                            ),
+                          );
+                        },
+                      ),
+                      SizedBox(height: 24.h),
+
+                      // Wallet partial payment (hybrid)
+                      BlocBuilder<WalletCubit, WalletState>(
+                        builder: (context, walletState) {
+                          if (state is! CheckoutSessionLoaded) {
+                            return const SizedBox.shrink();
+                          }
+
+                          final session = (state as CheckoutSessionLoaded).session;
+                          final hasWalletMethod = session.paymentMethods.any(
+                            (m) => m.type == 'wallet',
+                          );
+
+                          if (!hasWalletMethod) {
+                            return const SizedBox.shrink();
+                          }
+
+                          final selectedMethod = _getSelectedPaymentMethod(session);
+                          final isWalletMethodSelected =
+                              selectedMethod?.type == 'wallet';
+                          final walletBalance = walletState is WalletLoaded
+                              ? (walletState.balance ?? 0)
+                              : 0.0;
+                          final orderTotal =
+                              session.cart.subtotal -
+                              (_appliedCoupon?.discountAmount ?? 0) +
+                              session.cart.shippingCost +
+                              session.cart.taxAmount;
+
+                          if (isWalletMethodSelected && _useWalletBalance) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (!mounted) return;
+                              setState(() => _useWalletBalance = false);
+                            });
+                          }
+
+                          return Container(
+                            padding: EdgeInsets.all(12.w),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? AppColors.surfaceDark
+                                  : AppColors.backgroundLight,
+                              borderRadius: BorderRadius.circular(14.r),
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.dividerDark
+                                    : AppColors.dividerLight,
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Iconsax.wallet_money,
+                                      size: 20.sp,
+                                      color: AppColors.primary,
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    Expanded(
+                                      child: Text(
+                                        'استخدام رصيد المحفظة',
+                                        style: theme.textTheme.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${walletBalance.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: AppColors.textSecondaryLight,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 10.h),
+                                if (isWalletMethodSelected)
+                                  Text(
+                                    'تم اختيار الدفع بالمحفظة، سيتم استخدام كامل المبلغ تلقائياً.',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textSecondaryLight,
+                                    ),
+                                  )
+                                else ...[
+                                  SwitchListTile.adaptive(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(
+                                      'خصم جزء من المحفظة قبل إتمام الدفع',
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                    value: _useWalletBalance,
+                                    onChanged: walletBalance > 0
+                                        ? (value) {
+                                            setState(() {
+                                              _useWalletBalance = value;
+                                              if (!value) {
+                                                _walletAmountController.clear();
+                                              }
+                                            });
+                                          }
+                                        : null,
+                                  ),
+                                  if (_useWalletBalance) ...[
+                                    SizedBox(height: 8.h),
+                                    TextField(
+                                      controller: _walletAmountController,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
+                                      decoration: InputDecoration(
+                                        labelText: 'المبلغ المستخدم من المحفظة',
+                                        hintText:
+                                            'حتى ${walletBalance < orderTotal ? walletBalance.toStringAsFixed(2) : orderTotal.toStringAsFixed(2)}',
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ],
                             ),
                           );
                         },
@@ -969,6 +1102,47 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     );
   }
 
+  PaymentMethodEntity? _getSelectedPaymentMethod(CheckoutSessionEntity session) {
+    if (_selectedPaymentMethodId == null || session.paymentMethods.isEmpty) {
+      return null;
+    }
+
+    return session.paymentMethods.firstWhere(
+      (m) => m.id == _selectedPaymentMethodId,
+      orElse: () => session.paymentMethods.first,
+    );
+  }
+
+  double _resolveWalletBalance() {
+    final walletState = context.read<WalletCubit>().state;
+    if (walletState is WalletLoaded && walletState.balance != null) {
+      return walletState.balance!;
+    }
+    return 0;
+  }
+
+  double _parseWalletAmountInput() {
+    final text = _walletAmountController.text.trim().replaceAll(',', '.');
+    return double.tryParse(text) ?? 0;
+  }
+
+  double _calculateWalletAmountToUse({
+    required double orderTotal,
+    required PaymentMethodEntity? selectedPaymentMethod,
+    required double walletBalance,
+  }) {
+    if (selectedPaymentMethod?.type == 'wallet') {
+      return orderTotal;
+    }
+
+    if (!_useWalletBalance) return 0;
+
+    final requested = _parseWalletAmountInput();
+    if (requested <= 0) return 0;
+
+    return requested.clamp(0, walletBalance < orderTotal ? walletBalance : orderTotal).toDouble();
+  }
+
   Widget _buildBottomBar(
     BuildContext context,
     ThemeData theme,
@@ -980,6 +1154,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     final shippingCost = session.cart.shippingCost;
     final taxAmount = session.cart.taxAmount;
     final total = subtotal - couponDiscount + shippingCost + taxAmount;
+    final selectedPaymentMethod = _getSelectedPaymentMethod(session);
+    final walletAmountToUse = _calculateWalletAmountToUse(
+      orderTotal: total,
+      selectedPaymentMethod: selectedPaymentMethod,
+      walletBalance: _resolveWalletBalance(),
+    );
+    final payableNow = (total - walletAmountToUse).clamp(0, total).toDouble();
 
     // تفعيل الزر عند توفر: سلة غير فارغة + عنوان + طريقة دفع
     // التحقق من المخزون والمنتجات غير النشطة يبقى داخل _handlePlaceOrder مع رسالة للمستخدم
@@ -1014,7 +1195,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
               ),
             ),
             child: Text(
-              '${AppLocalizations.of(context)!.confirm} • ${total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+              '${AppLocalizations.of(context)!.confirm} • ${payableNow.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
               style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
             ),
           ),
@@ -1094,6 +1275,58 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
         selectedPaymentMethod.orderPaymentMethodValue,
       );
 
+      final orderTotal =
+          session.cart.subtotal -
+          (_appliedCoupon?.discountAmount ?? 0) +
+          session.cart.shippingCost +
+          session.cart.taxAmount;
+      final walletBalance = _resolveWalletBalance();
+      final walletAmountToUse = _calculateWalletAmountToUse(
+        orderTotal: orderTotal,
+        selectedPaymentMethod: selectedPaymentMethod,
+        walletBalance: walletBalance,
+      );
+
+      if (selectedPaymentMethod.type == 'wallet' && walletBalance < orderTotal) {
+        Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'رصيد المحفظة غير كافٍ. المتاح ${walletBalance.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      if (_useWalletBalance && selectedPaymentMethod.type != 'wallet') {
+        final enteredAmount = _parseWalletAmountInput();
+        if (enteredAmount <= 0) {
+          Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('يرجى إدخال مبلغ صحيح من المحفظة'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
+
+        if (enteredAmount > walletBalance || enteredAmount > orderTotal) {
+          Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'المبلغ المدخل من المحفظة أكبر من الحد المسموح',
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
+      }
+
       // Create shipping address model
       final shippingAddress = ShippingAddressModel(
         fullName: selectedAddress.recipientName ?? selectedAddress.label,
@@ -1108,6 +1341,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
         shippingAddress: shippingAddress,
         paymentMethod: paymentMethod,
         couponCode: couponCode,
+        walletAmountUsed: walletAmountToUse > 0 ? walletAmountToUse : null,
       );
 
       if (!mounted) return;
@@ -1150,6 +1384,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
         return Iconsax.bank;
       case 'credit_card':
       case 'mada':
+      case 'apple_pay':
+      case 'stc_pay':
+      case 'credit':
         return Iconsax.card;
       default:
         return Iconsax.money;

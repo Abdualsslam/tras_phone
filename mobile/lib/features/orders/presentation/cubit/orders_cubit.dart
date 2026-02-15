@@ -68,6 +68,7 @@ class OrdersCubit extends Cubit<OrdersState> {
     OrderPaymentMethod? paymentMethod,
     String? customerNotes,
     String? couponCode,
+    double? walletAmountUsed,
   }) async {
     try {
       return await _dataSource.createOrder(
@@ -76,6 +77,7 @@ class OrdersCubit extends Cubit<OrdersState> {
         paymentMethod: paymentMethod,
         customerNotes: customerNotes,
         couponCode: couponCode,
+        walletAmountUsed: walletAmountUsed,
       );
     } catch (e) {
       emit(OrdersError(e.toString()));

@@ -26,13 +26,37 @@ export class CreateOrderDto {
 
   @ApiProperty({
     description: 'Payment method',
-    enum: ['cash', 'card', 'bank_transfer', 'wallet', 'credit'],
+    enum: [
+      'cash_on_delivery',
+      'credit_card',
+      'mada',
+      'apple_pay',
+      'stc_pay',
+      'bank_transfer',
+      'wallet',
+      'credit',
+      'cash',
+      'card',
+      'cod',
+    ],
     example: 'credit',
     required: false,
   })
   @IsString()
   @IsOptional()
-  @IsEnum(['cash', 'card', 'bank_transfer', 'wallet', 'credit'])
+  @IsEnum([
+    'cash_on_delivery',
+    'credit_card',
+    'mada',
+    'apple_pay',
+    'stc_pay',
+    'bank_transfer',
+    'wallet',
+    'credit',
+    'cash',
+    'card',
+    'cod',
+  ])
   paymentMethod?: string;
 
   @ApiProperty({

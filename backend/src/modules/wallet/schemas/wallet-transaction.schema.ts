@@ -107,6 +107,9 @@ export class WalletTransaction {
     @Prop()
     descriptionAr?: string;
 
+    @Prop({ index: true, sparse: true })
+    idempotencyKey?: string;
+
     // ═════════════════════════════════════
     // Tracking
     // ═════════════════════════════════════
@@ -125,3 +128,4 @@ WalletTransactionSchema.index({ transactionType: 1 });
 WalletTransactionSchema.index({ referenceType: 1, referenceId: 1 });
 WalletTransactionSchema.index({ expiresAt: 1, isExpired: 1 });
 WalletTransactionSchema.index({ status: 1 });
+WalletTransactionSchema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });

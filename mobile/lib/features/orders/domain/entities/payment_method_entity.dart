@@ -49,20 +49,16 @@ class PaymentMethodEntity {
 
   /// Convert type to OrderPaymentMethod enum
   String get orderPaymentMethodValue {
-    switch (type) {
-      case 'cash_on_delivery':
-        return 'cash';
-      case 'bank_transfer':
-        return 'bank_transfer';
-      case 'wallet':
-        return 'wallet';
-      case 'credit':
-        return 'credit';
-      case 'credit_card':
-      case 'mada':
-        return 'card';
+    final normalized = type.toLowerCase();
+
+    switch (normalized) {
+      case 'cod':
+      case 'cash':
+        return 'cash_on_delivery';
+      case 'card':
+        return 'credit_card';
       default:
-        return 'cash';
+        return normalized;
     }
   }
 }

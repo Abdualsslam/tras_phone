@@ -510,6 +510,7 @@ export class ReturnsService {
       referenceNumber: refund.refundNumber,
       description: 'Refund for return request',
       descriptionAr: `استرداد مبلغ المرتجع ${returnRequest.returnNumber}`,
+      idempotencyKey: `refund:${refund._id.toString()}:wallet_credit`,
     });
 
     return refund;

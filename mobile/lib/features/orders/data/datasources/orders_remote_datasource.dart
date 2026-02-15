@@ -43,6 +43,7 @@ abstract class OrdersRemoteDataSource {
     OrderPaymentMethod? paymentMethod,
     String? customerNotes,
     String? couponCode,
+    double? walletAmountUsed,
   });
 
   /// Cancel order (reason is required by API)
@@ -212,6 +213,7 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     OrderPaymentMethod? paymentMethod,
     String? customerNotes,
     String? couponCode,
+    double? walletAmountUsed,
   }) async {
     developer.log('Creating order', name: 'OrdersDataSource');
 
@@ -224,6 +226,8 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
         if (paymentMethod != null) 'paymentMethod': paymentMethod.value,
         if (customerNotes != null) 'customerNotes': customerNotes,
         if (couponCode != null) 'couponCode': couponCode,
+        if (walletAmountUsed != null && walletAmountUsed > 0)
+          'walletAmountUsed': walletAmountUsed,
       },
     );
 

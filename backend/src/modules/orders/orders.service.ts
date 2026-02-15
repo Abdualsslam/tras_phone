@@ -34,6 +34,7 @@ import {
   AuditResource,
 } from '@modules/audit/schemas/audit-log.schema';
 import { ReturnsService } from '@modules/returns/returns.service';
+import { WalletService } from '@modules/wallet/wallet.service';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -63,9 +64,29 @@ export class OrdersService {
     private productsService: ProductsService,
     private customersService: CustomersService,
     private auditService: AuditService,
+    private walletService: WalletService,
     @Inject(forwardRef(() => ReturnsService))
     private returnsService: ReturnsService,
   ) {}
+
+  private normalizePaymentMethod(method?: string): string {
+    const normalized = (method || 'bank_transfer').toLowerCase();
+    const paymentMethodMap: Record<string, string> = {
+      cod: 'cash_on_delivery',
+      cash: 'cash_on_delivery',
+      cash_on_delivery: 'cash_on_delivery',
+      card: 'credit_card',
+      credit_card: 'credit_card',
+      mada: 'mada',
+      apple_pay: 'apple_pay',
+      stc_pay: 'stc_pay',
+      bank_transfer: 'bank_transfer',
+      wallet: 'wallet',
+      credit: 'credit',
+    };
+
+    return paymentMethodMap[normalized] || 'bank_transfer';
+  }
 
   /**
    * Check if order can be cancelled by customer (pending, confirmed, processing only)
@@ -227,16 +248,40 @@ export class OrdersService {
     const discount = cart.discount; // Other discounts (promotions)
     const total =
       subtotal - discount - couponDiscount + taxAmount + shippingCost;
+    const paymentMethod = this.normalizePaymentMethod(data.paymentMethod);
+
+    let walletAmountUsed = Math.max(0, Number(data.walletAmountUsed || 0));
+
+    if (paymentMethod === 'wallet') {
+      walletAmountUsed = total;
+    }
+
+    if (walletAmountUsed > total) {
+      throw new BadRequestException(
+        'Wallet amount cannot be greater than order total',
+      );
+    }
+
+    if (walletAmountUsed > 0) {
+      const walletBalance = await this.walletService.getBalance(customerId);
+      if (walletBalance < walletAmountUsed) {
+        throw new BadRequestException(
+          `Insufficient wallet balance. Available: ${walletBalance.toFixed(2)} SAR, required: ${walletAmountUsed.toFixed(2)} SAR`,
+        );
+      }
+    }
+
+    const remainingAfterWallet = total - walletAmountUsed;
 
     // Validate credit limit when paying with credit
-    if (data.paymentMethod === 'credit') {
+    if (paymentMethod === 'credit') {
       const customer = await this.customersService.findById(customerId);
       const creditLimit = customer?.creditLimit ?? 0;
       const creditUsed = customer?.creditUsed ?? 0;
       const availableCredit = creditLimit - creditUsed;
-      if (total > availableCredit) {
+      if (remainingAfterWallet > availableCredit) {
         throw new BadRequestException(
-          `حد الائتمان غير كافٍ. المتاح: ${availableCredit.toFixed(2)} ر.س، المطلوب: ${total.toFixed(2)} ر.س`,
+          `حد الائتمان غير كافٍ. المتاح: ${availableCredit.toFixed(2)} ر.س، المطلوب: ${remainingAfterWallet.toFixed(2)} ر.س`,
         );
       }
     }
@@ -250,6 +295,10 @@ export class OrdersService {
       // Continue without priceLevelId if customer lookup fails
     }
 
+    const paidAmount = walletAmountUsed;
+    const paymentStatus =
+      paidAmount <= 0 ? 'unpaid' : paidAmount >= total ? 'paid' : 'partial';
+
     // Create order (currency default SAR)
     const order = await this.orderModel.create({
       orderNumber,
@@ -261,14 +310,17 @@ export class OrdersService {
       shippingCost,
       discount,
       couponDiscount,
+      walletAmountUsed,
       total,
+      paidAmount,
+      paymentStatus,
       currencyCode: 'SAR',
       couponId,
       couponCode,
       appliedPromotions: cart.appliedPromotions,
       shippingAddress: data.shippingAddress,
       shippingAddressId: data.shippingAddressId,
-      paymentMethod: data.paymentMethod,
+      paymentMethod,
       customerNotes: data.customerNotes,
       source: data.source || 'mobile',
     });
@@ -387,14 +439,29 @@ export class OrdersService {
     // Create invoice
     await this.createInvoice(order);
 
+    // Debit wallet if wallet amount is used
+    if (walletAmountUsed > 0) {
+      await this.walletService.debit({
+        customerId,
+        amount: walletAmountUsed,
+        transactionType: 'order_payment',
+        referenceType: 'order',
+        referenceId: order._id.toString(),
+        referenceNumber: order.orderNumber,
+        description: `Wallet payment for order ${order.orderNumber}`,
+        descriptionAr: `الدفع من المحفظة للطلب ${order.orderNumber}`,
+        idempotencyKey: `order:${order._id.toString()}:wallet_debit`,
+      });
+    }
+
     // Increment credit used when order is placed on credit
-    if (data.paymentMethod === 'credit') {
+    if (paymentMethod === 'credit' && remainingAfterWallet > 0) {
       this.logger.debug(
-        `createOrder: incrementing creditUsed for customerId=${customerId}, amount=${order.total}`,
+        `createOrder: incrementing creditUsed for customerId=${customerId}, amount=${remainingAfterWallet}`,
       );
       const updatedCustomer = await this.customersService.incrementCreditUsed(
         customerId,
-        order.total,
+        remainingAfterWallet,
       );
       this.logger.debug(
         `createOrder: creditUsed updated. New creditUsed=${updatedCustomer.creditUsed}, creditLimit=${updatedCustomer.creditLimit}`,
@@ -630,15 +697,71 @@ export class OrdersService {
         break;
       case 'completed':
         updateData.completedAt = new Date();
+
+        // Earn loyalty points once per completed order
+        if (order.customerId) {
+          const alreadyAwarded = await this.walletService.hasLoyaltyTransaction({
+            customerId: order.customerId.toString(),
+            transactionType: 'order_earn',
+            referenceType: 'order',
+            referenceId: order._id.toString(),
+          });
+
+          if (!alreadyAwarded) {
+            const pointsCalculation =
+              await this.walletService.calculatePointsForOrder(
+                order.customerId.toString(),
+                order.total,
+              );
+
+            if (pointsCalculation.points > 0) {
+              await this.walletService.earnPoints({
+                customerId: order.customerId.toString(),
+                points: pointsCalculation.points,
+                multiplier: pointsCalculation.multiplier,
+                transactionType: 'order_earn',
+                orderAmount: order.total,
+                referenceType: 'order',
+                referenceId: order._id.toString(),
+                referenceNumber: order.orderNumber,
+                description: `Points earned for order ${order.orderNumber}`,
+              });
+            }
+          }
+        }
         break;
       case 'cancelled':
         updateData.cancelledAt = new Date();
         updateData.cancellationReason = notes;
         if (order.paymentMethod === 'credit') {
-          await this.customersService.decrementCreditUsed(
-            order.customerId.toString(),
-            order.total,
+          const creditAmount = Math.max(
+            0,
+            (order.total || 0) - (order.walletAmountUsed || 0),
           );
+
+          if (creditAmount > 0) {
+            await this.customersService.decrementCreditUsed(
+              order.customerId.toString(),
+              creditAmount,
+            );
+          }
+        }
+
+        if ((order.walletAmountUsed || 0) > 0) {
+          await this.walletService.credit({
+            customerId: order.customerId.toString(),
+            amount: order.walletAmountUsed,
+            transactionType: 'order_refund',
+            referenceType: 'order',
+            referenceId: order._id.toString(),
+            referenceNumber: order.orderNumber,
+            description: `Wallet refund for cancelled order ${order.orderNumber}`,
+            descriptionAr: `استرداد للمحفظة بسبب إلغاء الطلب ${order.orderNumber}`,
+            idempotencyKey: `order:${order._id.toString()}:cancel_wallet_refund`,
+          });
+
+          updateData.paymentStatus = 'refunded';
+          updateData.paidAmount = 0;
         }
         break;
     }

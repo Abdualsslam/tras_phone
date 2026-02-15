@@ -79,9 +79,13 @@ class AppConstants {
   // PAYMENT METHODS
   // ═══════════════════════════════════════════════════════════════════════════
   static const List<String> paymentMethods = [
-    'cod',
+    'cash_on_delivery',
+    'credit_card',
+    'mada',
+    'apple_pay',
+    'stc_pay',
     'bank_transfer',
     'wallet',
-    'credit_card',
+    'credit',
   ];
 }

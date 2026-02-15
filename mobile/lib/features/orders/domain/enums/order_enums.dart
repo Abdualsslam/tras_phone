@@ -203,18 +203,30 @@ enum PaymentStatus {
 
 /// Order payment methods
 enum OrderPaymentMethod {
-  cash,
-  card,
+  cashOnDelivery,
+  creditCard,
+  mada,
+  applePay,
+  stcPay,
   bankTransfer,
   wallet,
   credit;
 
   static OrderPaymentMethod fromString(String value) {
-    switch (value) {
+    switch (value.toLowerCase()) {
+      case 'cash_on_delivery':
       case 'cash':
-        return OrderPaymentMethod.cash;
+      case 'cod':
+        return OrderPaymentMethod.cashOnDelivery;
+      case 'credit_card':
       case 'card':
-        return OrderPaymentMethod.card;
+        return OrderPaymentMethod.creditCard;
+      case 'mada':
+        return OrderPaymentMethod.mada;
+      case 'apple_pay':
+        return OrderPaymentMethod.applePay;
+      case 'stc_pay':
+        return OrderPaymentMethod.stcPay;
       case 'bank_transfer':
         return OrderPaymentMethod.bankTransfer;
       case 'wallet':
@@ -222,25 +234,43 @@ enum OrderPaymentMethod {
       case 'credit':
         return OrderPaymentMethod.credit;
       default:
-        return OrderPaymentMethod.cash;
+        return OrderPaymentMethod.cashOnDelivery;
     }
   }
 
   String get value {
     switch (this) {
+      case OrderPaymentMethod.cashOnDelivery:
+        return 'cash_on_delivery';
+      case OrderPaymentMethod.creditCard:
+        return 'credit_card';
+      case OrderPaymentMethod.mada:
+        return 'mada';
+      case OrderPaymentMethod.applePay:
+        return 'apple_pay';
+      case OrderPaymentMethod.stcPay:
+        return 'stc_pay';
       case OrderPaymentMethod.bankTransfer:
         return 'bank_transfer';
-      default:
-        return name;
+      case OrderPaymentMethod.wallet:
+        return 'wallet';
+      case OrderPaymentMethod.credit:
+        return 'credit';
     }
   }
 
   String get displayNameAr {
     switch (this) {
-      case OrderPaymentMethod.cash:
-        return 'كاش';
-      case OrderPaymentMethod.card:
-        return 'بطاقة';
+      case OrderPaymentMethod.cashOnDelivery:
+        return 'الدفع عند الاستلام';
+      case OrderPaymentMethod.creditCard:
+        return 'بطاقة ائتمان';
+      case OrderPaymentMethod.mada:
+        return 'بطاقة مدى';
+      case OrderPaymentMethod.applePay:
+        return 'Apple Pay';
+      case OrderPaymentMethod.stcPay:
+        return 'STC Pay';
       case OrderPaymentMethod.bankTransfer:
         return 'تحويل بنكي';
       case OrderPaymentMethod.wallet:
@@ -252,9 +282,12 @@ enum OrderPaymentMethod {
 
   IconData get icon {
     switch (this) {
-      case OrderPaymentMethod.cash:
+      case OrderPaymentMethod.cashOnDelivery:
         return Icons.money;
-      case OrderPaymentMethod.card:
+      case OrderPaymentMethod.creditCard:
+      case OrderPaymentMethod.mada:
+      case OrderPaymentMethod.applePay:
+      case OrderPaymentMethod.stcPay:
         return Icons.credit_card;
       case OrderPaymentMethod.bankTransfer:
         return Icons.account_balance;

@@ -94,7 +94,19 @@ export class Order {
 
   @Prop({
     type: String,
-    enum: ['cash', 'card', 'bank_transfer', 'wallet', 'credit'],
+    enum: [
+      'cash_on_delivery',
+      'credit_card',
+      'mada',
+      'apple_pay',
+      'stc_pay',
+      'bank_transfer',
+      'wallet',
+      'credit',
+      'cash',
+      'card',
+      'cod',
+    ],
   })
   paymentMethod?: string;
 

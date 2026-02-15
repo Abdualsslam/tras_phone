@@ -344,6 +344,7 @@ class CreateOrderRequest {
   final String? paymentMethod;
   final String? customerNotes;
   final String? couponCode;
+  final double? walletAmountUsed;
 
   const CreateOrderRequest({
     this.shippingAddressId,
@@ -351,6 +352,7 @@ class CreateOrderRequest {
     this.paymentMethod,
     this.customerNotes,
     this.couponCode,
+    this.walletAmountUsed,
   });
 
   Map<String, dynamic> toJson() => {
@@ -359,6 +361,8 @@ class CreateOrderRequest {
     if (paymentMethod != null) 'paymentMethod': paymentMethod,
     if (customerNotes != null) 'customerNotes': customerNotes,
     if (couponCode != null) 'couponCode': couponCode,
+    if (walletAmountUsed != null && walletAmountUsed! > 0)
+      'walletAmountUsed': walletAmountUsed,
   };
 }
 

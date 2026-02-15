@@ -5,6 +5,7 @@ import { WalletTransaction, WalletTransactionDocument } from './schemas/wallet-t
 import { LoyaltyTier, LoyaltyTierDocument } from './schemas/loyalty-tier.schema';
 import { LoyaltyTransaction, LoyaltyTransactionDocument } from './schemas/loyalty-transaction.schema';
 import { PointsExpiry, PointsExpiryDocument } from './schemas/points-expiry.schema';
+import { Customer, CustomerDocument } from '@modules/customers/schemas/customer.schema';
 import { CreateTierDto } from './dto/create-tier.dto';
 import { UpdateTierDto } from './dto/update-tier.dto';
 
@@ -20,6 +21,7 @@ export class WalletService {
         @InjectModel(LoyaltyTier.name) private loyaltyTierModel: Model<LoyaltyTierDocument>,
         @InjectModel(LoyaltyTransaction.name) private loyaltyTxModel: Model<LoyaltyTransactionDocument>,
         @InjectModel(PointsExpiry.name) private pointsExpiryModel: Model<PointsExpiryDocument>,
+        @InjectModel(Customer.name) private customerModel: Model<CustomerDocument>,
     ) { }
 
     // ═════════════════════════════════════
@@ -33,8 +35,15 @@ export class WalletService {
         const lastTx = await this.walletTxModel
             .findOne({ customerId, status: 'completed' })
             .sort({ createdAt: -1 });
+        const balance = lastTx?.balanceAfter || 0;
 
-        return lastTx?.balanceAfter || 0;
+        await this.customerModel.findByIdAndUpdate(
+            customerId,
+            { $set: { walletBalance: balance } },
+            { new: false },
+        );
+
+        return balance;
     }
 
     /**
@@ -51,27 +60,56 @@ export class WalletService {
         descriptionAr?: string;
         expiresAt?: Date;
         createdBy?: string;
+        idempotencyKey?: string;
     }): Promise<WalletTransactionDocument> {
+        if (data.idempotencyKey) {
+            const existingTx = await this.walletTxModel.findOne({
+                customerId: data.customerId,
+                idempotencyKey: data.idempotencyKey,
+            });
+            if (existingTx) return existingTx;
+        }
+
         const balance = await this.getBalance(data.customerId);
         const transactionNumber = await this.generateWalletTxNumber();
 
-        return this.walletTxModel.create({
-            transactionNumber,
-            customerId: data.customerId,
-            transactionType: data.transactionType,
-            amount: data.amount,
-            direction: 'credit',
-            balanceBefore: balance,
-            balanceAfter: balance + data.amount,
-            referenceType: data.referenceType,
-            referenceId: data.referenceId,
-            referenceNumber: data.referenceNumber,
-            description: data.description,
-            descriptionAr: data.descriptionAr,
-            expiresAt: data.expiresAt,
-            createdBy: data.createdBy,
-            status: 'completed',
+        let transaction: WalletTransactionDocument;
+        try {
+            transaction = await this.walletTxModel.create({
+                transactionNumber,
+                customerId: data.customerId,
+                transactionType: data.transactionType,
+                amount: data.amount,
+                direction: 'credit',
+                balanceBefore: balance,
+                balanceAfter: balance + data.amount,
+                referenceType: data.referenceType,
+                referenceId: data.referenceId,
+                referenceNumber: data.referenceNumber,
+                description: data.description,
+                descriptionAr: data.descriptionAr,
+                expiresAt: data.expiresAt,
+                createdBy: data.createdBy,
+                idempotencyKey: data.idempotencyKey,
+                status: 'completed',
+            });
+        } catch (error: any) {
+            if (data.idempotencyKey && error?.code === 11000) {
+                const existingTx = await this.walletTxModel.findOne({
+                    customerId: data.customerId,
+                    idempotencyKey: data.idempotencyKey,
+                });
+                if (existingTx) return existingTx;
+            }
+
+            throw error;
+        }
+
+        await this.customerModel.findByIdAndUpdate(data.customerId, {
+            $set: { walletBalance: transaction.balanceAfter },
         });
+
+        return transaction;
     }
 
     /**
@@ -87,7 +125,16 @@ export class WalletService {
         description?: string;
         descriptionAr?: string;
         createdBy?: string;
+        idempotencyKey?: string;
     }): Promise<WalletTransactionDocument> {
+        if (data.idempotencyKey) {
+            const existingTx = await this.walletTxModel.findOne({
+                customerId: data.customerId,
+                idempotencyKey: data.idempotencyKey,
+            });
+            if (existingTx) return existingTx;
+        }
+
         const balance = await this.getBalance(data.customerId);
 
         if (balance < data.amount) {
@@ -96,22 +143,42 @@ export class WalletService {
 
         const transactionNumber = await this.generateWalletTxNumber();
 
-        return this.walletTxModel.create({
-            transactionNumber,
-            customerId: data.customerId,
-            transactionType: data.transactionType,
-            amount: data.amount,
-            direction: 'debit',
-            balanceBefore: balance,
-            balanceAfter: balance - data.amount,
-            referenceType: data.referenceType,
-            referenceId: data.referenceId,
-            referenceNumber: data.referenceNumber,
-            description: data.description,
-            descriptionAr: data.descriptionAr,
-            createdBy: data.createdBy,
-            status: 'completed',
+        let transaction: WalletTransactionDocument;
+        try {
+            transaction = await this.walletTxModel.create({
+                transactionNumber,
+                customerId: data.customerId,
+                transactionType: data.transactionType,
+                amount: data.amount,
+                direction: 'debit',
+                balanceBefore: balance,
+                balanceAfter: balance - data.amount,
+                referenceType: data.referenceType,
+                referenceId: data.referenceId,
+                referenceNumber: data.referenceNumber,
+                description: data.description,
+                descriptionAr: data.descriptionAr,
+                createdBy: data.createdBy,
+                idempotencyKey: data.idempotencyKey,
+                status: 'completed',
+            });
+        } catch (error: any) {
+            if (data.idempotencyKey && error?.code === 11000) {
+                const existingTx = await this.walletTxModel.findOne({
+                    customerId: data.customerId,
+                    idempotencyKey: data.idempotencyKey,
+                });
+                if (existingTx) return existingTx;
+            }
+
+            throw error;
+        }
+
+        await this.customerModel.findByIdAndUpdate(data.customerId, {
+            $set: { walletBalance: transaction.balanceAfter },
         });
+
+        return transaction;
     }
 
     /**
@@ -256,6 +323,24 @@ export class WalletService {
      */
     async getLoyaltyTransactions(customerId: string): Promise<LoyaltyTransactionDocument[]> {
         return this.loyaltyTxModel.find({ customerId }).sort({ createdAt: -1 }).limit(50);
+    }
+
+    async hasLoyaltyTransaction(data: {
+        customerId: string;
+        transactionType: string;
+        referenceType?: string;
+        referenceId?: string;
+    }): Promise<boolean> {
+        const query: any = {
+            customerId: data.customerId,
+            transactionType: data.transactionType,
+        };
+
+        if (data.referenceType) query.referenceType = data.referenceType;
+        if (data.referenceId) query.referenceId = data.referenceId;
+
+        const existing = await this.loyaltyTxModel.exists(query);
+        return !!existing;
     }
 
     /**
