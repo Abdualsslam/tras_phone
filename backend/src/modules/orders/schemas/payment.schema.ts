@@ -40,9 +40,6 @@ export class Payment {
             'bank_transfer',
             'wallet',
             'credit',
-            'cash',
-            'card',
-            'cod',
         ],
     })
     paymentMethod: string;

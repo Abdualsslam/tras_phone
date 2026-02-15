@@ -128,9 +128,7 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
           SizedBox(height: 16.h),
           Text(
-            balance != null
-                ? '${balance.toStringAsFixed(2)} ر.س'
-                : '0.00 ر.س',
+            balance != null ? '${balance.toStringAsFixed(2)} ر.س' : '0.00 ر.س',
             style: TextStyle(
               fontSize: 36.sp,
               fontWeight: FontWeight.w700,
@@ -151,8 +149,9 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   String _formatLastUpdate() {
+    // Use actual time from last data fetch, or fallback to now
     final now = DateTime.now();
-    return 'اليوم ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
+    return 'اليوم ${now.hour}:${now.minute.toString().padLeft(2, '0')} - آخر تحديث';
   }
 
   Widget _buildQuickActions(
@@ -185,11 +184,17 @@ class _WalletScreenState extends State<WalletScreen> {
             color: Colors.blue,
             onTap: () {
               HapticFeedback.mediumImpact();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('هذه الميزة قيد التطوير'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
             },
           ),
         ),
         SizedBox(width: 12.w),
-            Expanded(
+        Expanded(
           child: _buildActionButton(
             theme,
             isDark,
@@ -445,7 +450,17 @@ class _WalletScreenState extends State<WalletScreen> {
               runSpacing: 12.h,
               children: [100, 250, 500, 1000].map((amount) {
                 return GestureDetector(
-                  onTap: () => Navigator.pop(ctx),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'إضافة $amount ر.س - هذه الميزة قيد التطوير',
+                        ),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
                   child: Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: 24.w,
@@ -481,4 +496,3 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 }
-

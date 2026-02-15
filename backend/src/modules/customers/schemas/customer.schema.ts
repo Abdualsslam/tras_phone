@@ -109,7 +109,7 @@ export class Customer {
     // ═════════════════════════════════════
     @Prop({
         type: String,
-        enum: ['cod', 'bank_transfer', 'wallet'],
+        enum: ['cod', 'bank_transfer', 'wallet', 'credit'],
     })
     preferredPaymentMethod?: string;
 

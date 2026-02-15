@@ -111,6 +111,8 @@ export class PaymentGatewayService {
             switch (this.provider) {
                 case 'hyperpay':
                     return await this.refundHyperpay(transactionId, amount, currency);
+                case 'moyasar':
+                    return await this.refundMoyasar(transactionId, amount);
                 default:
                     return { success: true, transactionId: `refund-${Date.now()}` };
             }
@@ -321,8 +323,49 @@ export class PaymentGatewayService {
 
     // ==================== Mock for Testing ====================
 
+    private async refundMoyasar(paymentId: string, amount: number): Promise<PaymentResult> {
+        const response = await fetch(`https://api.moyasar.com/v1/payments/${paymentId}/refund`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Basic ' + Buffer.from(`${this.moyasarApiKey}:`).toString('base64'),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                amount: Math.round(amount * 100), // Moyasar uses cents
+            }),
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'refunded') {
+            return {
+                success: true,
+                transactionId: data.id,
+                rawResponse: data,
+            };
+        }
+
+        return {
+            success: false,
+            error: data.message || 'Refund failed',
+            rawResponse: data,
+        };
+    }
+
+    // ==================== Mock for Testing ====================
+
     private createMockPayment(request: PaymentRequest): PaymentResult {
         this.logger.warn(`[MOCK PAYMENT] Order: ${request.orderId}, Amount: ${request.amount}`);
+
+        // Simulate failure for amounts ending in .99 (for testing error flows)
+        if (request.amount.toString().endsWith('.99')) {
+            this.logger.warn(`[MOCK PAYMENT] Simulating failure for amount ${request.amount}`);
+            return {
+                success: false,
+                error: 'Mock: Payment declined — amount ends in .99',
+            };
+        }
+
         return {
             success: true,
             checkoutId: `mock-${Date.now()}`,

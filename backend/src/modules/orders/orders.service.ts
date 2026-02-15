@@ -67,7 +67,7 @@ export class OrdersService {
     private walletService: WalletService,
     @Inject(forwardRef(() => ReturnsService))
     private returnsService: ReturnsService,
-  ) {}
+  ) { }
 
   private normalizePaymentMethod(method?: string): string {
     const normalized = (method || 'bank_transfer').toLowerCase();
@@ -553,8 +553,8 @@ export class OrdersService {
     const reservedMap =
       orderItemIds.length > 0
         ? await this.returnsService.getReservedQuantitiesByOrderItemIds(
-            orderItemIds,
-          )
+          orderItemIds,
+        )
         : new Map<string, number>();
 
     const data = orders.map((order) => {
@@ -1153,7 +1153,10 @@ export class OrdersService {
     order.transferDate = data.transferDate
       ? new Date(data.transferDate)
       : undefined;
-    order.paymentStatus = 'pending'; // Waiting for verification
+    // Keep 'partial' status if wallet was partially used; otherwise mark as pending verification
+    if (order.paymentStatus !== 'partial') {
+      order.paymentStatus = 'pending';
+    }
 
     await order.save();
 

@@ -135,12 +135,23 @@ export class WalletService {
             if (existingTx) return existingTx;
         }
 
-        const balance = await this.getBalance(data.customerId);
+        // Atomic balance deduction: prevents race conditions by using $inc with a floor check.
+        // If two concurrent requests try to debit, only one will succeed.
+        const updatedCustomer = await this.customerModel.findOneAndUpdate(
+            {
+                _id: data.customerId,
+                walletBalance: { $gte: data.amount },
+            },
+            { $inc: { walletBalance: -data.amount } },
+            { new: true },
+        );
 
-        if (balance < data.amount) {
+        if (!updatedCustomer) {
             throw new BadRequestException('Insufficient wallet balance');
         }
 
+        const balanceBefore = updatedCustomer.walletBalance + data.amount;
+        const balanceAfter = updatedCustomer.walletBalance;
         const transactionNumber = await this.generateWalletTxNumber();
 
         let transaction: WalletTransactionDocument;
@@ -151,8 +162,8 @@ export class WalletService {
                 transactionType: data.transactionType,
                 amount: data.amount,
                 direction: 'debit',
-                balanceBefore: balance,
-                balanceAfter: balance - data.amount,
+                balanceBefore,
+                balanceAfter,
                 referenceType: data.referenceType,
                 referenceId: data.referenceId,
                 referenceNumber: data.referenceNumber,
@@ -163,6 +174,11 @@ export class WalletService {
                 status: 'completed',
             });
         } catch (error: any) {
+            // Rollback the balance deduction if transaction logging fails
+            await this.customerModel.findByIdAndUpdate(data.customerId, {
+                $inc: { walletBalance: data.amount },
+            });
+
             if (data.idempotencyKey && error?.code === 11000) {
                 const existingTx = await this.walletTxModel.findOne({
                     customerId: data.customerId,
@@ -173,10 +189,6 @@ export class WalletService {
 
             throw error;
         }
-
-        await this.customerModel.findByIdAndUpdate(data.customerId, {
-            $set: { walletBalance: transaction.balanceAfter },
-        });
 
         return transaction;
     }
@@ -498,8 +510,10 @@ export class WalletService {
         const date = new Date();
         const prefix = 'WLT';
         const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
         const count = await this.walletTxModel.countDocuments({
-            createdAt: { $gte: new Date(date.setHours(0, 0, 0, 0)) },
+            createdAt: { $gte: startOfDay },
         });
         return `${prefix}${dateStr}${(count + 1).toString().padStart(4, '0')}`;
     }
@@ -508,8 +522,10 @@ export class WalletService {
         const date = new Date();
         const prefix = 'LYL';
         const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
         const count = await this.loyaltyTxModel.countDocuments({
-            createdAt: { $gte: new Date(date.setHours(0, 0, 0, 0)) },
+            createdAt: { $gte: startOfDay },
         });
         return `${prefix}${dateStr}${(count + 1).toString().padStart(4, '0')}`;
     }

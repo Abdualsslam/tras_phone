@@ -418,7 +418,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                             return const SizedBox.shrink();
                           }
 
-                          final session = (state as CheckoutSessionLoaded).session;
+                          final session = (state).session;
                           final hasWalletMethod = session.paymentMethods.any(
                             (m) => m.type == 'wallet',
                           );
@@ -427,7 +427,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                             return const SizedBox.shrink();
                           }
 
-                          final selectedMethod = _getSelectedPaymentMethod(session);
+                          final selectedMethod = _getSelectedPaymentMethod(
+                            session,
+                          );
                           final isWalletMethodSelected =
                               selectedMethod?.type == 'wallet';
                           final walletBalance = walletState is WalletLoaded
@@ -474,17 +476,19 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                     Expanded(
                                       child: Text(
                                         'استخدام رصيد المحفظة',
-                                        style: theme.textTheme.titleSmall?.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                        ),
+                                        style: theme.textTheme.titleSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                       ),
                                     ),
                                     Text(
                                       '${walletBalance.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: AppColors.textSecondaryLight,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.textSecondaryLight,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -1280,7 +1284,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     );
   }
 
-  PaymentMethodEntity? _getSelectedPaymentMethod(CheckoutSessionEntity session) {
+  PaymentMethodEntity? _getSelectedPaymentMethod(
+    CheckoutSessionEntity session,
+  ) {
     if (_selectedPaymentMethodId == null || session.paymentMethods.isEmpty) {
       return null;
     }
@@ -1318,7 +1324,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     final requested = _parseWalletAmountInput();
     if (requested <= 0) return 0;
 
-    return requested.clamp(0, walletBalance < orderTotal ? walletBalance : orderTotal).toDouble();
+    return requested
+        .clamp(0, walletBalance < orderTotal ? walletBalance : orderTotal)
+        .toDouble();
   }
 
   Widget _buildBottomBar(
@@ -1465,7 +1473,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         walletBalance: walletBalance,
       );
 
-      if (selectedPaymentMethod.type == 'wallet' && walletBalance < orderTotal) {
+      if (selectedPaymentMethod.type == 'wallet' &&
+          walletBalance < orderTotal) {
         Navigator.of(context).pop(); // إغلاق مؤشر التحميل
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1495,9 +1504,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           Navigator.of(context).pop(); // إغلاق مؤشر التحميل
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                'المبلغ المدخل من المحفظة أكبر من الحد المسموح',
-              ),
+              content: Text('المبلغ المدخل من المحفظة أكبر من الحد المسموح'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -1529,8 +1536,17 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         // Clear local cart after successful order
         await context.read<CartCubit>().clearCartLocal();
         if (!mounted) return;
-        // الانتقال لصفحة تفاصيل الطلب
-        context.go('/order-details/${order.id}');
+
+        // If bank transfer, go to upload receipt screen
+        if (paymentMethod == OrderPaymentMethod.bankTransfer) {
+          context.go(
+            '/order/${order.id}/upload-receipt',
+            extra: {'amount': order.total},
+          );
+        } else {
+          // Otherwise go to order details
+          context.go('/order-details/${order.id}');
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1564,10 +1580,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       case 'mada':
       case 'apple_pay':
       case 'stc_pay':
-      case 'credit':
         return Iconsax.card;
       case 'credit':
         return Iconsax.receipt_21;
+      case 'bank_transfer':
+        return Iconsax.bank;
       default:
         return Iconsax.money;
     }
