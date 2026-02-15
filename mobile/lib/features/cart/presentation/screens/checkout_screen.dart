@@ -30,7 +30,8 @@ class CheckoutScreen extends StatefulWidget {
   State<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
-class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObserver {
+class _CheckoutScreenState extends State<CheckoutScreen>
+    with WidgetsBindingObserver {
   String? _selectedAddressId;
   String? _selectedPaymentMethodId;
   CouponValidation? _appliedCoupon;
@@ -794,79 +795,230 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
                   ),
                 ],
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Icon/logo (left) - كما كان سابقاً
-            Container(
-              width: 40.w,
-              height: 40.w,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: Icon(iconData, color: AppColors.primary, size: 22.sp),
+            Row(
+              children: [
+                // Icon/logo (left)
+                Container(
+                  width: 40.w,
+                  height: 40.w,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Icon(iconData, color: AppColors.primary, size: 22.sp),
+                ),
+                SizedBox(width: 12.w),
+                // Payment method name and description (center)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        method.getName(locale),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14.sp,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (method.getDescription(locale) != null) ...[
+                        SizedBox(height: 2.h),
+                        Text(
+                          method.getDescription(locale)!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.textTertiaryLight,
+                            fontSize: 12.sp,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                // Selection indicator (right)
+                Container(
+                  width: 22.w,
+                  height: 22.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected ? AppColors.primary : Colors.transparent,
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.textTertiaryLight,
+                      width: 2,
+                    ),
+                  ),
+                  child: isSelected
+                      ? Center(
+                          child: Container(
+                            width: 8.w,
+                            height: 8.w,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+              ],
             ),
-            SizedBox(width: 12.w),
-            // Payment method name and description (center)
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Credit limit details panel
+            if (method.isCreditMethod && method.creditLimit != null)
+              _buildCreditInfoPanel(theme, isDark, method),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Builds the credit limit info panel shown under the credit payment method
+  Widget _buildCreditInfoPanel(
+    ThemeData theme,
+    bool isDark,
+    PaymentMethodEntity method,
+  ) {
+    final creditLimit = method.creditLimit ?? 0;
+    final creditUsed = method.creditUsed ?? 0;
+    final availableCredit =
+        method.availableCredit ?? (creditLimit - creditUsed);
+    final usageRatio = creditLimit > 0 ? creditUsed / creditLimit : 0.0;
+
+    // Color based on usage percentage
+    final Color progressColor;
+    if (usageRatio < 0.5) {
+      progressColor = AppColors.success;
+    } else if (usageRatio < 0.8) {
+      progressColor = Colors.orange;
+    } else {
+      progressColor = AppColors.error;
+    }
+
+    return Container(
+      margin: EdgeInsets.only(top: 8.h),
+      padding: EdgeInsets.all(10.w),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.surfaceDark.withValues(alpha: 0.5)
+            : AppColors.primary.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(
+          color: isDark
+              ? AppColors.dividerDark
+              : AppColors.primary.withValues(alpha: 0.1),
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Available credit - highlighted
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Iconsax.wallet_check, size: 14.sp, color: progressColor),
+                  SizedBox(width: 6.w),
+                  Text(
+                    'المتاح',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 12.sp,
+                      color: isDark
+                          ? Colors.white70
+                          : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                '${availableCredit.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w700,
+                  color: progressColor,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4.r),
+            child: LinearProgressIndicator(
+              value: usageRatio.clamp(0.0, 1.0),
+              minHeight: 5.h,
+              backgroundColor: isDark ? Colors.white12 : AppColors.dividerLight,
+              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          // Credit limit and used
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Credit limit
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    method.getName(locale),
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14.sp,
+                    'الحد: ',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 11.sp,
+                      color: isDark
+                          ? Colors.white54
+                          : AppColors.textTertiaryLight,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  if (method.getDescription(locale) != null) ...[
-                    SizedBox(height: 2.h),
-                    Text(
-                      method.getDescription(locale)!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textTertiaryLight,
-                        fontSize: 12.sp,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  Text(
+                    '${creditLimit.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? Colors.white70
+                          : AppColors.textSecondaryLight,
                     ),
-                  ],
+                  ),
                 ],
               ),
-            ),
-            SizedBox(width: 8.w),
-            // Selection indicator (right) - كما كان سابقاً
-            Container(
-              width: 22.w,
-              height: 22.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isSelected ? AppColors.primary : Colors.transparent,
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.textTertiaryLight,
-                  width: 2,
-                ),
+              // Used amount
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'المستخدم: ',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 11.sp,
+                      color: isDark
+                          ? Colors.white54
+                          : AppColors.textTertiaryLight,
+                    ),
+                  ),
+                  Text(
+                    '${creditUsed.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? Colors.white70
+                          : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
               ),
-              child: isSelected
-                  ? Center(
-                      child: Container(
-                        width: 8.w,
-                        height: 8.w,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1388,6 +1540,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
       case 'stc_pay':
       case 'credit':
         return Iconsax.card;
+      case 'credit':
+        return Iconsax.receipt_21;
       default:
         return Iconsax.money;
     }
