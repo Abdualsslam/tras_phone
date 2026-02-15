@@ -24,6 +24,19 @@ import {
   AdminUser,
   AdminUserSchema,
 } from '@modules/admins/schemas/admin-user.schema';
+import { Role, RoleSchema } from '@modules/admins/schemas/role.schema';
+import {
+  AdminUserRole,
+  AdminUserRoleSchema,
+} from '@modules/admins/schemas/admin-user-role.schema';
+import {
+  RolePermission,
+  RolePermissionSchema,
+} from '@modules/admins/schemas/role-permission.schema';
+import {
+  Permission,
+  PermissionSchema,
+} from '@modules/admins/schemas/permission.schema';
 import { Customer, CustomerSchema } from '@modules/customers/schemas/customer.schema';
 import { PriceLevel, PriceLevelSchema } from '@modules/products/schemas/price-level.schema';
 
@@ -46,6 +59,10 @@ import { PriceLevel, PriceLevelSchema } from '@modules/products/schemas/price-le
       { name: LoginAttempt.name, schema: LoginAttemptSchema },
       { name: ApiToken.name, schema: ApiTokenSchema },
       { name: AdminUser.name, schema: AdminUserSchema },
+      { name: Role.name, schema: RoleSchema },
+      { name: AdminUserRole.name, schema: AdminUserRoleSchema },
+      { name: RolePermission.name, schema: RolePermissionSchema },
+      { name: Permission.name, schema: PermissionSchema },
       { name: Customer.name, schema: CustomerSchema },
       { name: PriceLevel.name, schema: PriceLevelSchema },
       { name: PasswordResetRequest.name, schema: PasswordResetRequestSchema },

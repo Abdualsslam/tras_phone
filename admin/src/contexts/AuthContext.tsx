@@ -75,9 +75,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await authApi.login(credentials);
         localStorage.setItem('accessToken', response.accessToken);
         localStorage.setItem('refreshToken', response.refreshToken);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        setUser(response.user);
         setToken(response.accessToken);
+
+        try {
+            const profile = await authApi.getProfile();
+            localStorage.setItem('user', JSON.stringify(profile));
+            setUser(profile);
+        } catch {
+            localStorage.setItem('user', JSON.stringify(response.user));
+            setUser(response.user);
+        }
     };
 
     const logout = async () => {

@@ -122,7 +122,7 @@ export const canAccess = (
     }
 
     if (!hasPermissionPayload(user)) {
-        return true;
+        return false;
     }
 
     const permissionSet = new Set(extractUserPermissions(user));

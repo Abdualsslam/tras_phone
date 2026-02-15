@@ -2,8 +2,6 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { AuthService } from '../auth.service';
 
 /**
@@ -16,7 +14,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private configService: ConfigService,
     private authService: AuthService,
-    @InjectModel('AdminUser') private adminUserModel: Model<any>,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -46,13 +43,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       permissions: [],
     };
 
-    // If admin user, fetch admin profile for isSuperAdmin flag
+    // If admin user, fetch admin access profile (roles + permissions)
     if (user.userType === 'admin') {
-      const adminUser = await this.adminUserModel.findOne({ userId: user._id });
-      if (adminUser) {
-        userObj.isSuperAdmin = adminUser.isSuperAdmin || false;
-        userObj.adminUserId = adminUser._id.toString();
-        userObj.fullName = adminUser.fullName;
+      const adminAccess = await this.authService.getAdminAccessProfile(
+        user._id.toString(),
+      );
+
+      if (adminAccess) {
+        userObj.isSuperAdmin = adminAccess.isSuperAdmin;
+        userObj.adminUserId = adminAccess.adminUserId;
+        userObj.fullName = adminAccess.fullName;
+        userObj.department = adminAccess.department;
+        userObj.canAccessWeb = adminAccess.canAccessWeb;
+        userObj.canAccessMobile = adminAccess.canAccessMobile;
+        userObj.roles = adminAccess.roles;
+        userObj.permissions = adminAccess.permissions;
       }
     }
 

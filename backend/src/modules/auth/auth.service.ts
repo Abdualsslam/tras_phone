@@ -22,6 +22,19 @@ import {
   AdminUser,
   AdminUserDocument,
 } from '@modules/admins/schemas/admin-user.schema';
+import { Role, RoleDocument } from '@modules/admins/schemas/role.schema';
+import {
+  AdminUserRole,
+  AdminUserRoleDocument,
+} from '@modules/admins/schemas/admin-user-role.schema';
+import {
+  RolePermission,
+  RolePermissionDocument,
+} from '@modules/admins/schemas/role-permission.schema';
+import {
+  Permission,
+  PermissionDocument,
+} from '@modules/admins/schemas/permission.schema';
 import {
   Customer,
   CustomerDocument,
@@ -47,6 +60,26 @@ import {
  * 🔐 Authentication Service
  * ═══════════════════════════════════════════════════════════════
  */
+export interface AdminRoleAccessProfile {
+  _id: string;
+  name: string;
+  nameAr?: string;
+  permissions: string[];
+}
+
+export interface AdminAccessProfile {
+  adminUserId: string;
+  isSuperAdmin: boolean;
+  canAccessWeb: boolean;
+  canAccessMobile: boolean;
+  fullName?: string;
+  fullNameAr?: string;
+  department?: string;
+  position?: string;
+  permissions: string[];
+  roles: AdminRoleAccessProfile[];
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -57,6 +90,14 @@ export class AuthService {
     private loginAttemptModel: Model<LoginAttemptDocument>,
     @InjectModel(AdminUser.name)
     private adminUserModel: Model<AdminUserDocument>,
+    @InjectModel(Role.name)
+    private roleModel: Model<RoleDocument>,
+    @InjectModel(AdminUserRole.name)
+    private adminUserRoleModel: Model<AdminUserRoleDocument>,
+    @InjectModel(RolePermission.name)
+    private rolePermissionModel: Model<RolePermissionDocument>,
+    @InjectModel(Permission.name)
+    private permissionModel: Model<PermissionDocument>,
     @InjectModel(Customer.name)
     private customerModel: Model<CustomerDocument>,
     @InjectModel(PriceLevel.name)
@@ -885,8 +926,10 @@ export class AuthService {
       failedAttempts: user.failedLoginAttempts,
     });
 
+    const fullProfile = await this.getFullUserProfile(user._id.toString());
+
     return {
-      user: user.toJSON(),
+      user: fullProfile,
       ...tokens,
     };
   }
@@ -941,6 +984,127 @@ export class AuthService {
     return user;
   }
 
+  async getAdminAccessProfile(userId: string): Promise<AdminAccessProfile | null> {
+    const adminUser = await this.adminUserModel.findOne({ userId }).lean();
+
+    if (!adminUser) {
+      return null;
+    }
+
+    const baseProfile: AdminAccessProfile = {
+      adminUserId: adminUser._id.toString(),
+      isSuperAdmin: adminUser.isSuperAdmin || false,
+      canAccessWeb: adminUser.canAccessWeb !== false,
+      canAccessMobile: adminUser.canAccessMobile || false,
+      fullName: adminUser.fullName,
+      fullNameAr: adminUser.fullNameAr,
+      department: adminUser.department,
+      position: adminUser.position,
+      permissions: [],
+      roles: [],
+    };
+
+    if (baseProfile.isSuperAdmin) {
+      return {
+        ...baseProfile,
+        permissions: ['*'],
+      };
+    }
+
+    const adminRoleAssignments = await this.adminUserRoleModel
+      .find({ adminUserId: adminUser._id })
+      .lean();
+
+    const roleIds = Array.from(
+      new Set(
+        adminRoleAssignments
+          .map((assignment) => assignment.roleId?.toString())
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+
+    if (roleIds.length === 0) {
+      return baseProfile;
+    }
+
+    const roles = await this.roleModel
+      .find({ _id: { $in: roleIds }, isActive: true })
+      .lean();
+
+    if (roles.length === 0) {
+      return baseProfile;
+    }
+
+    const rolePermissions = await this.rolePermissionModel
+      .find({ roleId: { $in: roles.map((role) => role._id) } })
+      .lean();
+
+    const permissionIds = Array.from(
+      new Set(
+        rolePermissions
+          .map((entry) => entry.permissionId?.toString())
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+
+    const permissions = permissionIds.length
+      ? await this.permissionModel
+          .find({ _id: { $in: permissionIds }, isActive: true })
+          .lean()
+      : [];
+
+    const permissionNameById = new Map(
+      permissions.map((permission) => [
+        permission._id.toString(),
+        permission.name,
+      ]),
+    );
+
+    const permissionIdsByRole = new Map<string, Set<string>>();
+
+    rolePermissions.forEach((entry) => {
+      const roleId = entry.roleId?.toString();
+      const permissionId = entry.permissionId?.toString();
+
+      if (!roleId || !permissionId || !permissionNameById.has(permissionId)) {
+        return;
+      }
+
+      const existing = permissionIdsByRole.get(roleId) ?? new Set<string>();
+      existing.add(permissionId);
+      permissionIdsByRole.set(roleId, existing);
+    });
+
+    const mappedRoles: AdminRoleAccessProfile[] = roles.map((role) => {
+      const rolePermissionIds = Array.from(
+        permissionIdsByRole.get(role._id.toString()) ?? new Set<string>(),
+      );
+
+      const rolePermissionNames = rolePermissionIds
+        .map((permissionId) => permissionNameById.get(permissionId))
+        .filter((permissionName): permissionName is string =>
+          Boolean(permissionName),
+        );
+
+      return {
+        _id: role._id.toString(),
+        name: role.name,
+        nameAr: role.nameAr,
+        permissions: rolePermissionNames,
+      };
+    });
+
+    const allPermissions = Array.from(
+      new Set(mappedRoles.flatMap((role) => role.permissions)),
+    );
+
+    return {
+      ...baseProfile,
+      roles: mappedRoles,
+      permissions: allPermissions,
+    };
+  }
+
   /**
    * Get full user profile with admin details if applicable
    */
@@ -960,12 +1124,21 @@ export class AuthService {
 
     // If admin user, fetch admin profile for additional details
     if (user.userType === 'admin') {
-      const adminUser = await this.adminUserModel.findOne({ userId: user._id });
-      if (adminUser) {
-        userObj.isSuperAdmin = adminUser.isSuperAdmin || false;
-        userObj.adminUserId = adminUser._id.toString();
-        userObj.fullName = adminUser.fullName;
-        userObj.permissions = []; // Permissions are managed through roles, not directly on AdminUser
+      const adminAccessProfile = await this.getAdminAccessProfile(
+        user._id.toString(),
+      );
+
+      if (adminAccessProfile) {
+        userObj.isSuperAdmin = adminAccessProfile.isSuperAdmin;
+        userObj.adminUserId = adminAccessProfile.adminUserId;
+        userObj.fullName = adminAccessProfile.fullName;
+        userObj.fullNameAr = adminAccessProfile.fullNameAr;
+        userObj.department = adminAccessProfile.department;
+        userObj.position = adminAccessProfile.position;
+        userObj.canAccessWeb = adminAccessProfile.canAccessWeb;
+        userObj.canAccessMobile = adminAccessProfile.canAccessMobile;
+        userObj.permissions = adminAccessProfile.permissions;
+        userObj.roles = adminAccessProfile.roles;
       }
     }
 

@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +8,7 @@ import { filterSidebarSectionsByAccess } from '@/lib/access-control';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.png';
 import logoDark from '@/assets/logo_dark.png';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SidebarProps {
@@ -16,17 +16,110 @@ interface SidebarProps {
     onToggle: () => void;
 }
 
+const SECTION_STATE_KEY = 'sidebarExpandedSections';
+
+const parseExpandedSections = (): Record<string, boolean> => {
+    try {
+        const stored = localStorage.getItem(SECTION_STATE_KEY);
+        if (!stored) {
+            return {};
+        }
+
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object') {
+            return parsed as Record<string, boolean>;
+        }
+    } catch {
+        // Ignore malformed localStorage value
+    }
+
+    return {};
+};
+
+const isPathActive = (currentPath: string, itemPath: string): boolean => {
+    if (itemPath === '/') {
+        return currentPath === '/';
+    }
+
+    return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
+};
+
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const { t, i18n } = useTranslation();
     const { isDark } = useTheme();
     const { user } = useAuth();
+    const location = useLocation();
     const isRTL = i18n.language === 'ar';
     const currentLogo = isDark ? logoDark : logo;
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
+        parseExpandedSections(),
+    );
 
     const sections = useMemo(
         () => filterSidebarSectionsByAccess(sidebarSections, user),
         [user],
     );
+
+    useEffect(() => {
+        if (sections.length === 0) {
+            return;
+        }
+
+        setExpandedSections((previous) => {
+            const next: Record<string, boolean> = {};
+            let changed = false;
+
+            sections.forEach((section) => {
+                if (typeof previous[section.id] === 'boolean') {
+                    next[section.id] = previous[section.id];
+                } else {
+                    next[section.id] = true;
+                    changed = true;
+                }
+            });
+
+            if (Object.keys(previous).length !== Object.keys(next).length) {
+                changed = true;
+            }
+
+            return changed ? next : previous;
+        });
+    }, [sections]);
+
+    useEffect(() => {
+        if (sections.length === 0) {
+            return;
+        }
+
+        setExpandedSections((previous) => {
+            let changed = false;
+            const next = { ...previous };
+
+            sections.forEach((section) => {
+                const hasActiveItem = section.items.some((item) =>
+                    isPathActive(location.pathname, item.path),
+                );
+
+                if (hasActiveItem && next[section.id] === false) {
+                    next[section.id] = true;
+                    changed = true;
+                }
+            });
+
+            return changed ? next : previous;
+        });
+    }, [location.pathname, sections]);
+
+    useEffect(() => {
+        localStorage.setItem(SECTION_STATE_KEY, JSON.stringify(expandedSections));
+    }, [expandedSections]);
+
+    const toggleSection = (sectionId: string) => {
+        setExpandedSections((previous) => ({
+            ...previous,
+            [sectionId]: previous[sectionId] === false,
+        }));
+    };
 
     return (
         <aside
@@ -58,33 +151,45 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 {sections.map((section) => (
                     <div key={section.id}>
                         {!collapsed && (
-                            <p className="px-3 pb-2 text-xs font-semibold tracking-wide text-gray-400 dark:text-slate-500 uppercase">
-                                {t(section.labelKey)}
-                            </p>
+                            <button
+                                type="button"
+                                onClick={() => toggleSection(section.id)}
+                                className="w-full flex items-center justify-between px-3 pb-2 text-xs font-semibold tracking-wide text-gray-400 dark:text-slate-500 uppercase"
+                            >
+                                <span>{t(section.labelKey)}</span>
+                                <ChevronDown
+                                    className={cn(
+                                        'h-4 w-4 transition-transform duration-200',
+                                        expandedSections[section.id] === false && '-rotate-90',
+                                    )}
+                                />
+                            </button>
                         )}
-                        <ul className="space-y-1">
-                            {section.items.map((item) => (
-                                <li key={item.id}>
-                                    <NavLink
-                                        to={item.path}
-                                        end={item.path === '/'}
-                                        className={({ isActive }) =>
-                                            cn(
-                                                'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
-                                                'hover:bg-gray-100 dark:hover:bg-slate-800',
-                                                isActive
-                                                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium'
-                                                    : 'text-gray-600 dark:text-gray-400',
-                                                collapsed && 'justify-center',
-                                            )
-                                        }
-                                    >
-                                        <item.icon className="w-5 h-5 shrink-0" />
-                                        {!collapsed && <span>{t(item.labelKey)}</span>}
-                                    </NavLink>
-                                </li>
-                            ))}
-                        </ul>
+                        {(collapsed || expandedSections[section.id] !== false) && (
+                            <ul className="space-y-1">
+                                {section.items.map((item) => (
+                                    <li key={item.id}>
+                                        <NavLink
+                                            to={item.path}
+                                            end={item.path === '/'}
+                                            className={({ isActive }) =>
+                                                cn(
+                                                    'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+                                                    'hover:bg-gray-100 dark:hover:bg-slate-800',
+                                                    isActive
+                                                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-medium'
+                                                        : 'text-gray-600 dark:text-gray-400',
+                                                    collapsed && 'justify-center',
+                                                )
+                                            }
+                                        >
+                                            <item.icon className="w-5 h-5 shrink-0" />
+                                            {!collapsed && <span>{t(item.labelKey)}</span>}
+                                        </NavLink>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
                 ))}
 
