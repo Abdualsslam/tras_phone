@@ -11,7 +11,6 @@ import {
     Key,
     Layers,
     LayoutDashboard,
-    MessageSquare,
     Package,
     RotateCcw,
     Settings,
@@ -63,7 +62,6 @@ export const sidebarSections: SidebarSectionConfig[] = [
             { id: 'wallet', icon: Wallet, path: '/wallet', labelKey: 'sidebar.wallet', access: anyOf('wallet.view') },
             { id: 'notifications', icon: Bell, path: '/notifications', labelKey: 'sidebar.notifications', access: anyOf('notifications.view') },
             { id: 'support', icon: HeadphonesIcon, path: '/support', labelKey: 'sidebar.support', access: anyOf('support.tickets.view') },
-            { id: 'liveChat', icon: MessageSquare, path: '/live-chat', labelKey: 'sidebar.liveChat', access: anyOf('support.chat.view') },
         ],
     },
     {
@@ -119,7 +117,6 @@ export const routeAccessConfig: Record<string, AccessRequirement | undefined> = 
     '/promotions': anyOf('promotions.view'),
     '/notifications': anyOf('notifications.view'),
     '/support': anyOf('support.tickets.view'),
-    '/live-chat': anyOf('support.chat.view'),
     '/analytics': anyOf('reports.view_sales', 'reports.view_inventory', 'reports.view_customers', 'reports.view_financial'),
     '/audit': anyOf('system.view_logs'),
     '/content': anyOf('content.view'),

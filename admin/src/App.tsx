@@ -29,7 +29,6 @@ import { ContentPage } from "@/pages/content/ContentPage";
 import { EducationalContentPage } from "@/pages/content/EducationalContentPage";
 import { WalletPage } from "@/pages/wallet/WalletPage";
 import { CatalogPage } from "@/pages/catalog/CatalogPage";
-import { LiveChatPage } from "@/pages/support/LiveChatPage";
 import { PasswordResetRequestsPage } from "@/pages/auth/PasswordResetRequestsPage";
 import { PriceLevelsPage } from "@/pages/price-levels/PriceLevelsPage";
 
@@ -103,7 +102,6 @@ function App() {
                 <Route path="promotions" element={withAccess('/promotions', <PromotionsPage />)} />
                 <Route path="notifications" element={withAccess('/notifications', <NotificationsPage />)} />
                 <Route path="support" element={withAccess('/support', <SupportPage />)} />
-                <Route path="live-chat" element={withAccess('/live-chat', <LiveChatPage />)} />
                 <Route path="analytics" element={withAccess('/analytics', <AnalyticsPage />)} />
                 <Route path="audit" element={withAccess('/audit', <AuditLogsPage />)} />
                 <Route path="content" element={withAccess('/content', <ContentPage />)} />
