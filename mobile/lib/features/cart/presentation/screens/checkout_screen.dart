@@ -1539,9 +1539,13 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
         // If bank transfer, go to upload receipt screen
         if (paymentMethod == OrderPaymentMethod.bankTransfer) {
+          // Calculate the remaining amount to pay via bank transfer
+          final remainingAmount = order.total - walletAmountToUse;
           context.go(
             '/order/${order.id}/upload-receipt',
-            extra: {'amount': order.total},
+            extra: {
+              'amount': remainingAmount > 0 ? remainingAmount : order.total,
+            },
           );
         } else {
           // Otherwise go to order details
