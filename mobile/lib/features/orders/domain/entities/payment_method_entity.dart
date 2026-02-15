@@ -6,7 +6,7 @@ class PaymentMethodEntity {
   final String id;
   final String nameAr;
   final String nameEn;
-  final String type; // cash_on_delivery, bank_transfer, wallet, etc.
+  final String type; // cash_on_delivery, bank_transfer, wallet, credit, etc.
   final String? descriptionAr;
   final String? descriptionEn;
   final String? icon;
@@ -14,6 +14,11 @@ class PaymentMethodEntity {
   final bool isActive;
   final int sortOrder;
   final Map<String, dynamic>? bankDetails;
+
+  // Credit payment method fields
+  final double? creditLimit;
+  final double? creditUsed;
+  final double? availableCredit;
 
   const PaymentMethodEntity({
     required this.id,
@@ -27,6 +32,9 @@ class PaymentMethodEntity {
     required this.isActive,
     required this.sortOrder,
     this.bankDetails,
+    this.creditLimit,
+    this.creditUsed,
+    this.availableCredit,
   });
 
   /// Get display name based on locale
@@ -35,6 +43,9 @@ class PaymentMethodEntity {
   /// Get description based on locale
   String? getDescription(String locale) =>
       locale == 'ar' ? descriptionAr : descriptionEn;
+
+  /// Check if this is a credit payment method
+  bool get isCreditMethod => type == 'credit';
 
   /// Convert type to OrderPaymentMethod enum
   String get orderPaymentMethodValue {
@@ -45,6 +56,8 @@ class PaymentMethodEntity {
         return 'bank_transfer';
       case 'wallet':
         return 'wallet';
+      case 'credit':
+        return 'credit';
       case 'credit_card':
       case 'mada':
         return 'card';

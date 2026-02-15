@@ -16,6 +16,11 @@ class PaymentMethodModel {
   final int sortOrder;
   final Map<String, dynamic>? bankDetails;
 
+  // Credit payment method fields
+  final double? creditLimit;
+  final double? creditUsed;
+  final double? availableCredit;
+
   const PaymentMethodModel({
     required this.id,
     required this.nameAr,
@@ -28,6 +33,9 @@ class PaymentMethodModel {
     required this.isActive,
     required this.sortOrder,
     this.bankDetails,
+    this.creditLimit,
+    this.creditUsed,
+    this.availableCredit,
   });
 
   factory PaymentMethodModel.fromJson(Map<String, dynamic> json) {
@@ -55,6 +63,9 @@ class PaymentMethodModel {
       isActive: json['isActive'] ?? json['is_active'] ?? true,
       sortOrder: json['sortOrder'] ?? json['sort_order'] ?? 0,
       bankDetails: json['bankDetails'] ?? json['bank_details'],
+      creditLimit: (json['creditLimit'] as num?)?.toDouble(),
+      creditUsed: (json['creditUsed'] as num?)?.toDouble(),
+      availableCredit: (json['availableCredit'] as num?)?.toDouble(),
     );
   }
 
@@ -70,6 +81,9 @@ class PaymentMethodModel {
     'isActive': isActive,
     'sortOrder': sortOrder,
     'bankDetails': bankDetails,
+    'creditLimit': creditLimit,
+    'creditUsed': creditUsed,
+    'availableCredit': availableCredit,
   };
 
   /// Convert to domain entity
@@ -86,6 +100,9 @@ class PaymentMethodModel {
       isActive: isActive,
       sortOrder: sortOrder,
       bankDetails: bankDetails,
+      creditLimit: creditLimit,
+      creditUsed: creditUsed,
+      availableCredit: availableCredit,
     );
   }
 }
