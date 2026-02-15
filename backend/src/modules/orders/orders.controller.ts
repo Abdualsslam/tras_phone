@@ -331,6 +331,13 @@ export class CheckoutController {
         const creditUsed = customerDoc.creditUsed ?? 0;
         const availableCredit = creditLimit - creditUsed;
 
+        console.log('[CheckoutSession] Credit info:', {
+          customerId: customerDoc._id.toString(),
+          creditLimit,
+          creditUsed,
+          availableCredit,
+        });
+
         if (creditLimit > 0) {
           creditInfo = {
             creditLimit,

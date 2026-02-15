@@ -389,7 +389,16 @@ export class OrdersService {
 
     // Increment credit used when order is placed on credit
     if (data.paymentMethod === 'credit') {
-      await this.customersService.incrementCreditUsed(customerId, order.total);
+      this.logger.debug(
+        `createOrder: incrementing creditUsed for customerId=${customerId}, amount=${order.total}`,
+      );
+      const updatedCustomer = await this.customersService.incrementCreditUsed(
+        customerId,
+        order.total,
+      );
+      this.logger.debug(
+        `createOrder: creditUsed updated. New creditUsed=${updatedCustomer.creditUsed}, creditLimit=${updatedCustomer.creditLimit}`,
+      );
     }
 
     // Update customer statistics (totalOrders, totalSpent, averageOrderValue, lastOrderAt)

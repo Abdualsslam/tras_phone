@@ -28,7 +28,7 @@ class CheckoutScreen extends StatefulWidget {
   State<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
-class _CheckoutScreenState extends State<CheckoutScreen> {
+class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObserver {
   String? _selectedAddressId;
   String? _selectedPaymentMethodId;
   CouponValidation? _appliedCoupon;
@@ -36,8 +36,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Load checkout session (cart + addresses + payment methods)
     context.read<CheckoutSessionCubit>().loadSession();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh session when app comes back to foreground
+    if (state == AppLifecycleState.resumed) {
+      context.read<CheckoutSessionCubit>().refresh();
+    }
   }
 
   @override
