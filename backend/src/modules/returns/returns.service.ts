@@ -53,7 +53,7 @@ export class ReturnsService {
     @Inject(forwardRef(() => WalletService))
     private walletService: WalletService,
     private customersService: CustomersService,
-  ) {}
+  ) { }
 
   /**
    * Get reserved quantity per order item from active return requests
@@ -393,6 +393,21 @@ export class ReturnsService {
       case 'approved':
         updateData.approvedAt = new Date();
         updateData.processedBy = userId;
+
+        // Automatically process wallet refund on approval
+        try {
+          const refundAmount = returnRequest.totalItemsValue || 0;
+          if (refundAmount > 0) {
+            await this.processRefund(id, {
+              amount: refundAmount,
+              refundMethod: 'wallet',
+              processedBy: userId || 'system',
+            });
+          }
+        } catch (err) {
+          // Log but don't block approval if refund fails
+          console.error(`Auto-refund failed for return ${id}:`, err);
+        }
         break;
       case 'rejected':
         updateData.rejectedAt = new Date();
@@ -478,8 +493,8 @@ export class ReturnsService {
     const refundNumber = await this.generateRefundNumber();
 
     // Use first orderId from orderIds array for refund reference
-    const primaryOrderId = returnRequest.orderIds && returnRequest.orderIds.length > 0 
-      ? returnRequest.orderIds[0] 
+    const primaryOrderId = returnRequest.orderIds && returnRequest.orderIds.length > 0
+      ? returnRequest.orderIds[0]
       : null;
 
     const refund = await this.refundModel.create({
