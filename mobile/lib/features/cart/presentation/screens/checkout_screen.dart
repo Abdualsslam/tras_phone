@@ -432,9 +432,15 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                           );
                           final isWalletMethodSelected =
                               selectedMethod?.type == 'wallet';
-                          final walletBalance = walletState is WalletLoaded
+                          final cubitWalletBalance = walletState is WalletLoaded
                               ? (walletState.balance ?? 0)
                               : 0.0;
+                          // Fallback to checkout session wallet balance
+                          final sessionWalletBalance =
+                              session.customer.walletBalance;
+                          final walletBalance = cubitWalletBalance > 0
+                              ? cubitWalletBalance
+                              : sessionWalletBalance;
                           final orderTotal =
                               session.cart.subtotal -
                               (_appliedCoupon?.discountAmount ?? 0) +
@@ -1499,8 +1505,15 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
   double _resolveWalletBalance() {
     final walletState = context.read<WalletCubit>().state;
-    if (walletState is WalletLoaded && walletState.balance != null) {
+    if (walletState is WalletLoaded &&
+        walletState.balance != null &&
+        walletState.balance! > 0) {
       return walletState.balance!;
+    }
+    // Fallback: read from checkout session
+    final checkoutState = context.read<CheckoutSessionCubit>().state;
+    if (checkoutState is CheckoutSessionLoaded) {
+      return checkoutState.session.customer.walletBalance;
     }
     return 0;
   }
