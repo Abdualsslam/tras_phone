@@ -650,6 +650,24 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             '${order.total.toStringAsFixed(2)} ر.س',
             isTotal: true,
           ),
+          if (order.paidAmount > 0) ...[
+            SizedBox(height: 8.h),
+            _buildSummaryRow(
+              theme,
+              'المدفوع',
+              '${order.paidAmount.toStringAsFixed(2)} ر.س',
+              valueColor: AppColors.success,
+            ),
+          ],
+          if (order.remainingAmount > 0) ...[
+            SizedBox(height: 8.h),
+            _buildSummaryRow(
+              theme,
+              'المتبقي',
+              '${order.remainingAmount.toStringAsFixed(2)} ر.س',
+              valueColor: AppColors.error,
+            ),
+          ],
           if (order.paymentMethod != null) ...[
             SizedBox(height: 8.h),
             Row(

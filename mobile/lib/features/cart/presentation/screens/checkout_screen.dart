@@ -572,8 +572,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                           if (sessionState is! CheckoutSessionLoaded) {
                             return const SizedBox.shrink();
                           }
-                          final cart = sessionState.session.cart;
-                          return _buildOrderSummary(theme, isDark, cart);
+                          return _buildOrderSummary(
+                            theme,
+                            isDark,
+                            sessionState.session,
+                          );
                         },
                       ),
                       SizedBox(height: 100.h),
@@ -1026,13 +1029,21 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   Widget _buildOrderSummary(
     ThemeData theme,
     bool isDark,
-    CheckoutCartEntity cart,
+    CheckoutSessionEntity session,
   ) {
+    final cart = session.cart;
     final couponDiscount = _appliedCoupon?.discountAmount ?? 0.0;
     final subtotal = cart.subtotal;
     final shippingCost = cart.shippingCost;
     final taxAmount = cart.taxAmount;
     final total = subtotal - couponDiscount + shippingCost + taxAmount;
+    final selectedPaymentMethod = _getSelectedPaymentMethod(session);
+    final walletAmountToUse = _calculateWalletAmountToUse(
+      orderTotal: total,
+      selectedPaymentMethod: selectedPaymentMethod,
+      walletBalance: _resolveWalletBalance(),
+    );
+    final payableNow = (total - walletAmountToUse).clamp(0, total).toDouble();
     final itemsCount = cart.itemsCount;
     final locale = Localizations.localeOf(context).languageCode;
 
@@ -1206,6 +1217,21 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             ),
           ],
           Divider(height: 24.h),
+          if (walletAmountToUse > 0) ...[
+            _buildSummaryRow(
+              theme,
+              'المخصوم من المحفظة',
+              '-${walletAmountToUse.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+              valueColor: AppColors.success,
+            ),
+            SizedBox(height: 8.h),
+            _buildSummaryRow(
+              theme,
+              'المتبقي للدفع الآن',
+              '${payableNow.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+            ),
+            Divider(height: 24.h),
+          ],
           _buildSummaryRow(
             theme,
             'الإجمالي',
