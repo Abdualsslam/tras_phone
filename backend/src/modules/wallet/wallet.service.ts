@@ -35,15 +35,22 @@ export class WalletService {
         const lastTx = await this.walletTxModel
             .findOne({ customerId, status: 'completed' })
             .sort({ createdAt: -1 });
-        const balance = lastTx?.balanceAfter || 0;
 
-        await this.customerModel.findByIdAndUpdate(
-            customerId,
-            { $set: { walletBalance: balance } },
-            { new: false },
-        );
+        if (lastTx) {
+            const balance = lastTx.balanceAfter || 0;
+            // Sync to customer doc
+            await this.customerModel.findByIdAndUpdate(
+                customerId,
+                { $set: { walletBalance: balance } },
+                { new: false },
+            );
+            return balance;
+        }
 
-        return balance;
+        // Fallback: read directly from customer document
+        // (handles cases where balance was set via admin without creating transactions)
+        const customer = await this.customerModel.findById(customerId).lean();
+        return customer?.walletBalance ?? 0;
     }
 
     /**

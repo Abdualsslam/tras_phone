@@ -28,8 +28,14 @@ class CartItemProductEntity extends Equatable {
       locale == 'ar' && nameAr.isNotEmpty ? nameAr : name;
 
   @override
-  List<Object?> get props =>
-      [name, nameAr, image, sku, isActive, stockQuantity];
+  List<Object?> get props => [
+    name,
+    nameAr,
+    image,
+    sku,
+    isActive,
+    stockQuantity,
+  ];
 }
 
 /// Cart item with product details
@@ -60,8 +66,14 @@ class CheckoutCartItemEntity extends Equatable {
   bool get isProductInactive => !product.isActive;
 
   @override
-  List<Object?> get props =>
-      [productId, quantity, unitPrice, totalPrice, addedAt, product];
+  List<Object?> get props => [
+    productId,
+    quantity,
+    unitPrice,
+    totalPrice,
+    addedAt,
+    product,
+  ];
 }
 
 /// Cart with populated product details
@@ -114,14 +126,14 @@ class CheckoutCartEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        items,
-        itemsCount,
-        subtotal,
-        total,
-        couponCode,
-        couponDiscount,
-      ];
+    id,
+    items,
+    itemsCount,
+    subtotal,
+    total,
+    couponCode,
+    couponDiscount,
+  ];
 }
 
 /// Customer basic info for checkout
@@ -130,16 +142,18 @@ class CheckoutCustomerEntity extends Equatable {
   final String? name;
   final String? phone;
   final String? priceLevelId;
+  final double walletBalance;
 
   const CheckoutCustomerEntity({
     required this.id,
     this.name,
     this.phone,
     this.priceLevelId,
+    this.walletBalance = 0,
   });
 
   @override
-  List<Object?> get props => [id, name, phone, priceLevelId];
+  List<Object?> get props => [id, name, phone, priceLevelId, walletBalance];
 }
 
 /// Coupon validation result for checkout
@@ -159,8 +173,13 @@ class CheckoutCouponEntity extends Equatable {
   });
 
   @override
-  List<Object?> get props =>
-      [isValid, code, discountAmount, discountType, message];
+  List<Object?> get props => [
+    isValid,
+    code,
+    discountAmount,
+    discountType,
+    message,
+  ];
 }
 
 /// Full checkout session entity
@@ -181,18 +200,12 @@ class CheckoutSessionEntity extends Equatable {
 
   /// Check if checkout can proceed
   bool get canCheckout =>
-      cart.isNotEmpty &&
-      !cart.hasStockIssues &&
-      !cart.hasInactiveProducts;
+      cart.isNotEmpty && !cart.hasStockIssues && !cart.hasInactiveProducts;
 
   /// Get default address
-  AddressEntity? get defaultAddress =>
-      addresses.isNotEmpty
-          ? addresses.firstWhere(
-              (a) => a.isDefault,
-              orElse: () => addresses.first,
-            )
-          : null;
+  AddressEntity? get defaultAddress => addresses.isNotEmpty
+      ? addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first)
+      : null;
 
   /// Check if coupon is applied and valid
   bool get hasCouponApplied => coupon != null && coupon!.isValid;
@@ -202,10 +215,18 @@ class CheckoutSessionEntity extends Equatable {
       hasCouponApplied ? (coupon!.discountAmount ?? 0) : 0;
 
   /// Calculate final total with coupon discount
-  double get finalTotal => cart.subtotal - appliedCouponDiscount + 
-      cart.taxAmount + cart.shippingCost;
+  double get finalTotal =>
+      cart.subtotal -
+      appliedCouponDiscount +
+      cart.taxAmount +
+      cart.shippingCost;
 
   @override
-  List<Object?> get props =>
-      [cart, addresses, paymentMethods, customer, coupon];
+  List<Object?> get props => [
+    cart,
+    addresses,
+    paymentMethods,
+    customer,
+    coupon,
+  ];
 }

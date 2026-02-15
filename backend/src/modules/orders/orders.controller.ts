@@ -67,7 +67,7 @@ import { Public } from '@decorators/public.decorator';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class CartController {
-  constructor(private readonly cartService: CartService) {}
+  constructor(private readonly cartService: CartService) { }
 
   @Get()
   @ApiOperation({
@@ -265,7 +265,7 @@ export class CheckoutController {
     private readonly cartService: CartService,
     private readonly customersService: CustomersService,
     private readonly couponsService: CouponsService,
-  ) {}
+  ) { }
 
   @Get('session')
   @ApiOperation({
@@ -324,6 +324,7 @@ export class CheckoutController {
           name: customerDoc.responsiblePersonName || customerDoc.shopName,
           phone: populatedUserId?.phone,
           priceLevelId: customerDoc.priceLevelId?.toString(),
+          walletBalance: customerDoc.walletBalance ?? 0,
         };
 
         // Calculate credit info for credit payment method
@@ -452,7 +453,7 @@ export class CheckoutController {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(private readonly ordersService: OrdersService) { }
 
   // ═════════════════════════════════════
   // Customer Endpoints
@@ -982,7 +983,7 @@ export class OrdersController {
 @ApiTags('Bank Accounts')
 @Controller('bank-accounts')
 export class BankAccountsController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(private readonly ordersService: OrdersService) { }
 
   @Public()
   @Get()
@@ -1018,7 +1019,7 @@ export class BankAccountsController {
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 @ApiBearerAuth('JWT-auth')
 export class AdminOrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(private readonly ordersService: OrdersService) { }
 
   @Post(':id/verify-payment')
   @HttpCode(HttpStatus.OK)

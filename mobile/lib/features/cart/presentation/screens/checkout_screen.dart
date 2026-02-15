@@ -881,6 +881,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             // Credit limit details panel
             if (method.isCreditMethod && method.creditLimit != null)
               _buildCreditInfoPanel(theme, isDark, method),
+            // Wallet balance details panel
+            if (method.type == 'wallet' && isSelected)
+              _buildWalletInfoPanel(theme, isDark),
           ],
         ),
       ),
@@ -1027,6 +1030,203 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           ),
         ],
       ),
+    );
+  }
+
+  /// Builds the wallet balance info panel shown under the wallet payment method
+  Widget _buildWalletInfoPanel(ThemeData theme, bool isDark) {
+    return BlocBuilder<WalletCubit, WalletState>(
+      builder: (context, walletState) {
+        final cubitBalance = walletState is WalletLoaded
+            ? (walletState.balance ?? 0)
+            : 0.0;
+
+        // Also read from checkout session customer data as fallback
+        final checkoutState = context.read<CheckoutSessionCubit>().state;
+        final sessionBalance = checkoutState is CheckoutSessionLoaded
+            ? checkoutState.session.customer.walletBalance
+            : 0.0;
+
+        // Use the greater of the two sources (in case one hasn't loaded yet)
+        final walletBalance = cubitBalance > 0 ? cubitBalance : sessionBalance;
+
+        // Get order total from checkout session
+        double orderTotal = 0;
+        if (checkoutState is CheckoutSessionLoaded) {
+          final session = checkoutState.session;
+          orderTotal =
+              session.cart.subtotal -
+              (_appliedCoupon?.discountAmount ?? 0) +
+              session.cart.shippingCost +
+              session.cart.taxAmount;
+        }
+
+        final isSufficient = walletBalance >= orderTotal;
+        final usageRatio = walletBalance > 0 && orderTotal > 0
+            ? (orderTotal / walletBalance).clamp(0.0, 1.0)
+            : 0.0;
+
+        // Color based on sufficiency
+        final Color statusColor = isSufficient
+            ? AppColors.success
+            : Colors.orange;
+
+        return Container(
+          margin: EdgeInsets.only(top: 8.h),
+          padding: EdgeInsets.all(10.w),
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppColors.surfaceDark.withValues(alpha: 0.5)
+                : AppColors.primary.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(10.r),
+            border: Border.all(
+              color: isDark
+                  ? AppColors.dividerDark
+                  : AppColors.primary.withValues(alpha: 0.1),
+              width: 0.5,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Available balance - highlighted
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Iconsax.wallet_money,
+                        size: 14.sp,
+                        color: statusColor,
+                      ),
+                      SizedBox(width: 6.w),
+                      Text(
+                        'الرصيد المتاح',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 12.sp,
+                          color: isDark
+                              ? Colors.white70
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '${walletBalance.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w700,
+                      color: statusColor,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              // Progress bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4.r),
+                child: LinearProgressIndicator(
+                  value: usageRatio,
+                  minHeight: 5.h,
+                  backgroundColor: isDark
+                      ? Colors.white12
+                      : AppColors.dividerLight,
+                  valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                ),
+              ),
+              SizedBox(height: 8.h),
+              // Order total and remaining
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Order total
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'المطلوب: ',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 11.sp,
+                          color: isDark
+                              ? Colors.white54
+                              : AppColors.textTertiaryLight,
+                        ),
+                      ),
+                      Text(
+                        '${orderTotal.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? Colors.white70
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Remaining balance after order
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'المتبقي: ',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 11.sp,
+                          color: isDark
+                              ? Colors.white54
+                              : AppColors.textTertiaryLight,
+                        ),
+                      ),
+                      Text(
+                        '${(walletBalance - orderTotal).clamp(0, double.infinity).toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? Colors.white70
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              // Warning if insufficient
+              if (!isSufficient) ...[
+                SizedBox(height: 8.h),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6.r),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Iconsax.warning_2,
+                        size: 14.sp,
+                        color: Colors.orange,
+                      ),
+                      SizedBox(width: 6.w),
+                      Expanded(
+                        child: Text(
+                          'الرصيد غير كافٍ. ينقصك ${(orderTotal - walletBalance).toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 11.sp,
+                            color: Colors.orange.shade800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 

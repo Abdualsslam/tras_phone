@@ -209,12 +209,14 @@ class CheckoutCustomerModel {
   final String? name;
   final String? phone;
   final String? priceLevelId;
+  final double walletBalance;
 
   const CheckoutCustomerModel({
     required this.id,
     this.name,
     this.phone,
     this.priceLevelId,
+    this.walletBalance = 0,
   });
 
   factory CheckoutCustomerModel.fromJson(Map<String, dynamic> json) {
@@ -223,6 +225,7 @@ class CheckoutCustomerModel {
       name: json['name'],
       phone: json['phone'],
       priceLevelId: json['priceLevelId'],
+      walletBalance: (json['walletBalance'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -231,6 +234,7 @@ class CheckoutCustomerModel {
     'name': name,
     'phone': phone,
     'priceLevelId': priceLevelId,
+    'walletBalance': walletBalance,
   };
 
   CheckoutCustomerEntity toEntity() {
@@ -239,6 +243,7 @@ class CheckoutCustomerModel {
       name: name,
       phone: phone,
       priceLevelId: priceLevelId,
+      walletBalance: walletBalance,
     );
   }
 }
