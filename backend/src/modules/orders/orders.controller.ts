@@ -309,6 +309,10 @@ export class CheckoutController {
 
     // 4. Get customer basic info (findByUserId expects userId = user.id)
     let customer: any = { id: user.customerId };
+    let creditInfo:
+      | { creditLimit: number; creditUsed: number; availableCredit: number }
+      | undefined;
+
     try {
       const customerDoc = await this.customersService.findByUserId(user.id);
       if (customerDoc) {
@@ -321,6 +325,19 @@ export class CheckoutController {
           phone: populatedUserId?.phone,
           priceLevelId: customerDoc.priceLevelId?.toString(),
         };
+
+        // Calculate credit info for credit payment method
+        const creditLimit = customerDoc.creditLimit ?? 0;
+        const creditUsed = customerDoc.creditUsed ?? 0;
+        const availableCredit = creditLimit - creditUsed;
+
+        if (creditLimit > 0) {
+          creditInfo = {
+            creditLimit,
+            creditUsed,
+            availableCredit,
+          };
+        }
       }
     } catch (e) {
       // Use default customer info
@@ -351,10 +368,33 @@ export class CheckoutController {
       }
     }
 
+    // 6. Add credit info to payment methods if customer has credit limit
+    // Filter out credit payment method if customer has no available credit
+    const filteredPaymentMethods = paymentMethods
+      .filter((method: any) => {
+        if (method.type === 'credit') {
+          // Only show credit payment method if customer has available credit
+          return creditInfo && creditInfo.availableCredit > 0;
+        }
+        return true;
+      })
+      .map((method: any) => {
+        // Add credit info to credit payment method
+        if (method.type === 'credit' && creditInfo) {
+          return {
+            ...(method.toObject?.() || method),
+            creditLimit: creditInfo.creditLimit,
+            creditUsed: creditInfo.creditUsed,
+            availableCredit: creditInfo.availableCredit,
+          };
+        }
+        return method;
+      });
+
     const response: CheckoutSessionResponseDto = {
       cart,
       addresses,
-      paymentMethods,
+      paymentMethods: filteredPaymentMethods,
       customer,
       coupon,
     };
@@ -552,11 +592,7 @@ export class OrdersController {
       user.customerId,
       cancelOrderDto.reason,
     );
-    return ResponseBuilder.success(
-      order,
-      'Order cancelled',
-      'تم إلغاء الطلب',
-    );
+    return ResponseBuilder.success(order, 'Order cancelled', 'تم إلغاء الطلب');
   }
 
   @Get('pending-payment')
@@ -706,7 +742,8 @@ export class OrdersController {
   @Get(':id/shipments')
   @ApiOperation({
     summary: 'Get shipments for order',
-    description: 'Retrieve all shipments associated with a specific order. Admin only.',
+    description:
+      'Retrieve all shipments associated with a specific order. Admin only.',
   })
   @ApiParam({
     name: 'id',
@@ -879,7 +916,9 @@ export class OrdersController {
   ) {
     // Verify order belongs to user
     const order = await this.ordersService.findById(id);
-    const orderCustomerId = (order.customerId?._id ?? order.customerId)?.toString();
+    const orderCustomerId = (
+      order.customerId?._id ?? order.customerId
+    )?.toString();
     if (orderCustomerId !== user.customerId) {
       throw new BadRequestException('Order not found');
     }
