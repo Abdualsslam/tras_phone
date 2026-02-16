@@ -54,6 +54,7 @@ export function WalletPage() {
     const queryClient = useQueryClient();
 
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+    const [selectedCustomerName, setSelectedCustomerName] = useState<string>('');
     const [customerSearch, setCustomerSearch] = useState('');
     const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
     const [isDebitDialogOpen, setIsDebitDialogOpen] = useState(false);
@@ -81,20 +82,58 @@ export function WalletPage() {
         enabled: customerSearch.trim().length >= 2,
     });
 
-    const { data: customerBalance, isLoading: balanceLoading } = useQuery({
+    const {
+        data: walletStats,
+        isLoading: statsLoading,
+        isError: statsError,
+        error: statsErrorData,
+    } = useQuery({
+        queryKey: ['wallet-admin-stats'],
+        queryFn: () => walletApi.getWalletStats(),
+    });
+
+    const {
+        data: recentTransactions = [],
+        isLoading: recentTransactionsLoading,
+        isError: recentTransactionsError,
+        error: recentTransactionsErrorData,
+    } = useQuery({
+        queryKey: ['wallet-admin-recent-transactions'],
+        queryFn: () => walletApi.getAllTransactions({ page: 1, limit: 10 }),
+    });
+
+    const {
+        data: customerBalance,
+        isLoading: balanceLoading,
+        isError: customerBalanceError,
+        error: customerBalanceErrorData,
+    } = useQuery({
         queryKey: ['wallet-balance', selectedCustomerId],
         queryFn: () => walletApi.getCustomerBalance(selectedCustomerId),
         enabled: !!selectedCustomerId,
     });
 
-    const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
+    const {
+        data: transactions = [],
+        isLoading: transactionsLoading,
+        isError: transactionsError,
+        error: transactionsErrorData,
+    } = useQuery({
         queryKey: ['wallet-transactions', selectedCustomerId],
         queryFn: () => walletApi.getCustomerTransactions(selectedCustomerId),
         enabled: !!selectedCustomerId,
     });
 
     const customerOptions = customerSearchResult?.items || [];
-    const selectedCustomer = customerOptions.find((item) => item._id === selectedCustomerId);
+
+    const getErrorMessage = (error: any, fallback: string) => {
+        return (
+            error?.response?.data?.messageAr ||
+            error?.response?.data?.message ||
+            error?.message ||
+            fallback
+        );
+    };
 
     // ─────────────────────────────────────────
     // Mutations
@@ -105,6 +144,8 @@ export function WalletPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['wallet-balance', selectedCustomerId] });
             queryClient.invalidateQueries({ queryKey: ['wallet-transactions', selectedCustomerId] });
+            queryClient.invalidateQueries({ queryKey: ['wallet-admin-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['wallet-admin-recent-transactions'] });
             setIsCreditDialogOpen(false);
             toast.success('تم إضافة الرصيد بنجاح');
             creditForm.reset();
@@ -117,6 +158,8 @@ export function WalletPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['wallet-balance', selectedCustomerId] });
             queryClient.invalidateQueries({ queryKey: ['wallet-transactions', selectedCustomerId] });
+            queryClient.invalidateQueries({ queryKey: ['wallet-admin-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['wallet-admin-recent-transactions'] });
             setIsDebitDialogOpen(false);
             toast.success('تم خصم الرصيد بنجاح');
             debitForm.reset();
@@ -128,6 +171,8 @@ export function WalletPage() {
         mutationFn: walletApi.grantPoints,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['wallet-balance', selectedCustomerId] });
+            queryClient.invalidateQueries({ queryKey: ['wallet-admin-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['wallet-admin-recent-transactions'] });
             setIsPointsDialogOpen(false);
             toast.success('تم منح النقاط بنجاح');
             pointsForm.reset();
@@ -367,6 +412,50 @@ export function WalletPage() {
                 {/* Customers Tab */}
                 <TabsContent value="customers" className="space-y-6">
 
+            {/* Wallet Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <Card>
+                    <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">إجمالي أرصدة المحافظ</p>
+                        <p className="text-2xl font-bold mt-1">
+                            {statsLoading ? '...' : formatCurrency(walletStats?.totalBalance || 0)}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">المحافظ النشطة</p>
+                        <p className="text-2xl font-bold mt-1">
+                            {statsLoading ? '...' : (walletStats?.activeWallets || 0).toLocaleString()}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">إجمالي الإضافات</p>
+                        <p className="text-2xl font-bold mt-1 text-green-600">
+                            {statsLoading ? '...' : formatCurrency(walletStats?.totalCredits || 0)}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">إجمالي الخصومات</p>
+                        <p className="text-2xl font-bold mt-1 text-red-600">
+                            {statsLoading ? '...' : formatCurrency(walletStats?.totalDebits || 0)}
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {statsError && (
+                <Card className="border-red-200 bg-red-50/40 dark:border-red-800 dark:bg-red-900/10">
+                    <CardContent className="pt-6 text-sm text-red-700 dark:text-red-300">
+                        تعذر تحميل إحصائيات المحفظة: {getErrorMessage(statsErrorData, 'حدث خطأ غير متوقع')}
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Customer Search */}
             <Card>
                 <CardHeader>
@@ -387,6 +476,10 @@ export function WalletPage() {
                             </div>
                         </div>
 
+                        <p className="text-xs text-muted-foreground">
+                            اختر العميل من النتائج مباشرة. الصفحة تدير محافظ العملاء (وليس محفظة حساب الأدمن).
+                        </p>
+
                         {customerSearch.trim().length >= 2 && (
                             <div className="rounded-md border p-2 max-h-52 overflow-auto">
                                 {customersLoading ? (
@@ -403,6 +496,7 @@ export function WalletPage() {
                                                 onClick={() => {
                                                     setSelectedCustomerId(customer._id);
                                                     setCustomerSearch(customer.contactName || customer.companyName || customer.phone);
+                                                    setSelectedCustomerName(customer.contactName || customer.companyName || customer.phone || 'عميل');
                                                 }}
                                             >
                                                 <div className="text-sm font-medium">
@@ -418,26 +512,77 @@ export function WalletPage() {
                             </div>
                         )}
 
-                        <div className="flex gap-4">
-                            <div className="flex-1">
-                                <Input
-                                    placeholder="أو أدخل معرف العميل مباشرة..."
-                                    value={selectedCustomerId}
-                                    onChange={(e) => setSelectedCustomerId(e.target.value)}
-                                />
-                            </div>
-                            <Button onClick={() => {}} disabled={!selectedCustomerId}>
-                                <Search className="h-4 w-4 ml-2" />
-                                تحميل البيانات
-                            </Button>
-                        </div>
-
                         {selectedCustomerId && (
-                            <div className="text-xs text-muted-foreground">
-                                العميل المحدد: {selectedCustomer?.contactName || selectedCustomer?.companyName || selectedCustomerId}
+                            <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                                <div className="text-xs text-muted-foreground">
+                                    العميل المحدد: <span className="font-medium text-foreground">{selectedCustomerName || selectedCustomerId}</span>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setSelectedCustomerId('');
+                                        setSelectedCustomerName('');
+                                    }}
+                                >
+                                    إلغاء الاختيار
+                                </Button>
                             </div>
                         )}
                     </div>
+                </CardContent>
+            </Card>
+
+            {/* Recent Transactions */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5" />
+                        آخر معاملات المحافظ (عامة)
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {recentTransactionsError ? (
+                        <div className="text-sm text-red-700 dark:text-red-300">
+                            تعذر تحميل المعاملات العامة: {getErrorMessage(recentTransactionsErrorData, 'حدث خطأ غير متوقع')}
+                        </div>
+                    ) : recentTransactionsLoading ? (
+                        <div className="flex justify-center items-center h-32">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : recentTransactions.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">لا توجد معاملات حديثة</div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>العميل</TableHead>
+                                    <TableHead>النوع</TableHead>
+                                    <TableHead>المبلغ</TableHead>
+                                    <TableHead>الوصف</TableHead>
+                                    <TableHead>التاريخ</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {recentTransactions.map((tx) => (
+                                    <TableRow key={tx._id}>
+                                        <TableCell>{tx.customerName || tx.customerId || '-'}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={tx.type === 'credit' ? 'success' : 'danger'}>
+                                                {tx.type === 'credit' ? 'إضافة' : 'خصم'}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className={tx.type === 'credit' ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                                            {tx.type === 'credit' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                        </TableCell>
+                                        <TableCell className="text-sm">{tx.description || '-'}</TableCell>
+                                        <TableCell className="text-muted-foreground text-sm">{formatDate(tx.createdAt)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
                 </CardContent>
             </Card>
 
@@ -492,6 +637,14 @@ export function WalletPage() {
                 </div>
             )}
 
+            {selectedCustomerId && customerBalanceError && (
+                <Card className="border-red-200 bg-red-50/40 dark:border-red-800 dark:bg-red-900/10">
+                    <CardContent className="pt-6 text-sm text-red-700 dark:text-red-300">
+                        تعذر تحميل رصيد العميل: {getErrorMessage(customerBalanceErrorData, 'تأكد من اختيار عميل صحيح')}
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Actions */}
             {selectedCustomerId && (
                 <div className="flex gap-2">
@@ -520,7 +673,11 @@ export function WalletPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {transactionsLoading ? (
+                        {transactionsError ? (
+                            <div className="text-sm text-red-700 dark:text-red-300">
+                                تعذر تحميل معاملات العميل: {getErrorMessage(transactionsErrorData, 'تأكد من اختيار عميل صحيح')}
+                            </div>
+                        ) : transactionsLoading ? (
                             <div className="flex justify-center items-center h-40">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             </div>
