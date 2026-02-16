@@ -78,8 +78,19 @@ export const walletApi = {
     },
 
     getCustomerTransactions: async (customerId: string): Promise<WalletTransaction[]> => {
-        const response = await apiClient.get<ApiResponse<WalletTransaction[]>>(`/wallet/transactions/${customerId}`);
-        return response.data.data;
+        const response = await apiClient.get<ApiResponse<any[]>>(`/wallet/transactions/${customerId}`);
+        return (response.data.data || []).map((tx: any) => ({
+            _id: tx._id,
+            customerId: tx.customerId,
+            customerName: tx.customerName,
+            type: tx.type || tx.direction,
+            amount: tx.amount,
+            balanceBefore: tx.balanceBefore,
+            balanceAfter: tx.balanceAfter,
+            description: tx.description || tx.transactionType || '-',
+            reference: tx.reference || tx.referenceNumber,
+            createdAt: tx.createdAt,
+        }));
     },
 
     // ─────────────────────────────────────────
@@ -126,8 +137,19 @@ export const walletApi = {
         page?: number;
         limit?: number;
     }): Promise<WalletTransaction[]> => {
-        const response = await apiClient.get<ApiResponse<WalletTransaction[]>>('/wallet/admin/transactions', { params });
-        return response.data.data;
+        const response = await apiClient.get<ApiResponse<any[]>>('/wallet/admin/transactions', { params });
+        return (response.data.data || []).map((tx: any) => ({
+            _id: tx._id,
+            customerId: tx.customerId,
+            customerName: tx.customerName,
+            type: tx.type || tx.direction,
+            amount: tx.amount,
+            balanceBefore: tx.balanceBefore,
+            balanceAfter: tx.balanceAfter,
+            description: tx.description || tx.transactionType || '-',
+            reference: tx.reference || tx.referenceNumber,
+            createdAt: tx.createdAt,
+        }));
     },
 
     getWalletStats: async (): Promise<WalletStats> => {

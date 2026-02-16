@@ -210,6 +210,188 @@ export class WalletService {
         return this.walletTxModel.find(query).sort({ createdAt: -1 }).limit(filters?.limit || 50);
     }
 
+    async getAdminCustomerBalance(customerId: string): Promise<{
+        balance: number;
+        currency: string;
+        points: number;
+        tier: string;
+    }> {
+        const [balance, points, tier] = await Promise.all([
+            this.getBalance(customerId),
+            this.getPointsBalance(customerId),
+            this.getCustomerTier(customerId),
+        ]);
+
+        return {
+            balance,
+            currency: 'SAR',
+            points,
+            tier: tier?.name || 'Bronze',
+        };
+    }
+
+    async getAdminCustomerTransactions(customerId: string, filters?: any): Promise<any[]> {
+        const transactions = await this.getWalletTransactions(customerId, filters);
+        return transactions.map((tx: any) => ({
+            _id: tx._id,
+            customerId: tx.customerId,
+            type: tx.direction,
+            direction: tx.direction,
+            transactionType: tx.transactionType,
+            amount: tx.amount,
+            balanceBefore: tx.balanceBefore,
+            balanceAfter: tx.balanceAfter,
+            description: tx.description || tx.descriptionAr || tx.transactionType,
+            reference: tx.referenceNumber,
+            referenceNumber: tx.referenceNumber,
+            createdAt: tx.createdAt,
+        }));
+    }
+
+    async getAdminTransactions(filters?: {
+        customerId?: string;
+        type?: 'credit' | 'debit';
+        startDate?: string;
+        endDate?: string;
+        page?: number;
+        limit?: number;
+    }): Promise<any[]> {
+        const query: any = { status: 'completed' };
+
+        if (filters?.customerId) query.customerId = filters.customerId;
+        if (filters?.type) query.direction = filters.type;
+
+        if (filters?.startDate || filters?.endDate) {
+            query.createdAt = {};
+            if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate);
+            if (filters.endDate) query.createdAt.$lte = new Date(filters.endDate);
+        }
+
+        const page = Math.max(1, Number(filters?.page || 1));
+        const limit = Math.max(1, Math.min(200, Number(filters?.limit || 50)));
+        const skip = (page - 1) * limit;
+
+        const transactions = await this.walletTxModel
+            .find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        const customerIds = Array.from(
+            new Set(
+                transactions
+                    .map((tx: any) => tx.customerId?.toString())
+                    .filter((id: string | undefined): id is string => Boolean(id)),
+            ),
+        );
+
+        const customers = customerIds.length
+            ? await this.customerModel
+                .find({ _id: { $in: customerIds } })
+                .select('_id shopName responsiblePersonName')
+                .lean()
+            : [];
+
+        const customerNameById = new Map(
+            customers.map((customer: any) => [
+                customer._id.toString(),
+                customer.shopName || customer.responsiblePersonName,
+            ]),
+        );
+
+        return transactions.map((tx: any) => {
+            const customerId = tx.customerId?.toString();
+            return {
+                _id: tx._id,
+                customerId,
+                customerName: customerId ? customerNameById.get(customerId) : undefined,
+                type: tx.direction,
+                direction: tx.direction,
+                transactionType: tx.transactionType,
+                amount: tx.amount,
+                balanceBefore: tx.balanceBefore,
+                balanceAfter: tx.balanceAfter,
+                description: tx.description || tx.descriptionAr || tx.transactionType,
+                reference: tx.referenceNumber,
+                referenceNumber: tx.referenceNumber,
+                createdAt: tx.createdAt,
+            };
+        });
+    }
+
+    async getWalletStats(): Promise<{
+        totalBalance: number;
+        totalCredits: number;
+        totalDebits: number;
+        transactionCount: number;
+        activeWallets: number;
+        totalPoints: number;
+        averageBalance: number;
+    }> {
+        const [customerStats, txStats] = await Promise.all([
+            this.customerModel.aggregate([
+                {
+                    $group: {
+                        _id: null,
+                        totalBalance: { $sum: { $ifNull: ['$walletBalance', 0] } },
+                        activeWallets: {
+                            $sum: {
+                                $cond: [{ $gt: [{ $ifNull: ['$walletBalance', 0] }, 0] }, 1, 0],
+                            },
+                        },
+                        totalPoints: { $sum: { $ifNull: ['$loyaltyPoints', 0] } },
+                        customersCount: { $sum: 1 },
+                    },
+                },
+            ]),
+            this.walletTxModel.aggregate([
+                { $match: { status: 'completed' } },
+                {
+                    $group: {
+                        _id: null,
+                        totalCredits: {
+                            $sum: {
+                                $cond: [{ $eq: ['$direction', 'credit'] }, '$amount', 0],
+                            },
+                        },
+                        totalDebits: {
+                            $sum: {
+                                $cond: [{ $eq: ['$direction', 'debit'] }, '$amount', 0],
+                            },
+                        },
+                        transactionCount: { $sum: 1 },
+                    },
+                },
+            ]),
+        ]);
+
+        const customerRow = customerStats[0] || {
+            totalBalance: 0,
+            activeWallets: 0,
+            totalPoints: 0,
+            customersCount: 0,
+        };
+        const txRow = txStats[0] || {
+            totalCredits: 0,
+            totalDebits: 0,
+            transactionCount: 0,
+        };
+
+        return {
+            totalBalance: customerRow.totalBalance || 0,
+            totalCredits: txRow.totalCredits || 0,
+            totalDebits: txRow.totalDebits || 0,
+            transactionCount: txRow.transactionCount || 0,
+            activeWallets: customerRow.activeWallets || 0,
+            totalPoints: customerRow.totalPoints || 0,
+            averageBalance:
+                (customerRow.customersCount || 0) > 0
+                    ? (customerRow.totalBalance || 0) / customerRow.customersCount
+                    : 0,
+        };
+    }
+
     // ═════════════════════════════════════
     // Loyalty Operations
     // ═════════════════════════════════════

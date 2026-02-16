@@ -65,6 +65,36 @@ export class WalletController {
         return ResponseBuilder.success(transactions, 'Transactions retrieved', 'تم استرجاع المعاملات');
     }
 
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Get('balance/:customerId')
+    @ApiOperation({
+        summary: 'Get customer wallet balance (admin)',
+        description: 'Retrieve wallet and loyalty summary for a specific customer. Admin only.',
+    })
+    @ApiParam({ name: 'customerId', description: 'Customer ID' })
+    @ApiResponse({ status: 200, description: 'Wallet balance retrieved successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async getCustomerBalance(@Param('customerId') customerId: string) {
+        const data = await this.walletService.getAdminCustomerBalance(customerId);
+        return ResponseBuilder.success(data, 'Balance retrieved', 'تم استرجاع الرصيد');
+    }
+
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Get('transactions/:customerId')
+    @ApiOperation({
+        summary: 'Get customer wallet transactions (admin)',
+        description: 'Retrieve wallet transactions for a specific customer. Admin only.',
+    })
+    @ApiParam({ name: 'customerId', description: 'Customer ID' })
+    @ApiResponse({ status: 200, description: 'Wallet transactions retrieved successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async getCustomerTransactions(@Param('customerId') customerId: string, @Query() query: any) {
+        const data = await this.walletService.getAdminCustomerTransactions(customerId, query);
+        return ResponseBuilder.success(data, 'Transactions retrieved', 'تم استرجاع المعاملات');
+    }
+
     // ═════════════════════════════════════
     // Loyalty
     // ═════════════════════════════════════
@@ -148,7 +178,7 @@ export class WalletController {
         const transaction = await this.walletService.credit({
             ...data,
             transactionType: 'admin_credit',
-            createdBy: user._id,
+            createdBy: user.id,
         });
         return ResponseBuilder.created(transaction, 'Wallet credited', 'تم إضافة الرصيد');
     }
@@ -167,7 +197,7 @@ export class WalletController {
         const transaction = await this.walletService.debit({
             ...data,
             transactionType: 'admin_debit',
-            createdBy: user._id,
+            createdBy: user.id,
         });
         return ResponseBuilder.created(transaction, 'Wallet debited', 'تم خصم الرصيد');
     }
@@ -186,9 +216,37 @@ export class WalletController {
         const transaction = await this.walletService.earnPoints({
             ...data,
             transactionType: 'admin_grant',
-            createdBy: user._id,
+            createdBy: user.id,
         });
         return ResponseBuilder.created(transaction, 'Points granted', 'تم إضافة النقاط');
+    }
+
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Get('admin/transactions')
+    @ApiOperation({
+        summary: 'Get wallet transactions across customers (admin)',
+        description: 'Retrieve wallet transactions across all customers with optional filters. Admin only.',
+    })
+    @ApiResponse({ status: 200, description: 'Wallet transactions retrieved successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async getAdminTransactions(@Query() query: any) {
+        const data = await this.walletService.getAdminTransactions(query);
+        return ResponseBuilder.success(data, 'Transactions retrieved', 'تم استرجاع المعاملات');
+    }
+
+    @UseGuards(RolesGuard)
+    @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @Get('admin/stats')
+    @ApiOperation({
+        summary: 'Get wallet stats (admin)',
+        description: 'Retrieve aggregate wallet statistics. Admin only.',
+    })
+    @ApiResponse({ status: 200, description: 'Wallet stats retrieved successfully', type: ApiResponseDto })
+    @ApiCommonErrorResponses()
+    async getAdminStats() {
+        const data = await this.walletService.getWalletStats();
+        return ResponseBuilder.success(data, 'Stats retrieved', 'تم استرجاع الإحصائيات');
     }
 
     // ═════════════════════════════════════

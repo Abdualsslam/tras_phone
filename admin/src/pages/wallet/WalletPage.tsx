@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { walletApi, type LoyaltyTier } from '@/api/wallet.api';
+import { customersApi } from '@/api/customers.api';
 import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,6 +54,7 @@ export function WalletPage() {
     const queryClient = useQueryClient();
 
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+    const [customerSearch, setCustomerSearch] = useState('');
     const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
     const [isDebitDialogOpen, setIsDebitDialogOpen] = useState(false);
     const [isPointsDialogOpen, setIsPointsDialogOpen] = useState(false);
@@ -73,6 +75,12 @@ export function WalletPage() {
         queryFn: () => walletApi.getAllTiers(),
     });
 
+    const { data: customerSearchResult, isLoading: customersLoading } = useQuery({
+        queryKey: ['wallet-customer-search', customerSearch],
+        queryFn: () => customersApi.getAll({ page: 1, limit: 10, search: customerSearch.trim() }),
+        enabled: customerSearch.trim().length >= 2,
+    });
+
     const { data: customerBalance, isLoading: balanceLoading } = useQuery({
         queryKey: ['wallet-balance', selectedCustomerId],
         queryFn: () => walletApi.getCustomerBalance(selectedCustomerId),
@@ -84,6 +92,9 @@ export function WalletPage() {
         queryFn: () => walletApi.getCustomerTransactions(selectedCustomerId),
         enabled: !!selectedCustomerId,
     });
+
+    const customerOptions = customerSearchResult?.items || [];
+    const selectedCustomer = customerOptions.find((item) => item._id === selectedCustomerId);
 
     // ─────────────────────────────────────────
     // Mutations
@@ -365,18 +376,67 @@ export function WalletPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex gap-4">
-                        <div className="flex-1">
-                            <Input
-                                placeholder="أدخل معرف العميل..."
-                                value={selectedCustomerId}
-                                onChange={(e) => setSelectedCustomerId(e.target.value)}
-                            />
+                    <div className="space-y-3">
+                        <div className="flex gap-4">
+                            <div className="flex-1">
+                                <Input
+                                    placeholder="ابحث بالاسم أو رقم الجوال..."
+                                    value={customerSearch}
+                                    onChange={(e) => setCustomerSearch(e.target.value)}
+                                />
+                            </div>
                         </div>
-                        <Button onClick={() => { }} disabled={!selectedCustomerId}>
-                            <Search className="h-4 w-4 ml-2" />
-                            بحث
-                        </Button>
+
+                        {customerSearch.trim().length >= 2 && (
+                            <div className="rounded-md border p-2 max-h-52 overflow-auto">
+                                {customersLoading ? (
+                                    <p className="text-sm text-muted-foreground px-2 py-1">جاري البحث...</p>
+                                ) : customerOptions.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground px-2 py-1">لا يوجد عملاء مطابقون</p>
+                                ) : (
+                                    <div className="space-y-1">
+                                        {customerOptions.map((customer) => (
+                                            <button
+                                                key={customer._id}
+                                                type="button"
+                                                className="w-full text-right px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                                onClick={() => {
+                                                    setSelectedCustomerId(customer._id);
+                                                    setCustomerSearch(customer.contactName || customer.companyName || customer.phone);
+                                                }}
+                                            >
+                                                <div className="text-sm font-medium">
+                                                    {customer.contactName || customer.companyName || 'عميل'}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {customer.phone} • {customer._id}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="flex gap-4">
+                            <div className="flex-1">
+                                <Input
+                                    placeholder="أو أدخل معرف العميل مباشرة..."
+                                    value={selectedCustomerId}
+                                    onChange={(e) => setSelectedCustomerId(e.target.value)}
+                                />
+                            </div>
+                            <Button onClick={() => {}} disabled={!selectedCustomerId}>
+                                <Search className="h-4 w-4 ml-2" />
+                                تحميل البيانات
+                            </Button>
+                        </div>
+
+                        {selectedCustomerId && (
+                            <div className="text-xs text-muted-foreground">
+                                العميل المحدد: {selectedCustomer?.contactName || selectedCustomer?.companyName || selectedCustomerId}
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
