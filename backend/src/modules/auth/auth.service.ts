@@ -109,6 +109,42 @@ export class AuthService {
     private readonly auditService: AuditService,
   ) {}
 
+  private buildUserIdCandidates(userId: string): Array<string | Types.ObjectId> {
+    const candidates: Array<string | Types.ObjectId> = [userId];
+
+    if (Types.ObjectId.isValid(userId)) {
+      candidates.push(new Types.ObjectId(userId));
+    }
+
+    return candidates;
+  }
+
+  private async findAdminUserByUserId(userId: string): Promise<any | null> {
+    const userIdCandidates = this.buildUserIdCandidates(userId);
+
+    const adminUser = await this.adminUserModel
+      .findOne({ userId: { $in: userIdCandidates as any[] } })
+      .lean();
+
+    if (adminUser) {
+      return adminUser;
+    }
+
+    const legacyCollectionNames = ['adminusers', 'adminUsers'];
+
+    for (const collectionName of legacyCollectionNames) {
+      const legacyDoc = await this.adminUserModel.db
+        .collection(collectionName)
+        .findOne({ userId: { $in: userIdCandidates as any[] } });
+
+      if (legacyDoc) {
+        return legacyDoc;
+      }
+    }
+
+    return null;
+  }
+
   /**
    * Helper method for retry logic with exponential backoff
    */
@@ -985,7 +1021,7 @@ export class AuthService {
   }
 
   async getAdminAccessProfile(userId: string): Promise<AdminAccessProfile | null> {
-    const adminUser = await this.adminUserModel.findOne({ userId }).lean();
+    const adminUser = await this.findAdminUserByUserId(userId);
 
     if (!adminUser) {
       return null;

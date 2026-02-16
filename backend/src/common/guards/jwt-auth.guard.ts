@@ -26,7 +26,6 @@ export class JwtAuthGuard implements CanActivate {
     private configService: ConfigService,
     private reflector: Reflector,
     private authService: AuthService,
-    @InjectModel('AdminUser') private adminUserModel: Model<any>,
     @InjectModel(Customer.name) private customerModel: Model<Customer>,
   ) {}
 
@@ -79,15 +78,19 @@ export class JwtAuthGuard implements CanActivate {
       };
 
       if (user.userType === 'admin') {
-        // Admin: fetch admin profile for isSuperAdmin flag
-        const adminUser = await this.adminUserModel.findOne({
-          userId: user._id,
-        });
-        if (adminUser) {
-          userObj.isSuperAdmin = adminUser.isSuperAdmin || false;
-          userObj.adminUserId = adminUser._id.toString();
-          userObj.adminId = adminUser._id.toString(); // alias for support/orders controllers
-          userObj.fullName = adminUser.fullName;
+        const adminAccessProfile = await this.authService.getAdminAccessProfile(
+          user._id.toString(),
+        );
+
+        if (adminAccessProfile) {
+          userObj.isSuperAdmin = adminAccessProfile.isSuperAdmin;
+          userObj.adminUserId = adminAccessProfile.adminUserId;
+          userObj.adminId = adminAccessProfile.adminUserId;
+          userObj.fullName = adminAccessProfile.fullName;
+          userObj.canAccessWeb = adminAccessProfile.canAccessWeb;
+          userObj.canAccessMobile = adminAccessProfile.canAccessMobile;
+          userObj.roles = adminAccessProfile.roles;
+          userObj.permissions = adminAccessProfile.permissions;
         }
       } else {
         // Customer (app user): resolve real Customer _id and profile for tickets/support
