@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../core/services/socket_service.dart';
 import '../../data/models/support_model.dart';
 import '../cubit/live_chat_cubit.dart';
@@ -318,7 +319,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
                   context.read<LiveChatCubit>().startChat();
                 },
                 icon: const Icon(Iconsax.message_add),
-                label: const Text('بدء المحادثة'),
+                label: Text(AppLocalizations.of(context)!.startChat),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 16.h),
                   shape: RoundedRectangleBorder(
@@ -560,7 +561,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
           children: [
             ListTile(
               leading: const Icon(Iconsax.ticket),
-              title: const Text('تحويل إلى تذكرة'),
+              title: Text(AppLocalizations.of(context)!.convertToTicket),
               onTap: () {
                 Navigator.pop(ctx);
                 context.push('/support/create-ticket');
@@ -568,7 +569,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
             ),
             ListTile(
               leading: const Icon(Iconsax.star),
-              title: const Text('تقييم المحادثة'),
+              title: Text(AppLocalizations.of(context)!.rateChat),
               onTap: () {
                 Navigator.pop(ctx);
                 _showRatingDialog();
@@ -576,7 +577,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
             ),
             ListTile(
               leading: const Icon(Iconsax.close_circle),
-              title: const Text('إنهاء المحادثة'),
+              title: Text(AppLocalizations.of(context)!.endChat),
               onTap: () {
                 Navigator.pop(ctx);
                 _endChat();
@@ -611,16 +612,16 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('إنهاء المحادثة'),
-        content: const Text('هل تريد إنهاء المحادثة؟'),
+        title: Text(AppLocalizations.of(context)!.endChat),
+        content: Text(AppLocalizations.of(context)!.endChatConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('إلغاء'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('إنهاء'),
+            child: Text(AppLocalizations.of(context)!.endChatAction),
           ),
         ],
       ),

@@ -705,5 +705,344 @@
   "enterDescription": "أدخل وصف المشكلة",
   "@enterDescription": {
     "description": "رسالة إدخال الوصف"
-  }
+  },
+
+  "retryAction": "إعادة المحاولة",
+  "@retryAction": { "description": "زر إعادة المحاولة" },
+
+  "removedFromWishlist": "تم الإزالة من المفضلة",
+  "@removedFromWishlist": { "description": "رسالة الإزالة من المفضلة" },
+
+  "movedToCart": "تم نقل المنتج للسلة",
+  "@movedToCart": { "description": "رسالة نقل المنتج للسلة" },
+
+  "clearWishlist": "مسح المفضلة",
+  "@clearWishlist": { "description": "زر مسح المفضلة" },
+
+  "clearAll": "مسح الكل",
+  "@clearAll": { "description": "زر مسح الكل" },
+
+  "clearWishlistConfirm": "هل أنت متأكد من مسح جميع المنتجات من المفضلة؟",
+  "@clearWishlistConfirm": { "description": "رسالة تأكيد مسح المفضلة" },
+
+  "wishlistCleared": "تم مسح المفضلة",
+  "@wishlistCleared": { "description": "رسالة نجاح مسح المفضلة" },
+
+  "emptyWishlist": "قائمة المفضلة فارغة",
+  "@emptyWishlist": { "description": "رسالة المفضلة الفارغة" },
+
+  "emptyWishlistHint": "أضف المنتجات التي تعجبك للوصول إليها لاحقاً",
+  "@emptyWishlistHint": { "description": "تلميح المفضلة الفارغة" },
+
+  "featureUnderDevelopment": "هذه الميزة قيد التطوير",
+  "@featureUnderDevelopment": { "description": "رسالة الميزة قيد التطوير" },
+
+  "availableBalance": "الرصيد المتاح",
+  "@availableBalance": { "description": "عنوان الرصيد المتاح" },
+
+  "transactionHistory": "سجل المعاملات",
+  "@transactionHistory": { "description": "عنوان سجل المعاملات" },
+
+  "noTransactions": "لا توجد معاملات",
+  "@noTransactions": { "description": "رسالة عدم وجود معاملات" },
+
+  "addBalance": "إضافة رصيد",
+  "@addBalance": { "description": "زر إضافة رصيد" },
+
+  "transfer": "تحويل",
+  "@transfer": { "description": "زر التحويل" },
+
+  "statement": "كشف حساب",
+  "@statement": { "description": "زر كشف الحساب" },
+
+  "today": "اليوم",
+  "@today": { "description": "كلمة اليوم" },
+
+  "yesterday": "أمس",
+  "@yesterday": { "description": "كلمة أمس" },
+
+  "daysAgo": "منذ {days} أيام",
+  "@daysAgo": {
+    "description": "منذ عدد من الأيام",
+    "placeholders": { "days": { "type": "int" } }
+  },
+
+  "addBalanceAmount": "إضافة {amount} ر.س - هذه الميزة قيد التطوير",
+  "@addBalanceAmount": {
+    "description": "رسالة إضافة مبلغ",
+    "placeholders": { "amount": { "type": "int" } }
+  },
+
+  "appearance": "المظهر",
+  "@appearance": { "description": "عنوان قسم المظهر" },
+
+  "biometric": "البصمة / Face ID",
+  "@biometric": { "description": "عنوان البصمة" },
+
+  "biometricSubtitle": "استخدام البصمة أو Face ID لتسجيل الدخول",
+  "@biometricSubtitle": { "description": "وصف البصمة" },
+
+  "biometricEnabled": "تم تفعيل البصمة بنجاح",
+  "@biometricEnabled": { "description": "رسالة تفعيل البصمة" },
+
+  "biometricDisabled": "تم إلغاء تفعيل البصمة",
+  "@biometricDisabled": { "description": "رسالة إلغاء تفعيل البصمة" },
+
+  "biometricFailed": "فشل التحقق من الهوية",
+  "@biometricFailed": { "description": "رسالة فشل التحقق من الهوية" },
+
+  "shareApp": "شارك التطبيق",
+  "@shareApp": { "description": "زر مشاركة التطبيق" },
+
+  "shareError": "حدث خطأ أثناء المشاركة",
+  "@shareError": { "description": "رسالة خطأ المشاركة" },
+
+  "deleteAccount": "حذف الحساب",
+  "@deleteAccount": { "description": "زر حذف الحساب" },
+
+  "deleteAccountConfirm": "هل أنت متأكد من حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.",
+  "@deleteAccountConfirm": { "description": "رسالة تأكيد حذف الحساب" },
+
+  "deleteAccountSuccess": "تم حذف حسابك بنجاح",
+  "@deleteAccountSuccess": { "description": "رسالة نجاح حذف الحساب" },
+
+  "deleteAccountError": "حدث خطأ أثناء حذف الحساب",
+  "@deleteAccountError": { "description": "رسالة خطأ حذف الحساب" },
+
+  "deleteReason": "سبب الحذف (اختياري)",
+  "@deleteReason": { "description": "حقل سبب الحذف" },
+
+  "deleteReasonHint": "أخبرنا لماذا تريد حذف حسابك...",
+  "@deleteReasonHint": { "description": "تلميح سبب الحذف" },
+
+  "enterPassword": "أدخل كلمة المرور",
+  "@enterPassword": { "description": "عنوان حوار إدخال كلمة المرور" },
+
+  "enterPasswordHint": "أدخل كلمة المرور لحفظها لتسجيل الدخول بالبصمة",
+  "@enterPasswordHint": { "description": "تلميح حقل كلمة المرور للبصمة" },
+
+  "chooseTheme": "اختر المظهر",
+  "@chooseTheme": { "description": "عنوان حوار اختيار المظهر" },
+
+  "themeSystem": "وضع الهاتف",
+  "@themeSystem": { "description": "خيار وضع الهاتف" },
+
+  "themeSystemSubtitle": "يتبع إعدادات الهاتف",
+  "@themeSystemSubtitle": { "description": "وصف وضع الهاتف" },
+
+  "themeLight": "الوضع النهاري",
+  "@themeLight": { "description": "خيار الوضع النهاري" },
+
+  "themeLightSubtitle": "مظهر فاتح",
+  "@themeLightSubtitle": { "description": "وصف الوضع النهاري" },
+
+  "themeDark": "الوضع الليلي",
+  "@themeDark": { "description": "خيار الوضع الليلي" },
+
+  "themeDarkSubtitle": "مظهر داكن",
+  "@themeDarkSubtitle": { "description": "وصف الوضع الليلي" },
+
+  "version": "الإصدار",
+  "@version": { "description": "كلمة الإصدار" },
+
+  "statistics": "الإحصائيات",
+  "@statistics": { "description": "عنوان قسم الإحصائيات" },
+
+  "businessInfo": "معلومات العمل",
+  "@businessInfo": { "description": "عنوان معلومات العمل" },
+
+  "deliveryAddresses": "عناوين التوصيل",
+  "@deliveryAddresses": { "description": "عنوان عناوين التوصيل" },
+
+  "walletAndCredit": "المحفظة والائتمان",
+  "@walletAndCredit": { "description": "عنوان المحفظة والائتمان" },
+
+  "walletBalance": "رصيد المحفظة",
+  "@walletBalance": { "description": "عنوان رصيد المحفظة" },
+
+  "creditLimit": "حد الائتمان",
+  "@creditLimit": { "description": "عنوان حد الائتمان" },
+
+  "creditUsed": "المستخدم",
+  "@creditUsed": { "description": "عنوان الائتمان المستخدم" },
+
+  "creditAvailable": "المتاح: {amount} ر.س",
+  "@creditAvailable": {
+    "description": "الائتمان المتاح",
+    "placeholders": { "amount": { "type": "String" } }
+  },
+
+  "totalOrders": "إجمالي الطلبات",
+  "@totalOrders": { "description": "عنوان إجمالي الطلبات" },
+
+  "totalSpent": "إجمالي الإنفاق",
+  "@totalSpent": { "description": "عنوان إجمالي الإنفاق" },
+
+  "averageOrderValue": "متوسط قيمة الطلب",
+  "@averageOrderValue": { "description": "عنوان متوسط قيمة الطلب" },
+
+  "loyaltyPoints": "نقاط الولاء",
+  "@loyaltyPoints": { "description": "عنوان نقاط الولاء" },
+
+  "shopName": "اسم المتجر",
+  "@shopName": { "description": "عنوان اسم المتجر" },
+
+  "responsiblePerson": "اسم المسؤول",
+  "@responsiblePerson": { "description": "عنوان اسم المسؤول" },
+
+  "businessType": "نوع العمل",
+  "@businessType": { "description": "عنوان نوع العمل" },
+
+  "verified": "معتمد",
+  "@verified": { "description": "حالة الحساب المعتمد" },
+
+  "noDefaultAddress": "لا يوجد عنوان افتراضي",
+  "@noDefaultAddress": { "description": "رسالة عدم وجود عنوان افتراضي" },
+
+  "addAddressHint": "أضف عنواناً لتسهيل عملية التوصيل",
+  "@addAddressHint": { "description": "تلميح إضافة عنوان" },
+
+  "manageAddresses": "إدارة العناوين",
+  "@manageAddresses": { "description": "زر إدارة العناوين" },
+
+  "viewReturns": "عرض وإدارة طلبات الإرجاع",
+  "@viewReturns": { "description": "وصف قسم المرتجعات" },
+
+  "contactSupport": "التواصل مع الدعم وتتبع التذاكر",
+  "@contactSupport": { "description": "وصف قسم الدعم" },
+
+  "notLoggedIn": "لم تقم بتسجيل الدخول",
+  "@notLoggedIn": { "description": "رسالة عدم تسجيل الدخول" },
+
+  "loginToAccess": "سجل الدخول للوصول إلى حسابك",
+  "@loginToAccess": { "description": "تلميح تسجيل الدخول" },
+
+  "logoutConfirm": "هل أنت متأكد من تسجيل الخروج؟",
+  "@logoutConfirm": { "description": "رسالة تأكيد تسجيل الخروج" },
+
+  "logoutAction": "خروج",
+  "@logoutAction": { "description": "زر تأكيد الخروج" },
+
+  "transactionHistoryTitle": "سجل المعاملات",
+  "@transactionHistoryTitle": { "description": "عنوان شاشة سجل المعاملات" },
+
+  "allTransactions": "الكل",
+  "@allTransactions": { "description": "فلتر كل المعاملات" },
+
+  "deposits": "الإيداعات",
+  "@deposits": { "description": "فلتر الإيداعات" },
+
+  "payments": "المدفوعات",
+  "@payments": { "description": "فلتر المدفوعات" },
+
+  "topup": "شحن رصيد",
+  "@topup": { "description": "فلتر شحن الرصيد" },
+
+  "balanceAfter": "الرصيد: {amount} ر.س",
+  "@balanceAfter": {
+    "description": "الرصيد بعد المعاملة",
+    "placeholders": { "amount": { "type": "String" } }
+  },
+
+  "minutesAgo": "منذ {minutes} دقيقة",
+  "@minutesAgo": {
+    "description": "منذ دقائق",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+
+  "hoursAgo": "منذ {hours} ساعة",
+  "@hoursAgo": {
+    "description": "منذ ساعات",
+    "placeholders": { "hours": { "type": "int" } }
+  },
+
+  "inviteFriend": "دعوة صديق",
+  "@inviteFriend": { "description": "عنوان شاشة دعوة صديق" },
+
+  "codeCopied": "تم نسخ الكود",
+  "@codeCopied": { "description": "رسالة نسخ الكود" },
+
+  "openingShareOptions": "فتح خيارات المشاركة...",
+  "@openingShareOptions": { "description": "رسالة فتح خيارات المشاركة" },
+
+  "openingWhatsApp": "فتح واتساب...",
+  "@openingWhatsApp": { "description": "رسالة فتح واتساب" },
+
+  "loyaltyPointsTitle": "نقاط الولاء",
+  "@loyaltyPointsTitle": { "description": "عنوان شاشة نقاط الولاء" },
+
+  "loyaltyTiers": "مستويات الولاء",
+  "@loyaltyTiers": { "description": "عنوان شاشة مستويات الولاء" },
+
+  "pointsTransactions": "معاملات النقاط",
+  "@pointsTransactions": { "description": "عنوان شاشة معاملات النقاط" },
+
+  "stockAlerts": "تنبيهات المخزون",
+  "@stockAlerts": { "description": "عنوان شاشة تنبيهات المخزون" },
+
+  "viewStockAlerts": "عرض تنبيهات المخزون",
+  "@viewStockAlerts": { "description": "زر عرض تنبيهات المخزون" },
+
+  "emptyWishlistDescription": "لم تقم بإضافة أي منتجات إلى المفضلة بعد.\nتصفح منتجاتنا وأضف ما يعجبك!",
+  "@emptyWishlistDescription": { "description": "وصف المفضلة الفارغة" },
+
+  "browseProducts": "تصفح المنتجات",
+  "@browseProducts": { "description": "زر تصفح المنتجات" },
+
+  "ticketDetails": "تفاصيل التذكرة",
+  "@ticketDetails": { "description": "عنوان شاشة تفاصيل التذكرة" },
+
+  "newTicket": "تذكرة جديدة",
+  "@newTicket": { "description": "زر تذكرة جديدة" },
+
+  "sendTicket": "إرسال التذكرة",
+  "@sendTicket": { "description": "زر إرسال التذكرة" },
+
+  "ticketSentSuccess": "تم إرسال التذكرة بنجاح",
+  "@ticketSentSuccess": { "description": "رسالة نجاح إرسال التذكرة" },
+
+  "convertToTicket": "تحويل إلى تذكرة",
+  "@convertToTicket": { "description": "خيار تحويل المحادثة لتذكرة" },
+
+  "rateChat": "تقييم المحادثة",
+  "@rateChat": { "description": "خيار تقييم المحادثة" },
+
+  "endChatConfirm": "هل تريد إنهاء المحادثة؟",
+  "@endChatConfirm": { "description": "رسالة تأكيد إنهاء المحادثة" },
+
+  "endChatAction": "إنهاء",
+  "@endChatAction": { "description": "زر تأكيد إنهاء المحادثة" },
+
+  "skip": "تخطي",
+  "@skip": { "description": "زر تخطي" },
+
+  "send": "إرسال",
+  "@send": { "description": "زر إرسال" },
+
+  "gallery": "معرض الصور",
+  "@gallery": { "description": "خيار معرض الصور" },
+
+  "takePhoto": "التقاط صورة",
+  "@takePhoto": { "description": "خيار التقاط صورة" },
+
+  "pendingReviews": "بانتظار التقييم",
+  "@pendingReviews": { "description": "عنوان شاشة التقييمات المعلقة" },
+
+  "addReview": "أضف تقييم",
+  "@addReview": { "description": "عنوان شاشة إضافة تقييم" },
+
+  "submitReview": "إرسال التقييم",
+  "@submitReview": { "description": "زر إرسال التقييم" },
+
+  "reviewSentSuccess": "تم إرسال تقييمك بنجاح",
+  "@reviewSentSuccess": { "description": "رسالة نجاح إرسال التقييم" },
+
+  "myReviews": "تقييماتي",
+  "@myReviews": { "description": "عنوان شاشة تقييماتي" },
+
+  "notificationSettings": "إعدادات الإشعارات",
+  "@notificationSettings": { "description": "عنوان شاشة إعدادات الإشعارات" },
+
+  "returnDetails": "تفاصيل طلب الإرجاع",
+  "@returnDetails": { "description": "عنوان شاشة تفاصيل الإرجاع" }
 }

@@ -83,7 +83,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/support/create'),
         icon: const Icon(Iconsax.add),
-        label: const Text('تذكرة جديدة'),
+        label: Text(AppLocalizations.of(context)!.newTicket),
       ),
     );
   }
@@ -141,7 +141,7 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
           ElevatedButton(
             onPressed: () =>
                 context.read<SupportCubit>().loadMyTickets(refresh: true),
-            child: const Text('إعادة المحاولة'),
+            child: Text(AppLocalizations.of(context)!.retryAction),
           ),
         ],
       ),

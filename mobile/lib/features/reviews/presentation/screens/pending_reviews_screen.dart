@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PendingReviewsScreen extends StatelessWidget {
   const PendingReviewsScreen({super.key});
@@ -21,7 +22,7 @@ class PendingReviewsScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('بانتظار التقييم')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.pendingReviews)),
       body: pendingProducts.isEmpty
           ? _buildEmptyState(isDark)
           : ListView.separated(

@@ -430,4 +430,344 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get enterDescription => 'Enter problem description';
+
+  @override
+  String get retryAction => 'Retry';
+
+  @override
+  String get removedFromWishlist => 'Removed from favorites';
+
+  @override
+  String get movedToCart => 'Product moved to cart';
+
+  @override
+  String get clearWishlist => 'Clear Favorites';
+
+  @override
+  String get clearAll => 'Clear All';
+
+  @override
+  String get clearWishlistConfirm =>
+      'Are you sure you want to clear all products from favorites?';
+
+  @override
+  String get wishlistCleared => 'Favorites cleared';
+
+  @override
+  String get emptyWishlist => 'Favorites list is empty';
+
+  @override
+  String get emptyWishlistHint => 'Add products you like to access them later';
+
+  @override
+  String get featureUnderDevelopment => 'This feature is under development';
+
+  @override
+  String get availableBalance => 'Available Balance';
+
+  @override
+  String get transactionHistory => 'Transaction History';
+
+  @override
+  String get noTransactions => 'No transactions';
+
+  @override
+  String get addBalance => 'Add Balance';
+
+  @override
+  String get transfer => 'Transfer';
+
+  @override
+  String get statement => 'Statement';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String daysAgo(int days) {
+    return '$days days ago';
+  }
+
+  @override
+  String addBalanceAmount(int amount) {
+    return 'Add $amount SAR - This feature is under development';
+  }
+
+  @override
+  String get appearance => 'Appearance';
+
+  @override
+  String get biometric => 'Fingerprint / Face ID';
+
+  @override
+  String get biometricSubtitle => 'Use fingerprint or Face ID to login';
+
+  @override
+  String get biometricEnabled => 'Fingerprint enabled successfully';
+
+  @override
+  String get biometricDisabled => 'Fingerprint disabled';
+
+  @override
+  String get biometricFailed => 'Identity verification failed';
+
+  @override
+  String get shareApp => 'Share App';
+
+  @override
+  String get shareError => 'An error occurred while sharing';
+
+  @override
+  String get deleteAccount => 'Delete Account';
+
+  @override
+  String get deleteAccountConfirm =>
+      'Are you sure you want to delete your account? This action cannot be undone.';
+
+  @override
+  String get deleteAccountSuccess =>
+      'Your account has been deleted successfully';
+
+  @override
+  String get deleteAccountError =>
+      'An error occurred while deleting the account';
+
+  @override
+  String get deleteReason => 'Reason for deletion (optional)';
+
+  @override
+  String get deleteReasonHint =>
+      'Tell us why you want to delete your account...';
+
+  @override
+  String get enterPassword => 'Enter Password';
+
+  @override
+  String get enterPasswordHint =>
+      'Enter your password to save it for biometric login';
+
+  @override
+  String get chooseTheme => 'Choose Theme';
+
+  @override
+  String get themeSystem => 'System';
+
+  @override
+  String get themeSystemSubtitle => 'Follow device settings';
+
+  @override
+  String get themeLight => 'Light Mode';
+
+  @override
+  String get themeLightSubtitle => 'Light appearance';
+
+  @override
+  String get themeDark => 'Dark Mode';
+
+  @override
+  String get themeDarkSubtitle => 'Dark appearance';
+
+  @override
+  String get version => 'Version';
+
+  @override
+  String get statistics => 'Statistics';
+
+  @override
+  String get businessInfo => 'Business Info';
+
+  @override
+  String get deliveryAddresses => 'Delivery Addresses';
+
+  @override
+  String get walletAndCredit => 'Wallet & Credit';
+
+  @override
+  String get walletBalance => 'Wallet Balance';
+
+  @override
+  String get creditLimit => 'Credit Limit';
+
+  @override
+  String get creditUsed => 'Used';
+
+  @override
+  String creditAvailable(String amount) {
+    return 'Available: $amount SAR';
+  }
+
+  @override
+  String get totalOrders => 'Total Orders';
+
+  @override
+  String get totalSpent => 'Total Spent';
+
+  @override
+  String get averageOrderValue => 'Average Order Value';
+
+  @override
+  String get loyaltyPoints => 'Loyalty Points';
+
+  @override
+  String get shopName => 'Shop Name';
+
+  @override
+  String get responsiblePerson => 'Responsible Person';
+
+  @override
+  String get businessType => 'Business Type';
+
+  @override
+  String get verified => 'Verified';
+
+  @override
+  String get noDefaultAddress => 'No default address';
+
+  @override
+  String get addAddressHint => 'Add an address to simplify delivery';
+
+  @override
+  String get manageAddresses => 'Manage Addresses';
+
+  @override
+  String get viewReturns => 'View and manage return requests';
+
+  @override
+  String get contactSupport => 'Contact support and track tickets';
+
+  @override
+  String get notLoggedIn => 'You are not logged in';
+
+  @override
+  String get loginToAccess => 'Login to access your account';
+
+  @override
+  String get logoutConfirm => 'Are you sure you want to logout?';
+
+  @override
+  String get logoutAction => 'Logout';
+
+  @override
+  String get transactionHistoryTitle => 'Transaction History';
+
+  @override
+  String get allTransactions => 'All';
+
+  @override
+  String get deposits => 'Deposits';
+
+  @override
+  String get payments => 'Payments';
+
+  @override
+  String get topup => 'Top Up';
+
+  @override
+  String balanceAfter(String amount) {
+    return 'Balance: $amount SAR';
+  }
+
+  @override
+  String minutesAgo(int minutes) {
+    return '$minutes minutes ago';
+  }
+
+  @override
+  String hoursAgo(int hours) {
+    return '$hours hours ago';
+  }
+
+  @override
+  String get inviteFriend => 'Invite a Friend';
+
+  @override
+  String get codeCopied => 'Code copied';
+
+  @override
+  String get openingShareOptions => 'Opening share options...';
+
+  @override
+  String get openingWhatsApp => 'Opening WhatsApp...';
+
+  @override
+  String get loyaltyPointsTitle => 'Loyalty Points';
+
+  @override
+  String get loyaltyTiers => 'Loyalty Tiers';
+
+  @override
+  String get pointsTransactions => 'Points Transactions';
+
+  @override
+  String get stockAlerts => 'Stock Alerts';
+
+  @override
+  String get viewStockAlerts => 'View Stock Alerts';
+
+  @override
+  String get emptyWishlistDescription =>
+      'You haven\'t added any products to favorites yet.\nBrowse our products and add what you like!';
+
+  @override
+  String get browseProducts => 'Browse Products';
+
+  @override
+  String get ticketDetails => 'Ticket Details';
+
+  @override
+  String get newTicket => 'New Ticket';
+
+  @override
+  String get sendTicket => 'Submit Ticket';
+
+  @override
+  String get ticketSentSuccess => 'Ticket submitted successfully';
+
+  @override
+  String get convertToTicket => 'Convert to Ticket';
+
+  @override
+  String get rateChat => 'Rate Chat';
+
+  @override
+  String get endChatConfirm => 'Do you want to end the chat?';
+
+  @override
+  String get endChatAction => 'End';
+
+  @override
+  String get skip => 'Skip';
+
+  @override
+  String get send => 'Send';
+
+  @override
+  String get gallery => 'Gallery';
+
+  @override
+  String get takePhoto => 'Take Photo';
+
+  @override
+  String get pendingReviews => 'Pending Reviews';
+
+  @override
+  String get addReview => 'Add Review';
+
+  @override
+  String get submitReview => 'Submit Review';
+
+  @override
+  String get reviewSentSuccess => 'Your review was submitted successfully';
+
+  @override
+  String get myReviews => 'My Reviews';
+
+  @override
+  String get notificationSettings => 'Notification Settings';
+
+  @override
+  String get returnDetails => 'Return Request Details';
 }

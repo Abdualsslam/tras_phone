@@ -23,10 +23,9 @@ class ShippingCostWidget extends StatelessWidget {
     return BlocBuilder<LocationsCubit, LocationsState>(
       builder: (context, state) {
         final shipping = state.shippingCalculation;
+        if (shipping == null) return const SizedBox.shrink();
 
-        if (shipping == null) {
-          return const SizedBox.shrink();
-        }
+        final remaining = shipping.remainingForFreeShipping(orderTotal);
 
         return Card(
           child: Padding(
@@ -71,9 +70,7 @@ class ShippingCostWidget extends StatelessWidget {
                     ],
                   ),
                 ],
-                // رسالة الشحن المجاني
-                if (!shipping.isFreeShipping &&
-                    shipping.freeShippingThreshold != null) ...[
+                if (!shipping.isFreeShipping && remaining > 0) ...[
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -83,8 +80,8 @@ class ShippingCostWidget extends StatelessWidget {
                     ),
                     child: Text(
                       locale == 'ar'
-                          ? 'أضف ${(shipping.freeShippingThreshold! - orderTotal).toStringAsFixed(2)} ر.س للحصول على شحن مجاني'
-                          : 'Add ${(shipping.freeShippingThreshold! - orderTotal).toStringAsFixed(2)} SAR for free shipping',
+                          ? 'أضف ${remaining.toStringAsFixed(2)} ر.س للحصول على شحن مجاني'
+                          : 'Add ${remaining.toStringAsFixed(2)} SAR for free shipping',
                       style: TextStyle(color: Colors.blue[800], fontSize: 12),
                     ),
                   ),

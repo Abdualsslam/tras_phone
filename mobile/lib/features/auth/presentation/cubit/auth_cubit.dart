@@ -147,7 +147,7 @@ class AuthCubit extends Cubit<AuthState> {
       localizedReason: 'يرجى التحقق من هويتك لتسجيل الدخول',
     );
     if (!authenticated) {
-      emit(const AuthError('فشل التحقق من الهوية'));
+      emit(const AuthError('تعذّر التحقق من البصمة، يرجى المحاولة مجدداً أو تسجيل الدخول يدوياً'));
       return;
     }
 

@@ -943,6 +943,648 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'أدخل وصف المشكلة'**
   String get enterDescription;
+
+  /// زر إعادة المحاولة
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة المحاولة'**
+  String get retryAction;
+
+  /// رسالة الإزالة من المفضلة
+  ///
+  /// In ar, this message translates to:
+  /// **'تم الإزالة من المفضلة'**
+  String get removedFromWishlist;
+
+  /// رسالة نقل المنتج للسلة
+  ///
+  /// In ar, this message translates to:
+  /// **'تم نقل المنتج للسلة'**
+  String get movedToCart;
+
+  /// زر مسح المفضلة
+  ///
+  /// In ar, this message translates to:
+  /// **'مسح المفضلة'**
+  String get clearWishlist;
+
+  /// زر مسح الكل
+  ///
+  /// In ar, this message translates to:
+  /// **'مسح الكل'**
+  String get clearAll;
+
+  /// رسالة تأكيد مسح المفضلة
+  ///
+  /// In ar, this message translates to:
+  /// **'هل أنت متأكد من مسح جميع المنتجات من المفضلة؟'**
+  String get clearWishlistConfirm;
+
+  /// رسالة نجاح مسح المفضلة
+  ///
+  /// In ar, this message translates to:
+  /// **'تم مسح المفضلة'**
+  String get wishlistCleared;
+
+  /// رسالة المفضلة الفارغة
+  ///
+  /// In ar, this message translates to:
+  /// **'قائمة المفضلة فارغة'**
+  String get emptyWishlist;
+
+  /// تلميح المفضلة الفارغة
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف المنتجات التي تعجبك للوصول إليها لاحقاً'**
+  String get emptyWishlistHint;
+
+  /// رسالة الميزة قيد التطوير
+  ///
+  /// In ar, this message translates to:
+  /// **'هذه الميزة قيد التطوير'**
+  String get featureUnderDevelopment;
+
+  /// عنوان الرصيد المتاح
+  ///
+  /// In ar, this message translates to:
+  /// **'الرصيد المتاح'**
+  String get availableBalance;
+
+  /// عنوان سجل المعاملات
+  ///
+  /// In ar, this message translates to:
+  /// **'سجل المعاملات'**
+  String get transactionHistory;
+
+  /// رسالة عدم وجود معاملات
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد معاملات'**
+  String get noTransactions;
+
+  /// زر إضافة رصيد
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة رصيد'**
+  String get addBalance;
+
+  /// زر التحويل
+  ///
+  /// In ar, this message translates to:
+  /// **'تحويل'**
+  String get transfer;
+
+  /// زر كشف الحساب
+  ///
+  /// In ar, this message translates to:
+  /// **'كشف حساب'**
+  String get statement;
+
+  /// كلمة اليوم
+  ///
+  /// In ar, this message translates to:
+  /// **'اليوم'**
+  String get today;
+
+  /// كلمة أمس
+  ///
+  /// In ar, this message translates to:
+  /// **'أمس'**
+  String get yesterday;
+
+  /// منذ عدد من الأيام
+  ///
+  /// In ar, this message translates to:
+  /// **'منذ {days} أيام'**
+  String daysAgo(int days);
+
+  /// رسالة إضافة مبلغ
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة {amount} ر.س - هذه الميزة قيد التطوير'**
+  String addBalanceAmount(int amount);
+
+  /// عنوان قسم المظهر
+  ///
+  /// In ar, this message translates to:
+  /// **'المظهر'**
+  String get appearance;
+
+  /// عنوان البصمة
+  ///
+  /// In ar, this message translates to:
+  /// **'البصمة / Face ID'**
+  String get biometric;
+
+  /// وصف البصمة
+  ///
+  /// In ar, this message translates to:
+  /// **'استخدام البصمة أو Face ID لتسجيل الدخول'**
+  String get biometricSubtitle;
+
+  /// رسالة تفعيل البصمة
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تفعيل البصمة بنجاح'**
+  String get biometricEnabled;
+
+  /// رسالة إلغاء تفعيل البصمة
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إلغاء تفعيل البصمة'**
+  String get biometricDisabled;
+
+  /// رسالة فشل التحقق من الهوية
+  ///
+  /// In ar, this message translates to:
+  /// **'فشل التحقق من الهوية'**
+  String get biometricFailed;
+
+  /// زر مشاركة التطبيق
+  ///
+  /// In ar, this message translates to:
+  /// **'شارك التطبيق'**
+  String get shareApp;
+
+  /// رسالة خطأ المشاركة
+  ///
+  /// In ar, this message translates to:
+  /// **'حدث خطأ أثناء المشاركة'**
+  String get shareError;
+
+  /// زر حذف الحساب
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الحساب'**
+  String get deleteAccount;
+
+  /// رسالة تأكيد حذف الحساب
+  ///
+  /// In ar, this message translates to:
+  /// **'هل أنت متأكد من حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.'**
+  String get deleteAccountConfirm;
+
+  /// رسالة نجاح حذف الحساب
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حذف حسابك بنجاح'**
+  String get deleteAccountSuccess;
+
+  /// رسالة خطأ حذف الحساب
+  ///
+  /// In ar, this message translates to:
+  /// **'حدث خطأ أثناء حذف الحساب'**
+  String get deleteAccountError;
+
+  /// حقل سبب الحذف
+  ///
+  /// In ar, this message translates to:
+  /// **'سبب الحذف (اختياري)'**
+  String get deleteReason;
+
+  /// تلميح سبب الحذف
+  ///
+  /// In ar, this message translates to:
+  /// **'أخبرنا لماذا تريد حذف حسابك...'**
+  String get deleteReasonHint;
+
+  /// عنوان حوار إدخال كلمة المرور
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل كلمة المرور'**
+  String get enterPassword;
+
+  /// تلميح حقل كلمة المرور للبصمة
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل كلمة المرور لحفظها لتسجيل الدخول بالبصمة'**
+  String get enterPasswordHint;
+
+  /// عنوان حوار اختيار المظهر
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر المظهر'**
+  String get chooseTheme;
+
+  /// خيار وضع الهاتف
+  ///
+  /// In ar, this message translates to:
+  /// **'وضع الهاتف'**
+  String get themeSystem;
+
+  /// وصف وضع الهاتف
+  ///
+  /// In ar, this message translates to:
+  /// **'يتبع إعدادات الهاتف'**
+  String get themeSystemSubtitle;
+
+  /// خيار الوضع النهاري
+  ///
+  /// In ar, this message translates to:
+  /// **'الوضع النهاري'**
+  String get themeLight;
+
+  /// وصف الوضع النهاري
+  ///
+  /// In ar, this message translates to:
+  /// **'مظهر فاتح'**
+  String get themeLightSubtitle;
+
+  /// خيار الوضع الليلي
+  ///
+  /// In ar, this message translates to:
+  /// **'الوضع الليلي'**
+  String get themeDark;
+
+  /// وصف الوضع الليلي
+  ///
+  /// In ar, this message translates to:
+  /// **'مظهر داكن'**
+  String get themeDarkSubtitle;
+
+  /// كلمة الإصدار
+  ///
+  /// In ar, this message translates to:
+  /// **'الإصدار'**
+  String get version;
+
+  /// عنوان قسم الإحصائيات
+  ///
+  /// In ar, this message translates to:
+  /// **'الإحصائيات'**
+  String get statistics;
+
+  /// عنوان معلومات العمل
+  ///
+  /// In ar, this message translates to:
+  /// **'معلومات العمل'**
+  String get businessInfo;
+
+  /// عنوان عناوين التوصيل
+  ///
+  /// In ar, this message translates to:
+  /// **'عناوين التوصيل'**
+  String get deliveryAddresses;
+
+  /// عنوان المحفظة والائتمان
+  ///
+  /// In ar, this message translates to:
+  /// **'المحفظة والائتمان'**
+  String get walletAndCredit;
+
+  /// عنوان رصيد المحفظة
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد المحفظة'**
+  String get walletBalance;
+
+  /// عنوان حد الائتمان
+  ///
+  /// In ar, this message translates to:
+  /// **'حد الائتمان'**
+  String get creditLimit;
+
+  /// عنوان الائتمان المستخدم
+  ///
+  /// In ar, this message translates to:
+  /// **'المستخدم'**
+  String get creditUsed;
+
+  /// الائتمان المتاح
+  ///
+  /// In ar, this message translates to:
+  /// **'المتاح: {amount} ر.س'**
+  String creditAvailable(String amount);
+
+  /// عنوان إجمالي الطلبات
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الطلبات'**
+  String get totalOrders;
+
+  /// عنوان إجمالي الإنفاق
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الإنفاق'**
+  String get totalSpent;
+
+  /// عنوان متوسط قيمة الطلب
+  ///
+  /// In ar, this message translates to:
+  /// **'متوسط قيمة الطلب'**
+  String get averageOrderValue;
+
+  /// عنوان نقاط الولاء
+  ///
+  /// In ar, this message translates to:
+  /// **'نقاط الولاء'**
+  String get loyaltyPoints;
+
+  /// عنوان اسم المتجر
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المتجر'**
+  String get shopName;
+
+  /// عنوان اسم المسؤول
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المسؤول'**
+  String get responsiblePerson;
+
+  /// عنوان نوع العمل
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع العمل'**
+  String get businessType;
+
+  /// حالة الحساب المعتمد
+  ///
+  /// In ar, this message translates to:
+  /// **'معتمد'**
+  String get verified;
+
+  /// رسالة عدم وجود عنوان افتراضي
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد عنوان افتراضي'**
+  String get noDefaultAddress;
+
+  /// تلميح إضافة عنوان
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف عنواناً لتسهيل عملية التوصيل'**
+  String get addAddressHint;
+
+  /// زر إدارة العناوين
+  ///
+  /// In ar, this message translates to:
+  /// **'إدارة العناوين'**
+  String get manageAddresses;
+
+  /// وصف قسم المرتجعات
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض وإدارة طلبات الإرجاع'**
+  String get viewReturns;
+
+  /// وصف قسم الدعم
+  ///
+  /// In ar, this message translates to:
+  /// **'التواصل مع الدعم وتتبع التذاكر'**
+  String get contactSupport;
+
+  /// رسالة عدم تسجيل الدخول
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تقم بتسجيل الدخول'**
+  String get notLoggedIn;
+
+  /// تلميح تسجيل الدخول
+  ///
+  /// In ar, this message translates to:
+  /// **'سجل الدخول للوصول إلى حسابك'**
+  String get loginToAccess;
+
+  /// رسالة تأكيد تسجيل الخروج
+  ///
+  /// In ar, this message translates to:
+  /// **'هل أنت متأكد من تسجيل الخروج؟'**
+  String get logoutConfirm;
+
+  /// زر تأكيد الخروج
+  ///
+  /// In ar, this message translates to:
+  /// **'خروج'**
+  String get logoutAction;
+
+  /// عنوان شاشة سجل المعاملات
+  ///
+  /// In ar, this message translates to:
+  /// **'سجل المعاملات'**
+  String get transactionHistoryTitle;
+
+  /// فلتر كل المعاملات
+  ///
+  /// In ar, this message translates to:
+  /// **'الكل'**
+  String get allTransactions;
+
+  /// فلتر الإيداعات
+  ///
+  /// In ar, this message translates to:
+  /// **'الإيداعات'**
+  String get deposits;
+
+  /// فلتر المدفوعات
+  ///
+  /// In ar, this message translates to:
+  /// **'المدفوعات'**
+  String get payments;
+
+  /// فلتر شحن الرصيد
+  ///
+  /// In ar, this message translates to:
+  /// **'شحن رصيد'**
+  String get topup;
+
+  /// الرصيد بعد المعاملة
+  ///
+  /// In ar, this message translates to:
+  /// **'الرصيد: {amount} ر.س'**
+  String balanceAfter(String amount);
+
+  /// منذ دقائق
+  ///
+  /// In ar, this message translates to:
+  /// **'منذ {minutes} دقيقة'**
+  String minutesAgo(int minutes);
+
+  /// منذ ساعات
+  ///
+  /// In ar, this message translates to:
+  /// **'منذ {hours} ساعة'**
+  String hoursAgo(int hours);
+
+  /// عنوان شاشة دعوة صديق
+  ///
+  /// In ar, this message translates to:
+  /// **'دعوة صديق'**
+  String get inviteFriend;
+
+  /// رسالة نسخ الكود
+  ///
+  /// In ar, this message translates to:
+  /// **'تم نسخ الكود'**
+  String get codeCopied;
+
+  /// رسالة فتح خيارات المشاركة
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح خيارات المشاركة...'**
+  String get openingShareOptions;
+
+  /// رسالة فتح واتساب
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح واتساب...'**
+  String get openingWhatsApp;
+
+  /// عنوان شاشة نقاط الولاء
+  ///
+  /// In ar, this message translates to:
+  /// **'نقاط الولاء'**
+  String get loyaltyPointsTitle;
+
+  /// عنوان شاشة مستويات الولاء
+  ///
+  /// In ar, this message translates to:
+  /// **'مستويات الولاء'**
+  String get loyaltyTiers;
+
+  /// عنوان شاشة معاملات النقاط
+  ///
+  /// In ar, this message translates to:
+  /// **'معاملات النقاط'**
+  String get pointsTransactions;
+
+  /// عنوان شاشة تنبيهات المخزون
+  ///
+  /// In ar, this message translates to:
+  /// **'تنبيهات المخزون'**
+  String get stockAlerts;
+
+  /// زر عرض تنبيهات المخزون
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض تنبيهات المخزون'**
+  String get viewStockAlerts;
+
+  /// وصف المفضلة الفارغة
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تقم بإضافة أي منتجات إلى المفضلة بعد.\nتصفح منتجاتنا وأضف ما يعجبك!'**
+  String get emptyWishlistDescription;
+
+  /// زر تصفح المنتجات
+  ///
+  /// In ar, this message translates to:
+  /// **'تصفح المنتجات'**
+  String get browseProducts;
+
+  /// عنوان شاشة تفاصيل التذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل التذكرة'**
+  String get ticketDetails;
+
+  /// زر تذكرة جديدة
+  ///
+  /// In ar, this message translates to:
+  /// **'تذكرة جديدة'**
+  String get newTicket;
+
+  /// زر إرسال التذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال التذكرة'**
+  String get sendTicket;
+
+  /// رسالة نجاح إرسال التذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إرسال التذكرة بنجاح'**
+  String get ticketSentSuccess;
+
+  /// خيار تحويل المحادثة لتذكرة
+  ///
+  /// In ar, this message translates to:
+  /// **'تحويل إلى تذكرة'**
+  String get convertToTicket;
+
+  /// خيار تقييم المحادثة
+  ///
+  /// In ar, this message translates to:
+  /// **'تقييم المحادثة'**
+  String get rateChat;
+
+  /// رسالة تأكيد إنهاء المحادثة
+  ///
+  /// In ar, this message translates to:
+  /// **'هل تريد إنهاء المحادثة؟'**
+  String get endChatConfirm;
+
+  /// زر تأكيد إنهاء المحادثة
+  ///
+  /// In ar, this message translates to:
+  /// **'إنهاء'**
+  String get endChatAction;
+
+  /// زر تخطي
+  ///
+  /// In ar, this message translates to:
+  /// **'تخطي'**
+  String get skip;
+
+  /// زر إرسال
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال'**
+  String get send;
+
+  /// خيار معرض الصور
+  ///
+  /// In ar, this message translates to:
+  /// **'معرض الصور'**
+  String get gallery;
+
+  /// خيار التقاط صورة
+  ///
+  /// In ar, this message translates to:
+  /// **'التقاط صورة'**
+  String get takePhoto;
+
+  /// عنوان شاشة التقييمات المعلقة
+  ///
+  /// In ar, this message translates to:
+  /// **'بانتظار التقييم'**
+  String get pendingReviews;
+
+  /// عنوان شاشة إضافة تقييم
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف تقييم'**
+  String get addReview;
+
+  /// زر إرسال التقييم
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال التقييم'**
+  String get submitReview;
+
+  /// رسالة نجاح إرسال التقييم
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إرسال تقييمك بنجاح'**
+  String get reviewSentSuccess;
+
+  /// عنوان شاشة تقييماتي
+  ///
+  /// In ar, this message translates to:
+  /// **'تقييماتي'**
+  String get myReviews;
+
+  /// عنوان شاشة إعدادات الإشعارات
+  ///
+  /// In ar, this message translates to:
+  /// **'إعدادات الإشعارات'**
+  String get notificationSettings;
+
+  /// عنوان شاشة تفاصيل الإرجاع
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل طلب الإرجاع'**
+  String get returnDetails;
 }
 
 class _AppLocalizationsDelegate

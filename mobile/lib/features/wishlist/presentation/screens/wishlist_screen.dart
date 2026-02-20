@@ -43,7 +43,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
     await _cubit.removeFromWishlist(productId);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم الإزالة من المفضلة')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.removedFromWishlist)),
       );
     }
   }
@@ -52,25 +52,26 @@ class _WishlistScreenState extends State<WishlistScreen> {
     await _cubit.moveToCart(productId);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم نقل المنتج للسلة')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.movedToCart)),
       );
     }
   }
 
   Future<void> _clearWishlist() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('مسح المفضلة'),
-        content: const Text('هل أنت متأكد من مسح جميع المنتجات من المفضلة؟'),
+        title: Text(l10n.clearWishlist),
+        content: Text(l10n.clearWishlistConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('مسح', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -80,7 +81,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
       await _cubit.clearWishlist();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم مسح المفضلة')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.wishlistCleared)),
         );
       }
     }
@@ -112,7 +113,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                 if (state is WishlistLoaded && state.items.isNotEmpty) {
                   return TextButton(
                     onPressed: _clearWishlist,
-                    child: const Text('مسح الكل'),
+                    child: Text(AppLocalizations.of(context)!.clearAll),
                   );
                 }
                 return const SizedBox.shrink();
@@ -150,7 +151,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     SizedBox(height: 16.h),
                     ElevatedButton(
                       onPressed: () => _cubit.loadWishlist(),
-                      child: const Text('إعادة المحاولة'),
+                      child: Text(AppLocalizations.of(context)!.retryAction),
                     ),
                   ],
                 ),
@@ -199,14 +200,14 @@ class _WishlistScreenState extends State<WishlistScreen> {
           ),
           SizedBox(height: 24.h),
           Text(
-            'قائمة المفضلة فارغة',
+            AppLocalizations.of(context)!.emptyWishlist,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
           SizedBox(height: 8.h),
           Text(
-            'أضف المنتجات التي تعجبك للوصول إليها لاحقاً',
+            AppLocalizations.of(context)!.emptyWishlistHint,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: AppColors.textTertiaryLight,
             ),

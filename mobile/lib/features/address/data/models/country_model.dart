@@ -1,4 +1,8 @@
 /// Country Model - الدول
+library;
+
+import '../../domain/entities/country_entity.dart';
+
 class CountryModel {
   final String id;
   final String name;
@@ -59,4 +63,17 @@ class CountryModel {
 
   /// تنسيق رقم الهاتف
   String formatPhone(String phone) => '$phoneCode$phone';
+
+  CountryEntity toEntity() => CountryEntity(
+        id: id,
+        name: name,
+        nameAr: nameAr,
+        code: code,
+        code3: code3,
+        phoneCode: phoneCode,
+        currency: currency,
+        flag: flag,
+        isActive: isActive,
+        isDefault: isDefault,
+      );
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class MyReviewsScreen extends StatelessWidget {
   const MyReviewsScreen({super.key});
@@ -38,7 +39,7 @@ class MyReviewsScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('تقييماتي')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.myReviews)),
       body: reviews.isEmpty
           ? _buildEmptyState(isDark)
           : ListView.separated(
@@ -150,7 +151,7 @@ class MyReviewsScreen extends StatelessWidget {
           children: [
             ListTile(
               leading: const Icon(Iconsax.edit),
-              title: const Text('تعديل'),
+              title: Text(AppLocalizations.of(context)!.edit),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(

@@ -2,22 +2,22 @@
 library;
 
 import 'package:equatable/equatable.dart';
-import '../../data/models/country_model.dart';
-import '../../data/models/city_model.dart';
-import '../../data/models/market_model.dart';
-import '../../data/models/shipping_calculation_model.dart';
+import '../../domain/entities/city_entity.dart';
+import '../../domain/entities/country_entity.dart';
+import '../../domain/entities/market_entity.dart';
+import '../../domain/entities/shipping_calculation_entity.dart';
 
 enum LocationsStatus { initial, loading, success, failure }
 
 class LocationsState extends Equatable {
   final LocationsStatus status;
-  final List<CountryModel> countries;
-  final List<CityModel> cities;
-  final List<MarketModel> markets;
-  final CountryModel? selectedCountry;
-  final CityModel? selectedCity;
-  final MarketModel? selectedMarket;
-  final ShippingCalculationModel? shippingCalculation;
+  final List<CountryEntity> countries;
+  final List<CityEntity> cities;
+  final List<MarketEntity> markets;
+  final CountryEntity? selectedCountry;
+  final CityEntity? selectedCity;
+  final MarketEntity? selectedMarket;
+  final ShippingCalculationEntity? shippingCalculation;
   final String? errorMessage;
 
   const LocationsState({
@@ -34,13 +34,13 @@ class LocationsState extends Equatable {
 
   LocationsState copyWith({
     LocationsStatus? status,
-    List<CountryModel>? countries,
-    List<CityModel>? cities,
-    List<MarketModel>? markets,
-    CountryModel? selectedCountry,
-    CityModel? selectedCity,
-    MarketModel? selectedMarket,
-    ShippingCalculationModel? shippingCalculation,
+    List<CountryEntity>? countries,
+    List<CityEntity>? cities,
+    List<MarketEntity>? markets,
+    CountryEntity? selectedCountry,
+    CityEntity? selectedCity,
+    MarketEntity? selectedMarket,
+    ShippingCalculationEntity? shippingCalculation,
     String? errorMessage,
   }) {
     return LocationsState(
@@ -58,14 +58,14 @@ class LocationsState extends Equatable {
 
   @override
   List<Object?> get props => [
-    status,
-    countries,
-    cities,
-    markets,
-    selectedCountry,
-    selectedCity,
-    selectedMarket,
-    shippingCalculation,
-    errorMessage,
-  ];
+        status,
+        countries,
+        cities,
+        markets,
+        selectedCountry,
+        selectedCity,
+        selectedMarket,
+        shippingCalculation,
+        errorMessage,
+      ];
 }

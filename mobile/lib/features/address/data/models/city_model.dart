@@ -1,4 +1,8 @@
 /// City Model - المدن
+library;
+
+import '../../domain/entities/city_entity.dart';
+
 class CityModel {
   final String id;
   final String name;
@@ -100,4 +104,20 @@ class CityModel {
 
   /// الحصول على المنطقة حسب اللغة
   String? getRegion(String locale) => locale == 'ar' ? regionAr : region;
+
+  CityEntity toEntity() => CityEntity(
+        id: id,
+        name: name,
+        nameAr: nameAr,
+        countryId: countryId,
+        shippingZoneId: shippingZoneId,
+        latitude: latitude,
+        longitude: longitude,
+        timezone: timezone,
+        region: region,
+        regionAr: regionAr,
+        isActive: isActive,
+        isCapital: isCapital,
+        displayOrder: displayOrder,
+      );
 }

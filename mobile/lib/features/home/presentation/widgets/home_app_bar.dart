@@ -17,15 +17,34 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AppBar(
+      elevation: 0,
+      scrolledUnderElevation: 0.5,
       leadingWidth: 200.w,
       leading: Row(
         children: [
           SizedBox(width: 16.w),
-          Image.asset(
-            isDark ? 'assets/images/logo_dark.png' : 'assets/images/logo.png',
+          Container(
             width: 36.w,
             height: 36.w,
-            fit: BoxFit.contain,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10.r),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10.r),
+              child: Image.asset(
+                isDark ? 'assets/images/logo_dark.png' : 'assets/images/logo.png',
+                width: 36.w,
+                height: 36.w,
+                fit: BoxFit.contain,
+              ),
+            ),
           ),
           SizedBox(width: 10.w),
           Flexible(
@@ -33,7 +52,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
               AppLocalizations.of(context)!.appName,
               style: TextStyle(
                 fontSize: 20.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
                 color: isDark
                     ? AppColors.textPrimaryDark
                     : AppColors.textPrimaryLight,
@@ -45,13 +64,46 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
-        IconButton(
-          onPressed: () => context.push('/search'),
-          icon: Icon(Iconsax.search_normal, size: 24.sp),
+        // Search button with subtle background
+        _ActionButton(
+          icon: Iconsax.search_normal,
+          isDark: isDark,
+          onTap: () => context.push('/search'),
         ),
+        SizedBox(width: 4.w),
         const NotificationButton(),
-        SizedBox(width: 8.w),
+        SizedBox(width: 12.w),
       ],
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _ActionButton({
+    required this.icon,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 38.w,
+        height: 38.w,
+        decoration: BoxDecoration(
+          color: isDark
+              ? AppColors.cardDark
+              : AppColors.backgroundLight,
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+        child: Icon(icon, size: 20.sp),
+      ),
     );
   }
 }

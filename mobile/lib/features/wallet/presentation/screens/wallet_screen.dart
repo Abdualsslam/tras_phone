@@ -53,7 +53,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   SizedBox(height: 16.h),
                   ElevatedButton(
                     onPressed: () => context.read<WalletCubit>().loadAll(),
-                    child: const Text('إعادة المحاولة'),
+                    child: Text(AppLocalizations.of(context)!.retryAction),
                   ),
                 ],
               ),
@@ -118,7 +118,7 @@ class _WalletScreenState extends State<WalletScreen> {
               Icon(Iconsax.wallet_3, color: Colors.white, size: 24.sp),
               SizedBox(width: 8.w),
               Text(
-                'الرصيد المتاح',
+                AppLocalizations.of(context)!.availableBalance,
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: Colors.white.withValues(alpha: 0.8),
@@ -166,7 +166,7 @@ class _WalletScreenState extends State<WalletScreen> {
             theme,
             isDark,
             icon: Iconsax.add,
-            label: 'إضافة رصيد',
+            label: AppLocalizations.of(context)!.addBalance,
             color: AppColors.success,
             onTap: () {
               HapticFeedback.mediumImpact();
@@ -180,14 +180,14 @@ class _WalletScreenState extends State<WalletScreen> {
             theme,
             isDark,
             icon: Iconsax.arrow_swap_horizontal,
-            label: 'تحويل',
+            label: AppLocalizations.of(context)!.transfer,
             color: Colors.blue,
             onTap: () {
               HapticFeedback.mediumImpact();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('هذه الميزة قيد التطوير'),
-                  duration: Duration(seconds: 2),
+                SnackBar(
+                  content: Text(AppLocalizations.of(context)!.featureUnderDevelopment),
+                  duration: const Duration(seconds: 2),
                 ),
               );
             },
@@ -199,7 +199,7 @@ class _WalletScreenState extends State<WalletScreen> {
             theme,
             isDark,
             icon: Iconsax.document_text,
-            label: 'كشف حساب',
+            label: AppLocalizations.of(context)!.statement,
             color: Colors.orange,
             onTap: () {
               HapticFeedback.mediumImpact();
@@ -268,14 +268,14 @@ class _WalletScreenState extends State<WalletScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'سجل المعاملات',
+              AppLocalizations.of(context)!.transactionHistory,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             TextButton(
               onPressed: () => context.push('/wallet/transactions'),
-              child: const Text('عرض الكل'),
+              child: Text(AppLocalizations.of(context)!.viewAll),
             ),
           ],
         ),
@@ -297,7 +297,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                   SizedBox(height: 16.h),
                   Text(
-                    'لا توجد معاملات',
+                    AppLocalizations.of(context)!.noTransactions,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: AppColors.textTertiaryLight,
                     ),
@@ -407,12 +407,13 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   String _formatDate(DateTime date) {
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final diff = now.difference(date);
 
-    if (diff.inDays == 0) return 'اليوم';
-    if (diff.inDays == 1) return 'أمس';
-    if (diff.inDays < 7) return 'منذ ${diff.inDays} أيام';
+    if (diff.inDays == 0) return l10n.today;
+    if (diff.inDays == 1) return l10n.yesterday;
+    if (diff.inDays < 7) return l10n.daysAgo(diff.inDays);
     return '${date.day}/${date.month}/${date.year}';
   }
 
@@ -438,7 +439,7 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
             SizedBox(height: 24.h),
             Text(
-              'إضافة رصيد',
+              AppLocalizations.of(context)!.addBalance,
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -455,7 +456,7 @@ class _WalletScreenState extends State<WalletScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'إضافة $amount ر.س - هذه الميزة قيد التطوير',
+                          AppLocalizations.of(context)!.addBalanceAmount(amount),
                         ),
                         duration: const Duration(seconds: 2),
                       ),
@@ -486,7 +487,7 @@ class _WalletScreenState extends State<WalletScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('إضافة'),
+                child: Text(AppLocalizations.of(context)!.addBalance),
               ),
             ),
             SizedBox(height: MediaQuery.of(ctx).viewInsets.bottom + 16.h),

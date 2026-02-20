@@ -430,4 +430,341 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get enterDescription => 'أدخل وصف المشكلة';
+
+  @override
+  String get retryAction => 'إعادة المحاولة';
+
+  @override
+  String get removedFromWishlist => 'تم الإزالة من المفضلة';
+
+  @override
+  String get movedToCart => 'تم نقل المنتج للسلة';
+
+  @override
+  String get clearWishlist => 'مسح المفضلة';
+
+  @override
+  String get clearAll => 'مسح الكل';
+
+  @override
+  String get clearWishlistConfirm =>
+      'هل أنت متأكد من مسح جميع المنتجات من المفضلة؟';
+
+  @override
+  String get wishlistCleared => 'تم مسح المفضلة';
+
+  @override
+  String get emptyWishlist => 'قائمة المفضلة فارغة';
+
+  @override
+  String get emptyWishlistHint => 'أضف المنتجات التي تعجبك للوصول إليها لاحقاً';
+
+  @override
+  String get featureUnderDevelopment => 'هذه الميزة قيد التطوير';
+
+  @override
+  String get availableBalance => 'الرصيد المتاح';
+
+  @override
+  String get transactionHistory => 'سجل المعاملات';
+
+  @override
+  String get noTransactions => 'لا توجد معاملات';
+
+  @override
+  String get addBalance => 'إضافة رصيد';
+
+  @override
+  String get transfer => 'تحويل';
+
+  @override
+  String get statement => 'كشف حساب';
+
+  @override
+  String get today => 'اليوم';
+
+  @override
+  String get yesterday => 'أمس';
+
+  @override
+  String daysAgo(int days) {
+    return 'منذ $days أيام';
+  }
+
+  @override
+  String addBalanceAmount(int amount) {
+    return 'إضافة $amount ر.س - هذه الميزة قيد التطوير';
+  }
+
+  @override
+  String get appearance => 'المظهر';
+
+  @override
+  String get biometric => 'البصمة / Face ID';
+
+  @override
+  String get biometricSubtitle => 'استخدام البصمة أو Face ID لتسجيل الدخول';
+
+  @override
+  String get biometricEnabled => 'تم تفعيل البصمة بنجاح';
+
+  @override
+  String get biometricDisabled => 'تم إلغاء تفعيل البصمة';
+
+  @override
+  String get biometricFailed => 'فشل التحقق من الهوية';
+
+  @override
+  String get shareApp => 'شارك التطبيق';
+
+  @override
+  String get shareError => 'حدث خطأ أثناء المشاركة';
+
+  @override
+  String get deleteAccount => 'حذف الحساب';
+
+  @override
+  String get deleteAccountConfirm =>
+      'هل أنت متأكد من حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.';
+
+  @override
+  String get deleteAccountSuccess => 'تم حذف حسابك بنجاح';
+
+  @override
+  String get deleteAccountError => 'حدث خطأ أثناء حذف الحساب';
+
+  @override
+  String get deleteReason => 'سبب الحذف (اختياري)';
+
+  @override
+  String get deleteReasonHint => 'أخبرنا لماذا تريد حذف حسابك...';
+
+  @override
+  String get enterPassword => 'أدخل كلمة المرور';
+
+  @override
+  String get enterPasswordHint =>
+      'أدخل كلمة المرور لحفظها لتسجيل الدخول بالبصمة';
+
+  @override
+  String get chooseTheme => 'اختر المظهر';
+
+  @override
+  String get themeSystem => 'وضع الهاتف';
+
+  @override
+  String get themeSystemSubtitle => 'يتبع إعدادات الهاتف';
+
+  @override
+  String get themeLight => 'الوضع النهاري';
+
+  @override
+  String get themeLightSubtitle => 'مظهر فاتح';
+
+  @override
+  String get themeDark => 'الوضع الليلي';
+
+  @override
+  String get themeDarkSubtitle => 'مظهر داكن';
+
+  @override
+  String get version => 'الإصدار';
+
+  @override
+  String get statistics => 'الإحصائيات';
+
+  @override
+  String get businessInfo => 'معلومات العمل';
+
+  @override
+  String get deliveryAddresses => 'عناوين التوصيل';
+
+  @override
+  String get walletAndCredit => 'المحفظة والائتمان';
+
+  @override
+  String get walletBalance => 'رصيد المحفظة';
+
+  @override
+  String get creditLimit => 'حد الائتمان';
+
+  @override
+  String get creditUsed => 'المستخدم';
+
+  @override
+  String creditAvailable(String amount) {
+    return 'المتاح: $amount ر.س';
+  }
+
+  @override
+  String get totalOrders => 'إجمالي الطلبات';
+
+  @override
+  String get totalSpent => 'إجمالي الإنفاق';
+
+  @override
+  String get averageOrderValue => 'متوسط قيمة الطلب';
+
+  @override
+  String get loyaltyPoints => 'نقاط الولاء';
+
+  @override
+  String get shopName => 'اسم المتجر';
+
+  @override
+  String get responsiblePerson => 'اسم المسؤول';
+
+  @override
+  String get businessType => 'نوع العمل';
+
+  @override
+  String get verified => 'معتمد';
+
+  @override
+  String get noDefaultAddress => 'لا يوجد عنوان افتراضي';
+
+  @override
+  String get addAddressHint => 'أضف عنواناً لتسهيل عملية التوصيل';
+
+  @override
+  String get manageAddresses => 'إدارة العناوين';
+
+  @override
+  String get viewReturns => 'عرض وإدارة طلبات الإرجاع';
+
+  @override
+  String get contactSupport => 'التواصل مع الدعم وتتبع التذاكر';
+
+  @override
+  String get notLoggedIn => 'لم تقم بتسجيل الدخول';
+
+  @override
+  String get loginToAccess => 'سجل الدخول للوصول إلى حسابك';
+
+  @override
+  String get logoutConfirm => 'هل أنت متأكد من تسجيل الخروج؟';
+
+  @override
+  String get logoutAction => 'خروج';
+
+  @override
+  String get transactionHistoryTitle => 'سجل المعاملات';
+
+  @override
+  String get allTransactions => 'الكل';
+
+  @override
+  String get deposits => 'الإيداعات';
+
+  @override
+  String get payments => 'المدفوعات';
+
+  @override
+  String get topup => 'شحن رصيد';
+
+  @override
+  String balanceAfter(String amount) {
+    return 'الرصيد: $amount ر.س';
+  }
+
+  @override
+  String minutesAgo(int minutes) {
+    return 'منذ $minutes دقيقة';
+  }
+
+  @override
+  String hoursAgo(int hours) {
+    return 'منذ $hours ساعة';
+  }
+
+  @override
+  String get inviteFriend => 'دعوة صديق';
+
+  @override
+  String get codeCopied => 'تم نسخ الكود';
+
+  @override
+  String get openingShareOptions => 'فتح خيارات المشاركة...';
+
+  @override
+  String get openingWhatsApp => 'فتح واتساب...';
+
+  @override
+  String get loyaltyPointsTitle => 'نقاط الولاء';
+
+  @override
+  String get loyaltyTiers => 'مستويات الولاء';
+
+  @override
+  String get pointsTransactions => 'معاملات النقاط';
+
+  @override
+  String get stockAlerts => 'تنبيهات المخزون';
+
+  @override
+  String get viewStockAlerts => 'عرض تنبيهات المخزون';
+
+  @override
+  String get emptyWishlistDescription =>
+      'لم تقم بإضافة أي منتجات إلى المفضلة بعد.\nتصفح منتجاتنا وأضف ما يعجبك!';
+
+  @override
+  String get browseProducts => 'تصفح المنتجات';
+
+  @override
+  String get ticketDetails => 'تفاصيل التذكرة';
+
+  @override
+  String get newTicket => 'تذكرة جديدة';
+
+  @override
+  String get sendTicket => 'إرسال التذكرة';
+
+  @override
+  String get ticketSentSuccess => 'تم إرسال التذكرة بنجاح';
+
+  @override
+  String get convertToTicket => 'تحويل إلى تذكرة';
+
+  @override
+  String get rateChat => 'تقييم المحادثة';
+
+  @override
+  String get endChatConfirm => 'هل تريد إنهاء المحادثة؟';
+
+  @override
+  String get endChatAction => 'إنهاء';
+
+  @override
+  String get skip => 'تخطي';
+
+  @override
+  String get send => 'إرسال';
+
+  @override
+  String get gallery => 'معرض الصور';
+
+  @override
+  String get takePhoto => 'التقاط صورة';
+
+  @override
+  String get pendingReviews => 'بانتظار التقييم';
+
+  @override
+  String get addReview => 'أضف تقييم';
+
+  @override
+  String get submitReview => 'إرسال التقييم';
+
+  @override
+  String get reviewSentSuccess => 'تم إرسال تقييمك بنجاح';
+
+  @override
+  String get myReviews => 'تقييماتي';
+
+  @override
+  String get notificationSettings => 'إعدادات الإشعارات';
+
+  @override
+  String get returnDetails => 'تفاصيل طلب الإرجاع';
 }

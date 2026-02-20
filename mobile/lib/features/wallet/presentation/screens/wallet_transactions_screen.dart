@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../cubit/wallet_cubit.dart';
 import '../cubit/wallet_state.dart';
 import '../../data/models/wallet_transaction_model.dart';
@@ -75,7 +76,7 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
     final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('سجل المعاملات')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.transactionHistoryTitle)),
       body: BlocBuilder<WalletCubit, WalletState>(
         builder: (context, state) {
           if (state is WalletLoading && state is! WalletLoaded) {
@@ -98,7 +99,7 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
                             transactionType: _selectedType,
                           );
                     },
-                    child: const Text('إعادة المحاولة'),
+                    child: Text(AppLocalizations.of(context)!.retryAction),
                   ),
                 ],
               ),
@@ -121,28 +122,28 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
                       _buildFilterChip(
                         context,
                         null,
-                        'الكل',
+                        AppLocalizations.of(context)!.allTransactions,
                         isDark,
                       ),
                       SizedBox(width: 8.w),
                       _buildFilterChip(
                         context,
                         WalletTransactionType.orderRefund,
-                        'الإيداعات',
+                        AppLocalizations.of(context)!.deposits,
                         isDark,
                       ),
                       SizedBox(width: 8.w),
                       _buildFilterChip(
                         context,
                         WalletTransactionType.orderPayment,
-                        'المدفوعات',
+                        AppLocalizations.of(context)!.payments,
                         isDark,
                       ),
                       SizedBox(width: 8.w),
                       _buildFilterChip(
                         context,
                         WalletTransactionType.walletTopup,
-                        'شحن رصيد',
+                        AppLocalizations.of(context)!.topup,
                         isDark,
                       ),
                     ],
@@ -173,7 +174,7 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
                               ),
                               SizedBox(height: 16.h),
                               Text(
-                                'لا توجد معاملات',
+                                AppLocalizations.of(context)!.noTransactions,
                                 style: TextStyle(
                                   color: AppColors.textTertiaryLight,
                                 ),
@@ -387,7 +388,7 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
               ),
               SizedBox(height: 4.h),
               Text(
-                'الرصيد: ${transaction.balanceAfter.toStringAsFixed(2)} ر.س',
+                AppLocalizations.of(context)!.balanceAfter(transaction.balanceAfter.toStringAsFixed(2)),
                 style: TextStyle(
                   fontSize: 11.sp,
                   color: AppColors.textTertiaryLight,
@@ -401,17 +402,18 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
   }
 
   String _formatDate(DateTime date) {
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final diff = now.difference(date);
 
     if (diff.inDays == 0) {
       if (diff.inHours == 0) {
-        return 'منذ ${diff.inMinutes} دقيقة';
+        return l10n.minutesAgo(diff.inMinutes);
       }
-      return 'منذ ${diff.inHours} ساعة';
+      return l10n.hoursAgo(diff.inHours);
     }
-    if (diff.inDays == 1) return 'أمس';
-    if (diff.inDays < 7) return 'منذ ${diff.inDays} أيام';
+    if (diff.inDays == 1) return l10n.yesterday;
+    if (diff.inDays < 7) return l10n.daysAgo(diff.inDays);
     return '${date.day}/${date.month}/${date.year}';
   }
 }

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -7,6 +6,7 @@ import '../../../../core/cache/image_cache_config.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../catalog/domain/entities/category_entity.dart';
+import 'package:iconsax/iconsax.dart';
 import 'home_helpers.dart';
 import 'section_header.dart';
 
@@ -26,138 +26,117 @@ class CategoriesSection extends StatelessWidget {
       children: [
         SectionHeader(
           title: AppLocalizations.of(context)!.categories,
+          icon: Iconsax.category,
           onSeeAll: () => context.push('/categories'),
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: 14.h),
         SizedBox(
-          height: 110.h,
+          height: 100.h,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             itemCount: categories.length,
-            separatorBuilder: (_, __) => SizedBox(width: 12.w),
+            separatorBuilder: (_, _) => SizedBox(width: 14.w),
             itemBuilder: (context, index) {
               final category = categories[index];
-              return GestureDetector(
-                onTap: () => context.push('/category/${category.id}'),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18.r),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      width: 80.w,
-                      padding: EdgeInsets.symmetric(
-                        vertical: 12.h,
-                        horizontal: 8.w,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: isDark
-                              ? [
-                                  Colors.white.withValues(alpha: 0.1),
-                                  Colors.white.withValues(alpha: 0.05),
-                                ]
-                              : [
-                                  Colors.white.withValues(alpha: 0.9),
-                                  Colors.white.withValues(alpha: 0.7),
-                                ],
-                        ),
-                        borderRadius: BorderRadius.circular(18.r),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.15)
-                              : AppColors.primary.withValues(alpha: 0.15),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 48.w,
-                            height: 48.w,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12.r),
-                              border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.2),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.08),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10.r),
-                              child: category.image != null &&
-                                      category.image!.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: category.image!,
-                                      cacheKey: imageCacheKey(category.image!),
-                                      cacheManager: imageCacheManager,
-                                      fit: BoxFit.cover,
-                                      width: 48.w,
-                                      height: 48.w,
-                                      placeholder: (context, url) => Center(
-                                        child: SizedBox(
-                                          width: 20.w,
-                                          height: 20.w,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                      ),
-                                      errorWidget: (context, url, error) =>
-                                          Icon(
-                                        HomeHelpers.getCategoryIcon(category.slug),
-                                        size: 24.sp,
-                                        color: AppColors.primary,
-                                      ),
-                                    )
-                                  : Icon(
-                                      HomeHelpers.getCategoryIcon(category.slug),
-                                      size: 24.sp,
-                                      color: AppColors.primary,
-                                    ),
-                            ),
-                          ),
-                          SizedBox(height: 8.h),
-                          Text(
-                            category.nameAr,
-                            style: TextStyle(
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.textPrimaryLight,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+              return _CategoryChip(
+                category: category,
+                isDark: isDark,
               );
             },
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  final CategoryEntity category;
+  final bool isDark;
+
+  const _CategoryChip({
+    required this.category,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/category/${category.id}'),
+      child: SizedBox(
+        width: 74.w,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icon circle
+            Container(
+              width: 56.w,
+              height: 56.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark
+                    ? AppColors.cardDark
+                    : Colors.white,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  if (!isDark)
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                ],
+              ),
+              child: ClipOval(
+                child: category.image != null && category.image!.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: category.image!,
+                        cacheKey: imageCacheKey(category.image!),
+                        cacheManager: imageCacheManager,
+                        fit: BoxFit.cover,
+                        width: 56.w,
+                        height: 56.w,
+                        placeholder: (_, _) => _buildIconFallback(),
+                        errorWidget: (_, _, _) => _buildIconFallback(),
+                      )
+                    : _buildIconFallback(),
+              ),
+            ),
+            SizedBox(height: 8.h),
+            // Label
+            Text(
+              category.nameAr,
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIconFallback() {
+    return Container(
+      color: AppColors.primary.withValues(alpha: 0.06),
+      child: Center(
+        child: Icon(
+          HomeHelpers.getCategoryIcon(category.slug),
+          size: 24.sp,
+          color: AppColors.primary,
+        ),
+      ),
     );
   }
 }

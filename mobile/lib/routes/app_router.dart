@@ -65,10 +65,6 @@ import '../features/profile/presentation/screens/addresses_list_screen.dart';
 import '../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../features/profile/presentation/screens/change_password_screen.dart';
 import '../features/profile/presentation/screens/add_edit_address_screen.dart';
-import '../features/admin/presentation/screens/admin_dashboard_screen.dart';
-import '../features/admin/presentation/screens/admin_orders_screen.dart';
-import '../features/admin/presentation/screens/admin_customers_screen.dart';
-import '../features/admin/presentation/screens/admin_order_details_screen.dart';
 import '../features/catalog/presentation/screens/advanced_search_screen.dart';
 import '../features/catalog/presentation/screens/product_search_results_screen.dart';
 import '../features/reviews/presentation/screens/pending_reviews_screen.dart';
@@ -368,22 +364,6 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // ═══════════════════════════════════════════════════════════════════════
-    // ADMIN ROUTES
-    // ═══════════════════════════════════════════════════════════════════════
-    GoRoute(
-      path: '/admin',
-      builder: (context, state) => const AdminDashboardScreen(),
-    ),
-    GoRoute(
-      path: '/admin/orders',
-      builder: (context, state) => const AdminOrdersScreen(),
-    ),
-    GoRoute(
-      path: '/admin/customers',
-      builder: (context, state) => const AdminCustomersScreen(),
-    ),
-
-    // ═══════════════════════════════════════════════════════════════════════
     // NEW CATALOG ROUTES
     // ═══════════════════════════════════════════════════════════════════════
     GoRoute(
@@ -593,17 +573,6 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/wishlist-empty',
       builder: (context, state) => const WishlistEmptyScreen(),
-    ),
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // NEW ADMIN ROUTES
-    // ═══════════════════════════════════════════════════════════════════════
-    GoRoute(
-      path: '/admin/order/:id',
-      builder: (context, state) {
-        final id = state.pathParameters['id'] ?? '';
-        return AdminOrderDetailsScreen(orderId: id);
-      },
     ),
   ],
 );

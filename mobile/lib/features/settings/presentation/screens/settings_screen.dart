@@ -84,8 +84,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   return _buildNavigationTile(
                     theme,
                     icon: Iconsax.moon,
-                    title: 'المظهر',
-                    subtitle: _getThemeName(themeState.themeMode),
+                    title: AppLocalizations.of(context)!.appearance,
+                    subtitle: _getThemeName(context, themeState.themeMode),
                     onTap: () => _showThemeDialog(context),
                   );
                 },
@@ -144,8 +144,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildSwitchTile(
                   theme,
                   icon: Iconsax.finger_scan,
-                  title: 'البصمة / Face ID',
-                  subtitle: 'استخدام البصمة أو Face ID لتسجيل الدخول',
+                  title: AppLocalizations.of(context)!.biometric,
+                  subtitle: AppLocalizations.of(context)!.biometricSubtitle,
                   value: _biometricEnabled,
                   onChanged: (value) async {
                     final biometricService = getIt<BiometricService>();
@@ -157,28 +157,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         localizedReason: 'يرجى التحقق من هويتك لتفعيل البصمة',
                       );
                       if (authenticated) {
-                        // Check if we need to save credentials
                         final hasCredentials =
                             await credentialService.hasCredentials();
-                        if (!hasCredentials) {
-                          final password = await _showPasswordDialog();
-                          if (password == null || !mounted) return;
-                          final authCubit = context.read<AuthCubit>();
-                          final user = authCubit.currentUser;
-                          if (user == null || !mounted) return;
-                          await credentialService.saveCredentials(
-                            phone: user.phone,
-                            password: password,
-                          );
-                        }
                         await biometricService.setEnabled(true);
                         if (mounted) {
                           setState(() {
                             _biometricEnabled = true;
                           });
+                          final message = hasCredentials
+                              ? AppLocalizations.of(context)!.biometricEnabled
+                              : 'تم تفعيل البصمة. سيتم تجهيز تسجيل الدخول بالبصمة بعد تسجيل الدخول القادم يدوياً';
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('تم تفعيل البصمة بنجاح'),
+                            SnackBar(
+                              content: Text(message),
                               backgroundColor: AppColors.success,
                             ),
                           );
@@ -186,8 +177,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       } else {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('فشل التحقق من الهوية'),
+                            SnackBar(
+                              content: Text(AppLocalizations.of(context)!.biometricFailed),
                               backgroundColor: AppColors.error,
                             ),
                           );
@@ -201,8 +192,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           _biometricEnabled = false;
                         });
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('تم إلغاء تفعيل البصمة'),
+                          SnackBar(
+                            content: Text(AppLocalizations.of(context)!.biometricDisabled),
                             backgroundColor: AppColors.success,
                           ),
                         );
@@ -234,7 +225,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildNavigationTile(
                 theme,
                 icon: Iconsax.share,
-                title: 'شارك التطبيق',
+                title: AppLocalizations.of(context)!.shareApp,
                 onTap: () async {
                   try {
                     final shareService = getIt<ShareService>();
@@ -243,7 +234,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('حدث خطأ أثناء المشاركة: $e'),
+                          content: Text('${AppLocalizations.of(context)!.shareError}: $e'),
                           backgroundColor: AppColors.error,
                         ),
                       );
@@ -259,7 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildNavigationTile(
                 theme,
                 icon: Iconsax.trash,
-                title: 'حذف الحساب',
+                title: AppLocalizations.of(context)!.deleteAccount,
                 titleColor: AppColors.error,
                 onTap: () => _showDeleteAccountDialog(),
               ),
@@ -430,43 +421,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<String?> _showPasswordDialog() async {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('أدخل كلمة المرور'),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          decoration: InputDecoration(
-            labelText: 'كلمة المرور',
-            hintText: 'أدخل كلمة المرور لحفظها لتسجيل الدخول بالبصمة',
-            border: const OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 12.w,
-              vertical: 12.h,
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final password = controller.text.trim();
-              Navigator.pop(ctx, password.isNotEmpty ? password : null);
-            },
-            child: const Text('حفظ'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showDeleteAccountDialog() {
     final reasonController = TextEditingController();
     final profileCubit = getIt<ProfileCubit>();
@@ -494,22 +448,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final isLoading = state is ProfileLoading;
 
               return AlertDialog(
-                title: const Text('حذف الحساب'),
+                title: Text(AppLocalizations.of(context)!.deleteAccount),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'هل أنت متأكد من حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.',
-                      ),
+                      Text(AppLocalizations.of(context)!.deleteAccountConfirm),
                       SizedBox(height: 16.h),
                       TextField(
                         controller: reasonController,
                         enabled: !isLoading,
                         decoration: InputDecoration(
-                          labelText: 'سبب الحذف (اختياري)',
-                          hintText: 'أخبرنا لماذا تريد حذف حسابك...',
+                          labelText: AppLocalizations.of(context)!.deleteReason,
+                          hintText: AppLocalizations.of(context)!.deleteReasonHint,
                           border: const OutlineInputBorder(),
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 12.w,
@@ -547,22 +499,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Navigator.pop(ctx);
                               reasonController.dispose();
 
-                              // Logout user and redirect to login
                               if (context.mounted) {
                                 context.read<AuthCubit>().logout();
                                 context.go('/login');
                               }
 
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('تم حذف حسابك بنجاح'),
+                                SnackBar(
+                                  content: Text(AppLocalizations.of(context)!.deleteAccountSuccess),
                                   backgroundColor: AppColors.success,
                                 ),
                               );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('حدث خطأ أثناء حذف الحساب'),
+                                SnackBar(
+                                  content: Text(AppLocalizations.of(context)!.deleteAccountError),
                                   backgroundColor: AppColors.error,
                                 ),
                               );
@@ -584,7 +535,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                           )
-                        : const Text('حذف'),
+                        : Text(AppLocalizations.of(context)!.delete),
                   ),
                 ],
               );
@@ -595,14 +546,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  String _getThemeName(ThemeMode themeMode) {
+  String _getThemeName(BuildContext context, ThemeMode themeMode) {
+    final l10n = AppLocalizations.of(context)!;
     switch (themeMode) {
       case ThemeMode.light:
-        return 'الوضع النهاري';
+        return l10n.themeLight;
       case ThemeMode.dark:
-        return 'الوضع الليلي';
+        return l10n.themeDark;
       case ThemeMode.system:
-        return 'وضع الهاتف';
+        return l10n.themeSystem;
     }
   }
 
@@ -611,16 +563,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
+          final l10n = AppLocalizations.of(context)!;
           return AlertDialog(
-            title: const Text('اختر المظهر'),
+            title: Text(l10n.chooseTheme),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildThemeOption(
                   ctx,
                   context,
-                  'وضع الهاتف',
-                  'يتبع إعدادات الهاتف',
+                  l10n.themeSystem,
+                  l10n.themeSystemSubtitle,
                   Iconsax.mobile,
                   ThemeMode.system,
                   themeState.themeMode == ThemeMode.system,
@@ -628,8 +581,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildThemeOption(
                   ctx,
                   context,
-                  'الوضع النهاري',
-                  'مظهر فاتح',
+                  l10n.themeLight,
+                  l10n.themeLightSubtitle,
                   Iconsax.sun_1,
                   ThemeMode.light,
                   themeState.themeMode == ThemeMode.light,
@@ -637,8 +590,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildThemeOption(
                   ctx,
                   context,
-                  'الوضع الليلي',
-                  'مظهر داكن',
+                  l10n.themeDark,
+                  l10n.themeDarkSubtitle,
                   Iconsax.moon,
                   ThemeMode.dark,
                   themeState.themeMode == ThemeMode.dark,

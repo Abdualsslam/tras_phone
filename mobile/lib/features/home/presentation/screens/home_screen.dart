@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
@@ -34,7 +35,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     context.read<HomeCubit>().loadHomeData();
-    // Load banners using BannersCubit
     context.read<BannersCubit>().loadBanners(placement: BannerPosition.homeTop);
   }
 
@@ -61,8 +61,10 @@ class _HomeScreenState extends State<HomeScreen> {
           }
           if (state is HomeLoaded || state is HomeLoadedFromCache) {
             return RefreshIndicator(
+              color: const Color(0xFFE85D3D),
               onRefresh: () async {
                 await context.read<HomeCubit>().refresh();
+                if (!context.mounted) return;
                 await context.read<BannersCubit>().loadBanners(
                   placement: BannerPosition.homeTop,
                   refresh: true,
@@ -81,8 +83,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildContent(HomeState state) {
     final locale = Localizations.localeOf(context).languageCode;
     final isMobile = MediaQuery.of(context).size.width < 600;
+    final l10n = AppLocalizations.of(context)!;
 
-    // Extract data from either HomeLoaded or HomeLoadedFromCache
     final categories = state is HomeLoaded
         ? state.categories
         : (state as HomeLoadedFromCache).categories;
@@ -102,9 +104,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return BlocBuilder<BannersCubit, BannersState>(
       builder: (context, bannersState) {
         return ListView(
-          padding: EdgeInsets.only(bottom: 24.h),
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          padding: EdgeInsets.only(top: 8.h, bottom: 24.h),
           children: [
-            // Banner Slider
+            // ─── Banner Slider ───
             if (bannersState is BannersLoaded &&
                 bannersState.banners.isNotEmpty)
               BannerSlider(
@@ -112,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 controller: _bannerController,
               ),
 
-            // Popup Banners
+            // ─── Popup Banners ───
             if (bannersState is BannersLoaded)
               ...bannersState.banners
                   .where(
@@ -127,48 +132,51 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-            SizedBox(height: 16.h),
+            SizedBox(height: 20.h),
 
-            // Promotions Banner
+            // ─── Promotions ───
             const PromotionsBanner(),
 
             SizedBox(height: 24.h),
 
-            // Categories
+            // ─── Categories ───
             if (categories.isNotEmpty)
               CategoriesSection(categories: categories),
 
-            SizedBox(height: 24.h),
+            SizedBox(height: 28.h),
 
-            // Brands
+            // ─── Brands ───
             if (brands.isNotEmpty) BrandsSection(brands: brands),
 
-            SizedBox(height: 24.h),
+            SizedBox(height: 28.h),
 
-            // Featured Products
+            // ─── Featured Products ───
             if (featuredProducts.isNotEmpty)
               ProductsSection(
-                title: AppLocalizations.of(context)!.featuredProducts,
+                title: l10n.featuredProducts,
+                icon: Iconsax.star_1,
                 products: featuredProducts,
                 onSeeAll: () => context.push('/products?isFeatured=true'),
               ),
 
-            SizedBox(height: 24.h),
+            SizedBox(height: 28.h),
 
-            // New Arrivals
+            // ─── New Arrivals ───
             if (newArrivals.isNotEmpty)
               ProductsSection(
-                title: AppLocalizations.of(context)!.newArrivals,
+                title: l10n.newArrivals,
+                icon: Iconsax.flash_1,
                 products: newArrivals,
                 onSeeAll: () => context.push('/products?sort=newest'),
               ),
 
-            SizedBox(height: 24.h),
+            SizedBox(height: 28.h),
 
-            // Best Sellers
+            // ─── Best Sellers ───
             if (bestSellers.isNotEmpty)
               ProductsSection(
-                title: AppLocalizations.of(context)!.bestSellers,
+                title: l10n.bestSellers,
+                icon: Iconsax.chart,
                 products: bestSellers,
                 onSeeAll: () => context.push('/products?sort=bestselling'),
               ),

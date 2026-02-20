@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class ReferralScreen extends StatelessWidget {
   const ReferralScreen({super.key});
@@ -18,7 +19,7 @@ class ReferralScreen extends StatelessWidget {
     const referralLink = 'https://trasphone.com/ref/TRAS2024';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('دعوة صديق')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.inviteFriend)),
       body: ListView(
         padding: EdgeInsets.all(16.w),
         children: [
@@ -86,8 +87,8 @@ class ReferralScreen extends StatelessWidget {
                   onTap: () {
                     Clipboard.setData(const ClipboardData(text: referralCode));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('تم نسخ الكود'),
+                      SnackBar(
+                        content: Text(AppLocalizations.of(context)!.codeCopied),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -193,7 +194,7 @@ class ReferralScreen extends StatelessWidget {
                 'سجل الإحالات',
                 style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
               ),
-              TextButton(onPressed: () {}, child: const Text('عرض الكل')),
+              TextButton(onPressed: () {}, child: Text(AppLocalizations.of(context)!.viewAll)),
             ],
           ),
           _buildReferralItem('أحمد محمد', 'مكتمل', '50 ر.س', isDark),
@@ -395,8 +396,8 @@ class ReferralScreen extends StatelessWidget {
 
   void _shareLink(BuildContext context, String link) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('فتح خيارات المشاركة...'),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.openingShareOptions),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -404,8 +405,8 @@ class ReferralScreen extends StatelessWidget {
 
   void _shareWhatsApp(BuildContext context, String link) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('فتح واتساب...'),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.openingWhatsApp),
         behavior: SnackBarBehavior.floating,
       ),
     );

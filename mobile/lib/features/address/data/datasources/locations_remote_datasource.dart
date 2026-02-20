@@ -11,29 +11,16 @@ import '../models/shipping_zone_model.dart';
 import '../models/shipping_calculation_model.dart';
 
 abstract class LocationsRemoteDataSource {
-  /// جلب قائمة الدول
   Future<List<CountryModel>> getCountries();
-
-  /// جلب قائمة المدن
   Future<List<CityModel>> getCities({String? countryId});
-
-  /// جلب تفاصيل مدينة
   Future<CityModel> getCityById(String cityId);
-
-  /// جلب أسواق/أحياء المدينة
   Future<List<MarketModel>> getMarketsByCity(String cityId);
-
-  /// جلب تفاصيل سوق/حي
   Future<MarketModel> getMarketById(String marketId);
-
-  /// حساب تكلفة الشحن
   Future<ShippingCalculationModel> calculateShipping({
     required String cityId,
     double? weight,
     double? orderTotal,
   });
-
-  /// جلب مناطق الشحن
   Future<List<ShippingZoneModel>> getShippingZones();
 }
 
@@ -41,42 +28,22 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
   final ApiClient _apiClient;
 
   LocationsRemoteDataSourceImpl({required ApiClient apiClient})
-    : _apiClient = apiClient;
+      : _apiClient = apiClient;
 
   @override
   Future<List<CountryModel>> getCountries() async {
     final response = await _apiClient.get(ApiEndpoints.locationsCountries);
-
-    // Print full response to terminal
-    print('═══════════════════════════════════════════════════════');
-    print('📍 [LocationsDataSource] Countries API Full Response:');
-    print('═══════════════════════════════════════════════════════');
-    print(response.data);
-    print('═══════════════════════════════════════════════════════');
-
     developer.log(
-      'Countries API response: success=${response.data['success']}, data type=${response.data['data']?.runtimeType}',
+      'Countries response: success=${response.data['success']}',
       name: 'LocationsDataSource',
     );
 
-    // Check if data exists (some APIs return data directly without success field)
     final data = response.data['data'] ?? response.data;
 
-    // If data is a List, parse it regardless of success field
     if (data is List) {
-      developer.log(
-        'Parsing ${data.length} countries',
-        name: 'LocationsDataSource',
-      );
-      final countries = data.map((c) => CountryModel.fromJson(c)).toList();
-      developer.log(
-        'Parsed ${countries.length} countries successfully',
-        name: 'LocationsDataSource',
-      );
-      return countries;
+      return data.map((c) => CountryModel.fromJson(c)).toList();
     }
 
-    // If success is explicitly false or error message exists, throw error
     if (response.data['success'] == false) {
       throw Exception(
         response.data['messageAr'] ??
@@ -85,104 +52,29 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
       );
     }
 
-    // If no data found, throw error
-    throw Exception(
-      response.data['messageAr'] ??
-          response.data['message'] ??
-          'No countries data found',
-    );
+    throw Exception('No countries data found');
   }
 
   @override
   Future<List<CityModel>> getCities({String? countryId}) async {
-    // Print request details
-    print('═══════════════════════════════════════════════════════');
-    print('🏙️ [LocationsDataSource] Cities API Request:');
-    print('   Endpoint: ${ApiEndpoints.locationsCities}');
-    print('   CountryId: $countryId');
-    print(
-      '   Query Parameters: ${countryId != null ? {'countryId': countryId} : {}}',
-    );
-    print('═══════════════════════════════════════════════════════');
-
     final response = await _apiClient.get(
       ApiEndpoints.locationsCities,
       queryParameters: {if (countryId != null) 'countryId': countryId},
     );
 
-    // Print full response to terminal
-    print('═══════════════════════════════════════════════════════');
-    print('🏙️ [LocationsDataSource] Cities API Full Response:');
-    print('   CountryId: $countryId');
-    print('═══════════════════════════════════════════════════════');
-    print(response.data);
-    print('═══════════════════════════════════════════════════════');
-
     developer.log(
-      'Cities API response: status=${response.data['status']}, success=${response.data['success']}, data type=${response.data['data']?.runtimeType}, countryId=$countryId',
+      'Cities response: countryId=$countryId, success=${response.data['success']}',
       name: 'LocationsDataSource',
     );
 
-    // Check if data exists (some APIs return data directly without success field)
     final data = response.data['data'] ?? response.data;
 
-    // Print data details
     if (data is List) {
-      print('📋 [LocationsDataSource] Data List Details:');
-      print('   List length: ${data.length}');
-      if (data.isNotEmpty) {
-        print('   First item: ${data.first}');
-        print('   All cities data:');
-        for (var i = 0; i < data.length; i++) {
-          print('   [$i] ${data[i]}');
-        }
-      } else {
-        print('   ⚠️ WARNING: Cities list is EMPTY!');
-        print('   This might mean:');
-        print('     1. No cities exist for countryId: $countryId');
-        print('     2. API query parameter issue');
-        print('     3. Backend data issue');
-      }
-      print('═══════════════════════════════════════════════════════');
-    } else {
-      print(
-        '⚠️ [LocationsDataSource] Data is NOT a List! Type: ${data?.runtimeType}',
-      );
-      print('   Data value: $data');
-      print('═══════════════════════════════════════════════════════');
-    }
-
-    // If data is a List, parse it regardless of success field
-    if (data is List) {
-      developer.log(
-        'Parsing ${data.length} cities',
-        name: 'LocationsDataSource',
-      );
-      final cities = data.map((c) {
-        developer.log('Parsing city: $c', name: 'LocationsDataSource');
-        return CityModel.fromJson(c);
-      }).toList();
-
-      print('✅ [LocationsDataSource] Parsed Cities:');
-      for (var i = 0; i < cities.length; i++) {
-        final city = cities[i];
-        print(
-          '   [$i] ${city.nameAr} (id: ${city.id}) - Capital: ${city.isCapital}',
-        );
-      }
-      if (cities.isEmpty) {
-        print('   ⚠️ No cities parsed - list is empty');
-      }
-      print('═══════════════════════════════════════════════════════');
-
-      developer.log(
-        'Parsed ${cities.length} cities successfully',
-        name: 'LocationsDataSource',
-      );
+      final cities = data.map((c) => CityModel.fromJson(c)).toList();
+      developer.log('Parsed ${cities.length} cities', name: 'LocationsDataSource');
       return cities;
     }
 
-    // If success is explicitly false or error message exists, throw error
     if (response.data['success'] == false ||
         response.data['status'] == 'error') {
       throw Exception(
@@ -192,12 +84,7 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
       );
     }
 
-    // If no data found, throw error
-    throw Exception(
-      response.data['messageAr'] ??
-          response.data['message'] ??
-          'No cities data found',
-    );
+    throw Exception('No cities data found');
   }
 
   @override

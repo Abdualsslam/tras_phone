@@ -2,47 +2,50 @@
 library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/services/banners_service.dart';
+import '../../domain/repositories/banners_repository.dart';
 import '../../domain/enums/banner_position.dart';
 import 'banners_state.dart';
 
 class BannersCubit extends Cubit<BannersState> {
-  final BannersService _service;
+  final BannersRepository _repository;
 
-  BannersCubit({required BannersService service})
-      : _service = service,
+  BannersCubit({required BannersRepository repository})
+      : _repository = repository,
         super(const BannersInitial());
 
   /// جلب البانرات
-  /// [refresh] when true, keeps current banners visible while loading (no loading state)
+  /// [refresh] when true, keeps current banners visible while loading
   /// [forceRefresh] when true, bypasses cache and fetches from API
   Future<void> loadBanners({
     BannerPosition? placement,
     bool refresh = false,
     bool forceRefresh = false,
   }) async {
-    final hadBanners = state is BannersLoaded && (state as BannersLoaded).banners.isNotEmpty;
+    final hadBanners =
+        state is BannersLoaded && (state as BannersLoaded).banners.isNotEmpty;
+
     if (!refresh || !hadBanners) {
       emit(const BannersLoading());
     }
-    try {
-      final banners = await _service.getBanners(
-        placement: placement,
-        forceRefresh: forceRefresh,
-      );
-      emit(BannersLoaded(banners));
-    } catch (e) {
-      if (!refresh || !hadBanners) emit(BannersError(e.toString()));
-    }
+
+    final result = await _repository.getBanners(
+      placement: placement,
+      forceRefresh: forceRefresh,
+    );
+
+    result.fold(
+      (failure) {
+        if (!refresh || !hadBanners) emit(BannersError(failure.message));
+      },
+      (banners) => emit(BannersLoaded(banners)),
+    );
   }
 
   /// تسجيل مشاهدة
-  Future<void> trackImpression(String bannerId) async {
-    await _service.recordImpression(bannerId);
-  }
+  Future<void> trackImpression(String bannerId) =>
+      _repository.recordImpression(bannerId);
 
   /// تسجيل نقر
-  Future<void> trackClick(String bannerId) async {
-    await _service.recordClick(bannerId);
-  }
+  Future<void> trackClick(String bannerId) =>
+      _repository.recordClick(bannerId);
 }
