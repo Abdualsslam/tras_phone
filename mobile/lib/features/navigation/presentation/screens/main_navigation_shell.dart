@@ -1,5 +1,5 @@
 /// Main Navigation Shell - Bottom navigation bar wrapper
-/// Floating Island Design with Glassmorphism
+/// Modern Floating Island with refined glassmorphism
 library;
 
 import 'dart:ui';
@@ -29,9 +29,10 @@ class MainNavigationShell extends StatefulWidget {
 }
 
 class _MainNavigationShellState extends State<MainNavigationShell>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late int _currentIndex;
-  late AnimationController _animationController;
+  late final List<AnimationController> _scaleControllers;
+  late final List<Animation<double>> _scaleAnimations;
 
   final List<Widget> _screens = const [
     HomeScreen(),
@@ -41,28 +42,51 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     ProfileScreen(),
   ];
 
+  // Tab config: icon, activeIcon, label
+  static const _tabs = [
+    (icon: Iconsax.home_2, active: Iconsax.home_25, label: 'الرئيسية'),
+    (icon: Iconsax.box, active: Iconsax.box5, label: 'طلباتي'),
+    (icon: Iconsax.heart, active: Iconsax.heart5, label: 'المفضلة'),
+    (icon: Iconsax.shopping_cart, active: Iconsax.shopping_cart5, label: 'السلة'),
+    (icon: Iconsax.user, active: Iconsax.user, label: 'حسابي'),
+  ];
+
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex.clamp(0, 4);
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
+
+    _scaleControllers = List.generate(
+      5,
+      (i) => AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 250),
+      ),
     );
+    _scaleAnimations = _scaleControllers.map((c) {
+      return Tween<double>(begin: 1.0, end: 0.85).animate(
+        CurvedAnimation(parent: c, curve: Curves.easeInOut),
+      );
+    }).toList();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    for (final c in _scaleControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   void _onItemTapped(int index) {
     if (_currentIndex != index) {
       HapticFeedback.lightImpact();
+      // Bounce animation
+      _scaleControllers[index].forward().then((_) {
+        _scaleControllers[index].reverse();
+      });
       setState(() => _currentIndex = index);
 
-      // Load profile data lazily when navigating to Profile tab
       if (index == 4) {
         final profileCubit = context.read<ProfileCubit>();
         if (profileCubit.state is ProfileInitial) {
@@ -79,304 +103,305 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
       extendBody: true,
-      bottomNavigationBar: _buildFloatingNavBar(isDark),
+      bottomNavigationBar: _FloatingNavBar(
+        currentIndex: _currentIndex,
+        isDark: isDark,
+        scaleAnimations: _scaleAnimations,
+        onTap: _onItemTapped,
+      ),
     );
   }
+}
 
-  Widget _buildFloatingNavBar(bool isDark) {
-    return Container(
+class _FloatingNavBar extends StatelessWidget {
+  final int currentIndex;
+  final bool isDark;
+  final List<Animation<double>> scaleAnimations;
+  final ValueChanged<int> onTap;
+
+  const _FloatingNavBar({
+    required this.currentIndex,
+    required this.isDark,
+    required this.scaleAnimations,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    return Padding(
       padding: EdgeInsets.only(
-        left: 20.w,
-        right: 20.w,
-        bottom: MediaQuery.of(context).padding.bottom,
+        left: 16.w,
+        right: 16.w,
+        bottom: bottomPadding + 8.h,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28.r),
+        borderRadius: BorderRadius.circular(24.r),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
           child: Container(
-            height: 70.h,
+            height: 68.h,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [
-                        const Color(0xFF1C1C1E).withValues(alpha: 0.75),
-                        const Color(0xFF2C2C2E).withValues(alpha: 0.7),
-                      ]
-                    : [
-                        Colors.white.withValues(alpha: 0.75),
-                        Colors.white.withValues(alpha: 0.65),
-                      ],
-              ),
-              borderRadius: BorderRadius.circular(28.r),
+              color: isDark
+                  ? const Color(0xFF1A1A1C).withValues(alpha: 0.82)
+                  : Colors.white.withValues(alpha: 0.78),
+              borderRadius: BorderRadius.circular(24.r),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.grey.withValues(alpha: 0.25),
-                width: 1.5,
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.06),
               ),
               boxShadow: [
                 BoxShadow(
                   color: isDark
-                      ? Colors.black.withValues(alpha: 0.4)
-                      : Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                  spreadRadius: 0,
+                      ? Colors.black.withValues(alpha: 0.5)
+                      : Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
                 ),
                 if (!isDark)
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 5),
+                    color: AppColors.primary.withValues(alpha: 0.04),
+                    blurRadius: 40,
+                    offset: const Offset(0, 4),
                   ),
               ],
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                SizedBox(
-                  width: 52.w,
-                  child: _buildNavItem(
-                    index: 0,
-                    icon: Iconsax.home_2,
-                    activeIcon: Iconsax.home_25,
-                    isDark: isDark,
-                  ),
-                ),
-                SizedBox(
-                  width: 52.w,
-                  child: _buildNavItem(
-                    index: 1,
-                    icon: Iconsax.box,
-                    activeIcon: Iconsax.box5,
-                    isDark: isDark,
-                    selectedOffset: 22.w,
-                  ),
-                ),
-                SizedBox(
-                  width: 56.w,
-                  height: 56.w,
-                  child: _buildCenterButton(isDark),
-                ),
-                SizedBox(
-                  width: 52.w,
-                  child: _buildNavItem(
-                    index: 2,
-                    icon: Iconsax.heart,
-                    activeIcon: Iconsax.heart5,
-                    isDark: isDark,
-                  ),
-                ),
-                SizedBox(
-                  width: 52.w,
-                  child: _buildNavItem(
-                    index: 4,
-                    icon: Iconsax.user,
-                    activeIcon: Iconsax.user,
-                    isDark: isDark,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required int index,
-    required IconData icon,
-    required IconData activeIcon,
-    required bool isDark,
-    double? selectedOffset,
-  }) {
-    final isSelected = _currentIndex == index;
-    final hasOffset = selectedOffset != null && selectedOffset > 0;
-
-    return GestureDetector(
-      onTap: () => _onItemTapped(index),
-      behavior: HitTestBehavior.opaque,
-      child: Center(
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          width: 40.w,
-          height: 40.w,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: isSelected
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.primary.withValues(alpha: 0.2),
-                      AppColors.primaryLight.withValues(alpha: 0.12),
-                    ],
-                  )
-                : null,
-            border: isSelected
-                ? Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.35),
-                    width: 1.5,
-                  )
-                : null,
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      spreadRadius: 0,
+              children: List.generate(5, (i) {
+                if (i == 3) {
+                  // Cart tab - special center button
+                  return Expanded(
+                    child: _CartButton(
+                      isSelected: currentIndex == 3,
+                      isDark: isDark,
+                      scaleAnimation: scaleAnimations[3],
+                      onTap: () => onTap(3),
                     ),
-                  ]
-                : null,
-          ),
-          child: AnimatedPadding(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            padding: EdgeInsets.only(
-              left: hasOffset && isSelected ? selectedOffset : 0,
-            ),
-            child: Icon(
-              isSelected ? activeIcon : icon,
-              size: 24.sp,
-              color: isSelected
-                  ? AppColors.primary
-                  : (isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight),
+                  );
+                }
+                final tab = _MainNavigationShellState._tabs[i];
+                return Expanded(
+                  child: _NavItem(
+                    icon: tab.icon,
+                    activeIcon: tab.active,
+                    label: tab.label,
+                    isSelected: currentIndex == i,
+                    isDark: isDark,
+                    scaleAnimation: scaleAnimations[i],
+                    onTap: () => onTap(i),
+                  ),
+                );
+              }),
             ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildCenterButton(bool isDark) {
-    final isSelected = _currentIndex == 3;
+// ─── Individual Nav Item ───
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isSelected;
+  final bool isDark;
+  final Animation<double> scaleAnimation;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isSelected,
+    required this.isDark,
+    required this.scaleAnimation,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedColor = AppColors.primary;
+    final unselectedColor = isDark
+        ? AppColors.textTertiaryDark
+        : AppColors.textSecondaryLight;
 
     return GestureDetector(
-      onTap: () => _onItemTapped(3),
-      child: Center(
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: ScaleTransition(
+        scale: scaleAnimation,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Outer glow effect
-            if (isSelected)
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.5),
-                        blurRadius: 25,
-                        spreadRadius: 2,
+            // Icon with animated indicator dot
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.all(isSelected ? 8.w : 6.w),
+              decoration: isSelected
+                  ? BoxDecoration(
+                      color: selectedColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12.r),
+                    )
+                  : null,
+              child: Icon(
+                isSelected ? activeIcon : icon,
+                size: 22.sp,
+                color: isSelected ? selectedColor : unselectedColor,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            // Label
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? selectedColor : unselectedColor,
+              ),
+              child: Text(label),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Cart Center Button ───
+class _CartButton extends StatelessWidget {
+  final bool isSelected;
+  final bool isDark;
+  final Animation<double> scaleAnimation;
+  final VoidCallback onTap;
+
+  const _CartButton({
+    required this.isSelected,
+    required this.isDark,
+    required this.scaleAnimation,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: ScaleTransition(
+        scale: scaleAnimation,
+        child: Center(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Main circle
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+                width: 50.w,
+                height: 50.w,
+                decoration: BoxDecoration(
+                  gradient: isSelected
+                      ? AppColors.primaryGradient
+                      : LinearGradient(
+                          colors: [
+                            AppColors.primary.withValues(alpha: 0.85),
+                            AppColors.primaryDark.withValues(alpha: 0.85),
+                          ],
+                        ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(
+                        alpha: isSelected ? 0.45 : 0.25,
                       ),
-                    ],
-                  ),
+                      blurRadius: isSelected ? 16 : 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  isSelected
+                      ? Iconsax.shopping_cart5
+                      : Iconsax.shopping_cart,
+                  size: 22.sp,
+                  color: Colors.white,
                 ),
               ),
-            // Main button
-            Container(
-              width: 52.w,
-              height: 52.w,
+              // Badge
+              _CartBadge(isDark: isDark),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Cart Badge ───
+class _CartBadge extends StatelessWidget {
+  final bool isDark;
+
+  const _CartBadge({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<CartCubit, CartState>(
+      builder: (context, cartState) {
+        int count = 0;
+        if (cartState is CartLoaded) {
+          count = cartState.cart.itemsCount;
+        } else if (cartState is CartUpdating) {
+          count = cartState.cart.itemsCount;
+        } else if (cartState is CartError && cartState.previousCart != null) {
+          count = cartState.previousCart!.itemsCount;
+        } else if (cartState is CartSyncing && cartState.currentCart != null) {
+          count = cartState.currentCart!.itemsCount;
+        }
+
+        if (count <= 0) return const SizedBox.shrink();
+
+        return Positioned(
+          right: -4.w,
+          top: -4.h,
+          child: AnimatedScale(
+            scale: 1.0,
+            duration: const Duration(milliseconds: 200),
+            child: Container(
+              constraints: BoxConstraints(minWidth: 20.w),
+              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
               decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                shape: BoxShape.circle,
+                color: const Color(0xFFFF4757),
+                borderRadius: BorderRadius.circular(10.r),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: isDark ? const Color(0xFF1A1A1C) : Colors.white,
                   width: 2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.4),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                    spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color: AppColors.primaryDark.withValues(alpha: 0.3),
+                    color: const Color(0xFFFF4757).withValues(alpha: 0.4),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Center(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    isSelected ? Iconsax.shopping_cart5 : Iconsax.shopping_cart,
-                    key: ValueKey(isSelected),
-                    size: 22.sp,
-                    color: Colors.white,
-                  ),
+              child: Text(
+                count > 99 ? '99+' : count.toString(),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  height: 1.1,
                 ),
               ),
             ),
-            // Cart badge
-            BlocBuilder<CartCubit, CartState>(
-              builder: (context, cartState) {
-                int cartCount = 0;
-                
-                if (cartState is CartLoaded) {
-                  cartCount = cartState.cart.itemsCount;
-                } else if (cartState is CartUpdating) {
-                  cartCount = cartState.cart.itemsCount;
-                } else if (cartState is CartError && cartState.previousCart != null) {
-                  cartCount = cartState.previousCart!.itemsCount;
-                } else if (cartState is CartSyncing && cartState.currentCart != null) {
-                  cartCount = cartState.currentCart!.itemsCount;
-                }
-                
-                // Only show badge if count > 0
-                if (cartCount <= 0) {
-                  return const SizedBox.shrink();
-                }
-                
-                return Positioned(
-                  right: -2.w,
-                  top: -2.h,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFF6B6B), Color(0xFFFF4757)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(
-                        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFF4757).withValues(alpha: 0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      cartCount > 99 ? '99+' : cartCount.toString(),
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

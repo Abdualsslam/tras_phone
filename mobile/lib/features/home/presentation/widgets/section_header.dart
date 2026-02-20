@@ -6,11 +6,13 @@ import '../../../../l10n/app_localizations.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;
+  final IconData? icon;
   final VoidCallback? onSeeAll;
 
   const SectionHeader({
     super.key,
     required this.title,
+    this.icon,
     this.onSeeAll,
   });
 
@@ -22,6 +24,18 @@ class SectionHeader extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Row(
         children: [
+          if (icon != null) ...[
+            Container(
+              width: 32.w,
+              height: 32.w,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Icon(icon, size: 16.sp, color: AppColors.primary),
+            ),
+            SizedBox(width: 10.w),
+          ],
           Expanded(
             child: Text(
               title,
@@ -37,29 +51,33 @@ class SectionHeader extends StatelessWidget {
             ),
           ),
           if (onSeeAll != null)
-            TextButton(
-              onPressed: onSeeAll,
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 8.w),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.viewAll,
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w500,
+            GestureDetector(
+              onTap: onSeeAll,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.viewAll,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    SizedBox(width: 4.w),
+                    Icon(
+                      Iconsax.arrow_left_2,
+                      size: 14.sp,
                       color: AppColors.primary,
                     ),
-                  ),
-                  SizedBox(width: 4.w),
-                  Icon(
-                    Iconsax.arrow_left_2,
-                    size: 16.sp,
-                    color: AppColors.primary,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
         ],

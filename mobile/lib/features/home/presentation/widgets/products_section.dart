@@ -10,32 +10,34 @@ class ProductsSection extends StatelessWidget {
   final String title;
   final List<ProductEntity> products;
   final VoidCallback? onSeeAll;
+  final IconData? icon;
 
   const ProductsSection({
     super.key,
     required this.title,
     required this.products,
     this.onSeeAll,
+    this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SectionHeader(title: title, onSeeAll: onSeeAll),
-        SizedBox(height: 12.h),
+        SectionHeader(title: title, icon: icon, onSeeAll: onSeeAll),
+        SizedBox(height: 14.h),
         SizedBox(
-          height: 290.h,
+          height: 280.h,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 10.h),
+            padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 8.h),
             clipBehavior: Clip.none,
             itemCount: products.length,
-            separatorBuilder: (_, __) => SizedBox(width: 12.w),
+            separatorBuilder: (_, _) => SizedBox(width: 12.w),
             itemBuilder: (context, index) {
               final product = products[index];
               return SizedBox(
-                width: 170.w,
+                width: 165.w,
                 child: ProductCard(
                   id: product.id.toString(),
                   name: product.name,

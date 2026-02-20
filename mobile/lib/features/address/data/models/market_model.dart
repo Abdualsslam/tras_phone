@@ -1,4 +1,8 @@
 /// Market Model - الأسواق/الأحياء
+library;
+
+import '../../domain/entities/market_entity.dart';
+
 class MarketModel {
   final String id;
   final String name;
@@ -68,4 +72,18 @@ class MarketModel {
   /// الحصول على الوصف حسب اللغة
   String? getDescription(String locale) =>
       locale == 'ar' ? descriptionAr : description;
+
+  MarketEntity toEntity() => MarketEntity(
+        id: id,
+        name: name,
+        nameAr: nameAr,
+        cityId: cityId,
+        latitude: latitude,
+        longitude: longitude,
+        description: description,
+        descriptionAr: descriptionAr,
+        landmarks: landmarks,
+        isActive: isActive,
+        displayOrder: displayOrder,
+      );
 }

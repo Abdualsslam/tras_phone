@@ -45,6 +45,8 @@ import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/presentation/cubit/profile_cubit.dart';
 import '../../features/address/data/datasources/locations_remote_datasource.dart';
+import '../../features/address/data/repositories/locations_repository_impl.dart';
+import '../../features/address/domain/repositories/locations_repository.dart';
 import '../../features/address/presentation/cubit/locations_cubit.dart';
 import '../../features/promotions/data/datasources/promotions_remote_datasource.dart';
 import '../../features/promotions/presentation/cubit/promotions_cubit.dart';
@@ -59,8 +61,8 @@ import '../../features/wallet/data/datasources/wallet_remote_datasource.dart';
 import '../../features/wallet/data/repositories/wallet_repository.dart';
 import '../../features/wallet/presentation/cubit/wallet_cubit.dart';
 import '../../features/banners/data/datasources/banners_remote_datasource.dart';
-import '../../features/banners/data/repositories/banners_repository.dart';
-import '../../features/banners/data/services/banners_service.dart';
+import '../../features/banners/data/repositories/banners_repository_impl.dart';
+import '../../features/banners/domain/repositories/banners_repository.dart';
 import '../../features/banners/data/services/banners_cache_service.dart';
 import '../../features/banners/presentation/cubit/banners_cubit.dart';
 import '../cache/hive_cache_service.dart';
@@ -361,9 +363,14 @@ Future<void> setupDependencies() async {
     () => LocationsRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
 
+  // Repository
+  getIt.registerLazySingleton<LocationsRepository>(
+    () => LocationsRepositoryImpl(dataSource: getIt<LocationsRemoteDataSource>()),
+  );
+
   // Cubits
   getIt.registerFactory<LocationsCubit>(
-    () => LocationsCubit(dataSource: getIt<LocationsRemoteDataSource>()),
+    () => LocationsCubit(repository: getIt<LocationsRepository>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -458,14 +465,9 @@ Future<void> setupDependencies() async {
     ),
   );
 
-  // Service
-  getIt.registerLazySingleton<BannersService>(
-    () => BannersService(repository: getIt<BannersRepository>()),
-  );
-
   // Cubit
   getIt.registerFactory<BannersCubit>(
-    () => BannersCubit(service: getIt<BannersService>()),
+    () => BannersCubit(repository: getIt<BannersRepository>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════

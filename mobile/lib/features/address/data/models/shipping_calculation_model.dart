@@ -1,4 +1,8 @@
 /// ShippingCalculation Model - نتيجة حساب الشحن
+library;
+
+import '../../domain/entities/shipping_calculation_entity.dart';
+
 class ShippingCalculationModel {
   final double baseCost;
   final double weightCost;
@@ -48,4 +52,15 @@ class ShippingCalculationModel {
 
   /// الحصول على اسم المنطقة حسب اللغة
   String getZoneName(String locale) => locale == 'ar' ? zoneNameAr : zoneName;
+
+  ShippingCalculationEntity toEntity() => ShippingCalculationEntity(
+        baseCost: baseCost,
+        weightCost: weightCost,
+        totalCost: totalCost,
+        isFreeShipping: isFreeShipping,
+        freeShippingThreshold: freeShippingThreshold,
+        estimatedDeliveryDays: estimatedDeliveryDays,
+        zoneName: zoneName,
+        zoneNameAr: zoneNameAr,
+      );
 }

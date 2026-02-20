@@ -3,12 +3,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/models/market_model.dart';
+import '../../domain/entities/market_entity.dart';
 import '../cubit/locations_cubit.dart';
 import '../cubit/locations_state.dart';
 
 class MarketPicker extends StatelessWidget {
-  final Function(MarketModel)? onMarketSelected;
+  final Function(MarketEntity)? onMarketSelected;
   final String locale;
 
   const MarketPicker({super.key, this.onMarketSelected, this.locale = 'ar'});
@@ -17,9 +17,7 @@ class MarketPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<LocationsCubit, LocationsState>(
       builder: (context, state) {
-        if (state.markets.isEmpty) {
-          return const SizedBox.shrink();
-        }
+        if (state.markets.isEmpty) return const SizedBox.shrink();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

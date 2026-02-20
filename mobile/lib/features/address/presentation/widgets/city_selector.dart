@@ -3,12 +3,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/models/city_model.dart';
+import '../../domain/entities/city_entity.dart';
 import '../cubit/locations_cubit.dart';
 import '../cubit/locations_state.dart';
 
 class CitySelector extends StatelessWidget {
-  final Function(CityModel)? onCitySelected;
+  final Function(CityEntity)? onCitySelected;
   final String? labelText;
   final String locale;
 
@@ -33,7 +33,7 @@ class CitySelector extends StatelessWidget {
           );
         }
 
-        return DropdownButtonFormField<CityModel>(
+        return DropdownButtonFormField<CityEntity>(
           decoration: InputDecoration(
             labelText: labelText ?? (locale == 'ar' ? 'المدينة' : 'City'),
             border: const OutlineInputBorder(),
