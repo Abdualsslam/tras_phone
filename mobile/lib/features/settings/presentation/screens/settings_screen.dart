@@ -157,28 +157,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         localizedReason: 'يرجى التحقق من هويتك لتفعيل البصمة',
                       );
                       if (authenticated) {
-                        // Check if we need to save credentials
                         final hasCredentials =
                             await credentialService.hasCredentials();
-                        if (!hasCredentials) {
-                          final password = await _showPasswordDialog();
-                          if (password == null || !mounted) return;
-                          final authCubit = context.read<AuthCubit>();
-                          final user = authCubit.currentUser;
-                          if (user == null || !mounted) return;
-                          await credentialService.saveCredentials(
-                            phone: user.phone,
-                            password: password,
-                          );
-                        }
                         await biometricService.setEnabled(true);
                         if (mounted) {
                           setState(() {
                             _biometricEnabled = true;
                           });
+                          final message = hasCredentials
+                              ? AppLocalizations.of(context)!.biometricEnabled
+                              : 'تم تفعيل البصمة. سيتم تجهيز تسجيل الدخول بالبصمة بعد تسجيل الدخول القادم يدوياً';
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(AppLocalizations.of(context)!.biometricEnabled),
+                              content: Text(message),
                               backgroundColor: AppColors.success,
                             ),
                           );
@@ -427,43 +418,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         context.read<LocaleCubit>().changeLocale(Locale(code));
         Navigator.pop(ctx);
       },
-    );
-  }
-
-  Future<String?> _showPasswordDialog() async {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.enterPassword),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.password,
-            hintText: AppLocalizations.of(context)!.enterPasswordHint,
-            border: const OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 12.w,
-              vertical: 12.h,
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final password = controller.text.trim();
-              Navigator.pop(ctx, password.isNotEmpty ? password : null);
-            },
-            child: Text(AppLocalizations.of(context)!.save),
-          ),
-        ],
-      ),
     );
   }
 
