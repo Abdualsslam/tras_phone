@@ -8,7 +8,37 @@ import {
   IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ContentType } from '../schemas/educational-content.schema';
+import {
+  ContentType,
+  ContentScope,
+} from '../schemas/educational-content.schema';
+
+export class ContentTargetingDto {
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray()
+  @IsOptional()
+  products?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray()
+  @IsOptional()
+  categories?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray()
+  @IsOptional()
+  brands?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray()
+  @IsOptional()
+  devices?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray()
+  @IsOptional()
+  intentTags?: string[];
+}
 
 export class CreateEducationalContentDto {
   @ApiProperty({ example: 'How to Replace iPhone Screen' })
@@ -85,6 +115,15 @@ export class CreateEducationalContentDto {
   @IsArray()
   @IsOptional()
   relatedContent?: string[];
+
+  @ApiPropertyOptional({ enum: ContentScope, default: ContentScope.GENERAL })
+  @IsEnum(ContentScope)
+  @IsOptional()
+  scope?: ContentScope;
+
+  @ApiPropertyOptional({ type: ContentTargetingDto })
+  @IsOptional()
+  targeting?: ContentTargetingDto;
 
   @ApiPropertyOptional({ type: [String] })
   @IsArray()
@@ -192,6 +231,15 @@ export class UpdateEducationalContentDto {
   @IsArray()
   @IsOptional()
   relatedContent?: string[];
+
+  @ApiPropertyOptional({ enum: ContentScope })
+  @IsEnum(ContentScope)
+  @IsOptional()
+  scope?: ContentScope;
+
+  @ApiPropertyOptional({ type: ContentTargetingDto })
+  @IsOptional()
+  targeting?: ContentTargetingDto;
 
   @ApiPropertyOptional()
   @IsArray()

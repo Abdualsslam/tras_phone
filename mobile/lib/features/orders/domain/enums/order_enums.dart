@@ -168,10 +168,20 @@ enum PaymentStatus {
   refunded;
 
   static PaymentStatus fromString(String value) {
-    return PaymentStatus.values.firstWhere(
-      (e) => e.name == value,
-      orElse: () => PaymentStatus.unpaid,
-    );
+    switch (value.toLowerCase()) {
+      case 'paid':
+        return PaymentStatus.paid;
+      case 'partial':
+      case 'partially_paid':
+        return PaymentStatus.partial;
+      case 'refunded':
+        return PaymentStatus.refunded;
+      case 'pending':
+      case 'failed':
+      case 'unpaid':
+      default:
+        return PaymentStatus.unpaid;
+    }
   }
 
   String get displayNameAr {

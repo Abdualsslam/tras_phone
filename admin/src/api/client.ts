@@ -1,8 +1,8 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import type { ApiResponse } from "@/types";
 
-// const API_BASE_URL = "http://localhost:3000/api/v1";
-const API_BASE_URL = "https://api-trasphone.smartagency-ye.com/api/v1";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
 
 // Create axios instance
 export const apiClient = axios.create({
@@ -12,7 +12,52 @@ export const apiClient = axios.create({
   },
 });
 
+// ═══════════════════════════════════════════════════════════════
+// Error helpers
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Extract a user-friendly error message from an API error.
+ * Prefers Arabic message (messageAr) when available.
+ */
+export function getErrorMessage(
+  error: unknown,
+  fallback = "حدث خطأ غير متوقع"
+): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as ApiResponse<unknown> | undefined;
+
+    // Prefer Arabic message from unified response
+    if (data?.messageAr && data.messageAr !== data.message)
+      return data.messageAr;
+    if (data?.message) return data.message;
+
+    // Network / timeout errors
+    if (error.code === "ERR_NETWORK")
+      return "لا يمكن الاتصال بالخادم. تحقق من اتصال الإنترنت";
+    if (error.code === "ECONNABORTED") return "انتهت مهلة الطلب. حاول مرة أخرى";
+  }
+
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
+/**
+ * Extract validation errors array from an API error response.
+ */
+export function getValidationErrors(
+  error: unknown
+): Array<{ field?: string; message: string }> {
+  if (!axios.isAxiosError(error)) return [];
+  const data = error.response?.data as any;
+  if (Array.isArray(data?.errors)) return data.errors;
+  return [];
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Request interceptor - add auth token
+// ═══════════════════════════════════════════════════════════════
+
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("accessToken");
@@ -24,7 +69,10 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Flag to prevent multiple refresh attempts
+// ═══════════════════════════════════════════════════════════════
+// Response interceptor - token refresh + error normalisation
+// ═══════════════════════════════════════════════════════════════
+
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
@@ -42,7 +90,6 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Response interceptor - handle errors and token refresh
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiResponse<unknown>>) => {
@@ -50,10 +97,9 @@ apiClient.interceptors.response.use(
       _retry?: boolean;
     };
 
-    // If 401 and not a retry, try to refresh token
+    // 401 → try to refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((token) => {
@@ -67,9 +113,7 @@ apiClient.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) {
-          throw new Error("No refresh token");
-        }
+        if (!refreshToken) throw new Error("No refresh token");
 
         const response = await axios.post<
           ApiResponse<{ accessToken: string; refreshToken: string }>
@@ -82,12 +126,10 @@ apiClient.interceptors.response.use(
 
         processQueue(null, accessToken);
 
-        // Retry original request with new token
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        // Clear tokens - let AuthContext handle redirect
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");

@@ -683,6 +683,32 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               ],
             ),
           ],
+          if (order.paymentMethod == OrderPaymentMethod.bankTransfer) ...[
+            SizedBox(height: 8.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('حالة التحويل', style: theme.textTheme.bodySmall),
+                Text(
+                  _transferStatusLabel(order.transferStatus),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: _transferStatusColor(order.transferStatus),
+                  ),
+                ),
+              ],
+            ),
+            if (order.paymentRejectionReason != null &&
+                order.paymentRejectionReason!.isNotEmpty) ...[
+              SizedBox(height: 8.h),
+              _buildSummaryRow(
+                theme,
+                'سبب الرفض',
+                order.paymentRejectionReason!,
+                valueColor: AppColors.error,
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -722,8 +748,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   Widget _buildQuickActions(BuildContext context) {
     final order = _order!;
-    final canUploadReceipt = order.paymentMethod == OrderPaymentMethod.bankTransfer &&
-        order.paymentStatus == PaymentStatus.unpaid;
+    final canUploadReceipt = order.canUploadTransferReceipt;
+    final isTransferRejected = (order.transferStatus ?? '').toLowerCase() == 'rejected';
     final canReturn = order.status == OrderStatus.delivered ||
         order.status == OrderStatus.completed;
 
@@ -743,7 +769,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               extra: {'amount': order.remainingAmount},
             ),
             icon: const Icon(Iconsax.document_upload, size: 18),
-            label: const Text('رفع إيصال'),
+            label: Text(isTransferRejected ? 'إعادة رفع إيصال' : 'رفع إيصال'),
           ),
         if (canReturn)
           OutlinedButton.icon(
@@ -753,6 +779,36 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           ),
       ],
     );
+  }
+
+  String _transferStatusLabel(String? status) {
+    switch ((status ?? '').toLowerCase()) {
+      case 'awaiting_receipt':
+        return 'بانتظار رفع الإيصال';
+      case 'receipt_uploaded':
+        return 'قيد المراجعة';
+      case 'verified':
+        return 'تم التحقق';
+      case 'rejected':
+        return 'مرفوض';
+      case 'not_required':
+      default:
+        return 'غير مطلوب';
+    }
+  }
+
+  Color _transferStatusColor(String? status) {
+    switch ((status ?? '').toLowerCase()) {
+      case 'verified':
+        return AppColors.success;
+      case 'rejected':
+        return AppColors.error;
+      case 'receipt_uploaded':
+      case 'awaiting_receipt':
+        return AppColors.warning;
+      default:
+        return AppColors.textSecondaryLight;
+    }
   }
 
   Widget _buildRateSection(

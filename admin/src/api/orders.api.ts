@@ -188,7 +188,10 @@ export const ordersApi = {
     // Payments
     // ─────────────────────────────────────────
 
-    recordPayment: async (id: string, data: { amount: number; method?: string; reference?: string }): Promise<Order> => {
+    recordPayment: async (
+        id: string,
+        data: { amount: number; paymentMethod?: string; gatewayReference?: string; notes?: string },
+    ): Promise<Order> => {
         const response = await apiClient.post<ApiResponse<Order>>(`/orders/${id}/payments`, data);
         return response.data.data;
     },
@@ -198,8 +201,16 @@ export const ordersApi = {
         return response.data.data;
     },
 
-    verifyPayment: async (orderId: string, data: { verified: boolean; note?: string }): Promise<Order> => {
+    verifyPayment: async (
+        orderId: string,
+        data: { verified: boolean; rejectionReason?: string; notes?: string },
+    ): Promise<Order> => {
         const response = await apiClient.post<ApiResponse<Order>>(`/admin/orders/${orderId}/verify-payment`, data);
+        return response.data.data;
+    },
+
+    getPendingTransferVerificationOrders: async (): Promise<Order[]> => {
+        const response = await apiClient.get<ApiResponse<Order[]>>('/admin/orders/pending-transfer-verification');
         return response.data.data;
     },
 
@@ -222,4 +233,3 @@ export const ordersApi = {
 };
 
 export default ordersApi;
-

@@ -4,7 +4,11 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/di/injection.dart';
+import '../../../../core/network/api_client.dart';
 
 class AdminOrderDetailsScreen extends StatefulWidget {
   final String orderId;
@@ -409,7 +413,7 @@ class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
   void _handleMenuAction(String action) {
     switch (action) {
       case 'invoice':
-        // Navigate to invoice
+        _printInvoice();
         break;
       case 'contact':
         _contactCustomer();
@@ -424,10 +428,48 @@ class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
     // Implement call functionality
   }
 
-  void _printInvoice() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('جاري طباعة الفاتورة...')));
+  Future<void> _printInvoice() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('جاري تجهيز الفاتورة...')),
+    );
+
+    try {
+      final apiClient = getIt<ApiClient>();
+      final response = await apiClient.get(ApiEndpoints.adminOrderInvoice(widget.orderId));
+
+      final dynamic payload = response.data;
+      final Map<String, dynamic> data =
+          payload is Map<String, dynamic>
+          ? (payload['data'] is Map<String, dynamic>
+                ? payload['data'] as Map<String, dynamic>
+                : payload)
+          : <String, dynamic>{};
+      final url = (data['url'] ?? '').toString();
+
+      if (url.isEmpty) {
+        throw Exception('لا يوجد رابط للفاتورة');
+      }
+
+      final uri = Uri.tryParse(url);
+      if (uri == null || !(await canLaunchUrl(uri))) {
+        throw Exception('تعذر فتح رابط الفاتورة');
+      }
+
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم فتح الفاتورة بنجاح'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل فتح الفاتورة: $e')),
+      );
+    }
   }
 
   void _saveChanges() {

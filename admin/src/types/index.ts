@@ -204,6 +204,12 @@ export interface Brand {
 export interface Order {
     _id: string;
     orderNumber: string;
+    customerId?: string | {
+        _id?: string;
+        shopName?: string;
+        responsiblePersonName?: string;
+        phone?: string;
+    };
     customer: {
         _id: string;
         companyName: string;
@@ -216,8 +222,17 @@ export interface Order {
     discount: number;
     tax: number;
     total: number;
+    paidAmount?: number;
+    walletAmountUsed?: number;
     status: OrderStatus;
     paymentStatus: PaymentStatus;
+    paymentMethod?: string;
+    transferStatus?: 'not_required' | 'awaiting_receipt' | 'receipt_uploaded' | 'verified' | 'rejected';
+    transferReceiptImage?: string;
+    transferReference?: string;
+    transferDate?: string;
+    transferVerifiedAt?: string;
+    rejectionReason?: string;
     shippingAddress: Address;
     notes?: string;
     createdAt: string;
@@ -256,10 +271,13 @@ export type OrderStatus =
     | 'refunded';
 
 export type PaymentStatus =
-    | 'pending'
+    | 'unpaid'
+    | 'partial'
     | 'paid'
-    | 'partially_paid'
     | 'refunded'
+    // legacy values still tolerated in UI
+    | 'pending'
+    | 'partially_paid'
     | 'failed';
 
 // Notification types

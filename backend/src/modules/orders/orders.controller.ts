@@ -10,7 +10,10 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
+import { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -650,6 +653,72 @@ export class OrdersController {
     );
   }
 
+  @Get(':id/invoice')
+  @ApiOperation({
+    summary: 'Get order invoice URL',
+    description: 'Get a downloadable PDF invoice link for the order',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Order ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Invoice URL retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiAuthErrorResponses()
+  async getOrderInvoice(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+  ) {
+    const invoice = await this.ordersService.getOrderInvoice(id, user.customerId);
+    return ResponseBuilder.success(
+      {
+        url: invoice.url,
+        invoiceNumber: invoice.invoiceNumber,
+      },
+      'Invoice URL retrieved',
+      'تم استرجاع رابط الفاتورة',
+    );
+  }
+
+  @Get(':id/invoice/download')
+  @ApiOperation({
+    summary: 'Download order invoice PDF',
+    description: 'Download invoice PDF for the order',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Order ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Invoice PDF stream',
+  })
+  @ApiAuthErrorResponses()
+  async downloadOrderInvoice(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Res({ passthrough: true }) res?: Response,
+  ) {
+    const invoice = await this.ordersService.buildOrderInvoicePdf(
+      id,
+      user.customerId,
+    );
+
+    if (res) {
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="${invoice.filename}"`,
+      });
+    }
+
+    return new StreamableFile(invoice.buffer);
+  }
+
   // ═════════════════════════════════════
   // Admin Endpoints
   // ═════════════════════════════════════
@@ -1020,6 +1089,86 @@ export class BankAccountsController {
 @ApiBearerAuth('JWT-auth')
 export class AdminOrdersController {
   constructor(private readonly ordersService: OrdersService) { }
+
+  @Get('pending-transfer-verification')
+  @ApiOperation({
+    summary: 'Get orders pending transfer verification',
+    description:
+      'Retrieve bank transfer orders where customer uploaded receipt and waiting admin verification.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Pending transfer verification orders retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getPendingTransferVerificationOrders() {
+    const result = await this.ordersService.getPendingTransferVerificationOrders();
+    return ResponseBuilder.success(
+      result,
+      'Pending transfer verification orders retrieved',
+      'تم استرجاع طلبات الحوالات بانتظار التحقق',
+    );
+  }
+
+  @Get(':id/invoice')
+  @ApiOperation({
+    summary: 'Get order invoice URL (admin)',
+    description: 'Get downloadable PDF invoice link for any order. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Order ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Invoice URL retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getOrderInvoice(@Param('id') id: string) {
+    const invoice = await this.ordersService.getOrderInvoice(id);
+    return ResponseBuilder.success(
+      {
+        url: invoice.url,
+        invoiceNumber: invoice.invoiceNumber,
+      },
+      'Invoice URL retrieved',
+      'تم استرجاع رابط الفاتورة',
+    );
+  }
+
+  @Get(':id/invoice/download')
+  @ApiOperation({
+    summary: 'Download order invoice PDF (admin)',
+    description: 'Download invoice PDF for any order. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Order ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Invoice PDF stream',
+  })
+  @ApiCommonErrorResponses()
+  async downloadOrderInvoice(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res?: Response,
+  ) {
+    const invoice = await this.ordersService.buildOrderInvoicePdf(id);
+
+    if (res) {
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="${invoice.filename}"`,
+      });
+    }
+
+    return new StreamableFile(invoice.buffer);
+  }
 
   @Post(':id/verify-payment')
   @HttpCode(HttpStatus.OK)

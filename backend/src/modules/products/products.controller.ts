@@ -16,6 +16,7 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
@@ -55,6 +56,7 @@ import {
   AuditAction,
   AuditResource,
 } from '../audit/schemas/audit-log.schema';
+import { EducationalService } from '@modules/content/educational.service';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -69,6 +71,7 @@ export class ProductsController {
     private readonly productsSearchService: ProductsSearchService,
     private readonly productsSearchSuggestionsService: ProductsSearchSuggestionsService,
     private readonly auditService: AuditService,
+    private readonly educationalService: EducationalService,
   ) {}
 
   // ═════════════════════════════════════
@@ -369,6 +372,58 @@ export class ProductsController {
       'Products on offer retrieved',
       'تم استرجاع المنتجات ذات العروض',
       result.pagination,
+    );
+  }
+
+  @Public()
+  @UseGuards(OptionalJwtAuthGuard)
+  @Get(':id/educational-content')
+  @ApiOperation({
+    summary: 'Get educational content for product',
+    description:
+      'Retrieve educational content ranked by relevance for a given product context',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiQuery({ name: 'tags', required: false, description: 'Comma-separated intent tags' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    description: 'Educational content retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async getEducationalContentForProduct(
+    @Param('id') id: string,
+    @Query('tags') tags?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    const parsedTags = tags
+      ? tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+      : [];
+
+    const result = await this.educationalService.getContentByContext({
+      productId: id,
+      tags: parsedTags,
+      page: page || 1,
+      limit: limit || 20,
+    });
+
+    return ResponseBuilder.paginated(
+      result.data,
+      result.total,
+      page || 1,
+      limit || 20,
+      'Educational content retrieved',
+      'تم استرجاع المحتوى التعليمي',
     );
   }
 

@@ -22,6 +22,7 @@ import { ContentController } from './content.controller';
 import { EducationalController } from './educational.controller';
 import { BannersController } from './banners.controller';
 import { AuthModule } from '@modules/auth/auth.module';
+import { Product, ProductSchema } from '@modules/products/schemas/product.schema';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AuthModule } from '@modules/auth/auth.module';
       { name: Testimonial.name, schema: TestimonialSchema },
       { name: EducationalCategory.name, schema: EducationalCategorySchema },
       { name: EducationalContent.name, schema: EducationalContentSchema },
+      { name: Product.name, schema: ProductSchema },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],

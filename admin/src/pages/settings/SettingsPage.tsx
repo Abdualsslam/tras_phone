@@ -1063,7 +1063,10 @@ export function SettingsPage() {
                         </TableCell>
                         <TableCell>
                           {countries.find((c) => c._id === city.countryId)
-                            ?.nameAr || countries.find((c) => c._id === city.countryId)?.name || city.countryId}
+                            ?.nameAr ||
+                            countries.find((c) => c._id === city.countryId)
+                              ?.name ||
+                            city.countryId}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -1372,8 +1375,8 @@ export function SettingsPage() {
                             {method.type === "online"
                               ? "إلكتروني"
                               : method.type === "offline"
-                              ? "نقدي"
-                              : "محفظة"}
+                                ? "نقدي"
+                                : "محفظة"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -1649,16 +1652,21 @@ export function SettingsPage() {
                 control={cityForm.control}
                 name="countryId"
                 render={({ field }) => (
-                  <Select value={field.value || undefined} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value || undefined}
+                    onValueChange={field.onChange}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="اختر الدولة" />
                     </SelectTrigger>
                     <SelectContent>
-                      {countries.filter(c => c._id).map((country) => (
-                        <SelectItem key={country._id} value={country._id}>
-                          {country.nameAr || country.name}
-                        </SelectItem>
-                      ))}
+                      {countries
+                        .filter((c) => c._id)
+                        .map((country) => (
+                          <SelectItem key={country._id} value={country._id}>
+                            {country.nameAr || country.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 )}
@@ -1825,7 +1833,9 @@ export function SettingsPage() {
               {isEditing ? "تعديل معدل الضريبة" : "إضافة معدل ضريبة جديد"}
             </DialogTitle>
             <DialogDescription>
-              {isEditing ? "تعديل بيانات معدل الضريبة" : "إضافة معدل ضريبة جديد للنظام"}
+              {isEditing
+                ? "تعديل بيانات معدل الضريبة"
+                : "إضافة معدل ضريبة جديد للنظام"}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -1861,17 +1871,22 @@ export function SettingsPage() {
                   control={taxForm.control}
                   name="countryId"
                   render={({ field }) => (
-                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value || undefined}
+                      onValueChange={field.onChange}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="الكل" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="_all">الكل</SelectItem>
-                        {countries.filter(c => c._id).map((country) => (
-                          <SelectItem key={country._id} value={country._id}>
-                            {country.nameAr || country.name}
-                          </SelectItem>
-                        ))}
+                        {countries
+                          .filter((c) => c._id)
+                          .map((country) => (
+                            <SelectItem key={country._id} value={country._id}>
+                              {country.nameAr || country.name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   )}
@@ -1945,7 +1960,9 @@ export function SettingsPage() {
               {isEditing ? "تعديل منطقة الشحن" : "إضافة منطقة شحن جديدة"}
             </DialogTitle>
             <DialogDescription>
-              {isEditing ? "تعديل بيانات منطقة الشحن" : "إضافة منطقة شحن جديدة للنظام"}
+              {isEditing
+                ? "تعديل بيانات منطقة الشحن"
+                : "إضافة منطقة شحن جديدة للنظام"}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -2019,7 +2036,9 @@ export function SettingsPage() {
               {isEditing ? "تعديل طريقة الدفع" : "إضافة طريقة دفع جديدة"}
             </DialogTitle>
             <DialogDescription>
-              {isEditing ? "تعديل بيانات طريقة الدفع" : "إضافة طريقة دفع جديدة للنظام"}
+              {isEditing
+                ? "تعديل بيانات طريقة الدفع"
+                : "إضافة طريقة دفع جديدة للنظام"}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -2057,7 +2076,10 @@ export function SettingsPage() {
                   control={paymentMethodForm.control}
                   name="type"
                   render={({ field }) => (
-                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value || undefined}
+                      onValueChange={field.onChange}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر النوع" />
                       </SelectTrigger>
@@ -2122,7 +2144,9 @@ export function SettingsPage() {
               {isEditing ? "تعديل إصدار التطبيق" : "إضافة إصدار جديد"}
             </DialogTitle>
             <DialogDescription>
-              {isEditing ? "تعديل بيانات إصدار التطبيق" : "إضافة إصدار جديد للتطبيق"}
+              {isEditing
+                ? "تعديل بيانات إصدار التطبيق"
+                : "إضافة إصدار جديد للتطبيق"}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -2136,7 +2160,10 @@ export function SettingsPage() {
                   control={appVersionForm.control}
                   name="platform"
                   render={({ field }) => (
-                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value || undefined}
+                      onValueChange={field.onChange}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر المنصة" />
                       </SelectTrigger>

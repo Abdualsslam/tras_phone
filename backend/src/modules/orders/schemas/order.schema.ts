@@ -221,6 +221,19 @@ export class Order {
   @Prop({ type: Types.ObjectId, ref: 'AdminUser' })
   transferVerifiedBy?: Types.ObjectId;
 
+  @Prop({
+    type: String,
+    enum: [
+      'not_required',
+      'awaiting_receipt',
+      'receipt_uploaded',
+      'verified',
+      'rejected',
+    ],
+    default: 'not_required',
+  })
+  transferStatus: string;
+
   @Prop()
   rejectionReason?: string;
 
@@ -277,6 +290,7 @@ OrderSchema.index({ orderNumber: 1 });
 OrderSchema.index({ customerId: 1 });
 OrderSchema.index({ status: 1 });
 OrderSchema.index({ paymentStatus: 1 });
+OrderSchema.index({ transferStatus: 1 });
 OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ 'shippingAddress.city': 1 });
 

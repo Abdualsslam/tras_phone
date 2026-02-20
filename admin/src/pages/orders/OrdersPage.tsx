@@ -81,6 +81,8 @@ const orderStatusLabels: Record<string, string> = {
 const paymentStatusVariants: Record<string, "success" | "warning" | "danger"> =
   {
     paid: "success",
+    partial: "warning",
+    unpaid: "danger",
     pending: "warning",
     partially_paid: "warning",
     failed: "danger",
@@ -89,6 +91,8 @@ const paymentStatusVariants: Record<string, "success" | "warning" | "danger"> =
 
 const paymentStatusLabels: Record<string, string> = {
   paid: "مدفوع",
+  partial: "مدفوع جزئياً",
+  unpaid: "غير مدفوع",
   pending: "غير مدفوع",
   partially_paid: "مدفوع جزئياً",
   failed: "فشل",
@@ -199,7 +203,7 @@ export function OrdersPage() {
       data,
     }: {
       orderId: string;
-      data: { amount: number; method?: string; reference?: string };
+      data: { amount: number; paymentMethod?: string; gatewayReference?: string };
     }) => ordersApi.recordPayment(orderId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -219,7 +223,9 @@ export function OrdersPage() {
 
   const handleOpenPayment = (order: Order) => {
     setSelectedOrder(order);
-    setPaymentData({ amount: String(order.total), method: "", reference: "" });
+    const paidAmount = Number((order as any).paidAmount || 0);
+    const remainingAmount = Math.max(0, Number(order.total || 0) - paidAmount);
+    setPaymentData({ amount: String(remainingAmount), method: "", reference: "" });
     setIsPaymentDialogOpen(true);
   };
 
@@ -256,8 +262,8 @@ export function OrdersPage() {
       orderId: selectedOrder._id,
       data: {
         amount: Number(paymentData.amount),
-        method: paymentData.method || undefined,
-        reference: paymentData.reference || undefined,
+        paymentMethod: paymentData.method || undefined,
+        gatewayReference: paymentData.reference || undefined,
       },
     });
   };
@@ -449,9 +455,9 @@ export function OrdersPage() {
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={paymentStatusVariants[order.paymentStatus]}
+                        variant={paymentStatusVariants[order.paymentStatus] ?? "warning"}
                       >
-                        {paymentStatusLabels[order.paymentStatus]}
+                        {paymentStatusLabels[order.paymentStatus] ?? order.paymentStatus}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-gray-500 text-sm">
@@ -548,13 +554,15 @@ export function OrdersPage() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       حالة الدفع
                     </p>
-                    <Badge
-                      variant={
-                        paymentStatusVariants[selectedOrder.paymentStatus]
-                      }
-                    >
-                      {paymentStatusLabels[selectedOrder.paymentStatus]}
-                    </Badge>
+                      <Badge
+                        variant={
+                          paymentStatusVariants[selectedOrder.paymentStatus] ??
+                          "warning"
+                        }
+                      >
+                        {paymentStatusLabels[selectedOrder.paymentStatus] ??
+                          selectedOrder.paymentStatus}
+                      </Badge>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -867,8 +875,13 @@ export function OrdersPage() {
               >
                 <option value="">اختر الطريقة...</option>
                 <option value="bank_transfer">تحويل بنكي</option>
-                <option value="cash">نقدي</option>
-                <option value="card">بطاقة</option>
+                <option value="cash_on_delivery">الدفع عند الاستلام</option>
+                <option value="credit_card">بطاقة ائتمان</option>
+                <option value="mada">مدى</option>
+                <option value="apple_pay">Apple Pay</option>
+                <option value="stc_pay">STC Pay</option>
+                <option value="wallet">محفظة</option>
+                <option value="credit">آجل</option>
               </select>
             </div>
             <div className="space-y-2">

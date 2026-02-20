@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
 import {
@@ -6,6 +6,8 @@ import {
   type EducationalCategory,
   type EducationalContent,
 } from "@/api/content.api";
+import { productsApi } from "@/api/products.api";
+import { catalogApi, type CategoryTree } from "@/api/catalog.api";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,6 +59,8 @@ import {
   Heart,
   Share2,
   CheckCircle,
+  Search,
+  X,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -89,6 +93,14 @@ type ContentFormData = {
   featuredImage: string;
   videoUrl: string;
   videoDuration: number;
+  scope: "general" | "contextual" | "hybrid";
+  relatedProducts: string[];
+  relatedContent: string;
+  targetingProducts: string[];
+  targetingCategories: string[];
+  targetingBrands: string;
+  targetingDevices: string;
+  targetingIntentTags: string;
   tags: string;
   metaTitle: string;
   metaDescription: string;
@@ -117,9 +129,21 @@ export function EducationalContentPage() {
   const [isEditing, setIsEditing] = useState(false);
 
   // Filters
-  const [contentFilters, setContentFilters] = useState({
+  type ContentFilters = {
+    categoryId: string;
+    type: string;
+    scope: "" | "general" | "contextual" | "hybrid";
+    status: string;
+    featured: boolean | undefined;
+    search: string;
+    page: number;
+    limit: number;
+  };
+
+  const [contentFilters, setContentFilters] = useState<ContentFilters>({
     categoryId: "",
     type: "",
+    scope: "",
     status: "",
     featured: undefined as boolean | undefined,
     search: "",
@@ -138,15 +162,76 @@ export function EducationalContentPage() {
 
   const { data: contentData, isLoading: contentLoading } = useQuery({
     queryKey: ["educational-content", contentFilters],
-    queryFn: () => contentApi.getEducationalContent(contentFilters),
+    queryFn: () => {
+      const { scope, ...restFilters } = contentFilters;
+      return contentApi.getEducationalContent({
+        ...restFilters,
+        ...(scope ? { scope } : {}),
+      });
+    },
+  });
+
+  const { data: productsData, isLoading: productsLoading } = useQuery({
+    queryKey: ["products-for-education-targeting"],
+    queryFn: () => productsApi.getAll({ page: 1, limit: 200 }),
+  });
+
+  const { data: categoryTreeData, isLoading: catalogCategoriesLoading } = useQuery({
+    queryKey: ["catalog-category-tree-for-education-targeting"],
+    queryFn: () => catalogApi.getCategoryTree(),
   });
 
   const content = contentData?.data || [];
   const totalContent = contentData?.total || 0;
+  const productOptions = productsData?.items || [];
+
+  const flattenCategoryTree = (items: CategoryTree[]): CategoryTree[] => {
+    const output: CategoryTree[] = [];
+    const traverse = (nodes: CategoryTree[]) => {
+      nodes.forEach((node) => {
+        output.push(node);
+        if (Array.isArray(node.children) && node.children.length > 0) {
+          traverse(node.children);
+        }
+      });
+    };
+    traverse(items);
+    return output;
+  };
+
+  const catalogCategoryOptions = useMemo(
+    () => flattenCategoryTree(categoryTreeData || []),
+    [categoryTreeData],
+  );
+
+  const [productPickerSearch, setProductPickerSearch] = useState("");
+  const [categoryPickerSearch, setCategoryPickerSearch] = useState("");
+
+  const filteredProductOptions = useMemo(() => {
+    const keyword = productPickerSearch.trim().toLowerCase();
+    if (!keyword) return productOptions;
+    return productOptions.filter((item) => {
+      const name = (item.nameAr || item.name || "").toLowerCase();
+      const sku = (item.sku || "").toLowerCase();
+      return name.includes(keyword) || sku.includes(keyword);
+    });
+  }, [productOptions, productPickerSearch]);
+
+  const filteredCatalogCategoryOptions = useMemo(() => {
+    const keyword = categoryPickerSearch.trim().toLowerCase();
+    if (!keyword) return catalogCategoryOptions;
+    return catalogCategoryOptions.filter((item) => {
+      const name = (item.nameAr || item.name || "").toLowerCase();
+      const slug = (item.slug || "").toLowerCase();
+      return name.includes(keyword) || slug.includes(keyword);
+    });
+  }, [catalogCategoryOptions, categoryPickerSearch]);
 
   // Stats
   const activeCategories = categories.filter((c) => c.isActive).length;
-  const publishedContent = content.filter((c) => c.status === "published").length;
+  const publishedContent = content.filter(
+    (c) => c.status === "published"
+  ).length;
   const featuredContent = content.filter((c) => c.isFeatured).length;
 
   // ─────────────────────────────────────────
@@ -154,8 +239,12 @@ export function EducationalContentPage() {
   // ─────────────────────────────────────────
 
   const createCategoryMutation = useMutation({
-    mutationFn: (data: Omit<EducationalCategory, "_id" | "contentCount" | "createdAt" | "updatedAt">) =>
-      contentApi.createEducationalCategory(data),
+    mutationFn: (
+      data: Omit<
+        EducationalCategory,
+        "_id" | "contentCount" | "createdAt" | "updatedAt"
+      >
+    ) => contentApi.createEducationalCategory(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["educational-categories"] });
       setIsCategoryDialogOpen(false);
@@ -165,8 +254,13 @@ export function EducationalContentPage() {
   });
 
   const updateCategoryMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<EducationalCategory> }) =>
-      contentApi.updateEducationalCategory(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<EducationalCategory>;
+    }) => contentApi.updateEducationalCategory(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["educational-categories"] });
       setIsCategoryDialogOpen(false);
@@ -189,8 +283,19 @@ export function EducationalContentPage() {
   // ─────────────────────────────────────────
 
   const createContentMutation = useMutation({
-    mutationFn: (data: Omit<EducationalContent, "_id" | "viewCount" | "likeCount" | "shareCount" | "createdAt" | "updatedAt" | "createdBy" | "updatedBy">) =>
-      contentApi.createEducationalContent(data),
+    mutationFn: (
+      data: Omit<
+        EducationalContent,
+        | "_id"
+        | "viewCount"
+        | "likeCount"
+        | "shareCount"
+        | "createdAt"
+        | "updatedAt"
+        | "createdBy"
+        | "updatedBy"
+      >
+    ) => contentApi.createEducationalContent(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["educational-content"] });
       queryClient.invalidateQueries({ queryKey: ["educational-categories"] });
@@ -201,8 +306,13 @@ export function EducationalContentPage() {
   });
 
   const updateContentMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<EducationalContent> }) =>
-      contentApi.updateEducationalContent(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<EducationalContent>;
+    }) => contentApi.updateEducationalContent(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["educational-content"] });
       setIsContentDialogOpen(false);
@@ -261,6 +371,14 @@ export function EducationalContentPage() {
       featuredImage: "",
       videoUrl: "",
       videoDuration: 0,
+      scope: "general",
+      relatedProducts: [],
+      relatedContent: "",
+      targetingProducts: [],
+      targetingCategories: [],
+      targetingBrands: "",
+      targetingDevices: "",
+      targetingIntentTags: "",
       tags: "",
       metaTitle: "",
       metaDescription: "",
@@ -270,6 +388,35 @@ export function EducationalContentPage() {
       difficulty: "beginner",
     },
   });
+
+  const parseCsv = (value: string): string[] =>
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  const toIdList = (items?: unknown[]): string[] => {
+    if (!Array.isArray(items)) return [];
+    return items
+      .map((item: any) => {
+        if (!item) return "";
+        if (typeof item === "string") return item;
+        return item._id || item.id || "";
+      })
+      .filter(Boolean);
+  };
+
+  const toggleArraySelection = (
+    field: "relatedProducts" | "targetingProducts" | "targetingCategories",
+    id: string,
+    checked: boolean,
+  ) => {
+    const current = contentForm.getValues(field) || [];
+    const next = checked
+      ? Array.from(new Set([...current, id]))
+      : current.filter((item) => item !== id);
+    contentForm.setValue(field, next, { shouldDirty: true, shouldTouch: true });
+  };
 
   // ─────────────────────────────────────────
   // Handlers
@@ -317,13 +464,21 @@ export function EducationalContentPage() {
     setIsEditing(false);
     setSelectedContent(null);
     contentForm.reset();
+    setProductPickerSearch("");
+    setCategoryPickerSearch("");
     setIsContentDialogOpen(true);
   };
 
   const handleEditContent = (content: EducationalContent) => {
     setIsEditing(true);
     setSelectedContent(content);
-    const categoryId = typeof content.categoryId === "string" ? content.categoryId : content.categoryId._id;
+    const categoryId =
+      typeof content.categoryId === "string"
+        ? content.categoryId
+        : content.categoryId._id;
+    const targeting = (content as any).targeting || {};
+    setProductPickerSearch("");
+    setCategoryPickerSearch("");
     contentForm.reset({
       title: content.title,
       titleAr: content.titleAr || "",
@@ -337,6 +492,16 @@ export function EducationalContentPage() {
       featuredImage: content.featuredImage || "",
       videoUrl: content.videoUrl || "",
       videoDuration: content.videoDuration || 0,
+      scope: content.scope || "general",
+      relatedProducts: toIdList(content.relatedProducts as any[]),
+      relatedContent: toIdList(content.relatedContent as any[]).join(", "),
+      targetingProducts: toIdList(targeting.products),
+      targetingCategories: toIdList(targeting.categories),
+      targetingBrands: toIdList(targeting.brands).join(", "),
+      targetingDevices: toIdList(targeting.devices).join(", "),
+      targetingIntentTags: Array.isArray(targeting.intentTags)
+        ? targeting.intentTags.join(", ")
+        : "",
       tags: content.tags.join(", "),
       metaTitle: content.metaTitle || "",
       metaDescription: content.metaDescription || "",
@@ -359,21 +524,74 @@ export function EducationalContentPage() {
   };
 
   const handleContentSubmit = (data: ContentFormData) => {
-    const tags = data.tags.split(",").map((t) => t.trim()).filter(Boolean);
+    const {
+      relatedProducts: relatedProductsInput,
+      relatedContent: relatedContentInput,
+      targetingProducts: targetingProductsInput,
+      targetingCategories: targetingCategoriesInput,
+      targetingBrands,
+      targetingDevices,
+      targetingIntentTags,
+      ...baseData
+    } = data;
+
+    const tags = parseCsv(baseData.tags);
+    const relatedProducts = relatedProductsInput;
+    const relatedContent = parseCsv(relatedContentInput);
+    const parsedTargetingProducts = targetingProductsInput;
+    const parsedTargetingCategories = targetingCategoriesInput;
+    const parsedTargetingBrands = parseCsv(targetingBrands);
+    const parsedTargetingDevices = parseCsv(targetingDevices);
+    const parsedTargetingIntentTags = parseCsv(targetingIntentTags);
+
+    const hasTargeting =
+      parsedTargetingProducts.length > 0 ||
+      parsedTargetingCategories.length > 0 ||
+      parsedTargetingBrands.length > 0 ||
+      parsedTargetingDevices.length > 0 ||
+      parsedTargetingIntentTags.length > 0;
+
     const contentData = {
-      ...data,
+      ...baseData,
       tags,
       attachments: [],
-      relatedProducts: [],
-      relatedContent: [],
+      ...(relatedProducts.length > 0 && { relatedProducts }),
+      ...(relatedContent.length > 0 && { relatedContent }),
+      ...(hasTargeting && {
+        targeting: {
+          ...(parsedTargetingProducts.length > 0 && {
+            products: parsedTargetingProducts,
+          }),
+          ...(parsedTargetingCategories.length > 0 && {
+            categories: parsedTargetingCategories,
+          }),
+          ...(parsedTargetingBrands.length > 0 && {
+            brands: parsedTargetingBrands,
+          }),
+          ...(parsedTargetingDevices.length > 0 && {
+            devices: parsedTargetingDevices,
+          }),
+          ...(parsedTargetingIntentTags.length > 0 && {
+            intentTags: parsedTargetingIntentTags,
+          }),
+        },
+      }),
     };
 
     if (isEditing && selectedContent) {
-      updateContentMutation.mutate({ id: selectedContent._id, data: contentData });
+      updateContentMutation.mutate({
+        id: selectedContent._id,
+        data: contentData,
+      });
     } else {
       createContentMutation.mutate(contentData);
     }
   };
+
+  const selectedRelatedProducts = contentForm.watch("relatedProducts") || [];
+  const selectedTargetingProducts = contentForm.watch("targetingProducts") || [];
+  const selectedTargetingCategories =
+    contentForm.watch("targetingCategories") || [];
 
   // ─────────────────────────────────────────
   // Render
@@ -529,7 +747,9 @@ export function EducationalContentPage() {
                                 تعديل
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => handleDeleteCategory(category._id)}
+                                onClick={() =>
+                                  handleDeleteCategory(category._id)
+                                }
                                 className="text-red-600"
                               >
                                 <Trash2 className="h-4 w-4 ml-2" />
@@ -561,11 +781,15 @@ export function EducationalContentPage() {
             </CardHeader>
             <CardContent>
               {/* Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4">
                 <Select
                   value={contentFilters.categoryId}
                   onValueChange={(value) =>
-                    setContentFilters({ ...contentFilters, categoryId: value, page: 1 })
+                    setContentFilters({
+                      ...contentFilters,
+                      categoryId: value,
+                      page: 1,
+                    })
                   }
                 >
                   <SelectTrigger>
@@ -584,7 +808,11 @@ export function EducationalContentPage() {
                 <Select
                   value={contentFilters.type}
                   onValueChange={(value) =>
-                    setContentFilters({ ...contentFilters, type: value, page: 1 })
+                    setContentFilters({
+                      ...contentFilters,
+                      type: value,
+                      page: 1,
+                    })
                   }
                 >
                   <SelectTrigger>
@@ -601,9 +829,34 @@ export function EducationalContentPage() {
                 </Select>
 
                 <Select
+                  value={contentFilters.scope}
+                  onValueChange={(value) =>
+                    setContentFilters({
+                      ...contentFilters,
+                      scope: (value || "") as ContentFilters["scope"],
+                      page: 1,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="كل النطاقات" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">كل النطاقات</SelectItem>
+                    <SelectItem value="general">عام</SelectItem>
+                    <SelectItem value="contextual">مرتبط بسياق</SelectItem>
+                    <SelectItem value="hybrid">هجين</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
                   value={contentFilters.status}
                   onValueChange={(value) =>
-                    setContentFilters({ ...contentFilters, status: value, page: 1 })
+                    setContentFilters({
+                      ...contentFilters,
+                      status: value,
+                      page: 1,
+                    })
                   }
                 >
                   <SelectTrigger>
@@ -618,7 +871,11 @@ export function EducationalContentPage() {
                 </Select>
 
                 <Select
-                  value={contentFilters.featured === undefined ? "" : contentFilters.featured.toString()}
+                  value={
+                    contentFilters.featured === undefined
+                      ? ""
+                      : contentFilters.featured.toString()
+                  }
                   onValueChange={(value) =>
                     setContentFilters({
                       ...contentFilters,
@@ -641,7 +898,11 @@ export function EducationalContentPage() {
                   placeholder="بحث..."
                   value={contentFilters.search}
                   onChange={(e) =>
-                    setContentFilters({ ...contentFilters, search: e.target.value, page: 1 })
+                    setContentFilters({
+                      ...contentFilters,
+                      search: e.target.value,
+                      page: 1,
+                    })
                   }
                 />
               </div>
@@ -658,6 +919,7 @@ export function EducationalContentPage() {
                         <TableHead>العنوان</TableHead>
                         <TableHead>الفئة</TableHead>
                         <TableHead>النوع</TableHead>
+                        <TableHead>النطاق</TableHead>
                         <TableHead>الحالة</TableHead>
                         <TableHead>الإحصائيات</TableHead>
                         <TableHead>التاريخ</TableHead>
@@ -666,10 +928,11 @@ export function EducationalContentPage() {
                     </TableHeader>
                     <TableBody>
                       {content.map((item) => {
-                        const category = typeof item.categoryId === "string" 
-                          ? categories.find(c => c._id === item.categoryId)
-                          : item.categoryId;
-                        
+                        const category =
+                          typeof item.categoryId === "string"
+                            ? categories.find((c) => c._id === item.categoryId)
+                            : item.categoryId;
+
                         return (
                           <TableRow key={item._id}>
                             <TableCell>
@@ -677,7 +940,10 @@ export function EducationalContentPage() {
                                 <div className="font-medium flex items-center gap-2">
                                   {item.title}
                                   {item.isFeatured && (
-                                    <Badge variant="warning" className="text-xs">
+                                    <Badge
+                                      variant="warning"
+                                      className="text-xs"
+                                    >
                                       مميز
                                     </Badge>
                                   )}
@@ -699,6 +965,14 @@ export function EducationalContentPage() {
                                 {item.type === "tutorial" && "درس"}
                                 {item.type === "tip" && "نصيحة"}
                                 {item.type === "guide" && "دليل"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {(item.scope || "general") === "general" &&
+                                  "عام"}
+                                {item.scope === "contextual" && "مرتبط"}
+                                {item.scope === "hybrid" && "هجين"}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -749,14 +1023,18 @@ export function EducationalContentPage() {
                                   </DropdownMenuItem>
                                   {item.status !== "published" && (
                                     <DropdownMenuItem
-                                      onClick={() => handlePublishContent(item._id)}
+                                      onClick={() =>
+                                        handlePublishContent(item._id)
+                                      }
                                     >
                                       <CheckCircle className="h-4 w-4 ml-2" />
                                       نشر
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuItem
-                                    onClick={() => handleDeleteContent(item._id)}
+                                    onClick={() =>
+                                      handleDeleteContent(item._id)
+                                    }
                                     className="text-red-600"
                                   >
                                     <Trash2 className="h-4 w-4 ml-2" />
@@ -815,15 +1093,16 @@ export function EducationalContentPage() {
       </Tabs>
 
       {/* Category Dialog */}
-      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+      <Dialog
+        open={isCategoryDialogOpen}
+        onOpenChange={setIsCategoryDialogOpen}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {isEditing ? "تعديل الفئة" : "إضافة فئة جديدة"}
             </DialogTitle>
-            <DialogDescription>
-              أدخل معلومات الفئة التعليمية
-            </DialogDescription>
+            <DialogDescription>أدخل معلومات الفئة التعليمية</DialogDescription>
           </DialogHeader>
           <form onSubmit={categoryForm.handleSubmit(handleCategorySubmit)}>
             <div className="grid gap-4 py-4">
@@ -883,7 +1162,9 @@ export function EducationalContentPage() {
                   <Input
                     id="sortOrder"
                     type="number"
-                    {...categoryForm.register("sortOrder", { valueAsNumber: true })}
+                    {...categoryForm.register("sortOrder", {
+                      valueAsNumber: true,
+                    })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -912,9 +1193,7 @@ export function EducationalContentPage() {
               >
                 إلغاء
               </Button>
-              <Button type="submit">
-                {isEditing ? "تحديث" : "إنشاء"}
-              </Button>
+              <Button type="submit">{isEditing ? "تحديث" : "إنشاء"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -927,9 +1206,7 @@ export function EducationalContentPage() {
             <DialogTitle>
               {isEditing ? "تعديل المحتوى" : "إضافة محتوى جديد"}
             </DialogTitle>
-            <DialogDescription>
-              أدخل معلومات المحتوى التعليمي
-            </DialogDescription>
+            <DialogDescription>أدخل معلومات المحتوى التعليمي</DialogDescription>
           </DialogHeader>
           <form onSubmit={contentForm.handleSubmit(handleContentSubmit)}>
             <div className="grid gap-4 py-4">
@@ -965,7 +1242,10 @@ export function EducationalContentPage() {
                       control={contentForm.control}
                       rules={{ required: true }}
                       render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="اختر الفئة" />
                           </SelectTrigger>
@@ -986,7 +1266,10 @@ export function EducationalContentPage() {
                       name="type"
                       control={contentForm.control}
                       render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -1010,7 +1293,10 @@ export function EducationalContentPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="excerpt">الملخص (EN)</Label>
-                    <Textarea id="excerpt" {...contentForm.register("excerpt")} />
+                    <Textarea
+                      id="excerpt"
+                      {...contentForm.register("excerpt")}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="excerptAr">الملخص (AR)</Label>
@@ -1054,7 +1340,10 @@ export function EducationalContentPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="videoUrl">رابط الفيديو</Label>
-                    <Input id="videoUrl" {...contentForm.register("videoUrl")} />
+                    <Input
+                      id="videoUrl"
+                      {...contentForm.register("videoUrl")}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="videoDuration">مدة الفيديو (ثانية)</Label>
@@ -1066,6 +1355,209 @@ export function EducationalContentPage() {
                       })}
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Targeting */}
+              <div className="space-y-4">
+                <h3 className="font-semibold">الربط والاستهداف</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="scope">نطاق المحتوى</Label>
+                    <Controller
+                      name="scope"
+                      control={contentForm.control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="general">عام</SelectItem>
+                            <SelectItem value="contextual">
+                              مرتبط بسياق
+                            </SelectItem>
+                            <SelectItem value="hybrid">هجين</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>منتجات مرتبطة</Label>
+                    <div className="relative">
+                      <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="ابحث عن منتج بالاسم أو SKU"
+                        value={productPickerSearch}
+                        onChange={(e) => setProductPickerSearch(e.target.value)}
+                        className="ps-10"
+                      />
+                      {productPickerSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setProductPickerSearch("")}
+                          className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded-md p-2">
+                      {filteredProductOptions.map((product) => (
+                        <label
+                          key={`related-product-${product._id}`}
+                          className="flex items-center gap-2 p-2 rounded hover:bg-muted/40 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedRelatedProducts.includes(product._id)}
+                            onChange={(e) =>
+                              toggleArraySelection(
+                                "relatedProducts",
+                                product._id,
+                                e.target.checked,
+                              )
+                            }
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-sm truncate" title={product.nameAr || product.name}>
+                            {product.nameAr || product.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      تم اختيار {selectedRelatedProducts.length} منتج
+                    </p>
+                    {productsLoading && (
+                      <p className="text-xs text-muted-foreground">جاري تحميل المنتجات...</p>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="relatedContent">
+                    محتوى مرتبط (IDs مفصولة بفواصل)
+                  </Label>
+                  <Input
+                    id="relatedContent"
+                    placeholder="66c21..., 66c55..."
+                    {...contentForm.register("relatedContent")}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="targetingProducts">استهداف منتجات</Label>
+                    <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto border rounded-md p-2">
+                      {filteredProductOptions.map((product) => (
+                        <label
+                          key={`targeting-product-${product._id}`}
+                          className="flex items-center gap-2 p-2 rounded hover:bg-muted/40 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedTargetingProducts.includes(product._id)}
+                            onChange={(e) =>
+                              toggleArraySelection(
+                                "targetingProducts",
+                                product._id,
+                                e.target.checked,
+                              )
+                            }
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-sm truncate" title={product.nameAr || product.name}>
+                            {product.nameAr || product.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      تم اختيار {selectedTargetingProducts.length} منتج
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>استهداف فئات</Label>
+                    <div className="relative">
+                      <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="ابحث باسم الفئة أو slug"
+                        value={categoryPickerSearch}
+                        onChange={(e) => setCategoryPickerSearch(e.target.value)}
+                        className="ps-10"
+                      />
+                      {categoryPickerSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setCategoryPickerSearch("")}
+                          className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto border rounded-md p-2">
+                      {filteredCatalogCategoryOptions.map((item) => (
+                        <label
+                          key={`targeting-category-${item._id}`}
+                          className="flex items-center gap-2 p-2 rounded hover:bg-muted/40 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedTargetingCategories.includes(item._id)}
+                            onChange={(e) =>
+                              toggleArraySelection(
+                                "targetingCategories",
+                                item._id,
+                                e.target.checked,
+                              )
+                            }
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-sm truncate" title={item.nameAr || item.name}>
+                            {item.nameAr || item.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      تم اختيار {selectedTargetingCategories.length} فئة
+                    </p>
+                    {catalogCategoriesLoading && (
+                      <p className="text-xs text-muted-foreground">جاري تحميل الفئات...</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="targetingBrands">
+                      استهداف علامات تجارية
+                    </Label>
+                    <Input
+                      id="targetingBrands"
+                      placeholder="IDs مفصولة بفواصل"
+                      {...contentForm.register("targetingBrands")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="targetingDevices">استهداف أجهزة</Label>
+                    <Input
+                      id="targetingDevices"
+                      placeholder="IDs مفصولة بفواصل"
+                      {...contentForm.register("targetingDevices")}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="targetingIntentTags">
+                    Intent Tags (battery, screen, ...)
+                  </Label>
+                  <Input
+                    id="targetingIntentTags"
+                    placeholder="battery, overheating, screen"
+                    {...contentForm.register("targetingIntentTags")}
+                  />
                 </div>
               </div>
 
@@ -1083,7 +1575,10 @@ export function EducationalContentPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="metaTitle">عنوان SEO</Label>
-                    <Input id="metaTitle" {...contentForm.register("metaTitle")} />
+                    <Input
+                      id="metaTitle"
+                      {...contentForm.register("metaTitle")}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="metaDescription">وصف SEO</Label>
@@ -1105,7 +1600,10 @@ export function EducationalContentPage() {
                       name="status"
                       control={contentForm.control}
                       render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -1124,7 +1622,10 @@ export function EducationalContentPage() {
                       name="difficulty"
                       control={contentForm.control}
                       render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -1174,9 +1675,7 @@ export function EducationalContentPage() {
               >
                 إلغاء
               </Button>
-              <Button type="submit">
-                {isEditing ? "تحديث" : "إنشاء"}
-              </Button>
+              <Button type="submit">{isEditing ? "تحديث" : "إنشاء"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -16,11 +16,13 @@ import {
   ArrowLeft,
   Truck,
   CreditCard,
+  CheckCircle2,
   Loader2,
   MessageSquare,
   Send,
   Plus,
   RefreshCw,
+  XCircle,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,6 +93,8 @@ const ORDER_STATUS_FLOW: string[] = [
 const paymentStatusVariants: Record<string, "success" | "warning" | "danger"> =
   {
     paid: "success",
+    partial: "warning",
+    unpaid: "danger",
     pending: "warning",
     partially_paid: "warning",
     failed: "danger",
@@ -99,10 +103,28 @@ const paymentStatusVariants: Record<string, "success" | "warning" | "danger"> =
 
 const paymentStatusLabels: Record<string, string> = {
   paid: "مدفوع",
+  partial: "مدفوع جزئياً",
+  unpaid: "غير مدفوع",
   pending: "غير مدفوع",
   partially_paid: "مدفوع جزئياً",
   failed: "فشل",
   refunded: "مسترد",
+};
+
+const transferStatusLabels: Record<string, string> = {
+  not_required: "غير مطلوب",
+  awaiting_receipt: "بانتظار رفع الإيصال",
+  receipt_uploaded: "إيصال مرفوع - بانتظار التحقق",
+  verified: "تم التحقق",
+  rejected: "مرفوض",
+};
+
+const transferStatusVariants: Record<string, "success" | "warning" | "danger" | "default"> = {
+  not_required: "default",
+  awaiting_receipt: "warning",
+  receipt_uploaded: "warning",
+  verified: "success",
+  rejected: "danger",
 };
 
 export function OrderDetailsPage() {
@@ -116,6 +138,8 @@ export function OrderDetailsPage() {
   const [noteContent, setNoteContent] = useState("");
   const [newStatus, setNewStatus] = useState("");
   const [statusDialogNote, setStatusDialogNote] = useState("");
+  const [verificationNotes, setVerificationNotes] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
   const [shipmentData, setShipmentData] = useState({
     trackingNumber: "",
     carrier: "",
@@ -202,13 +226,32 @@ export function OrderDetailsPage() {
       data,
     }: {
       orderId: string;
-      data: { amount: number; method?: string; reference?: string };
+      data: { amount: number; paymentMethod?: string; gatewayReference?: string };
     }) => ordersApi.recordPayment(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order", orderId] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       setIsPaymentDialogOpen(false);
       setPaymentData({ amount: "", method: "", reference: "" });
+    },
+  });
+
+  const verifyPaymentMutation = useMutation({
+    mutationFn: ({
+      orderId: id,
+      data,
+    }: {
+      orderId: string;
+      data: { verified: boolean; rejectionReason?: string; notes?: string };
+    }) => ordersApi.verifyPayment(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["pending-transfer-verification-orders"],
+      });
+      setVerificationNotes("");
+      setRejectionReason("");
     },
   });
 
@@ -236,8 +279,25 @@ export function OrderDetailsPage() {
       orderId,
       data: {
         amount: Number(paymentData.amount),
-        method: paymentData.method || undefined,
-        reference: paymentData.reference || undefined,
+        paymentMethod: paymentData.method || undefined,
+        gatewayReference: paymentData.reference || undefined,
+      },
+    });
+  };
+
+  const handleVerifyTransfer = (verified: boolean) => {
+    if (!orderId) return;
+
+    if (!verified && !rejectionReason.trim()) {
+      return;
+    }
+
+    verifyPaymentMutation.mutate({
+      orderId,
+      data: {
+        verified,
+        rejectionReason: verified ? undefined : rejectionReason.trim(),
+        notes: verificationNotes.trim() || undefined,
       },
     });
   };
@@ -295,6 +355,26 @@ export function OrderDetailsPage() {
     (order as any).customerId?.shopName ||
     (order as any).customerId?.responsiblePersonName ||
     "-";
+  const rawTransferStatus = (order as any).transferStatus as string | undefined;
+  const transferReceiptImage = (order as any).transferReceiptImage as string | undefined;
+  const transferReference = (order as any).transferReference as string | undefined;
+  const transferDate = (order as any).transferDate as string | undefined;
+  const transferVerifiedAt = (order as any).transferVerifiedAt as string | undefined;
+  const transferRejectionReason = (order as any).rejectionReason as string | undefined;
+  const isTransferVerified =
+    rawTransferStatus === "verified" || Boolean(transferVerifiedAt);
+  const transferStatus =
+    rawTransferStatus ||
+    (transferReceiptImage
+      ? isTransferVerified
+        ? "verified"
+        : "receipt_uploaded"
+      : "not_required");
+  const paidAmount = Number((order as any).paidAmount || 0);
+  const remainingAmount = Math.max(0, Number(order.total || 0) - paidAmount);
+  const isBankTransferOrder = (order as any).paymentMethod === "bank_transfer";
+  const canReviewTransfer =
+    isBankTransferOrder && Boolean(transferReceiptImage) && !isTransferVerified;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -331,7 +411,7 @@ export function OrderDetailsPage() {
             size="sm"
             onClick={() => {
               setPaymentData({
-                amount: String(order.total),
+                amount: String(Math.max(0, Number(order.total || 0) - Number((order as any).paidAmount || 0))),
                 method: "",
                 reference: "",
               });
@@ -397,8 +477,10 @@ export function OrderDetailsPage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     حالة الدفع
                   </p>
-                  <Badge variant={paymentStatusVariants[order.paymentStatus]}>
-                    {paymentStatusLabels[order.paymentStatus]}
+                  <Badge
+                    variant={paymentStatusVariants[order.paymentStatus] ?? "warning"}
+                  >
+                    {paymentStatusLabels[order.paymentStatus] ?? order.paymentStatus}
                   </Badge>
                 </div>
                 <div>
@@ -410,6 +492,120 @@ export function OrderDetailsPage() {
                   </p>
                 </div>
               </div>
+
+              {isBankTransferOrder && (
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <CardTitle className="text-base">التحويل البنكي والتحقق</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">حالة التحويل</p>
+                        <Badge variant={transferStatusVariants[transferStatus] ?? "default"}>
+                          {transferStatusLabels[transferStatus] ?? transferStatus}
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">المبلغ المدفوع</p>
+                        <p className="font-medium">{formatCurrency(paidAmount, "SAR", locale)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">المتبقي للتحصيل</p>
+                        <p className="font-medium">{formatCurrency(remainingAmount, "SAR", locale)}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">مرجع التحويل</p>
+                        <p className="font-medium">{transferReference || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">تاريخ التحويل</p>
+                        <p className="font-medium">
+                          {transferDate ? formatDate(transferDate, locale) : "-"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {transferReceiptImage ? (
+                      <a
+                        href={transferReceiptImage}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex text-sm text-primary hover:underline"
+                      >
+                        فتح الإيصال المرفوع
+                      </a>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        لا يوجد إيصال مرفوع حتى الآن.
+                      </p>
+                    )}
+
+                    {transferRejectionReason && (
+                      <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+                        سبب الرفض: {transferRejectionReason}
+                      </div>
+                    )}
+
+                    {canReviewTransfer && (
+                      <div className="space-y-3 rounded-lg border p-3">
+                        <p className="text-sm font-medium">إجراء التحقق</p>
+                        <div className="space-y-2">
+                          <Label>ملاحظات (اختياري)</Label>
+                          <Textarea
+                            value={verificationNotes}
+                            onChange={(e) => setVerificationNotes(e.target.value)}
+                            placeholder="ملاحظات التحقق..."
+                            className="min-h-[80px]"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>سبب الرفض (إلزامي عند الرفض)</Label>
+                          <Input
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                            placeholder="مثال: الإيصال غير واضح"
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            onClick={() => handleVerifyTransfer(true)}
+                            disabled={verifyPaymentMutation.isPending}
+                          >
+                            {verifyPaymentMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4" />
+                            )}
+                            اعتماد الدفع
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={() => handleVerifyTransfer(false)}
+                            disabled={verifyPaymentMutation.isPending || !rejectionReason.trim()}
+                          >
+                            {verifyPaymentMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <XCircle className="h-4 w-4" />
+                            )}
+                            رفض الإيصال
+                          </Button>
+                        </div>
+                        {verifyPaymentMutation.isError && (
+                          <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+                            {(verifyPaymentMutation.error as Error)?.message ??
+                              "فشل تحديث حالة التحقق"}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               <div>
                 <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
@@ -715,8 +911,13 @@ export function OrderDetailsPage() {
               >
                 <option value="">اختر الطريقة...</option>
                 <option value="bank_transfer">تحويل بنكي</option>
-                <option value="cash">نقدي</option>
-                <option value="card">بطاقة</option>
+                <option value="cash_on_delivery">الدفع عند الاستلام</option>
+                <option value="credit_card">بطاقة ائتمان</option>
+                <option value="mada">مدى</option>
+                <option value="apple_pay">Apple Pay</option>
+                <option value="stc_pay">STC Pay</option>
+                <option value="wallet">محفظة</option>
+                <option value="credit">آجل</option>
               </select>
             </div>
             <div className="space-y-2">

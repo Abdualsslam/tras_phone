@@ -35,6 +35,11 @@ import {
 } from '@modules/audit/schemas/audit-log.schema';
 import { ReturnsService } from '@modules/returns/returns.service';
 import { WalletService } from '@modules/wallet/wallet.service';
+import * as PDFDocument from 'pdfkit';
+import { StorageService } from '@modules/integrations/storage.service';
+import { ConfigService } from '@nestjs/config';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -65,6 +70,8 @@ export class OrdersService {
     private customersService: CustomersService,
     private auditService: AuditService,
     private walletService: WalletService,
+    private storageService: StorageService,
+    private configService: ConfigService,
     @Inject(forwardRef(() => ReturnsService))
     private returnsService: ReturnsService,
   ) { }
@@ -298,6 +305,10 @@ export class OrdersService {
     const paidAmount = walletAmountUsed;
     const paymentStatus =
       paidAmount <= 0 ? 'unpaid' : paidAmount >= total ? 'paid' : 'partial';
+    const transferStatus =
+      paymentMethod === 'bank_transfer' && remainingAfterWallet > 0
+        ? 'awaiting_receipt'
+        : 'not_required';
 
     // Create order (currency default SAR)
     const order = await this.orderModel.create({
@@ -314,6 +325,7 @@ export class OrdersService {
       total,
       paidAmount,
       paymentStatus,
+      transferStatus,
       currencyCode: 'SAR',
       couponId,
       couponCode,
@@ -634,6 +646,305 @@ export class OrdersService {
       history,
       cancellable: this.isOrderCancellable(order.status),
     };
+  }
+
+  /**
+   * Get invoice metadata and URL for an order
+   */
+  async getOrderInvoice(
+    orderId: string,
+    customerId?: string,
+  ): Promise<{ invoiceNumber: string; url: string }> {
+    const { order } = await this.findOrderAndItems(orderId);
+    this.assertOrderOwnership(order, customerId);
+
+    const invoice = await this.getOrCreateInvoice(order);
+    const ensured = await this.ensureInvoicePdfUploaded(order, invoice);
+
+    return {
+      invoiceNumber: invoice.invoiceNumber,
+      url: ensured.url,
+    };
+  }
+
+  /**
+   * Build invoice PDF for an order
+   */
+  async buildOrderInvoicePdf(
+    orderId: string,
+    customerId?: string,
+  ): Promise<{ buffer: Buffer; filename: string; invoiceNumber: string; url?: string }> {
+    const { order, items } = await this.findOrderAndItems(orderId);
+    this.assertOrderOwnership(order, customerId);
+
+    const invoice = await this.getOrCreateInvoice(order);
+    const buffer = await this.generateInvoicePdfBuffer(order, invoice, items);
+    const filename = `invoice-${invoice.invoiceNumber}.pdf`;
+
+    return {
+      buffer,
+      filename,
+      invoiceNumber: invoice.invoiceNumber,
+      url: invoice.pdfUrl,
+    };
+  }
+
+  private assertOrderOwnership(order: OrderDocument, customerId?: string): void {
+    if (!customerId) return;
+
+    const orderCustomerId = (
+      (order.customerId as any)?._id ?? order.customerId
+    )?.toString();
+    if (orderCustomerId !== customerId) {
+      throw new NotFoundException('Order not found');
+    }
+  }
+
+  private async getOrCreateInvoice(order: OrderDocument): Promise<InvoiceDocument> {
+    const orderObjectId =
+      typeof order._id === 'string' ? new Types.ObjectId(order._id) : order._id;
+
+    let invoice = await this.invoiceModel.findOne({ orderId: orderObjectId });
+    if (!invoice) {
+      await this.createInvoice(order);
+      invoice = await this.invoiceModel.findOne({ orderId: orderObjectId });
+    }
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    return invoice as InvoiceDocument;
+  }
+
+  private async ensureInvoicePdfUploaded(
+    order: OrderDocument,
+    invoice: InvoiceDocument,
+  ): Promise<{ url: string; regenerated: boolean }> {
+    if (invoice.pdfUrl) {
+      return { url: invoice.pdfUrl, regenerated: false };
+    }
+
+    const orderId =
+      typeof order._id === 'string' ? order._id : (order._id as any).toString();
+    const { items } = await this.findOrderAndItems(orderId);
+    const buffer = await this.generateInvoicePdfBuffer(order, invoice, items);
+
+    const uploadResult = await this.storageService.upload({
+      file: buffer,
+      filename: `invoice-${invoice.invoiceNumber}.pdf`,
+      mimetype: 'application/pdf',
+      folder: 'invoices',
+      isPublic: true,
+    });
+
+    if (!uploadResult.success || !uploadResult.url) {
+      throw new BadRequestException(
+        uploadResult.error || 'Failed to upload invoice PDF',
+      );
+    }
+
+    invoice.pdfUrl = uploadResult.url;
+    await invoice.save();
+
+    return { url: uploadResult.url, regenerated: true };
+  }
+
+  private async generateInvoicePdfBuffer(
+    order: OrderDocument,
+    invoice: InvoiceDocument,
+    items: OrderItemDocument[] | any[],
+  ): Promise<Buffer> {
+    const logo = this.loadInvoiceLogo();
+
+    return new Promise<Buffer>((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const chunks: Buffer[] = [];
+
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      const orderDate = order.createdAt || new Date();
+      const issueDate = invoice.issueDate || orderDate;
+      const currency = order.currencyCode || 'SAR';
+      const customer = order.customerId as any;
+      const customerName =
+        invoice.customerName ||
+        customer?.shopName ||
+        customer?.responsiblePersonName ||
+        order.shippingAddress?.fullName ||
+        'Customer';
+      const customerPhone =
+        invoice.customerPhone || customer?.phone || order.shippingAddress?.phone || '-';
+
+      const pageWidth = doc.page.width;
+      const headerX = 40;
+      const headerY = 40;
+      const headerWidth = pageWidth - 80;
+
+      doc.save();
+      doc.roundedRect(headerX, headerY, headerWidth, 88, 12).fill('#0F4C81');
+      doc.restore();
+
+      if (logo) {
+        try {
+          doc.image(logo, headerX + 14, headerY + 14, { fit: [64, 64] });
+        } catch {
+          // Ignore logo rendering errors and continue with text-based branding
+        }
+      }
+
+      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(18);
+      doc.text('TRAS PHONE', headerX + 90, headerY + 18, { width: 220 });
+      doc.fontSize(10).font('Helvetica');
+      doc.text('Professional Invoice | فاتورة ضريبية', headerX + 90, headerY + 42, {
+        width: 260,
+      });
+
+      doc.font('Helvetica-Bold').fontSize(11);
+      doc.text(`Invoice: ${invoice.invoiceNumber}`, headerX + headerWidth - 210, headerY + 20, {
+        width: 180,
+        align: 'right',
+      });
+      doc.font('Helvetica').fontSize(10);
+      doc.text(`Date: ${issueDate.toISOString().slice(0, 10)}`, headerX + headerWidth - 210, headerY + 40, {
+        width: 180,
+        align: 'right',
+      });
+      doc.text(`Order: ${order.orderNumber}`, headerX + headerWidth - 210, headerY + 58, {
+        width: 180,
+        align: 'right',
+      });
+
+      const infoTop = 150;
+      doc.save();
+      doc.roundedRect(40, infoTop, 255, 92, 10).fill('#F4F8FC');
+      doc.roundedRect(305, infoTop, 250, 92, 10).fill('#F4F8FC');
+      doc.restore();
+
+      doc.fillColor('#0F4C81').font('Helvetica-Bold').fontSize(11);
+      doc.text('Bill To | بيانات العميل', 52, infoTop + 12);
+      doc.fillColor('#222222').font('Helvetica').fontSize(10);
+      doc.text(`Name: ${customerName}`, 52, infoTop + 34, { width: 235 });
+      doc.text(`Phone: ${customerPhone}`, 52, infoTop + 52, { width: 235 });
+
+      doc.fillColor('#0F4C81').font('Helvetica-Bold').fontSize(11);
+      doc.text('Payment | الدفع', 317, infoTop + 12);
+      doc.fillColor('#222222').font('Helvetica').fontSize(10);
+      doc.text(`Method: ${order.paymentMethod || '-'}`, 317, infoTop + 34, {
+        width: 225,
+      });
+      doc.text(`Status: ${order.paymentStatus || 'unpaid'}`, 317, infoTop + 52, {
+        width: 225,
+      });
+
+      const tableTop = 265;
+      doc.save();
+      doc.roundedRect(40, tableTop, 515, 26, 6).fill('#0F4C81');
+      doc.restore();
+      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(10);
+      doc.text('Item', 52, tableTop + 8, { width: 210 });
+      doc.text('Qty', 275, tableTop + 8, { width: 40, align: 'right' });
+      doc.text('Unit Price', 332, tableTop + 8, { width: 95, align: 'right' });
+      doc.text('Total', 445, tableTop + 8, { width: 96, align: 'right' });
+
+      doc.fillColor('#222222').font('Helvetica').fontSize(10);
+      let y = tableTop + 34;
+      const renderedItems =
+        items.length > 0
+          ? items
+          : (order.items || []).map((item: any) => ({
+              productName: item.name,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              totalPrice: item.total,
+            }));
+
+      for (let index = 0; index < renderedItems.length; index += 1) {
+        const item: any = renderedItems[index];
+        const rowHeight = 22;
+
+        if (y > 700) {
+          doc.addPage();
+          y = 70;
+        }
+
+        if (index % 2 === 0) {
+          doc.save();
+          doc.rect(40, y - 4, 515, rowHeight).fill('#F9FBFD');
+          doc.restore();
+          doc.fillColor('#222222');
+        }
+
+        const productName = item.productName || item.name || 'Item';
+        const qty = Number(item.quantity || 0);
+        const unitPrice = Number(item.unitPrice || 0);
+        const lineTotal = Number(item.totalPrice ?? item.total ?? 0);
+
+        doc.text(productName, 52, y, { width: 210 });
+        doc.text(`${qty}`, 275, y, { width: 40, align: 'right' });
+        doc.text(`${unitPrice.toFixed(2)} ${currency}`, 332, y, {
+          width: 95,
+          align: 'right',
+        });
+        doc.text(`${lineTotal.toFixed(2)} ${currency}`, 445, y, {
+          width: 96,
+          align: 'right',
+        });
+
+        y += rowHeight;
+      }
+
+      const totalsY = Math.max(y + 14, 590);
+      doc.save();
+      doc.roundedRect(330, totalsY, 225, 104, 8).fill('#F4F8FC');
+      doc.restore();
+
+      const drawTotalLine = (label: string, value: number, offset: number, bold = false) => {
+        doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(bold ? 11 : 10);
+        doc.fillColor('#0F4C81').text(label, 342, totalsY + offset, { width: 100 });
+        doc.fillColor('#222222').text(`${value.toFixed(2)} ${currency}`, 440, totalsY + offset, {
+          width: 100,
+          align: 'right',
+        });
+      };
+
+      drawTotalLine('Subtotal', Number(invoice.subtotal || 0), 14);
+      drawTotalLine('Discount', Number(invoice.discount || 0), 32);
+      drawTotalLine('Tax', Number(invoice.taxAmount || 0), 50);
+      drawTotalLine('Shipping', Number(invoice.shippingCost || 0), 68);
+      drawTotalLine('Grand Total', Number(invoice.total || 0), 86, true);
+
+      doc.fillColor('#666666').font('Helvetica').fontSize(9);
+      doc.text('Thank you for your business | شكرا لتعاملكم معنا', 40, 790, {
+        width: 515,
+        align: 'center',
+      });
+
+      doc.end();
+    });
+  }
+
+  private loadInvoiceLogo(): Buffer | undefined {
+    const customPath = this.configService.get<string>('INVOICE_LOGO_PATH');
+    const candidatePaths = [
+      customPath,
+      path.resolve(process.cwd(), '../mobile/assets/images/logo.png'),
+      path.resolve(process.cwd(), '../admin/src/assets/logo.png'),
+      path.resolve(process.cwd(), 'assets/logo.png'),
+    ].filter(Boolean) as string[];
+
+    for (const logoPath of candidatePaths) {
+      try {
+        if (fs.existsSync(logoPath)) {
+          return fs.readFileSync(logoPath);
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    return undefined;
   }
 
   /**
@@ -1029,9 +1340,14 @@ export class OrdersService {
     // Update order
     const newPaidAmount = order.paidAmount + data.amount;
     const paymentStatus = newPaidAmount >= order.total ? 'paid' : 'partial';
+    const orderUpdate: any = { paidAmount: newPaidAmount, paymentStatus };
+
+    if (order.paymentMethod === 'bank_transfer' && newPaidAmount >= order.total) {
+      orderUpdate.transferStatus = 'verified';
+    }
 
     await this.orderModel.findByIdAndUpdate(orderId, {
-      $set: { paidAmount: newPaidAmount, paymentStatus },
+      $set: orderUpdate,
     });
 
     // Update invoice
@@ -1147,16 +1463,31 @@ export class OrdersService {
     const order = await this.orderModel.findById(orderId);
     if (!order) throw new NotFoundException('Order not found');
 
+    if (order.paymentMethod !== 'bank_transfer') {
+      throw new BadRequestException(
+        'Receipt upload is only allowed for bank transfer orders',
+      );
+    }
+
+    if ((order.transferStatus as string) === 'verified') {
+      throw new BadRequestException('Payment already verified for this order');
+    }
+
+    const remainingAmount = Math.max(0, (order.total || 0) - (order.paidAmount || 0));
+    if (remainingAmount <= 0) {
+      throw new BadRequestException('Order is already fully paid');
+    }
+
     // Update order with receipt info
     order.transferReceiptImage = data.receiptImage;
     order.transferReference = data.transferReference;
     order.transferDate = data.transferDate
       ? new Date(data.transferDate)
       : undefined;
-    // Keep 'partial' status if wallet was partially used; otherwise mark as pending verification
-    if (order.paymentStatus !== 'partial') {
-      order.paymentStatus = 'pending';
-    }
+    order.transferStatus = 'receipt_uploaded';
+    order.transferVerifiedAt = undefined;
+    order.transferVerifiedBy = undefined;
+    order.rejectionReason = undefined;
 
     await order.save();
 
@@ -1181,26 +1512,61 @@ export class OrdersService {
     const order = await this.orderModel.findById(orderId);
     if (!order) throw new NotFoundException('Order not found');
 
+    if (order.paymentMethod !== 'bank_transfer') {
+      throw new BadRequestException(
+        'Payment verification is only allowed for bank transfer orders',
+      );
+    }
+
     if (verified) {
-      order.transferVerifiedAt = new Date();
-      order.transferVerifiedBy = new Types.ObjectId(adminId);
-      order.paymentStatus = 'paid';
-      order.paidAmount = order.total;
+      if (!order.transferReceiptImage) {
+        throw new BadRequestException('No transfer receipt uploaded');
+      }
+
+      const remainingAmount = Math.max(
+        0,
+        (order.total || 0) - (order.paidAmount || 0),
+      );
+
+      if (remainingAmount <= 0) {
+        throw new BadRequestException('Order is already fully paid');
+      }
 
       // Record payment
       await this.recordPayment(orderId, {
-        amount: order.total,
-        paymentMethod: order.paymentMethod || 'bank_transfer',
+        amount: remainingAmount,
+        paymentMethod: 'bank_transfer',
         gatewayReference: order.transferReference,
       });
-    } else {
-      order.transferVerifiedAt = undefined;
-      order.transferVerifiedBy = undefined;
-      order.paymentStatus = 'unpaid';
-      order.rejectionReason = rejectionReason;
-    }
 
-    await order.save();
+      await this.orderModel.findByIdAndUpdate(orderId, {
+        $set: {
+          transferVerifiedAt: new Date(),
+          transferVerifiedBy: new Types.ObjectId(adminId),
+          transferStatus: 'verified',
+          rejectionReason: undefined,
+        },
+      });
+    } else {
+      const currentPaymentStatus =
+        (order.paidAmount || 0) <= 0
+          ? 'unpaid'
+          : (order.paidAmount || 0) >= (order.total || 0)
+            ? 'paid'
+            : 'partial';
+
+      await this.orderModel.findByIdAndUpdate(orderId, {
+        $set: {
+          transferStatus: 'rejected',
+          rejectionReason,
+          paymentStatus: currentPaymentStatus,
+        },
+        $unset: {
+          transferVerifiedAt: 1,
+          transferVerifiedBy: 1,
+        },
+      });
+    }
 
     // Add note
     if (notes) {
@@ -1232,7 +1598,9 @@ export class OrdersService {
       })
       .catch(() => undefined);
 
-    return order;
+    const updatedOrder = await this.orderModel.findById(orderId);
+    if (!updatedOrder) throw new NotFoundException('Order not found');
+    return updatedOrder;
   }
 
   /**
@@ -1288,6 +1656,23 @@ export class OrdersService {
       .find(query)
       .populate('customerId', 'shopName responsiblePersonName')
       .sort({ createdAt: -1 });
+  }
+
+  async getPendingTransferVerificationOrders(): Promise<OrderDocument[]> {
+    return this.orderModel
+      .find({
+        paymentMethod: 'bank_transfer',
+        $or: [
+          { transferStatus: 'receipt_uploaded' },
+          {
+            transferStatus: { $exists: false },
+            transferReceiptImage: { $exists: true, $ne: null },
+            transferVerifiedAt: { $exists: false },
+          },
+        ],
+      })
+      .populate('customerId', 'shopName responsiblePersonName phone')
+      .sort({ updatedAt: -1 });
   }
 
   /**

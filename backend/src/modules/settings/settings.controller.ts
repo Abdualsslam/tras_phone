@@ -18,7 +18,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { SettingGroup } from './schemas/setting.schema';
-import { ResponseBuilder } from '../../common/response.builder';
+import { ResponseBuilder } from '@common/interfaces/response.interface';
 import { UserRole } from '../../common/enums/user-role.enum';
 
 @ApiTags('Settings')
@@ -55,7 +55,10 @@ export class SettingsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update store settings' })
   async updateStoreSettings(@CurrentUser() user: any, @Body() data: any) {
-    const settings = await this.settingsService.updateStoreSettings(data, user.adminId);
+    const settings = await this.settingsService.updateStoreSettings(
+      data,
+      user.adminId,
+    );
     return ResponseBuilder.success(settings, 'Store settings updated');
   }
 
@@ -186,7 +189,8 @@ export class SettingsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update notification settings' })
   async updateNotificationSettings(@Body() data: any) {
-    const settings = await this.settingsService.updateNotificationSettings(data);
+    const settings =
+      await this.settingsService.updateNotificationSettings(data);
     return ResponseBuilder.success(settings, 'Notification settings updated');
   }
 

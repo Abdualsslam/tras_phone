@@ -1754,12 +1754,14 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         if (paymentMethod == OrderPaymentMethod.bankTransfer) {
           // Calculate the remaining amount to pay via bank transfer
           final remainingAmount = order.total - walletAmountToUse;
-          context.go(
-            '/order/${order.id}/upload-receipt',
-            extra: {
-              'amount': remainingAmount > 0 ? remainingAmount : order.total,
-            },
-          );
+          if (remainingAmount > 0) {
+            context.go(
+              '/order/${order.id}/upload-receipt',
+              extra: {'amount': remainingAmount},
+            );
+          } else {
+            context.go('/order-details/${order.id}');
+          }
         } else {
           // Otherwise go to order details
           context.go('/order-details/${order.id}');
@@ -1800,8 +1802,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         return Iconsax.card;
       case 'credit':
         return Iconsax.receipt_21;
-      case 'bank_transfer':
-        return Iconsax.bank;
       default:
         return Iconsax.money;
     }

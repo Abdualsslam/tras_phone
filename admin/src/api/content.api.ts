@@ -172,6 +172,14 @@ export interface EducationalContent {
     attachments: string[];
     relatedProducts?: string[];
     relatedContent?: string[];
+    scope?: 'general' | 'contextual' | 'hybrid';
+    targeting?: {
+        products?: string[];
+        categories?: string[];
+        brands?: string[];
+        devices?: string[];
+        intentTags?: string[];
+    };
     tags: string[];
     metaTitle?: string;
     metaDescription?: string;
@@ -394,6 +402,8 @@ export const contentApi = {
     getEducationalContent: async (filters?: {
         categoryId?: string;
         type?: string;
+        scope?: 'general' | 'contextual' | 'hybrid';
+        productId?: string;
         status?: string;
         featured?: boolean;
         search?: string;

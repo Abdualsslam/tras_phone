@@ -11,6 +11,29 @@ export enum ContentType {
   GUIDE = 'guide',
 }
 
+export enum ContentScope {
+  GENERAL = 'general',
+  CONTEXTUAL = 'contextual',
+  HYBRID = 'hybrid',
+}
+
+export class ContentTargeting {
+  @Prop({ type: [Types.ObjectId], ref: 'Product', default: [] })
+  products: Types.ObjectId[];
+
+  @Prop({ type: [Types.ObjectId], ref: 'Category', default: [] })
+  categories: Types.ObjectId[];
+
+  @Prop({ type: [Types.ObjectId], ref: 'Brand', default: [] })
+  brands: Types.ObjectId[];
+
+  @Prop({ type: [Types.ObjectId], ref: 'Device', default: [] })
+  devices: Types.ObjectId[];
+
+  @Prop({ type: [String], default: [] })
+  intentTags: string[];
+}
+
 /**
  * ═══════════════════════════════════════════════════════════════
  * 📖 Educational Content Schema
@@ -77,6 +100,32 @@ export class EducationalContent {
 
   @Prop({ type: [Types.ObjectId], ref: 'EducationalContent' })
   relatedContent?: Types.ObjectId[];
+
+  @Prop({
+    type: String,
+    enum: Object.values(ContentScope),
+    default: ContentScope.GENERAL,
+    index: true,
+  })
+  scope: ContentScope;
+
+  @Prop({
+    type: {
+      products: [{ type: Types.ObjectId, ref: 'Product' }],
+      categories: [{ type: Types.ObjectId, ref: 'Category' }],
+      brands: [{ type: Types.ObjectId, ref: 'Brand' }],
+      devices: [{ type: Types.ObjectId, ref: 'Device' }],
+      intentTags: [{ type: String }],
+    },
+    default: {
+      products: [],
+      categories: [],
+      brands: [],
+      devices: [],
+      intentTags: [],
+    },
+  })
+  targeting: ContentTargeting;
 
   @Prop({ type: [String], default: [] })
   tags: string[];
@@ -145,6 +194,12 @@ export const EducationalContentSchema =
 EducationalContentSchema.index({ status: 1 });
 EducationalContentSchema.index({ isFeatured: 1 });
 EducationalContentSchema.index({ type: 1 });
+EducationalContentSchema.index({ scope: 1 });
 EducationalContentSchema.index({ tags: 1 });
+EducationalContentSchema.index({ 'targeting.products': 1 });
+EducationalContentSchema.index({ 'targeting.categories': 1 });
+EducationalContentSchema.index({ 'targeting.brands': 1 });
+EducationalContentSchema.index({ 'targeting.devices': 1 });
+EducationalContentSchema.index({ 'targeting.intentTags': 1 });
 EducationalContentSchema.index({ createdAt: -1 });
 EducationalContentSchema.index({ '$**': 'text' });

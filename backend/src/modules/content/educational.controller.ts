@@ -21,7 +21,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
-import { ResponseBuilder } from '../../common/response.builder';
+import { ResponseBuilder } from '@common/interfaces/response.interface';
 import { UserRole } from '../../common/enums/user-role.enum';
 import {
   CreateEducationalCategoryDto,
@@ -29,9 +29,13 @@ import {
 } from './dto/create-educational-category.dto';
 import {
   CreateEducationalContentDto,
+  ContentTargetingDto,
   UpdateEducationalContentDto,
 } from './dto/create-educational-content.dto';
-import { ContentType } from './schemas/educational-content.schema';
+import {
+  ContentScope,
+  ContentType,
+} from './schemas/educational-content.schema';
 import { Types } from 'mongoose';
 
 /**
@@ -45,6 +49,26 @@ import { Types } from 'mongoose';
 @ApiBearerAuth()
 export class EducationalController {
   constructor(private readonly educationalService: EducationalService) {}
+
+  private mapTargetingToObjectIds(targeting?: ContentTargetingDto) {
+    if (!targeting) return undefined;
+
+    return {
+      products: targeting.products
+        ? targeting.products.map((id) => new Types.ObjectId(id))
+        : [],
+      categories: targeting.categories
+        ? targeting.categories.map((id) => new Types.ObjectId(id))
+        : [],
+      brands: targeting.brands
+        ? targeting.brands.map((id) => new Types.ObjectId(id))
+        : [],
+      devices: targeting.devices
+        ? targeting.devices.map((id) => new Types.ObjectId(id))
+        : [],
+      intentTags: targeting.intentTags || [],
+    };
+  }
 
   // ═════════════════════════════════════
   // Public - Categories
@@ -75,6 +99,8 @@ export class EducationalController {
   @ApiOperation({ summary: 'Get educational content' })
   @ApiQuery({ name: 'categoryId', required: false })
   @ApiQuery({ name: 'type', required: false, enum: ContentType })
+  @ApiQuery({ name: 'scope', required: false, enum: ContentScope })
+  @ApiQuery({ name: 'productId', required: false })
   @ApiQuery({ name: 'featured', required: false, type: Boolean })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
@@ -82,6 +108,8 @@ export class EducationalController {
   async getContent(
     @Query('categoryId') categoryId?: string,
     @Query('type') type?: ContentType,
+    @Query('scope') scope?: ContentScope,
+    @Query('productId') productId?: string,
     @Query('featured') featured?: boolean,
     @Query('search') search?: string,
     @Query('page') page?: number,
@@ -90,6 +118,8 @@ export class EducationalController {
     const result = await this.educationalService.getContent({
       categoryId,
       type,
+      scope,
+      productId,
       featured,
       search,
       page: page || 1,
@@ -125,6 +155,54 @@ export class EducationalController {
       limit || 20,
     );
     return ResponseBuilder.success(content);
+  }
+
+  @Get('content/context')
+  @Public()
+  @ApiOperation({ summary: 'Get content by runtime context' })
+  @ApiQuery({ name: 'productId', required: false })
+  @ApiQuery({ name: 'categoryId', required: false })
+  @ApiQuery({ name: 'brandId', required: false })
+  @ApiQuery({ name: 'deviceId', required: false })
+  @ApiQuery({
+    name: 'tags',
+    required: false,
+    description: 'Comma-separated intent tags',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async getContentByContext(
+    @Query('productId') productId?: string,
+    @Query('categoryId') categoryId?: string,
+    @Query('brandId') brandId?: string,
+    @Query('deviceId') deviceId?: string,
+    @Query('tags') tags?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    const parsedTags = tags
+      ? tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+      : [];
+
+    const result = await this.educationalService.getContentByContext({
+      productId,
+      categoryId,
+      brandId,
+      deviceId,
+      tags: parsedTags,
+      page: page || 1,
+      limit: limit || 20,
+    });
+
+    return ResponseBuilder.paginated(
+      result.data,
+      result.total,
+      page || 1,
+      limit || 20,
+    );
   }
 
   @Get('content/:slug')
@@ -203,12 +281,16 @@ export class EducationalController {
   @ApiOperation({ summary: 'Get all content (admin)' })
   @ApiQuery({ name: 'categoryId', required: false })
   @ApiQuery({ name: 'type', required: false, enum: ContentType })
+  @ApiQuery({ name: 'scope', required: false, enum: ContentScope })
+  @ApiQuery({ name: 'productId', required: false })
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getAdminContent(
     @Query('categoryId') categoryId?: string,
     @Query('type') type?: ContentType,
+    @Query('scope') scope?: ContentScope,
+    @Query('productId') productId?: string,
     @Query('status') status?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
@@ -216,6 +298,8 @@ export class EducationalController {
     const result = await this.educationalService.getContent({
       categoryId,
       type,
+      scope,
+      productId,
       status,
       page: page || 1,
       limit: limit || 20,
@@ -246,12 +330,14 @@ export class EducationalController {
     const contentData = {
       ...data,
       categoryId: new Types.ObjectId(data.categoryId),
+      scope: data.scope,
       relatedProducts: data.relatedProducts
         ? data.relatedProducts.map((id) => new Types.ObjectId(id))
         : undefined,
       relatedContent: data.relatedContent
         ? data.relatedContent.map((id) => new Types.ObjectId(id))
         : undefined,
+      targeting: this.mapTargetingToObjectIds(data.targeting),
     };
     const content = await this.educationalService.createContent(
       contentData,
@@ -284,6 +370,12 @@ export class EducationalController {
         (id) => new Types.ObjectId(id),
       );
     }
+    if (data.scope) {
+      contentData.scope = data.scope;
+    }
+    if (data.targeting) {
+      contentData.targeting = this.mapTargetingToObjectIds(data.targeting);
+    }
     const content = await this.educationalService.updateContent(
       id,
       contentData,
@@ -311,4 +403,5 @@ export class EducationalController {
     await this.educationalService.deleteContent(id);
     return ResponseBuilder.success(null, 'Content deleted');
   }
+
 }

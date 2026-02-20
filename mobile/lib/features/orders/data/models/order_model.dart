@@ -150,6 +150,13 @@ class OrderModel {
   @JsonKey(defaultValue: 'unpaid')
   final String paymentStatus;
   final String? paymentMethod;
+  @JsonKey(defaultValue: 'not_required')
+  final String transferStatus;
+  final String? transferReceiptImage;
+  final String? transferReference;
+  final DateTime? transferDate;
+  final DateTime? transferVerifiedAt;
+  final String? rejectionReason;
 
   // Shipping
   @JsonKey(name: 'shippingAddressId', readValue: _readShippingAddressId)
@@ -209,6 +216,12 @@ class OrderModel {
     this.paidAmount = 0,
     this.paymentStatus = 'unpaid',
     this.paymentMethod,
+    this.transferStatus = 'not_required',
+    this.transferReceiptImage,
+    this.transferReference,
+    this.transferDate,
+    this.transferVerifiedAt,
+    this.rejectionReason,
     this.shippingAddressId,
     this.shippingAddress,
     this.estimatedDeliveryDate,
@@ -303,6 +316,12 @@ class OrderModel {
       paymentMethod: paymentMethod != null
           ? OrderPaymentMethod.fromString(paymentMethod!)
           : null,
+      transferStatus: transferStatus,
+      transferReceiptImage: transferReceiptImage,
+      transferReference: transferReference,
+      transferDate: transferDate,
+      transferVerifiedAt: transferVerifiedAt,
+      paymentRejectionReason: rejectionReason,
       shippingAddressId: shippingAddressId,
       shippingAddress: shippingAddress != null
           ? ShippingAddressEntity(

@@ -70,12 +70,8 @@ import {
   User,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-
-// Simple toast helper (replace with actual toast library if available)
-const toast = {
-  success: (msg: string) => console.log("✅", msg),
-  error: (msg: string) => console.error("❌", msg),
-};
+import { toast } from "sonner";
+import { getErrorMessage } from "@/api/client";
 
 const statusVariants: Record<
   string,
@@ -250,13 +246,8 @@ export function CustomersPage() {
       setEditingCustomer(null);
       setFormData(initialFormData);
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.messageAr ||
-          error.response?.data?.message ||
-          "حدث خطأ أثناء تحديث العميل"
-      );
-    },
+    onError: (error) =>
+      toast.error(getErrorMessage(error, "حدث خطأ أثناء تحديث العميل")),
   });
 
   const handleViewDetails = async (customer: Customer) => {
@@ -420,13 +411,9 @@ export function CustomersPage() {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["availableUsers"] });
       handleCloseAddDialog();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating customer:", error);
-      toast.error(
-        error.response?.data?.messageAr ||
-          error.response?.data?.message ||
-          "حدث خطأ أثناء إضافة العميل"
-      );
+      toast.error(getErrorMessage(error, "حدث خطأ أثناء إضافة العميل"));
     } finally {
       setIsSubmitting(false);
     }
@@ -793,12 +780,12 @@ export function CustomersPage() {
                           {(selectedCustomer as any).businessType === "shop"
                             ? "محل"
                             : (selectedCustomer as any).businessType ===
-                              "technician"
-                            ? "فني"
-                            : (selectedCustomer as any).businessType ===
-                              "distributor"
-                            ? "موزع"
-                            : "أخرى"}
+                                "technician"
+                              ? "فني"
+                              : (selectedCustomer as any).businessType ===
+                                  "distributor"
+                                ? "موزع"
+                                : "أخرى"}
                         </Badge>
                       </div>
                     )}
@@ -1211,8 +1198,8 @@ export function CustomersPage() {
               {!addMode
                 ? "اختر طريقة إضافة العميل"
                 : addMode === "fromScratch"
-                ? "إنشاء حساب ومحل جديد"
-                : "تحويل مستخدم موجود إلى عميل"}
+                  ? "إنشاء حساب ومحل جديد"
+                  : "تحويل مستخدم موجود إلى عميل"}
             </DialogDescription>
           </DialogHeader>
 

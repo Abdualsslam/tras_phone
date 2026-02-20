@@ -111,6 +111,8 @@ class ApiEndpoints {
   static const String ordersPendingPayment = '/orders/pending-payment';
   static String orderUploadReceipt(String orderId) =>
       '/orders/$orderId/upload-receipt';
+  static String adminOrderInvoice(String orderId) =>
+      '/admin/orders/$orderId/invoice';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RETURNS

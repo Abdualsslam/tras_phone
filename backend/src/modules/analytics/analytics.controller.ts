@@ -18,7 +18,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { ReportType } from './schemas/report.schema';
-import { ResponseBuilder } from '../../common/response.builder';
+import { ResponseBuilder } from '@common/interfaces/response.interface';
 import { UserRole } from '../../common/enums/user-role.enum';
 
 @ApiTags('Analytics')

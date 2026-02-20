@@ -37,6 +37,7 @@ import { ProductsSearchService } from './products-search.service';
 import { ProductsSearchSuggestionsService } from './products-search-suggestions.service';
 import { AuthModule } from '@modules/auth/auth.module';
 import { CustomersModule } from '@modules/customers/customers.module';
+import { ContentModule } from '@modules/content/content.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { CustomersModule } from '@modules/customers/customers.module';
     }),
     AuthModule,
     forwardRef(() => CustomersModule),
+    ContentModule,
   ],
   controllers: [ProductsController],
   providers: [

@@ -65,6 +65,16 @@ OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => OrderModel(
   paidAmount: (json['paidAmount'] as num?)?.toDouble() ?? 0.0,
   paymentStatus: json['paymentStatus'] as String? ?? 'unpaid',
   paymentMethod: json['paymentMethod'] as String?,
+  transferStatus: json['transferStatus'] as String? ?? 'not_required',
+  transferReceiptImage: json['transferReceiptImage'] as String?,
+  transferReference: json['transferReference'] as String?,
+  transferDate: json['transferDate'] == null
+      ? null
+      : DateTime.parse(json['transferDate'] as String),
+  transferVerifiedAt: json['transferVerifiedAt'] == null
+      ? null
+      : DateTime.parse(json['transferVerifiedAt'] as String),
+  rejectionReason: json['rejectionReason'] as String?,
   shippingAddressId:
       OrderModel._readShippingAddressId(json, 'shippingAddressId') as String?,
   shippingAddress: json['shippingAddress'] == null
@@ -130,6 +140,12 @@ Map<String, dynamic> _$OrderModelToJson(
   'paidAmount': instance.paidAmount,
   'paymentStatus': instance.paymentStatus,
   'paymentMethod': instance.paymentMethod,
+  'transferStatus': instance.transferStatus,
+  'transferReceiptImage': instance.transferReceiptImage,
+  'transferReference': instance.transferReference,
+  'transferDate': instance.transferDate?.toIso8601String(),
+  'transferVerifiedAt': instance.transferVerifiedAt?.toIso8601String(),
+  'rejectionReason': instance.rejectionReason,
   'shippingAddressId': instance.shippingAddressId,
   'shippingAddress': instance.shippingAddress,
   'estimatedDeliveryDate': instance.estimatedDeliveryDate?.toIso8601String(),

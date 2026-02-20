@@ -1,9 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import type { ReactElement } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  MutationCache,
+} from "@tanstack/react-query";
+import { Toaster, toast } from "sonner";
+import { getErrorMessage } from "@/api/client";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { MainLayout } from "@/components/layout";
 import { routeAccessConfig } from "@/config/navigation";
 import { LoginPage } from "@/pages/auth/LoginPage";
@@ -37,6 +44,14 @@ import "@/locales/i18n";
 
 // Create a client for React Query
 const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      // Only show global toast if the mutation has no local onError
+      if (!mutation.options.onError) {
+        toast.error(getErrorMessage(error));
+      }
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
@@ -54,72 +69,154 @@ function App() {
     }
 
     return (
-      <ProtectedRoute requiredAccess={requiredAccess}>
-        {element}
-      </ProtectedRoute>
+      <ProtectedRoute requiredAccess={requiredAccess}>{element}</ProtectedRoute>
     );
   };
 
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/login" element={<LoginPage />} />
+    <ErrorBoundary>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AuthProvider>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<LoginPage />} />
 
-              {/* Protected Routes */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<DashboardPage />} />
-                <Route path="admins" element={withAccess('/admins', <AdminsPage />)} />
-                <Route path="customers" element={withAccess('/customers', <CustomersPage />)} />
+                {/* Protected Routes */}
                 <Route
-                  path="password-reset-requests"
-                  element={withAccess('/password-reset-requests', <PasswordResetRequestsPage />)}
-                />
-                <Route path="products" element={withAccess('/products', <ProductsPage />)} />
-                <Route path="price-levels" element={withAccess('/price-levels', <PriceLevelsPage />)} />
-                <Route path="categories" element={withAccess('/categories', <CategoriesPage />)} />
-                <Route path="catalog" element={withAccess('/catalog', <CatalogPage />)} />
-                <Route path="orders" element={withAccess('/orders', <OrdersPage />)} />
-                <Route path="orders/:orderId" element={withAccess('/orders/:orderId', <OrderDetailsPage />)} />
-                <Route path="inventory" element={withAccess('/inventory', <InventoryPage />)} />
-                <Route path="suppliers" element={withAccess('/suppliers', <SuppliersPage />)} />
-                <Route
-                  path="purchase-orders"
-                  element={withAccess('/purchase-orders', <PurchaseOrdersPage />)}
-                />
-                <Route path="returns" element={withAccess('/returns', <ReturnsPage />)} />
-                <Route path="roles" element={withAccess('/roles', <RolesPage />)} />
-                <Route path="promotions" element={withAccess('/promotions', <PromotionsPage />)} />
-                <Route path="notifications" element={withAccess('/notifications', <NotificationsPage />)} />
-                <Route path="support" element={withAccess('/support', <SupportPage />)} />
-                <Route path="analytics" element={withAccess('/analytics', <AnalyticsPage />)} />
-                <Route path="audit" element={withAccess('/audit', <AuditLogsPage />)} />
-                <Route path="content" element={withAccess('/content', <ContentPage />)} />
-                <Route
-                  path="educational-content"
-                  element={withAccess('/educational-content', <EducationalContentPage />)}
-                />
-                <Route path="wallet" element={withAccess('/wallet', <WalletPage />)} />
-                <Route path="settings" element={withAccess('/settings', <SettingsPage />)} />
-              </Route>
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <MainLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<DashboardPage />} />
+                  <Route
+                    path="admins"
+                    element={withAccess("/admins", <AdminsPage />)}
+                  />
+                  <Route
+                    path="customers"
+                    element={withAccess("/customers", <CustomersPage />)}
+                  />
+                  <Route
+                    path="password-reset-requests"
+                    element={withAccess(
+                      "/password-reset-requests",
+                      <PasswordResetRequestsPage />
+                    )}
+                  />
+                  <Route
+                    path="products"
+                    element={withAccess("/products", <ProductsPage />)}
+                  />
+                  <Route
+                    path="price-levels"
+                    element={withAccess("/price-levels", <PriceLevelsPage />)}
+                  />
+                  <Route
+                    path="categories"
+                    element={withAccess("/categories", <CategoriesPage />)}
+                  />
+                  <Route
+                    path="catalog"
+                    element={withAccess("/catalog", <CatalogPage />)}
+                  />
+                  <Route
+                    path="orders"
+                    element={withAccess("/orders", <OrdersPage />)}
+                  />
+                  <Route
+                    path="orders/:orderId"
+                    element={withAccess(
+                      "/orders/:orderId",
+                      <OrderDetailsPage />
+                    )}
+                  />
+                  <Route
+                    path="inventory"
+                    element={withAccess("/inventory", <InventoryPage />)}
+                  />
+                  <Route
+                    path="suppliers"
+                    element={withAccess("/suppliers", <SuppliersPage />)}
+                  />
+                  <Route
+                    path="purchase-orders"
+                    element={withAccess(
+                      "/purchase-orders",
+                      <PurchaseOrdersPage />
+                    )}
+                  />
+                  <Route
+                    path="returns"
+                    element={withAccess("/returns", <ReturnsPage />)}
+                  />
+                  <Route
+                    path="roles"
+                    element={withAccess("/roles", <RolesPage />)}
+                  />
+                  <Route
+                    path="promotions"
+                    element={withAccess("/promotions", <PromotionsPage />)}
+                  />
+                  <Route
+                    path="notifications"
+                    element={withAccess(
+                      "/notifications",
+                      <NotificationsPage />
+                    )}
+                  />
+                  <Route
+                    path="support"
+                    element={withAccess("/support", <SupportPage />)}
+                  />
+                  <Route
+                    path="analytics"
+                    element={withAccess("/analytics", <AnalyticsPage />)}
+                  />
+                  <Route
+                    path="audit"
+                    element={withAccess("/audit", <AuditLogsPage />)}
+                  />
+                  <Route
+                    path="content"
+                    element={withAccess("/content", <ContentPage />)}
+                  />
+                  <Route
+                    path="educational-content"
+                    element={withAccess(
+                      "/educational-content",
+                      <EducationalContentPage />
+                    )}
+                  />
+                  <Route
+                    path="wallet"
+                    element={withAccess("/wallet", <WalletPage />)}
+                  />
+                  <Route
+                    path="settings"
+                    element={withAccess("/settings", <SettingsPage />)}
+                  />
+                </Route>
 
-              {/* Catch all - redirect to dashboard */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </ThemeProvider>
+                {/* Catch all - redirect to dashboard */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </AuthProvider>
+            <Toaster
+              position="top-center"
+              dir="rtl"
+              richColors
+              closeButton
+              toastOptions={{ duration: 4000 }}
+            />
+          </BrowserRouter>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

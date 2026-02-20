@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { ResponseBuilder } from '../../common/response.builder';
+import { ResponseBuilder } from '@common/interfaces/response.interface';
 import { UserRole } from '@common/enums/user-role.enum';
 import { TicketsService } from './tickets.service';
 
@@ -17,32 +17,37 @@ import { TicketsService } from './tickets.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class SupportController {
-    constructor(private readonly ticketsService: TicketsService) {}
+  constructor(private readonly ticketsService: TicketsService) {}
 
-    @Get('stats')
-    @Roles(UserRole.ADMIN)
-    @ApiOperation({ summary: 'Get support ticket statistics' })
-    async getStats() {
-        const stats = await this.ticketsService.getTicketStats();
-        return ResponseBuilder.success(stats);
-    }
+  @Get('stats')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get support ticket statistics' })
+  async getStats() {
+    const stats = await this.ticketsService.getTicketStats();
+    return ResponseBuilder.success(stats);
+  }
 
-    @Get('categories')
-    @Roles(UserRole.ADMIN)
-    @ApiOperation({ summary: 'Get ticket categories' })
-    async getCategories(@Query('activeOnly') activeOnly: string = 'true') {
-        const categories = await this.ticketsService.findAllCategories(activeOnly === 'true');
-        return ResponseBuilder.success(categories);
-    }
+  @Get('categories')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get ticket categories' })
+  async getCategories(@Query('activeOnly') activeOnly: string = 'true') {
+    const categories = await this.ticketsService.findAllCategories(
+      activeOnly === 'true',
+    );
+    return ResponseBuilder.success(categories);
+  }
 
-    @Get('canned-responses')
-    @Roles(UserRole.ADMIN)
-    @ApiOperation({ summary: 'Get canned responses' })
-    async getCannedResponses(
-        @CurrentUser() user: any,
-        @Query('categoryId') categoryId?: string,
-    ) {
-        const responses = await this.ticketsService.findCannedResponses(user.adminId, categoryId);
-        return ResponseBuilder.success(responses);
-    }
+  @Get('canned-responses')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get canned responses' })
+  async getCannedResponses(
+    @CurrentUser() user: any,
+    @Query('categoryId') categoryId?: string,
+  ) {
+    const responses = await this.ticketsService.findCannedResponses(
+      user.adminId,
+      categoryId,
+    );
+    return ResponseBuilder.success(responses);
+  }
 }

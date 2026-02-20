@@ -40,7 +40,7 @@ type BannerFormData = {
   altTextAr?: string;
   altTextEn?: string;
   // Action
-  actionType: 'link' | 'product' | 'category' | 'brand' | 'page' | 'none';
+  actionType: "link" | "product" | "category" | "brand" | "page" | "none";
   actionUrl?: string;
   actionRefId?: string;
   actionRefModel?: string;
@@ -111,7 +111,8 @@ function flattenCategoryTree(
   tree: CategoryTree[],
   prefix = ""
 ): { _id: string; name: string; nameAr: string; label: string }[] {
-  const result: { _id: string; name: string; nameAr: string; label: string }[] = [];
+  const result: { _id: string; name: string; nameAr: string; label: string }[] =
+    [];
   for (const node of tree) {
     const label = (prefix ? prefix + " > " : "") + (node.nameAr || node.name);
     result.push({ _id: node._id, name: node.name, nameAr: node.nameAr, label });
@@ -174,7 +175,11 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { uploadsApi, isValidImageType, isValidFileSize } from "@/api/uploads.api";
+import {
+  uploadsApi,
+  isValidImageType,
+  isValidFileSize,
+} from "@/api/uploads.api";
 import { formatDate } from "@/lib/utils";
 
 // ══════════════════════════════════════════════════════════════
@@ -206,11 +211,13 @@ export function ContentPage() {
   const [expandedSliders, setExpandedSliders] = useState<
     Record<string, boolean>
   >({});
-  
+
   // Banner upload states
   const [isUploadingDesktopImage, setIsUploadingDesktopImage] = useState(false);
   const [isUploadingMobileImage, setIsUploadingMobileImage] = useState(false);
-  const [bannerUploadError, setBannerUploadError] = useState<string | null>(null);
+  const [bannerUploadError, setBannerUploadError] = useState<string | null>(
+    null
+  );
 
   // ─────────────────────────────────────────
   // Queries
@@ -312,8 +319,7 @@ export function ContentPage() {
   // ─────────────────────────────────────────
 
   const createBannerMutation = useMutation({
-    mutationFn: (data: any) =>
-      contentApi.createBanner(data),
+    mutationFn: (data: any) => contentApi.createBanner(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["content-banners"] });
       setIsBannerDialogOpen(false);
@@ -680,7 +686,9 @@ export function ContentPage() {
 
   const handleDesktopImageUpload = async (file: File) => {
     if (!isValidImageType(file)) {
-      setBannerUploadError("نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP");
+      setBannerUploadError(
+        "نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP"
+      );
       return;
     }
     if (!isValidFileSize(file)) {
@@ -702,7 +710,9 @@ export function ContentPage() {
 
   const handleMobileImageUpload = async (file: File) => {
     if (!isValidImageType(file)) {
-      setBannerUploadError("نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP");
+      setBannerUploadError(
+        "نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP"
+      );
       return;
     }
     if (!isValidFileSize(file)) {
@@ -760,11 +770,16 @@ export function ContentPage() {
     setIsEditing(true);
     setSelectedItem(banner);
     setBannerUploadError(null);
-    
+
     // Handle backward compatibility with old banner format
-    const imageDesktop = banner.media?.imageDesktopAr || banner.media?.imageDesktopEn || banner.imageUrl || "";
-    const imageMobile = banner.media?.imageMobileAr || banner.media?.imageMobileEn || "";
-    
+    const imageDesktop =
+      banner.media?.imageDesktopAr ||
+      banner.media?.imageDesktopEn ||
+      banner.imageUrl ||
+      "";
+    const imageMobile =
+      banner.media?.imageMobileAr || banner.media?.imageMobileEn || "";
+
     bannerForm.reset({
       nameAr: banner.nameAr || banner.titleAr || "",
       nameEn: banner.nameEn || banner.title || "",
@@ -827,7 +842,8 @@ export function ContentPage() {
             : data.actionRefModel;
         return {
           type: data.actionType,
-          ...(data.actionType === "link" && data.actionUrl && { url: data.actionUrl }),
+          ...(data.actionType === "link" &&
+            data.actionUrl && { url: data.actionUrl }),
           ...(data.actionRefId && { refId: data.actionRefId }),
           ...(refModel && { refModel }),
           openInNewTab: data.openInNewTab || false,
@@ -842,7 +858,9 @@ export function ContentPage() {
         ...(data.buttonTextEn && { buttonTextEn: data.buttonTextEn }),
         ...(data.textColor && { textColor: data.textColor }),
         ...(data.overlayColor && { overlayColor: data.overlayColor }),
-        ...(data.overlayOpacity !== undefined && { overlayOpacity: data.overlayOpacity }),
+        ...(data.overlayOpacity !== undefined && {
+          overlayOpacity: data.overlayOpacity,
+        }),
       },
       isActive: data.isActive,
       sortOrder: data.sortOrder,
@@ -1246,8 +1264,8 @@ export function ContentPage() {
                             {page.type === "header"
                               ? "Header"
                               : page.type === "footer"
-                              ? "Footer"
-                              : "أخرى"}
+                                ? "Footer"
+                                : "أخرى"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -1324,12 +1342,18 @@ export function ContentPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {banners.map((banner) => {
                     // Handle backward compatibility and get image URL
-                    const imageUrl = banner.media?.imageDesktopAr || 
-                                    banner.media?.imageDesktopEn || 
-                                    banner.imageUrl || 
-                                    "/placeholder.svg";
-                    const bannerName = banner.nameAr || banner.nameEn || banner.titleAr || banner.title || "بدون اسم";
-                    
+                    const imageUrl =
+                      banner.media?.imageDesktopAr ||
+                      banner.media?.imageDesktopEn ||
+                      banner.imageUrl ||
+                      "/placeholder.svg";
+                    const bannerName =
+                      banner.nameAr ||
+                      banner.nameEn ||
+                      banner.titleAr ||
+                      banner.title ||
+                      "بدون اسم";
+
                     return (
                       <Card key={banner._id} className="overflow-hidden">
                         <div className="aspect-video bg-muted relative">
@@ -2053,7 +2077,9 @@ export function ContentPage() {
                       ) : (
                         <>
                           <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                          <span className="text-sm text-gray-500">اختر صورة الديسكتوب</span>
+                          <span className="text-sm text-gray-500">
+                            اختر صورة الديسكتوب
+                          </span>
                         </>
                       )}
                     </label>
@@ -2093,7 +2119,9 @@ export function ContentPage() {
                       ) : (
                         <>
                           <Upload className="h-6 w-6 text-gray-400 mb-2" />
-                          <span className="text-xs text-gray-500">اختر صورة الموبايل</span>
+                          <span className="text-xs text-gray-500">
+                            اختر صورة الموبايل
+                          </span>
                         </>
                       )}
                     </label>
@@ -2162,7 +2190,8 @@ export function ContentPage() {
                     <Label>
                       {bannerForm.watch("actionType") === "product" && "المنتج"}
                       {bannerForm.watch("actionType") === "category" && "الفئة"}
-                      {bannerForm.watch("actionType") === "brand" && "العلامة التجارية"}
+                      {bannerForm.watch("actionType") === "brand" &&
+                        "العلامة التجارية"}
                       {bannerForm.watch("actionType") === "page" && "الصفحة"}
                     </Label>
                     <select
@@ -2170,10 +2199,14 @@ export function ContentPage() {
                       className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 px-3 text-sm"
                     >
                       <option value="">
-                        {bannerForm.watch("actionType") === "product" && "اختر المنتج..."}
-                        {bannerForm.watch("actionType") === "category" && "اختر الفئة..."}
-                        {bannerForm.watch("actionType") === "brand" && "اختر العلامة التجارية..."}
-                        {bannerForm.watch("actionType") === "page" && "اختر الصفحة..."}
+                        {bannerForm.watch("actionType") === "product" &&
+                          "اختر المنتج..."}
+                        {bannerForm.watch("actionType") === "category" &&
+                          "اختر الفئة..."}
+                        {bannerForm.watch("actionType") === "brand" &&
+                          "اختر العلامة التجارية..."}
+                        {bannerForm.watch("actionType") === "page" &&
+                          "اختر الصفحة..."}
                       </option>
                       {bannerForm.watch("actionType") === "product" &&
                         bannerProducts.map((p) => (
@@ -2280,14 +2313,18 @@ export function ContentPage() {
                   <Label>ترتيب العرض</Label>
                   <Input
                     type="number"
-                    {...bannerForm.register("sortOrder", { valueAsNumber: true })}
+                    {...bannerForm.register("sortOrder", {
+                      valueAsNumber: true,
+                    })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>الأولوية</Label>
                   <Input
                     type="number"
-                    {...bannerForm.register("priority", { valueAsNumber: true })}
+                    {...bannerForm.register("priority", {
+                      valueAsNumber: true,
+                    })}
                   />
                 </div>
               </div>

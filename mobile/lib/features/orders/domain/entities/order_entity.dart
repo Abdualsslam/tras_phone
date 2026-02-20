@@ -119,6 +119,12 @@ class OrderEntity extends Equatable {
   // Payment
   final PaymentStatus paymentStatus;
   final OrderPaymentMethod? paymentMethod;
+  final String? transferStatus;
+  final String? transferReceiptImage;
+  final String? transferReference;
+  final DateTime? transferDate;
+  final DateTime? transferVerifiedAt;
+  final String? paymentRejectionReason;
 
   // Shipping
   final String? shippingAddressId;
@@ -174,6 +180,12 @@ class OrderEntity extends Equatable {
     this.paidAmount = 0,
     this.paymentStatus = PaymentStatus.unpaid,
     this.paymentMethod,
+    this.transferStatus,
+    this.transferReceiptImage,
+    this.transferReference,
+    this.transferDate,
+    this.transferVerifiedAt,
+    this.paymentRejectionReason,
     this.shippingAddressId,
     this.shippingAddress,
     this.estimatedDeliveryDate,
@@ -200,6 +212,16 @@ class OrderEntity extends Equatable {
   double get remainingAmount => total - paidAmount;
   bool get isCancelled => status == OrderStatus.cancelled;
   bool get canCancel => cancellable;
+  bool get canUploadTransferReceipt {
+    if (paymentMethod != OrderPaymentMethod.bankTransfer) return false;
+    if (remainingAmount <= 0) return false;
+
+    final status = (transferStatus ?? '').toLowerCase();
+    return status.isEmpty ||
+        status == 'awaiting_receipt' ||
+        status == 'rejected' ||
+        status == 'not_required';
+  }
 
   /// Status text in Arabic for backward compatibility
   String get statusText => status.displayNameAr;
