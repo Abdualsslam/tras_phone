@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../core/di/injection.dart';
 import '../../../catalog/domain/repositories/catalog_repository.dart';
 
@@ -44,7 +45,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('أضف تقييم'),
+        title: Text(AppLocalizations.of(context)!.addReview),
         leading: IconButton(
           icon: const Icon(Iconsax.close_circle),
           onPressed: () => context.pop(),
@@ -188,7 +189,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                         width: 20.w,
                         child: const CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('إرسال التقييم'),
+                    : Text(AppLocalizations.of(context)!.submitReview),
               ),
             ),
           ],
@@ -238,7 +239,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
       (_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('تم إرسال تقييمك بنجاح'),
+            content: Text(AppLocalizations.of(context)!.reviewSentSuccess),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(

@@ -61,7 +61,7 @@ class ProfileScreen extends StatelessWidget {
                         ElevatedButton(
                           onPressed: () =>
                               context.read<ProfileCubit>().loadProfile(),
-                          child: const Text('إعادة المحاولة'),
+                          child: Text(AppLocalizations.of(context)!.retryAction),
                         ),
                       ],
                     ),
@@ -84,15 +84,15 @@ class ProfileScreen extends StatelessWidget {
                           SizedBox(height: 24.h),
 
                           // Statistics Grid
-                          _buildSectionTitle(theme, isDark, 'الإحصائيات'),
+                          _buildSectionTitle(theme, isDark, AppLocalizations.of(context)!.statistics),
                           SizedBox(height: 12.h),
-                          _buildStatsGrid(theme, isDark, customer),
+                          _buildStatsGrid(context, theme, isDark, customer),
                           SizedBox(height: 12.h),
 
                           // Business Info
-                          _buildSectionTitle(theme, isDark, 'معلومات العمل'),
+                          _buildSectionTitle(theme, isDark, AppLocalizations.of(context)!.businessInfo),
                           SizedBox(height: 12.h),
-                          _buildBusinessInfoCard(theme, isDark, customer),
+                          _buildBusinessInfoCard(context, theme, isDark, customer),
                           SizedBox(height: 12.h),
 
                           // Location Info - Default Address
@@ -102,7 +102,7 @@ class ProfileScreen extends StatelessWidget {
                               _buildSectionTitle(
                                 theme,
                                 isDark,
-                                'عناوين التوصيل',
+                                AppLocalizations.of(context)!.deliveryAddresses,
                               ),
                               SizedBox(height: 12.h),
                               _buildLocationInfoCard(context, theme, isDark),
@@ -114,10 +114,10 @@ class ProfileScreen extends StatelessWidget {
                           _buildSectionTitle(
                             theme,
                             isDark,
-                            'المحفظة والائتمان',
+                            AppLocalizations.of(context)!.walletAndCredit,
                           ),
                           SizedBox(height: 12.h),
-                          _buildWalletCard(theme, isDark, customer),
+                          _buildWalletCard(context, theme, isDark, customer),
                           SizedBox(height: 12.h),
                           _buildReturnsCard(context, theme, isDark),
                           SizedBox(height: 12.h),
@@ -228,7 +228,7 @@ class ProfileScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                         child: Text(
-                          '✓ معتمد',
+                          '✓ ${AppLocalizations.of(context)!.verified}',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 11.sp,
@@ -267,7 +267,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsGrid(ThemeData theme, bool isDark, customer) {
+  Widget _buildStatsGrid(BuildContext context, ThemeData theme, bool isDark, customer) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -280,7 +280,7 @@ class ProfileScreen extends StatelessWidget {
         _buildStatCard(
           theme: theme,
           isDark: isDark,
-          title: 'إجمالي الطلبات',
+          title: AppLocalizations.of(context)!.totalOrders,
           value: customer.totalOrders.toString(),
           icon: Iconsax.shopping_bag,
           color: Colors.blue,
@@ -288,23 +288,23 @@ class ProfileScreen extends StatelessWidget {
         _buildStatCard(
           theme: theme,
           isDark: isDark,
-          title: 'إجمالي الإنفاق',
-          value: '${customer.totalSpent.toStringAsFixed(2)} ر.س',
+          title: AppLocalizations.of(context)!.totalSpent,
+          value: '${customer.totalSpent.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
           icon: Iconsax.wallet_money,
           color: Colors.green,
         ),
         _buildStatCard(
           theme: theme,
           isDark: isDark,
-          title: 'متوسط قيمة الطلب',
-          value: '${customer.averageOrderValue.toStringAsFixed(2)} ر.س',
+          title: AppLocalizations.of(context)!.averageOrderValue,
+          value: '${customer.averageOrderValue.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
           icon: Iconsax.trend_up,
           color: Colors.orange,
         ),
         _buildStatCard(
           theme: theme,
           isDark: isDark,
-          title: 'نقاط الولاء',
+          title: AppLocalizations.of(context)!.loyaltyPoints,
           value: customer.loyaltyPoints.toString(),
           icon: Iconsax.medal_star,
           color: Colors.purple,
@@ -398,7 +398,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBusinessInfoCard(ThemeData theme, bool isDark, customer) {
+  Widget _buildBusinessInfoCard(BuildContext context, ThemeData theme, bool isDark, customer) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18.r),
       child: BackdropFilter(
@@ -432,7 +432,7 @@ class ProfileScreen extends StatelessWidget {
                 theme,
                 isDark,
                 Iconsax.shop,
-                'اسم المتجر',
+                AppLocalizations.of(context)!.shopName,
                 customer.getShopName('ar'),
               ),
               Divider(
@@ -444,7 +444,7 @@ class ProfileScreen extends StatelessWidget {
                 theme,
                 isDark,
                 Iconsax.user,
-                'اسم المسؤول',
+                AppLocalizations.of(context)!.responsiblePerson,
                 customer.responsiblePersonName,
               ),
               Divider(
@@ -456,7 +456,7 @@ class ProfileScreen extends StatelessWidget {
                 theme,
                 isDark,
                 Iconsax.category,
-                'نوع العمل',
+                AppLocalizations.of(context)!.businessType,
                 customer.businessType.displayName,
               ),
               Divider(
@@ -690,7 +690,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       title: Text(
-                        'إدارة العناوين',
+                        AppLocalizations.of(context)!.manageAddresses,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w500,
                           color: isDark
@@ -731,7 +731,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       title: Text(
-                        'لا يوجد عنوان افتراضي',
+                        AppLocalizations.of(context)!.noDefaultAddress,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: isDark
                               ? AppColors.textSecondaryDark
@@ -739,7 +739,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       subtitle: Text(
-                        'أضف عنواناً لتسهيل عملية التوصيل',
+                        AppLocalizations.of(context)!.addAddressHint,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: isDark
                               ? AppColors.textTertiaryDark
@@ -781,7 +781,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       title: Text(
-                        'إضافة عنوان',
+                        AppLocalizations.of(context)!.addAddress,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w500,
                           color: AppColors.primary,
@@ -807,7 +807,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWalletCard(ThemeData theme, bool isDark, customer) {
+  Widget _buildWalletCard(BuildContext context, ThemeData theme, bool isDark, customer) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18.r),
       child: BackdropFilter(
@@ -833,7 +833,7 @@ class ProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'رصيد المحفظة',
+                AppLocalizations.of(context)!.walletBalance,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: isDark
                       ? AppColors.textSecondaryDark
@@ -858,7 +858,7 @@ class ProfileScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'حد الائتمان',
+                        AppLocalizations.of(context)!.creditLimit,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: isDark
                               ? AppColors.textSecondaryDark
@@ -878,7 +878,7 @@ class ProfileScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'المستخدم',
+                        AppLocalizations.of(context)!.creditUsed,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: isDark
                               ? AppColors.textSecondaryDark
@@ -908,7 +908,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               SizedBox(height: 8.h),
               Text(
-                'المتاح: ${customer.availableCredit.toStringAsFixed(2)} ر.س',
+                AppLocalizations.of(context)!.creditAvailable(customer.availableCredit.toStringAsFixed(2)),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: isDark
                       ? AppColors.textSecondaryDark
@@ -995,7 +995,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 2.h),
                         Text(
-                          'عرض وإدارة طلبات الإرجاع',
+                          AppLocalizations.of(context)!.viewReturns,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: isDark
                                 ? AppColors.textSecondaryDark
@@ -1092,7 +1092,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 2.h),
                         Text(
-                          'التواصل مع الدعم وتتبع التذاكر',
+                          AppLocalizations.of(context)!.contactSupport,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: isDark
                                 ? AppColors.textSecondaryDark
@@ -1128,14 +1128,14 @@ class ProfileScreen extends StatelessWidget {
           ),
           SizedBox(height: 24.h),
           Text(
-            'لم تقم بتسجيل الدخول',
+            AppLocalizations.of(context)!.notLoggedIn,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
           SizedBox(height: 8.h),
           Text(
-            'سجل الدخول للوصول إلى حسابك',
+            AppLocalizations.of(context)!.loginToAccess,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: AppColors.textTertiaryLight,
             ),
@@ -1158,11 +1158,11 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(AppLocalizations.of(context)!.logout),
-        content: const Text('هل أنت متأكد من تسجيل الخروج؟'),
+        content: Text(AppLocalizations.of(context)!.logoutConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('إلغاء'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1171,7 +1171,7 @@ class ProfileScreen extends StatelessWidget {
               context.go('/login');
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('خروج'),
+            child: Text(AppLocalizations.of(context)!.logoutAction),
           ),
         ],
       ),

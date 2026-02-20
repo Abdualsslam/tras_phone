@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class WishlistEmptyScreen extends StatelessWidget {
   const WishlistEmptyScreen({super.key});
@@ -15,7 +16,7 @@ class WishlistEmptyScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('المفضلة')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.favorites)),
       body: Center(
         child: Padding(
           padding: EdgeInsets.all(32.w),
@@ -40,7 +41,7 @@ class WishlistEmptyScreen extends StatelessWidget {
 
               // Title
               Text(
-                'قائمة المفضلة فارغة',
+                AppLocalizations.of(context)!.emptyWishlist,
                 style: TextStyle(
                   fontSize: 22.sp,
                   fontWeight: FontWeight.w700,
@@ -54,7 +55,7 @@ class WishlistEmptyScreen extends StatelessWidget {
 
               // Description
               Text(
-                'لم تقم بإضافة أي منتجات إلى المفضلة بعد.\nتصفح منتجاتنا وأضف ما يعجبك!',
+                AppLocalizations.of(context)!.emptyWishlistDescription,
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: isDark
@@ -73,7 +74,7 @@ class WishlistEmptyScreen extends StatelessWidget {
                   onPressed: () => context.go('/home'),
                   icon: Icon(Iconsax.shop, size: 20.sp),
                   label: Text(
-                    'تصفح المنتجات',
+                    AppLocalizations.of(context)!.browseProducts,
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w600,
@@ -90,7 +91,7 @@ class WishlistEmptyScreen extends StatelessWidget {
               TextButton.icon(
                 onPressed: () => context.push('/stock-alerts'),
                 icon: Icon(Iconsax.notification, size: 18.sp),
-                label: const Text('عرض تنبيهات المخزون'),
+                label: Text(AppLocalizations.of(context)!.viewStockAlerts),
               ),
             ],
           ),

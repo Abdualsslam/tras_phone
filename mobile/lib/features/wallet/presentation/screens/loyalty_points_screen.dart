@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../cubit/wallet_cubit.dart';
 import '../cubit/wallet_state.dart';
 import '../../data/models/loyalty_points_model.dart';
@@ -36,14 +37,14 @@ class _LoyaltyPointsScreenState extends State<LoyaltyPointsScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('نقاط الولاء'),
+        title: Text(AppLocalizations.of(context)!.loyaltyPointsTitle),
         actions: [
           IconButton(
             icon: const Icon(Iconsax.document_text),
             onPressed: () {
               context.push('/loyalty/transactions');
             },
-            tooltip: 'معاملات النقاط',
+            tooltip: AppLocalizations.of(context)!.pointsTransactions,
           ),
         ],
       ),
@@ -65,7 +66,7 @@ class _LoyaltyPointsScreenState extends State<LoyaltyPointsScreen> {
                       context.read<WalletCubit>().loadPoints();
                       context.read<WalletCubit>().loadTiers();
                     },
-                    child: const Text('إعادة المحاولة'),
+                    child: Text(AppLocalizations.of(context)!.retryAction),
                   ),
                 ],
               ),

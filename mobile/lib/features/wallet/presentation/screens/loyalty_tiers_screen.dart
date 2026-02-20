@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../cubit/wallet_cubit.dart';
 import '../cubit/wallet_state.dart';
 import '../../data/models/loyalty_tier_model.dart';
@@ -33,7 +34,7 @@ class _LoyaltyTiersScreenState extends State<LoyaltyTiersScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('مستويات الولاء')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.loyaltyTiers)),
       body: BlocBuilder<WalletCubit, WalletState>(
         builder: (context, state) {
           if (state is WalletLoading && state is! WalletLoaded) {
@@ -52,7 +53,7 @@ class _LoyaltyTiersScreenState extends State<LoyaltyTiersScreen> {
                       context.read<WalletCubit>().loadTiers();
                       context.read<WalletCubit>().loadPoints();
                     },
-                    child: const Text('إعادة المحاولة'),
+                    child: Text(AppLocalizations.of(context)!.retryAction),
                   ),
                 ],
               ),

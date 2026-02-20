@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AttachmentPicker extends StatefulWidget {
   final List<String> attachments;
@@ -127,7 +128,7 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
                 OutlinedButton.icon(
                   onPressed: _pickImage,
                   icon: Icon(Iconsax.gallery, size: 18.sp),
-                  label: const Text('معرض الصور'),
+                  label: Text(AppLocalizations.of(context)!.gallery),
                   style: OutlinedButton.styleFrom(
                     padding: EdgeInsets.symmetric(
                       horizontal: 12.w,
@@ -138,7 +139,7 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
                 OutlinedButton.icon(
                   onPressed: _takePhoto,
                   icon: Icon(Iconsax.camera, size: 18.sp),
-                  label: const Text('التقاط صورة'),
+                  label: Text(AppLocalizations.of(context)!.takePhoto),
                   style: OutlinedButton.styleFrom(
                     padding: EdgeInsets.symmetric(
                       horizontal: 12.w,

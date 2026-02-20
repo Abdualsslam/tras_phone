@@ -1,6 +1,8 @@
 /// Biometric Service - Handles biometric authentication
 library;
 
+import 'dart:developer' as developer;
+
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
 import '../storage/local_storage.dart';
@@ -62,7 +64,7 @@ class BiometricService {
         options: AuthenticationOptions(
           useErrorDialogs: useErrorDialogs,
           stickyAuth: true,
-          biometricOnly: true,
+          biometricOnly: false,
         ),
       );
 
@@ -96,15 +98,17 @@ class BiometricService {
         options: AuthenticationOptions(
           useErrorDialogs: useErrorDialogs,
           stickyAuth: stickyAuth,
-          biometricOnly: true,
+          biometricOnly: false,
         ),
       );
 
       return didAuthenticate;
-    } on PlatformException {
-      // Handle platform-specific errors
+    } on PlatformException catch (e) {
+      // passBiometricsNotAvailable, notEnrolled, lockedOut, etc.
+      developer.log('Biometric PlatformException: ${e.code} - ${e.message}', name: 'BiometricService');
       return false;
-    } catch (_) {
+    } catch (e) {
+      developer.log('Biometric error: $e', name: 'BiometricService');
       return false;
     }
   }

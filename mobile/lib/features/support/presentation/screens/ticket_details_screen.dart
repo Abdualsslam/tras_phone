@@ -9,6 +9,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/services/socket_service.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../data/models/support_model.dart';
 import '../../utils/support_error_helper.dart';
 import '../cubit/support_cubit.dart';
@@ -158,7 +159,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تفاصيل التذكرة'),
+        title: Text(AppLocalizations.of(context)!.ticketDetails),
         actions: [
           BlocBuilder<SupportCubit, SupportState>(
             builder: (context, state) {
@@ -195,7 +196,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                     onPressed: () {
                       context.read<SupportCubit>().loadTicketDetails(widget.ticketId);
                     },
-                    child: const Text('إعادة المحاولة'),
+                    child: Text(AppLocalizations.of(context)!.retryAction),
                   ),
                 ],
               ),
@@ -204,7 +205,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
 
           final ticket = state.selectedTicket;
           if (ticket == null) {
-            return const Center(child: Text('التذكرة غير موجودة'));
+            return Center(child: Text(AppLocalizations.of(context)!.noResults));
           }
 
           return Column(

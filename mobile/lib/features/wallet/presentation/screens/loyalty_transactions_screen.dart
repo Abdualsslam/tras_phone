@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../cubit/wallet_cubit.dart';
 import '../cubit/wallet_state.dart';
 import '../../data/models/loyalty_transaction_model.dart';
@@ -34,7 +35,7 @@ class _LoyaltyTransactionsScreenState
     final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('معاملات النقاط')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.pointsTransactions)),
       body: BlocBuilder<WalletCubit, WalletState>(
         builder: (context, state) {
           if (state is WalletLoading && state is! WalletLoaded) {
@@ -52,7 +53,7 @@ class _LoyaltyTransactionsScreenState
                     onPressed: () {
                       context.read<WalletCubit>().loadPointsTransactions();
                     },
-                    child: const Text('إعادة المحاولة'),
+                    child: Text(AppLocalizations.of(context)!.retryAction),
                   ),
                 ],
               ),

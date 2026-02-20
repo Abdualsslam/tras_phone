@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class RatingDialog extends StatefulWidget {
   final String? title;
@@ -103,7 +104,7 @@ class _RatingDialogState extends State<RatingDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('تخطي'),
+          child: Text(AppLocalizations.of(context)!.skip),
         ),
         ElevatedButton(
           onPressed: () {
@@ -114,7 +115,7 @@ class _RatingDialogState extends State<RatingDialog> {
                   : null,
             });
           },
-          child: const Text('إرسال'),
+          child: Text(AppLocalizations.of(context)!.send),
         ),
       ],
     );

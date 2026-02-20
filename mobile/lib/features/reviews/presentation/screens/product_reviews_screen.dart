@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../core/di/injection.dart';
 import '../../../catalog/domain/repositories/catalog_repository.dart';
 import '../../../catalog/data/models/product_review_model.dart';
@@ -167,7 +168,7 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
             SizedBox(height: 24.h),
             FilledButton(
               onPressed: _loadReviews,
-              child: const Text('إعادة المحاولة'),
+              child: Text(AppLocalizations.of(context)!.retryAction),
             ),
           ],
         ),

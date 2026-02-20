@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
 import '../../../profile/presentation/cubit/profile_cubit.dart';
@@ -59,7 +60,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('تذكرة جديدة'),
+        title: Text(AppLocalizations.of(context)!.newTicket),
         leading: IconButton(
           icon: const Icon(Iconsax.close_circle),
           onPressed: () => context.pop(),
@@ -289,7 +290,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('إرسال التذكرة'),
+                          : Text(AppLocalizations.of(context)!.sendTicket),
                     ),
                   ),
                 ],
@@ -369,7 +370,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       if (ticket != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('تم إرسال التذكرة بنجاح'),
+            content: Text(AppLocalizations.of(context)!.ticketSentSuccess),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(

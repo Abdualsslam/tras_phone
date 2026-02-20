@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/wishlist_remote_datasource.dart';
 import '../cubit/stock_alerts_cubit.dart';
 import '../cubit/stock_alerts_state.dart';
@@ -40,7 +41,7 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
     await _cubit.removeStockAlert(productId);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم إزالة التنبيه')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.removedFromWishlist)),
       );
     }
   }
@@ -52,7 +53,7 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
     return BlocProvider.value(
       value: _cubit,
       child: Scaffold(
-        appBar: AppBar(title: const Text('تنبيهات المخزون')),
+        appBar: AppBar(title: Text(AppLocalizations.of(context)!.stockAlerts)),
         body: BlocBuilder<StockAlertsCubit, StockAlertsState>(
           bloc: _cubit,
           builder: (context, state) {
@@ -83,7 +84,7 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
                     SizedBox(height: 16.h),
                     ElevatedButton(
                       onPressed: () => _cubit.loadStockAlerts(),
-                      child: const Text('إعادة المحاولة'),
+                      child: Text(AppLocalizations.of(context)!.retryAction),
                     ),
                   ],
                 ),
