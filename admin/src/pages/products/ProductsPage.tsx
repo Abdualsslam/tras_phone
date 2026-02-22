@@ -67,9 +67,11 @@ import {
   Video,
   X,
   Upload,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from "@/lib/utils";
+import { ProductImportExportDialog } from "./ProductImportExportDialog";
 
 const statusVariants: Record<
   string,
@@ -187,6 +189,7 @@ export function ProductsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isPricesDialogOpen, setIsPricesDialogOpen] = useState(false);
+  const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<AddProductForm>(initialFormData);
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
@@ -736,11 +739,22 @@ export function ProductsPage() {
             إدارة المنتجات والمخزون
           </p>
         </div>
-        <Button onClick={handleOpenAddDialog}>
-          <Plus className="h-4 w-4" />
-          {t("products.addProduct")}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsImportExportOpen(true)}>
+            <FileSpreadsheet className="h-4 w-4" />
+            استيراد/تصدير Excel
+          </Button>
+          <Button onClick={handleOpenAddDialog}>
+            <Plus className="h-4 w-4" />
+            {t("products.addProduct")}
+          </Button>
+        </div>
       </div>
+
+      <ProductImportExportDialog
+        open={isImportExportOpen}
+        onOpenChange={setIsImportExportOpen}
+      />
 
       {/* Search and Filters */}
       <Card>
