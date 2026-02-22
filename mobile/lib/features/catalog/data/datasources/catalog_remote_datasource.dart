@@ -110,7 +110,7 @@ abstract class CatalogRemoteDataSource {
   });
   Future<List<String>> getSearchSuggestions(String query);
   Future<List<String>> getPopularSearches();
-  
+
   // Advanced Search
   Future<List<ProductEntity>> advancedSearch({
     required String query,
@@ -126,7 +126,10 @@ abstract class CatalogRemoteDataSource {
     int page,
     int limit,
   });
-  Future<Map<String, dynamic>> getAdvancedSearchSuggestions(String query, {int? limit});
+  Future<Map<String, dynamic>> getAdvancedSearchSuggestions(
+    String query, {
+    int? limit,
+  });
   Future<List<String>> getAutocompleteSuggestions(String query, {int? limit});
   Future<List<String>> getAllTags();
   Future<List<Map<String, dynamic>>> getPopularTags({int? limit});
@@ -165,13 +168,80 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   void _printApiUrl(String endpoint, {Map<String, dynamic>? queryParams}) {
     final uri = Uri.parse('${AppConfig.baseUrl}$endpoint');
     final finalUri = queryParams != null && queryParams.isNotEmpty
-        ? uri.replace(queryParameters: queryParams.map((k, v) => MapEntry(k, v.toString())))
+        ? uri.replace(
+            queryParameters: queryParams.map(
+              (k, v) => MapEntry(k, v.toString()),
+            ),
+          )
         : uri;
 
-    developer.log(
-      'API URL: ${finalUri.toString()}',
-      name: 'CatalogDataSource',
-    );
+    developer.log('API URL: ${finalUri.toString()}', name: 'CatalogDataSource');
+  }
+
+  int _toInt(dynamic value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
+  List<ProductEntity> _parseProductsList(
+    dynamic data, {
+    String source = 'products',
+  }) {
+    final list = data is List ? data : const [];
+    final products = <ProductEntity>[];
+
+    for (final item in list) {
+      if (item is! Map) continue;
+      try {
+        products.add(
+          ProductModel.fromJson(Map<String, dynamic>.from(item)).toEntity(),
+        );
+      } catch (e, stackTrace) {
+        developer.log(
+          'Skipping invalid product payload in $source',
+          name: 'CatalogDataSource',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+
+    return products;
+  }
+
+  Map<String, dynamic> _extractPagination(
+    Map<String, dynamic> responseData, {
+    required int page,
+    required int limit,
+    required int fallbackTotal,
+  }) {
+    final raw = responseData['pagination'] ?? responseData['meta'];
+
+    if (raw is Map) {
+      final rawMap = Map<String, dynamic>.from(raw);
+      final parsedPage = _toInt(rawMap['page'], fallback: page);
+      final parsedLimit = _toInt(rawMap['limit'], fallback: limit);
+      final parsedTotal = _toInt(rawMap['total'], fallback: fallbackTotal);
+      final parsedPages = _toInt(
+        rawMap['pages'] ?? rawMap['totalPages'],
+        fallback: parsedTotal > 0 ? (parsedTotal / parsedLimit).ceil() : 1,
+      );
+
+      return {
+        ...rawMap,
+        'page': parsedPage,
+        'limit': parsedLimit,
+        'total': parsedTotal,
+        'pages': parsedPages,
+      };
+    }
+
+    final total = _toInt(responseData['total'], fallback: fallbackTotal);
+    final pages = total > 0 ? (total / limit).ceil() : 1;
+
+    return {'page': page, 'limit': limit, 'total': total, 'pages': pages};
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -199,8 +269,9 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       final data = response.data['data'] ?? response.data;
 
       // Use CategoryWithBreadcrumbModel for JSON deserialization
-      final categoryWithBreadcrumbModel =
-          CategoryWithBreadcrumbModel.fromJson(data);
+      final categoryWithBreadcrumbModel = CategoryWithBreadcrumbModel.fromJson(
+        data,
+      );
       return categoryWithBreadcrumbModel.toEntity();
     } catch (e) {
       developer.log('Category not found: $id', name: 'CatalogDataSource');
@@ -253,10 +324,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       name: 'CatalogDataSource',
     );
 
-    final queryParams = <String, dynamic>{
-      'page': page,
-      'limit': limit,
-    };
+    final queryParams = <String, dynamic>{'page': page, 'limit': limit};
 
     if (minPrice != null) queryParams['minPrice'] = minPrice;
     if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
@@ -273,21 +341,19 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       queryParameters: queryParams,
     );
 
-    developer.log(
-      'Response: ${response.data}',
-      name: 'CatalogDataSource',
+    developer.log('Response: ${response.data}', name: 'CatalogDataSource');
+
+    final responseData = response.data as Map<String, dynamic>;
+    final data = responseData['data'];
+    final products = _parseProductsList(data, source: 'categoryProducts');
+    final pagination = _extractPagination(
+      responseData,
+      page: page,
+      limit: limit,
+      fallbackTotal: products.length,
     );
 
-    final data = response.data['data'] ?? [];
-    final meta = response.data['meta'] ?? {};
-    final dataList = data is List ? data : [];
-
-    return {
-      'products': List<ProductEntity>.from(
-        dataList.map((p) => ProductModel.fromJson(p).toEntity()),
-      ),
-      'pagination': meta,
-    };
+    return {'products': products, 'pagination': pagination};
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -301,8 +367,11 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     final queryParams = <String, dynamic>{
       if (featured != null) 'featured': featured,
     };
-    
-    _printApiUrl(ApiEndpoints.brands, queryParams: queryParams.isNotEmpty ? queryParams : null);
+
+    _printApiUrl(
+      ApiEndpoints.brands,
+      queryParams: queryParams.isNotEmpty ? queryParams : null,
+    );
 
     final response = await _apiClient.get(
       ApiEndpoints.brands,
@@ -322,7 +391,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     try {
       final endpoint = '${ApiEndpoints.brands}/$slug';
       _printApiUrl(endpoint);
-      
+
       final response = await _apiClient.get(endpoint);
       final data = response.data['data'] ?? response.data;
       return BrandModel.fromJson(data).toEntity();
@@ -340,7 +409,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       // First, try to use ID as slug (in case backend supports it)
       final endpoint = '${ApiEndpoints.brands}/$id';
       _printApiUrl(endpoint);
-      
+
       try {
         final response = await _apiClient.get(endpoint);
         final data = response.data['data'] ?? response.data;
@@ -351,7 +420,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
           'Brand not found by ID as slug, searching in brands list',
           name: 'CatalogDataSource',
         );
-        
+
         final brands = await getBrands();
         final brand = brands.firstWhere(
           (b) => b.id == id,
@@ -380,10 +449,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       name: 'CatalogDataSource',
     );
 
-    final queryParams = <String, dynamic>{
-      'page': page,
-      'limit': limit,
-    };
+    final queryParams = <String, dynamic>{'page': page, 'limit': limit};
 
     if (minPrice != null) queryParams['minPrice'] = minPrice;
     if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
@@ -398,20 +464,19 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       queryParameters: queryParams,
     );
 
-    developer.log(
-      'Response: ${response.data}',
-      name: 'CatalogDataSource',
+    developer.log('Response: ${response.data}', name: 'CatalogDataSource');
+
+    final responseData = response.data as Map<String, dynamic>;
+    final data = responseData['data'];
+    final products = _parseProductsList(data, source: 'brandProducts');
+    final pagination = _extractPagination(
+      responseData,
+      page: page,
+      limit: limit,
+      fallbackTotal: products.length,
     );
 
-    final data = response.data['data'] ?? [];
-    final meta = response.data['meta'] ?? {};
-
-    return {
-      'products': (data as List)
-          .map((p) => ProductModel.fromJson(p).toEntity())
-          .toList(),
-      'pagination': meta,
-    };
+    return {'products': products, 'pagination': pagination};
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -493,10 +558,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       name: 'CatalogDataSource',
     );
 
-    final queryParams = <String, dynamic>{
-      'page': page,
-      'limit': limit,
-    };
+    final queryParams = <String, dynamic>{'page': page, 'limit': limit};
 
     if (minPrice != null) queryParams['minPrice'] = minPrice;
     if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
@@ -513,20 +575,19 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       queryParameters: queryParams,
     );
 
-    developer.log(
-      'Response: ${response.data}',
-      name: 'CatalogDataSource',
+    developer.log('Response: ${response.data}', name: 'CatalogDataSource');
+
+    final responseData = response.data as Map<String, dynamic>;
+    final data = responseData['data'];
+    final products = _parseProductsList(data, source: 'deviceProducts');
+    final pagination = _extractPagination(
+      responseData,
+      page: page,
+      limit: limit,
+      fallbackTotal: products.length,
     );
 
-    final data = response.data['data'] ?? [];
-    final meta = response.data['meta'] ?? {};
-
-    return {
-      'products': List<ProductEntity>.from(
-        (data as List).map((p) => ProductModel.fromJson(p).toEntity()),
-      ),
-      'pagination': meta,
-    };
+    return {'products': products, 'pagination': pagination};
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -581,24 +642,55 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     );
 
     final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    return _parseProductsList(data, source: 'products');
   }
 
   @override
-  Future<ProductsResponse> getProductsWithFilter(ProductFilterQuery filter) async {
-    developer.log('Fetching products with filter (page: ${filter.page})', name: 'CatalogDataSource');
+  Future<ProductsResponse> getProductsWithFilter(
+    ProductFilterQuery filter,
+  ) async {
+    developer.log(
+      'Fetching products with filter (page: ${filter.page})',
+      name: 'CatalogDataSource',
+    );
+
+    _printApiUrl(
+      ApiEndpoints.products,
+      queryParams: filter.toQueryParameters(),
+    );
 
     final response = await _apiClient.get(
       ApiEndpoints.products,
       queryParameters: filter.toQueryParameters(),
     );
 
-    if (response.data['success'] == true) {
-      return ProductsResponse.fromJson(response.data);
+    final responseData = response.data;
+    if (responseData is Map<String, dynamic>) {
+      final isSuccess =
+          responseData['success'] == true ||
+          responseData['status'] == 'success' ||
+          responseData['statusCode'] == 200;
+
+      if (isSuccess || responseData.containsKey('data')) {
+        return ProductsResponse.fromJson(responseData);
+      }
+
+      throw Exception(responseData['messageAr'] ?? 'Failed to fetch products');
     }
-    throw Exception(response.data['messageAr'] ?? 'Failed to fetch products');
+
+    if (responseData is List) {
+      return ProductsResponse.fromJson({
+        'data': responseData,
+        'meta': {
+          'page': filter.page,
+          'limit': filter.limit,
+          'total': responseData.length,
+          'pages': 1,
+        },
+      });
+    }
+
+    throw Exception('Failed to fetch products');
   }
 
   @override
@@ -606,11 +698,16 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     developer.log('Fetching product: $identifier', name: 'CatalogDataSource');
 
     try {
-      final response = await _apiClient.get('${ApiEndpoints.products}/$identifier');
+      final response = await _apiClient.get(
+        '${ApiEndpoints.products}/$identifier',
+      );
       final data = response.data['data'] ?? response.data;
       return ProductModel.fromJson(data).toEntity();
     } catch (e) {
-      developer.log('Product not found: $identifier', name: 'CatalogDataSource');
+      developer.log(
+        'Product not found: $identifier',
+        name: 'CatalogDataSource',
+      );
       return null;
     }
   }
@@ -664,9 +761,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
     final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    return _parseProductsList(data, source: 'featuredProducts');
   }
 
   @override
@@ -681,9 +776,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
     final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    return _parseProductsList(data, source: 'newArrivals');
   }
 
   @override
@@ -698,9 +791,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
     final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    return _parseProductsList(data, source: 'bestSellers');
   }
 
   @override
@@ -714,13 +805,13 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     String? categoryId,
     String? brandId,
   }) async {
-    developer.log('Fetching products on offer (page: $page)', name: 'CatalogDataSource');
+    developer.log(
+      'Fetching products on offer (page: $page)',
+      name: 'CatalogDataSource',
+    );
 
-    final queryParams = <String, dynamic>{
-      'page': page,
-      'limit': limit,
-    };
-    
+    final queryParams = <String, dynamic>{'page': page, 'limit': limit};
+
     if (sortBy != null) queryParams['sortBy'] = sortBy;
     if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
     if (minDiscount != null) queryParams['minDiscount'] = minDiscount;
@@ -733,10 +824,35 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       queryParameters: queryParams,
     );
 
-    if (response.data['success'] == true) {
-      return ProductsResponse.fromJson(response.data);
+    final responseData = response.data;
+    if (responseData is Map<String, dynamic>) {
+      final isSuccess =
+          responseData['success'] == true ||
+          responseData['status'] == 'success' ||
+          responseData['statusCode'] == 200;
+
+      if (isSuccess || responseData.containsKey('data')) {
+        return ProductsResponse.fromJson(responseData);
+      }
+
+      throw Exception(
+        responseData['messageAr'] ?? 'Failed to fetch products on offer',
+      );
     }
-    throw Exception(response.data['messageAr'] ?? 'Failed to fetch products on offer');
+
+    if (responseData is List) {
+      return ProductsResponse.fromJson({
+        'data': responseData,
+        'meta': {
+          'page': page,
+          'limit': limit,
+          'total': responseData.length,
+          'pages': 1,
+        },
+      });
+    }
+
+    throw Exception('Failed to fetch products on offer');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -757,9 +873,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     );
 
     final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    return _parseProductsList(data, source: 'searchProducts');
   }
 
   @override
@@ -838,9 +952,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     );
 
     final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => ProductModel.fromJson(json).toEntity()).toList();
+    return _parseProductsList(data, source: 'advancedSearch');
   }
 
   @override
@@ -857,10 +969,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
 
     final response = await _apiClient.get(
       '${ApiEndpoints.products}/search/suggestions',
-      queryParameters: {
-        'query': query,
-        if (limit != null) 'limit': limit,
-      },
+      queryParameters: {'query': query, if (limit != null) 'limit': limit},
     );
 
     final data = response.data['data'] ?? response.data;
@@ -884,10 +993,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
 
     final response = await _apiClient.get(
       '${ApiEndpoints.products}/search/autocomplete',
-      queryParameters: {
-        'query': query,
-        if (limit != null) 'limit': limit,
-      },
+      queryParameters: {'query': query, if (limit != null) 'limit': limit},
     );
 
     final data = response.data['data'] ?? response.data;
@@ -918,9 +1024,7 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
 
     final response = await _apiClient.get(
       '${ApiEndpoints.products}/search/popular-tags',
-      queryParameters: {
-        if (limit != null) 'limit': limit,
-      },
+      queryParameters: {if (limit != null) 'limit': limit},
     );
 
     final data = response.data['data'] ?? response.data;
@@ -936,7 +1040,10 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
 
   @override
   Future<List<ProductReviewModel>> getProductReviews(String productId) async {
-    developer.log('Fetching reviews for product: $productId', name: 'CatalogDataSource');
+    developer.log(
+      'Fetching reviews for product: $productId',
+      name: 'CatalogDataSource',
+    );
 
     final response = await _apiClient.get(
       ApiEndpoints.productReviews(productId),
@@ -959,7 +1066,8 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       final response = await _apiClient.get(
         ApiEndpoints.productReviewsMine(productId),
       );
-      final success = response.data['success'] == true ||
+      final success =
+          response.data['success'] == true ||
           response.data['statusCode'] == 200;
       if (success) {
         final data = response.data['data'];
@@ -982,7 +1090,10 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     String? comment,
     List<String>? images,
   }) async {
-    developer.log('Adding review for product: $productId', name: 'CatalogDataSource');
+    developer.log(
+      'Adding review for product: $productId',
+      name: 'CatalogDataSource',
+    );
 
     final response = await _apiClient.post(
       ApiEndpoints.productReviews(productId),
@@ -996,7 +1107,8 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
 
     final status = response.data['status'] as String?;
     final success = response.data['success'] == true;
-    final statusOk = status == 'success' ||
+    final statusOk =
+        status == 'success' ||
         response.data['statusCode'] == 200 ||
         response.data['statusCode'] == 201;
     if (success || statusOk) {
@@ -1023,14 +1135,12 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
         if (images != null && images.isNotEmpty) 'images': images,
       },
     );
-    final success = response.data['success'] == true ||
-        response.data['statusCode'] == 200;
+    final success =
+        response.data['success'] == true || response.data['statusCode'] == 200;
     if (success) {
       return ProductReviewModel.fromJson(response.data['data']);
     }
-    throw Exception(
-      response.data['messageAr'] ?? 'Failed to update review',
-    );
+    throw Exception(response.data['messageAr'] ?? 'Failed to update review');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

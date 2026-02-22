@@ -49,6 +49,7 @@ class ProductModel {
   @JsonKey(defaultValue: 0.0)
   final double basePrice;
   final double? compareAtPrice;
+
   /// Customer tier price (returned when logged in - see 16-pricing-rules)
   final double? price;
 
@@ -209,18 +210,57 @@ class ProductModel {
     final value = json[key];
     if (value == null) return null;
     if (value is List) {
-      return value.map((p) {
-        if (p is String) return p;
-        if (p is Map) {
-          return p['_id']?.toString() ?? p['\$oid']?.toString() ?? p['id']?.toString();
-        }
-        return p.toString();
-      }).toList().cast<String>();
+      return value
+          .map((p) {
+            if (p is String) return p;
+            if (p is Map) {
+              return p['_id']?.toString() ??
+                  p['\$oid']?.toString() ??
+                  p['id']?.toString();
+            }
+            return p.toString();
+          })
+          .toList()
+          .cast<String>();
     }
     return null;
   }
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
+    final nowIso = DateTime.now().toIso8601String();
+    final normalized = Map<String, dynamic>.from(json);
+
+    String normalizeDate(dynamic value) {
+      if (value is String && value.isNotEmpty) return value;
+      if (value is DateTime) return value.toIso8601String();
+      if (value is Map) {
+        final map = Map<String, dynamic>.from(value);
+        final nested = map['\$date'] ?? map['date'];
+        if (nested is String && nested.isNotEmpty) return nested;
+      }
+      return nowIso;
+    }
+
+    normalized['id'] = _readId(json, 'id')?.toString() ?? '';
+    normalized['sku'] = (json['sku'] ?? '').toString();
+    normalized['name'] = (json['name'] ?? '').toString();
+    normalized['nameAr'] = (json['nameAr'] ?? json['name'] ?? '').toString();
+    normalized['slug'] =
+        (json['slug'] ?? normalized['name'] ?? normalized['id'] ?? '')
+            .toString();
+    normalized['createdAt'] = normalizeDate(
+      json['createdAt'] ?? json['updatedAt'],
+    );
+    normalized['updatedAt'] = normalizeDate(
+      json['updatedAt'] ?? json['createdAt'],
+    );
+
+    normalized['brandId'] = _readRelationId(json, 'brandId')?.toString() ?? '';
+    normalized['categoryId'] =
+        _readRelationId(json, 'categoryId')?.toString() ?? '';
+    normalized['qualityTypeId'] =
+        _readRelationId(json, 'qualityTypeId')?.toString() ?? '';
+
     // Extract populated relation data
     String? brandName, brandNameAr;
     String? categoryName, categoryNameAr;
@@ -244,7 +284,7 @@ class ProductModel {
       qualityTypeNameAr = qualityData['nameAr'] as String?;
     }
 
-    final model = _$ProductModelFromJson(json);
+    final model = _$ProductModelFromJson(normalized);
     return ProductModel(
       id: model.id,
       sku: model.sku,
@@ -381,14 +421,32 @@ class ProductsResponse {
     required this.pages,
   });
 
+  static int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
   factory ProductsResponse.fromJson(Map<String, dynamic> json) {
+    final metaRaw = json['meta'] ?? json['pagination'];
+    final meta = metaRaw is Map<String, dynamic>
+        ? metaRaw
+        : metaRaw is Map
+        ? Map<String, dynamic>.from(metaRaw)
+        : <String, dynamic>{};
+
+    final data = json['data'];
+    final dataList = data is List ? data : const [];
+
     return ProductsResponse(
-      products: (json['data'] as List? ?? [])
-          .map((p) => ProductModel.fromJson(p))
+      products: dataList
+          .whereType<Map>()
+          .map((p) => ProductModel.fromJson(Map<String, dynamic>.from(p)))
           .toList(),
-      total: json['meta']?['total'] ?? 0,
-      page: json['meta']?['page'] ?? 1,
-      pages: json['meta']?['pages'] ?? 1,
+      total: _asInt(meta['total'], fallback: dataList.length),
+      page: _asInt(meta['page'], fallback: 1),
+      pages: _asInt(meta['pages'] ?? meta['totalPages'], fallback: 1),
     );
   }
 
