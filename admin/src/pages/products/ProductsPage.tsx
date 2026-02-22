@@ -13,7 +13,7 @@ import {
   isValidVideoType,
   isValidFileSize,
 } from "@/api/uploads.api";
-import { catalogApi as catalogDeviceApi, type Device } from "@/api/catalog.api";
+import { catalogApi as catalogDeviceApi } from "@/api/catalog.api";
 import {
   catalogApi,
   type CategoryTree,
@@ -263,7 +263,12 @@ export function ProductsPage() {
   });
 
   const devices = devicesData?.items || [];
-  const devicesPagination = devicesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
+  const devicesPagination = devicesData?.pagination || {
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  };
 
   // Fetch products for related products selection
   const { data: availableProductsData } = useQuery({
@@ -297,7 +302,7 @@ export function ProductsPage() {
   // Get displayed products (limited by displayCount)
   const displayedProducts = availableProducts.slice(
     0,
-    relatedProductsDisplayCount
+    relatedProductsDisplayCount,
   );
   const hasMoreProducts =
     availableProducts.length > relatedProductsDisplayCount;
@@ -328,7 +333,7 @@ export function ProductsPage() {
   // Get displayed educational content (limited by displayCount)
   const displayedEducationalContent = availableEducationalContent.slice(
     0,
-    educationalContentDisplayCount
+    educationalContentDisplayCount,
   );
   const hasMoreEducationalContent =
     availableEducationalContent.length > educationalContentDisplayCount;
@@ -543,7 +548,7 @@ export function ProductsPage() {
 
   const handleFormChange = (
     field: keyof AddProductForm,
-    value: string | boolean | string[] | Record<string, string>
+    value: string | boolean | string[] | Record<string, string>,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Auto-generate slug from name
@@ -620,7 +625,9 @@ export function ProductsPage() {
       relatedProducts:
         (product as any).relatedProducts?.map((p: any) => p._id || p) || [],
       relatedEducationalContent:
-        (product as any).relatedEducationalContent?.map((c: any) => c._id || c) || [],
+        (product as any).relatedEducationalContent?.map(
+          (c: any) => c._id || c,
+        ) || [],
       priceLevelsPrices: {},
     });
     setFormTagsInput(((product as any).tags || []).join(", "));
@@ -862,8 +869,8 @@ export function ProductsPage() {
                           product.stock > 10
                             ? "text-green-600"
                             : product.stock > 0
-                            ? "text-yellow-600"
-                            : "text-red-600"
+                              ? "text-yellow-600"
+                              : "text-red-600"
                         }
                       >
                         {product.stock}
@@ -1317,7 +1324,9 @@ export function ProductsPage() {
                     >
                       <input
                         type="checkbox"
-                        checked={formData.compatibleDevices.includes(device._id)}
+                        checked={formData.compatibleDevices.includes(
+                          device._id,
+                        )}
                         onChange={(e) => {
                           if (e.target.checked) {
                             handleFormChange("compatibleDevices", [
@@ -1328,14 +1337,17 @@ export function ProductsPage() {
                             handleFormChange(
                               "compatibleDevices",
                               formData.compatibleDevices.filter(
-                                (id) => id !== device._id
-                              )
+                                (id) => id !== device._id,
+                              ),
                             );
                           }
                         }}
                         className="w-4 h-4 rounded"
                       />
-                      <span className="text-sm truncate" title={device.nameAr || device.name}>
+                      <span
+                        className="text-sm truncate"
+                        title={device.nameAr || device.name}
+                      >
                         {device.nameAr || device.name}
                       </span>
                     </label>
@@ -1347,7 +1359,8 @@ export function ProductsPage() {
               {devicesPagination.totalPages > 1 && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500 dark:text-gray-400">
-                    {devicesPagination.total} جهاز - صفحة {devicesPagination.page} من {devicesPagination.totalPages}
+                    {devicesPagination.total} جهاز - صفحة{" "}
+                    {devicesPagination.page} من {devicesPagination.totalPages}
                   </span>
                   <div className="flex gap-2">
                     <Button
@@ -1375,7 +1388,9 @@ export function ProductsPage() {
               {/* Empty State */}
               {!isLoadingDevices && devices.length === 0 && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                  {devicesSearch ? "لا توجد أجهزة تطابق البحث" : "لا توجد أجهزة"}
+                  {devicesSearch
+                    ? "لا توجد أجهزة تطابق البحث"
+                    : "لا توجد أجهزة"}
                 </p>
               )}
             </div>
@@ -1431,8 +1446,8 @@ export function ProductsPage() {
                           handleFormChange(
                             "relatedProducts",
                             formData.relatedProducts.filter(
-                              (id) => id !== product._id
-                            )
+                              (id) => id !== product._id,
+                            ),
                           );
                         }
                       }}
@@ -1471,8 +1486,8 @@ export function ProductsPage() {
                   {relatedProductsSearch
                     ? "لا توجد منتجات تطابق البحث"
                     : isEditMode
-                    ? "لا توجد منتجات أخرى متاحة"
-                    : "جاري تحميل المنتجات..."}
+                      ? "لا توجد منتجات أخرى متاحة"
+                      : "جاري تحميل المنتجات..."}
                 </p>
               )}
 
@@ -1517,39 +1532,43 @@ export function ProductsPage() {
 
               {/* Educational Content List */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg">
-                {displayedEducationalContent.map((content: EducationalContent) => (
-                  <label
-                    key={content._id}
-                    className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.relatedEducationalContent.includes(content._id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          handleFormChange("relatedEducationalContent", [
-                            ...formData.relatedEducationalContent,
-                            content._id,
-                          ]);
-                        } else {
-                          handleFormChange(
-                            "relatedEducationalContent",
-                            formData.relatedEducationalContent.filter(
-                              (id) => id !== content._id
-                            )
-                          );
-                        }
-                      }}
-                      className="w-4 h-4 rounded"
-                    />
-                    <span
-                      className="text-sm truncate"
-                      title={content.titleAr || content.title}
+                {displayedEducationalContent.map(
+                  (content: EducationalContent) => (
+                    <label
+                      key={content._id}
+                      className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded cursor-pointer"
                     >
-                      {content.titleAr || content.title}
-                    </span>
-                  </label>
-                ))}
+                      <input
+                        type="checkbox"
+                        checked={formData.relatedEducationalContent.includes(
+                          content._id,
+                        )}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            handleFormChange("relatedEducationalContent", [
+                              ...formData.relatedEducationalContent,
+                              content._id,
+                            ]);
+                          } else {
+                            handleFormChange(
+                              "relatedEducationalContent",
+                              formData.relatedEducationalContent.filter(
+                                (id) => id !== content._id,
+                              ),
+                            );
+                          }
+                        }}
+                        className="w-4 h-4 rounded"
+                      />
+                      <span
+                        className="text-sm truncate"
+                        title={content.titleAr || content.title}
+                      >
+                        {content.titleAr || content.title}
+                      </span>
+                    </label>
+                  ),
+                )}
               </div>
 
               {/* Show More Button */}
@@ -1564,7 +1583,8 @@ export function ProductsPage() {
                   className="w-full"
                 >
                   المزيد (
-                  {availableEducationalContent.length - educationalContentDisplayCount}{" "}
+                  {availableEducationalContent.length -
+                    educationalContentDisplayCount}{" "}
                   متبقي)
                 </Button>
               )}
@@ -1746,13 +1766,13 @@ export function ProductsPage() {
 
                         if (!isValidImageType(file)) {
                           setUploadError(
-                            "نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP"
+                            "نوع الملف غير مدعوم. الأنواع المسموحة: JPEG, PNG, GIF, WebP",
                           );
                           return;
                         }
                         if (!isValidFileSize(file)) {
                           setUploadError(
-                            "حجم الملف كبير جداً. الحد الأقصى 10MB"
+                            "حجم الملف كبير جداً. الحد الأقصى 10MB",
                           );
                           return;
                         }
@@ -1762,12 +1782,12 @@ export function ProductsPage() {
                         try {
                           const result = await uploadsApi.uploadSingle(
                             file,
-                            "products/main"
+                            "products/main",
                           );
                           handleFormChange("mainImage", result.url);
                         } catch (error: any) {
                           setUploadError(
-                            error?.response?.data?.message || "فشل رفع الصورة"
+                            error?.response?.data?.message || "فشل رفع الصورة",
                           );
                         } finally {
                           setIsUploadingMainImage(false);
@@ -1837,7 +1857,7 @@ export function ProductsPage() {
                           }
                           if (!isValidFileSize(file)) {
                             setUploadError(
-                              `ملف "${file.name}" كبير جداً (الحد 10MB)`
+                              `ملف "${file.name}" كبير جداً (الحد 10MB)`,
                             );
                             return;
                           }
@@ -1848,7 +1868,7 @@ export function ProductsPage() {
                         try {
                           const results = await uploadsApi.uploadMultiple(
                             files,
-                            "products/gallery"
+                            "products/gallery",
                           );
                           setFormData((prev) => ({
                             ...prev,
@@ -1859,7 +1879,7 @@ export function ProductsPage() {
                           }));
                         } catch (error: any) {
                           setUploadError(
-                            error?.response?.data?.message || "فشل رفع الصور"
+                            error?.response?.data?.message || "فشل رفع الصور",
                           );
                         } finally {
                           setIsUploadingGallery(false);
@@ -1917,13 +1937,13 @@ export function ProductsPage() {
 
                         if (!isValidVideoType(file)) {
                           setUploadError(
-                            "نوع الفيديو غير مدعوم. الأنواع المسموحة: MP4, WebM"
+                            "نوع الفيديو غير مدعوم. الأنواع المسموحة: MP4, WebM",
                           );
                           return;
                         }
                         if (!isValidFileSize(file, 50)) {
                           setUploadError(
-                            "حجم الفيديو كبير جداً. الحد الأقصى 50MB"
+                            "حجم الفيديو كبير جداً. الحد الأقصى 50MB",
                           );
                           return;
                         }
@@ -1933,12 +1953,12 @@ export function ProductsPage() {
                         try {
                           const result = await uploadsApi.uploadSingle(
                             file,
-                            "products/videos"
+                            "products/videos",
                           );
                           handleFormChange("video", result.url);
                         } catch (error: any) {
                           setUploadError(
-                            error?.response?.data?.message || "فشل رفع الفيديو"
+                            error?.response?.data?.message || "فشل رفع الفيديو",
                           );
                         } finally {
                           setIsUploadingVideo(false);
@@ -2006,7 +2026,7 @@ export function ProductsPage() {
                   onChange={(e) => {
                     const selected = Array.from(
                       e.target.selectedOptions,
-                      (option) => option.value
+                      (option) => option.value,
                     );
                     setFormData((prev) => ({
                       ...prev,
@@ -2112,7 +2132,7 @@ export function ProductsPage() {
                           <X className="h-4 w-4" />
                         </button>
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               )}
@@ -2281,7 +2301,7 @@ export function ProductsPage() {
                           setSelectedDevices([...selectedDevices, device._id]);
                         } else {
                           setSelectedDevices(
-                            selectedDevices.filter((id) => id !== device._id)
+                            selectedDevices.filter((id) => id !== device._id),
                           );
                         }
                       }}
@@ -2338,7 +2358,7 @@ export function ProductsPage() {
                   {productReviews.map((review) => (
                     <Card key={review._id}>
                       <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
+                        <div className="flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-medium">
