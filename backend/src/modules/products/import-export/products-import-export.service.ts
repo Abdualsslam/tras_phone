@@ -71,6 +71,8 @@ const PRODUCT_HEADERS = [
   'compatibleDevices',
 ] as const;
 
+type UploadedExcelBuffer = Buffer | Uint8Array | ArrayBuffer;
+
 @Injectable()
 export class ProductsImportExportService {
   constructor(
@@ -147,7 +149,7 @@ export class ProductsImportExportService {
     }
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(file.buffer as any);
+    await workbook.xlsx.load(file.buffer as UploadedExcelBuffer);
 
     const products = this.readSheetRows<ProductRow>(workbook, 'Products');
     const compatibility = this.readSheetRows<DeviceCompatibilityRow>(
@@ -274,7 +276,7 @@ export class ProductsImportExportService {
     }
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(file.buffer as any);
+    await workbook.xlsx.load(file.buffer as UploadedExcelBuffer);
 
     const rows = this.readSheetRows<ProductRow>(workbook, 'Products');
     const compatibility = this.readSheetRows<DeviceCompatibilityRow>(
@@ -369,7 +371,7 @@ export class ProductsImportExportService {
     }
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(file.buffer as any);
+    await workbook.xlsx.load(file.buffer as UploadedExcelBuffer);
 
     const rows = this.readSheetRows<Record<string, any>>(workbook, 'Products');
     const errors: ValidationError[] = [];

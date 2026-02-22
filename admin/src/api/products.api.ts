@@ -131,6 +131,30 @@ export interface StockAlert {
     createdAt: string;
 }
 
+export interface ProductsImportExportResult {
+    success: boolean;
+    summary: {
+        total: number;
+        created: number;
+        updated: number;
+        skipped: number;
+        errors: number;
+    };
+    errors: Array<{
+        row: number;
+        sheet: string;
+        field: string;
+        message: string;
+        value?: unknown;
+    }>;
+    warnings: Array<{
+        row: number;
+        sheet: string;
+        field: string;
+        message: string;
+    }>;
+}
+
 // ══════════════════════════════════════════════════════════════
 // API
 // ══════════════════════════════════════════════════════════════
@@ -327,6 +351,65 @@ export const productsApi = {
 
     deleteStockAlert: async (alertId: string): Promise<void> => {
         await apiClient.delete(`/products/stock-alerts/${alertId}`);
+    },
+
+    // ─────────────────────────────────────────
+    // Import / Export
+    // ─────────────────────────────────────────
+
+    downloadImportTemplate: async (): Promise<Blob> => {
+        const response = await apiClient.get('/products/import-export/template', {
+            responseType: 'blob',
+        });
+        return response.data;
+    },
+
+    exportProductsExcel: async (params?: {
+        brandId?: string;
+        categoryId?: string;
+        status?: string;
+        qualityTypeId?: string;
+        includeInactive?: boolean;
+        includeCompatibility?: boolean;
+        includeReferences?: boolean;
+        search?: string;
+    }): Promise<Blob> => {
+        const response = await apiClient.get('/products/import-export/export', {
+            params,
+            responseType: 'blob',
+        });
+        return response.data;
+    },
+
+    validateImportFile: async (file: File): Promise<any> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await apiClient.post<ApiResponse<any>>('/products/import-export/validate', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data.data;
+    },
+
+    importProductsExcel: async (
+        file: File,
+        params?: { mode?: 'create' | 'update' | 'upsert'; skipValidation?: boolean },
+    ): Promise<ProductsImportExportResult | any> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await apiClient.post<ApiResponse<any>>('/products/import-export/import', formData, {
+            params,
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data.data;
+    },
+
+    partialUpdateProductsExcel: async (file: File): Promise<ProductsImportExportResult> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await apiClient.post<ApiResponse<ProductsImportExportResult>>('/products/import-export/partial', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data.data;
     },
 };
 
