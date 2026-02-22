@@ -616,7 +616,7 @@ export function NotificationsPage() {
             <DialogDescription>أدخل بيانات قالب الإشعار</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>
                   الاسم (EN) <span className="text-red-500">*</span>
@@ -639,7 +639,7 @@ export function NotificationsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>النوع</Label>
                 <select
@@ -674,9 +674,9 @@ export function NotificationsPage() {
                   }
                   className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm"
                 >
-                  <option value="push">Push</option>
-                  <option value="email">Email</option>
-                  <option value="sms">SMS</option>
+                  <option value="push">إشعار فوري</option>
+                  <option value="email">بريد إلكتروني</option>
+                  <option value="sms">رسالة نصية</option>
                 </select>
               </div>
             </div>
@@ -777,7 +777,7 @@ export function NotificationsPage() {
                 }
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>النوع</Label>
                 <select
@@ -790,9 +790,9 @@ export function NotificationsPage() {
                   }
                   className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm"
                 >
-                  <option value="push">Push</option>
-                  <option value="email">Email</option>
-                  <option value="sms">SMS</option>
+                  <option value="push">إشعار فوري</option>
+                  <option value="email">بريد إلكتروني</option>
+                  <option value="sms">رسالة نصية</option>
                 </select>
               </div>
               <div className="space-y-2">

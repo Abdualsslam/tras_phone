@@ -32,9 +32,14 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
 
+      const currentDir =
+        typeof document !== "undefined" && document.documentElement.dir
+          ? document.documentElement.dir
+          : "rtl";
+
       return (
         <div
-          dir="rtl"
+          dir={currentDir}
           className="flex min-h-screen items-center justify-center bg-gray-50 p-6"
         >
           <div className="w-full max-w-md rounded-xl bg-white p-8 text-center shadow-lg">
@@ -48,7 +53,7 @@ export class ErrorBoundary extends Component<Props, State> {
               نعتذر عن هذا الخطأ. يرجى المحاولة مرة أخرى.
             </p>
             {this.state.error && (
-              <pre className="mb-6 max-h-32 overflow-auto rounded bg-gray-100 p-3 text-left text-xs text-gray-600">
+              <pre className="mb-6 max-h-32 overflow-auto rounded bg-gray-100 p-3 text-start text-xs text-gray-600">
                 {this.state.error.message}
               </pre>
             )}

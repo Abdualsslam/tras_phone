@@ -419,7 +419,7 @@ export function PasswordResetRequestsPage() {
                               <DropdownMenuItem
                                 onClick={() => handleView(request)}
                               >
-                                <Eye className="h-4 w-4 ml-2" />
+                                <Eye className="h-4 w-4 ms-2" />
                                 عرض التفاصيل
                               </DropdownMenuItem>
                               {request.status === "pending" && (
@@ -427,14 +427,14 @@ export function PasswordResetRequestsPage() {
                                   <DropdownMenuItem
                                     onClick={() => handleProcess(request)}
                                   >
-                                    <CheckCircle className="h-4 w-4 ml-2" />
+                                    <CheckCircle className="h-4 w-4 ms-2" />
                                     معالجة
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => handleReject(request)}
                                     className="text-red-600"
                                   >
-                                    <XCircle className="h-4 w-4 ml-2" />
+                                    <XCircle className="h-4 w-4 ms-2" />
                                     رفض
                                   </DropdownMenuItem>
                                 </>
@@ -465,7 +465,7 @@ export function PasswordResetRequestsPage() {
           </DialogHeader>
           {selectedRequest && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">رقم الهاتف</p>
                   <p className="font-medium">{selectedRequest.phone}</p>
@@ -570,7 +570,7 @@ export function PasswordResetRequestsPage() {
                   <Button type="submit" disabled={processMutation.isPending}>
                     {processMutation.isPending ? (
                       <>
-                        <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                        <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                         جاري المعالجة...
                       </>
                     ) : (
@@ -672,7 +672,7 @@ export function PasswordResetRequestsPage() {
               >
                 {rejectMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                     جاري الحفظ...
                   </>
                 ) : (

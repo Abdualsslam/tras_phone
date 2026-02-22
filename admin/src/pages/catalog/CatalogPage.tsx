@@ -329,7 +329,7 @@ function BrandsTab() {
               </Label>
               <Input
                 dir="ltr"
-                placeholder="Brand Name"
+                placeholder="اسم العلامة التجارية"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
@@ -373,7 +373,7 @@ function BrandsTab() {
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, logo: "" })}
-                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      className="absolute top-1 end-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -492,7 +492,7 @@ function BrandsTab() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 me-2 animate-spin" />
               )}
               حذف
             </Button>
@@ -860,7 +860,7 @@ function DevicesTab() {
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, image: "" })}
-                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      className="absolute top-1 end-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -1169,7 +1169,7 @@ function QualityTypesTab() {
               </Label>
               <Input
                 dir="ltr"
-                placeholder="New"
+                placeholder="جديد"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
@@ -1194,7 +1194,7 @@ function QualityTypesTab() {
               </Label>
               <Input
                 dir="ltr"
-                placeholder="NEW"
+                placeholder="JDEED"
                 value={formData.code}
                 onChange={(e) =>
                   setFormData({

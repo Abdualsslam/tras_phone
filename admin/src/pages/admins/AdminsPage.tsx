@@ -369,7 +369,7 @@ export function AdminsPage() {
             onSubmit={createForm.handleSubmit(onCreateSubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>رقم الهاتف *</Label>
                 <Input
@@ -408,7 +408,7 @@ export function AdminsPage() {
                 كلمة المرور يجب أن تكون 8 أحرف على الأقل
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم الكامل *</Label>
                 <Input
@@ -426,7 +426,7 @@ export function AdminsPage() {
                 <Input {...createForm.register("fullNameAr")} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>القسم</Label>
                 <Input {...createForm.register("department")} />
@@ -436,7 +436,7 @@ export function AdminsPage() {
                 <Input {...createForm.register("position")} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>رقم الهاتف المباشر</Label>
                 <Input {...createForm.register("directPhone")} />
@@ -504,7 +504,7 @@ export function AdminsPage() {
             onSubmit={editForm.handleSubmit(onEditSubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم الكامل *</Label>
                 <Input
@@ -522,7 +522,7 @@ export function AdminsPage() {
                 <Input {...editForm.register("fullNameAr")} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>القسم</Label>
                 <Input {...editForm.register("department")} />
@@ -532,7 +532,7 @@ export function AdminsPage() {
                 <Input {...editForm.register("position")} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>رقم الهاتف المباشر</Label>
                 <Input {...editForm.register("directPhone")} />

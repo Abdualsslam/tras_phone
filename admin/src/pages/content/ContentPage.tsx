@@ -1199,7 +1199,7 @@ export function ContentPage() {
             <Star className="h-4 w-4" />
             الشهادات
             {pendingTestimonials > 0 && (
-              <Badge variant="warning" className="mr-1">
+              <Badge variant="warning" className="me-1">
                 {pendingTestimonials}
               </Badge>
             )}
@@ -1216,7 +1216,7 @@ export function ContentPage() {
                   الصفحات الثابتة
                 </CardTitle>
                 <Button onClick={handleAddPage}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة صفحة
                 </Button>
               </div>
@@ -1236,7 +1236,7 @@ export function ContentPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>العنوان</TableHead>
-                      <TableHead>Slug</TableHead>
+                      <TableHead>المعرّف (Slug)</TableHead>
                       <TableHead>النوع</TableHead>
                       <TableHead>الحالة</TableHead>
                       <TableHead>آخر تحديث</TableHead>
@@ -1289,7 +1289,7 @@ export function ContentPage() {
                               <DropdownMenuItem
                                 onClick={() => handleEditPage(page)}
                               >
-                                <Pencil className="h-4 w-4 ml-2" />
+                                <Pencil className="h-4 w-4 ms-2" />
                                 تعديل
                               </DropdownMenuItem>
                               <DropdownMenuItem
@@ -1298,7 +1298,7 @@ export function ContentPage() {
                                 }
                                 className="text-red-600"
                               >
-                                <Trash2 className="h-4 w-4 ml-2" />
+                                <Trash2 className="h-4 w-4 ms-2" />
                                 حذف
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -1323,7 +1323,7 @@ export function ContentPage() {
                   البنرات والإعلانات
                 </CardTitle>
                 <Button onClick={handleAddBanner}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة بنر
                 </Button>
               </div>
@@ -1368,7 +1368,7 @@ export function ContentPage() {
                           />
                           <Badge
                             variant={banner.isActive ? "success" : "secondary"}
-                            className="absolute top-2 right-2"
+                            className="absolute top-2 end-2"
                           >
                             {banner.isActive ? "نشط" : "غير نشط"}
                           </Badge>
@@ -1377,7 +1377,7 @@ export function ContentPage() {
                           <h3 className="font-medium mb-2">{bannerName}</h3>
                           <div className="flex justify-between items-center text-sm text-muted-foreground">
                             <span>
-                              <Eye className="h-3 w-3 inline ml-1" />
+                              <Eye className="h-3 w-3 inline ms-1" />
                               {banner.impressions || 0}
                             </span>
                             <div className="flex gap-2">
@@ -1420,7 +1420,7 @@ export function ContentPage() {
                   السلايدر
                 </CardTitle>
                 <Button onClick={handleAddSlider}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة سلايدر
                 </Button>
               </div>
@@ -1478,7 +1478,7 @@ export function ContentPage() {
                               variant="outline"
                               onClick={() => handleAddSlide(slider)}
                             >
-                              <Plus className="h-4 w-4 ml-1" />
+                              <Plus className="h-4 w-4 ms-1" />
                               إضافة شريحة
                             </Button>
                             <DropdownMenu>
@@ -1491,7 +1491,7 @@ export function ContentPage() {
                                 <DropdownMenuItem
                                   onClick={() => handleEditSlider(slider)}
                                 >
-                                  <Pencil className="h-4 w-4 ml-2" />
+                                  <Pencil className="h-4 w-4 ms-2" />
                                   تعديل
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -1500,7 +1500,7 @@ export function ContentPage() {
                                   }
                                   className="text-red-600"
                                 >
-                                  <Trash2 className="h-4 w-4 ml-2" />
+                                  <Trash2 className="h-4 w-4 ms-2" />
                                   حذف
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -1643,7 +1643,7 @@ export function ContentPage() {
                     onClick={handleAddFaq}
                     disabled={safeFaqCategories.length === 0}
                   >
-                    <Plus className="h-4 w-4 ml-2" />
+                    <Plus className="h-4 w-4 ms-2" />
                     إضافة سؤال
                   </Button>
                 </div>
@@ -1677,14 +1677,14 @@ export function ContentPage() {
                                 {faq.answer}
                               </p>
                             </div>
-                            <div className="flex items-center gap-2 mr-4">
+                            <div className="flex items-center gap-2 me-4">
                               <Badge
                                 variant={faq.isActive ? "success" : "secondary"}
                               >
                                 {faq.isActive ? "نشط" : "غير نشط"}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                <Eye className="h-3 w-3 inline ml-1" />
+                                <Eye className="h-3 w-3 inline ms-1" />
                                 {faq.views}
                               </span>
                               <DropdownMenu>
@@ -1697,7 +1697,7 @@ export function ContentPage() {
                                   <DropdownMenuItem
                                     onClick={() => handleEditFaq(faq)}
                                   >
-                                    <Pencil className="h-4 w-4 ml-2" />
+                                    <Pencil className="h-4 w-4 ms-2" />
                                     تعديل
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
@@ -1706,7 +1706,7 @@ export function ContentPage() {
                                     }
                                     className="text-red-600"
                                   >
-                                    <Trash2 className="h-4 w-4 ml-2" />
+                                    <Trash2 className="h-4 w-4 ms-2" />
                                     حذف
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -1733,7 +1733,7 @@ export function ContentPage() {
                   شهادات العملاء
                 </CardTitle>
                 <Button onClick={handleAddTestimonial}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة شهادة
                 </Button>
               </div>
@@ -1878,12 +1878,12 @@ export function ContentPage() {
             onSubmit={pageForm.handleSubmit(onPageSubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>العنوان (EN) *</Label>
                 <Input
                   {...pageForm.register("title")}
-                  placeholder="Page Title"
+                  placeholder="عنوان الصفحة"
                 />
               </div>
               <div className="space-y-2">
@@ -1894,9 +1894,9 @@ export function ContentPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Slug *</Label>
+                <Label>المعرّف (Slug) *</Label>
                 <Input
                   {...pageForm.register("slug")}
                   placeholder="page-slug"
@@ -1909,8 +1909,8 @@ export function ContentPage() {
                   {...pageForm.register("type")}
                   className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 px-3 text-sm"
                 >
-                  <option value="header">Header</option>
-                  <option value="footer">Footer</option>
+                  <option value="header">رأس الصفحة</option>
+                  <option value="footer">تذييل الصفحة</option>
                   <option value="other">أخرى</option>
                 </select>
               </div>
@@ -1920,7 +1920,7 @@ export function ContentPage() {
               <Textarea
                 {...pageForm.register("content")}
                 rows={5}
-                placeholder="Page content..."
+                placeholder="محتوى الصفحة..."
               />
             </div>
             <div className="space-y-2">
@@ -1961,7 +1961,7 @@ export function ContentPage() {
               >
                 {(createPageMutation.isPending ||
                   updatePageMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إنشاء"}
               </Button>
@@ -1987,12 +1987,12 @@ export function ContentPage() {
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
                 المعلومات الأساسية
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>الاسم (EN) *</Label>
                   <Input
                     {...bannerForm.register("nameEn", { required: true })}
-                    placeholder="Banner Name"
+                    placeholder="اسم البنر"
                   />
                 </div>
                 <div className="space-y-2">
@@ -2003,19 +2003,19 @@ export function ContentPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>النوع *</Label>
                   <select
                     {...bannerForm.register("type", { required: true })}
                     className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 px-3 text-sm"
                   >
-                    <option value="hero">Hero</option>
-                    <option value="promotional">Promotional</option>
-                    <option value="category">Category</option>
-                    <option value="popup">Popup</option>
-                    <option value="sidebar">Sidebar</option>
-                    <option value="inline">Inline</option>
+                    <option value="hero">رئيسي</option>
+                    <option value="promotional">ترويجي</option>
+                    <option value="category">فئة</option>
+                    <option value="popup">نافذة منبثقة</option>
+                    <option value="sidebar">شريط جانبي</option>
+                    <option value="inline">ضمن المحتوى</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -2024,14 +2024,14 @@ export function ContentPage() {
                     {...bannerForm.register("position", { required: true })}
                     className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 px-3 text-sm"
                   >
-                    <option value="home_top">Home Top</option>
-                    <option value="home_middle">Home Middle</option>
-                    <option value="home_bottom">Home Bottom</option>
-                    <option value="category_top">Category Top</option>
-                    <option value="product_top">Product Top</option>
-                    <option value="cart_top">Cart Top</option>
-                    <option value="checkout_top">Checkout Top</option>
-                    <option value="global_popup">Global Popup</option>
+                    <option value="home_top">أعلى الرئيسية</option>
+                    <option value="home_middle">وسط الرئيسية</option>
+                    <option value="home_bottom">أسفل الرئيسية</option>
+                    <option value="category_top">أعلى الفئة</option>
+                    <option value="product_top">أعلى المنتج</option>
+                    <option value="cart_top">أعلى السلة</option>
+                    <option value="checkout_top">أعلى الدفع</option>
+                    <option value="global_popup">نافذة منبثقة عامة</option>
                   </select>
                 </div>
               </div>
@@ -2055,7 +2055,7 @@ export function ContentPage() {
                       <button
                         type="button"
                         onClick={() => bannerForm.setValue("imageDesktop", "")}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+                        className="absolute top-2 end-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -2097,7 +2097,7 @@ export function ContentPage() {
                       <button
                         type="button"
                         onClick={() => bannerForm.setValue("imageMobile", "")}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+                        className="absolute top-2 end-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -2132,7 +2132,7 @@ export function ContentPage() {
                     {bannerUploadError}
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>نص بديل (AR)</Label>
                     <Input
@@ -2144,7 +2144,7 @@ export function ContentPage() {
                     <Label>نص بديل (EN)</Label>
                     <Input
                       {...bannerForm.register("altTextEn")}
-                      placeholder="Image alt text"
+                      placeholder="نص بديل للصورة"
                     />
                   </div>
                 </div>
@@ -2257,7 +2257,7 @@ export function ContentPage() {
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
                 المحتوى النصي (اختياري)
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>العنوان الرئيسي (AR)</Label>
                   <Input
@@ -2269,7 +2269,7 @@ export function ContentPage() {
                   <Label>العنوان الرئيسي (EN)</Label>
                   <Input
                     {...bannerForm.register("headingEn")}
-                    placeholder="Heading"
+                    placeholder="العنوان الرئيسي"
                   />
                 </div>
                 <div className="space-y-2">
@@ -2283,7 +2283,7 @@ export function ContentPage() {
                   <Label>العنوان الفرعي (EN)</Label>
                   <Input
                     {...bannerForm.register("subheadingEn")}
-                    placeholder="Subheading"
+                    placeholder="العنوان الفرعي"
                   />
                 </div>
                 <div className="space-y-2">
@@ -2297,7 +2297,7 @@ export function ContentPage() {
                   <Label>نص الزر (EN)</Label>
                   <Input
                     {...bannerForm.register("buttonTextEn")}
-                    placeholder="Button Text"
+                    placeholder="نص الزر"
                   />
                 </div>
               </div>
@@ -2308,7 +2308,7 @@ export function ContentPage() {
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
                 الإعدادات
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>ترتيب العرض</Label>
                   <Input
@@ -2366,7 +2366,7 @@ export function ContentPage() {
               >
                 {(createBannerMutation.isPending ||
                   updateBannerMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إنشاء"}
               </Button>
@@ -2387,12 +2387,12 @@ export function ContentPage() {
             onSubmit={sliderForm.handleSubmit(onSliderSubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم (EN) *</Label>
                 <Input
                   {...sliderForm.register("name")}
-                  placeholder="Slider Name"
+                  placeholder="اسم السلايدر"
                 />
               </div>
               <div className="space-y-2">
@@ -2434,7 +2434,7 @@ export function ContentPage() {
               >
                 {(createSliderMutation.isPending ||
                   updateSliderMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إنشاء"}
               </Button>
@@ -2465,12 +2465,12 @@ export function ContentPage() {
                 placeholder="https://..."
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>العنوان (EN)</Label>
                 <Input
                   {...slideForm.register("title")}
-                  placeholder="Slide Title"
+                  placeholder="عنوان الشريحة"
                 />
               </div>
               <div className="space-y-2">
@@ -2481,12 +2481,12 @@ export function ContentPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>العنوان الفرعي (EN)</Label>
                 <Input
                   {...slideForm.register("subtitle")}
-                  placeholder="Subtitle"
+                  placeholder="العنوان الفرعي"
                 />
               </div>
               <div className="space-y-2">
@@ -2497,7 +2497,7 @@ export function ContentPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>رابط الهدف</Label>
                 <Input
@@ -2529,7 +2529,7 @@ export function ContentPage() {
               >
                 {(addSlideMutation.isPending ||
                   updateSlideMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إضافة"}
               </Button>
@@ -2553,12 +2553,12 @@ export function ContentPage() {
             onSubmit={faqCategoryForm.handleSubmit(onFaqCategorySubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم (EN) *</Label>
                 <Input
                   {...faqCategoryForm.register("name")}
-                  placeholder="Category Name"
+                  placeholder="اسم الفئة"
                 />
               </div>
               <div className="space-y-2">
@@ -2607,7 +2607,7 @@ export function ContentPage() {
               >
                 {(createFaqCategoryMutation.isPending ||
                   updateFaqCategoryMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إنشاء"}
               </Button>
@@ -2641,12 +2641,12 @@ export function ContentPage() {
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>السؤال (EN) *</Label>
                 <Input
                   {...faqForm.register("question")}
-                  placeholder="Question?"
+                  placeholder="السؤال؟"
                 />
               </div>
               <div className="space-y-2">
@@ -2662,7 +2662,7 @@ export function ContentPage() {
               <Textarea
                 {...faqForm.register("answer")}
                 rows={3}
-                placeholder="Answer..."
+                placeholder="الإجابة..."
               />
             </div>
             <div className="space-y-2">
@@ -2673,7 +2673,7 @@ export function ContentPage() {
                 placeholder="الإجابة..."
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الترتيب</Label>
                 <Input
@@ -2712,7 +2712,7 @@ export function ContentPage() {
               >
                 {(createFaqMutation.isPending ||
                   updateFaqMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إنشاء"}
               </Button>
@@ -2736,7 +2736,7 @@ export function ContentPage() {
             onSubmit={testimonialForm.handleSubmit(onTestimonialSubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>اسم العميل *</Label>
                 <Input
@@ -2759,13 +2759,13 @@ export function ContentPage() {
                 placeholder="https://..."
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>المحتوى (EN) *</Label>
                 <Textarea
                   {...testimonialForm.register("content")}
                   rows={3}
-                  placeholder="Testimonial content..."
+                  placeholder="محتوى التقييم..."
                 />
               </div>
               <div className="space-y-2">
@@ -2777,7 +2777,7 @@ export function ContentPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>التقييم</Label>
                 <Input
@@ -2835,7 +2835,7 @@ export function ContentPage() {
               >
                 {(createTestimonialMutation.isPending ||
                   updateTestimonialMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إنشاء"}
               </Button>

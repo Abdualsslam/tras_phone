@@ -616,7 +616,7 @@ export function PromotionsPage() {
                                     <Input
                                         value={promotionForm.name}
                                         onChange={(e) => setPromotionForm({ ...promotionForm, name: e.target.value })}
-                                        placeholder="Summer Sale"
+                                        placeholder="عرض الصيف"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -644,7 +644,7 @@ export function PromotionsPage() {
                                     <Input
                                         value={promotionForm.description || ''}
                                         onChange={(e) => setPromotionForm({ ...promotionForm, description: e.target.value })}
-                                        placeholder="Description"
+                                        placeholder="الوصف"
                                     />
                                 </div>
                                 <div className="space-y-2">

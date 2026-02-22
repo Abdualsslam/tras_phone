@@ -539,7 +539,7 @@ export function WalletPage() {
                           <button
                             key={customer._id}
                             type="button"
-                            className="w-full text-right px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                            className="w-full text-end px-3 py-2 rounded-md hover:bg-muted transition-colors"
                             onClick={() => {
                               setSelectedCustomerId(customer._id);
                               setCustomerSearch(
@@ -746,15 +746,15 @@ export function WalletPage() {
                 onClick={handleOpenCredit}
                 className="bg-green-600 hover:bg-green-700"
               >
-                <ArrowUpCircle className="h-4 w-4 ml-2" />
+                <ArrowUpCircle className="h-4 w-4 ms-2" />
                 إضافة رصيد
               </Button>
               <Button onClick={handleOpenDebit} variant="destructive">
-                <ArrowDownCircle className="h-4 w-4 ml-2" />
+                <ArrowDownCircle className="h-4 w-4 ms-2" />
                 خصم رصيد
               </Button>
               <Button onClick={handleOpenPoints} variant="outline">
-                <Gift className="h-4 w-4 ml-2" />
+                <Gift className="h-4 w-4 ms-2" />
                 منح نقاط
               </Button>
             </div>
@@ -809,9 +809,9 @@ export function WalletPage() {
                               }
                             >
                               {tx.type === "credit" ? (
-                                <ArrowUpCircle className="h-3 w-3 ml-1" />
+                                <ArrowUpCircle className="h-3 w-3 ms-1" />
                               ) : (
-                                <ArrowDownCircle className="h-3 w-3 ml-1" />
+                                <ArrowDownCircle className="h-3 w-3 ms-1" />
                               )}
                               {tx.type === "credit" ? "إضافة" : "خصم"}
                             </Badge>
@@ -861,7 +861,7 @@ export function WalletPage() {
                   onClick={handleCreateTier}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة مستوى جديد
                 </Button>
               </div>
@@ -1008,7 +1008,7 @@ export function WalletPage() {
                 className="bg-green-600 hover:bg-green-700"
               >
                 {creditMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 إضافة
               </Button>
@@ -1064,7 +1064,7 @@ export function WalletPage() {
                 variant="destructive"
               >
                 {debitMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 خصم
               </Button>
@@ -1108,7 +1108,7 @@ export function WalletPage() {
               </Button>
               <Button type="submit" disabled={grantPointsMutation.isPending}>
                 {grantPointsMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 منح
               </Button>
@@ -1139,12 +1139,12 @@ export function WalletPage() {
             onSubmit={tierForm.handleSubmit(onTierSubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم (إنجليزي) *</Label>
                 <Input
                   {...tierForm.register("name", { required: true })}
-                  placeholder="Bronze"
+                  placeholder="برونزي"
                 />
               </div>
               <div className="space-y-2">
@@ -1155,12 +1155,12 @@ export function WalletPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الكود *</Label>
                 <Input
                   {...tierForm.register("code", { required: true })}
-                  placeholder="bronze"
+                  placeholder="bronze-tier"
                   disabled={!!selectedTier}
                 />
               </div>
@@ -1177,7 +1177,7 @@ export function WalletPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>مضاعف النقاط *</Label>
                 <Input
@@ -1204,7 +1204,7 @@ export function WalletPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>اللون (Hex)</Label>
                 <Input {...tierForm.register("color")} placeholder="#CD7F32" />
@@ -1224,7 +1224,7 @@ export function WalletPage() {
               <Label>الوصف (إنجليزي)</Label>
               <Textarea
                 {...tierForm.register("description")}
-                placeholder="Tier description..."
+                placeholder="وصف المستوى..."
               />
             </div>
             <div className="space-y-2">
@@ -1309,7 +1309,7 @@ export function WalletPage() {
               >
                 {(createTierMutation.isPending ||
                   updateTierMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {selectedTier ? "تحديث" : "إنشاء"}
               </Button>
@@ -1352,7 +1352,7 @@ export function WalletPage() {
               disabled={deleteTierMutation.isPending}
             >
               {deleteTierMutation.isPending && (
-                <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                <Loader2 className="h-4 w-4 ms-2 animate-spin" />
               )}
               حذف
             </Button>

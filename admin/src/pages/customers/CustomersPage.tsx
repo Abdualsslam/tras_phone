@@ -551,7 +551,7 @@ export function CustomersPage() {
                   variant="outline"
                   className="bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-300"
                 >
-                  <Phone className="h-3 w-3 ml-1" />
+                  <Phone className="h-3 w-3 ms-1" />
                   {user.phone}
                 </Badge>
               ))}
@@ -748,7 +748,7 @@ export function CustomersPage() {
                 </Badge>
                 {selectedCustomer.tier && (
                   <Badge variant="secondary" className="text-sm px-3 py-1">
-                    <Award className="h-3 w-3 ml-1" />
+                    <Award className="h-3 w-3 ms-1" />
                     {selectedCustomer.tier}
                   </Badge>
                 )}
@@ -1215,7 +1215,7 @@ export function CustomersPage() {
 
           {/* Mode Selection */}
           {!addMode && (
-            <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
               <button
                 onClick={() => setAddMode("fromScratch")}
                 className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50 transition-all"
@@ -1363,7 +1363,7 @@ export function CustomersPage() {
                     </Label>
                     <Input
                       dir="ltr"
-                      placeholder="Mobile Shop"
+                      placeholder="المتجر المحمول"
                       value={formData.shopName}
                       onChange={(e) =>
                         handleFormChange("shopName", e.target.value)
@@ -1692,7 +1692,7 @@ export function CustomersPage() {
                   </Label>
                   <Input
                     dir="ltr"
-                    placeholder="Mobile Shop"
+                    placeholder="المتجر المحمول"
                     value={formData.shopName}
                     onChange={(e) =>
                       handleFormChange("shopName", e.target.value)
@@ -2062,7 +2062,7 @@ export function CustomersPage() {
               disabled={updateMutation.isPending}
             >
               {updateMutation.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                <Loader2 className="h-4 w-4 animate-spin ms-2" />
               )}
               حفظ التعديلات
             </Button>

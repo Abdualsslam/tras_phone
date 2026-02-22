@@ -380,7 +380,7 @@ export function PriceLevelsPage() {
                 </Label>
                 <Input
                   dir="ltr"
-                  placeholder="Retail"
+                  placeholder="تجزئة"
                   value={formData.name}
                   onChange={(e) => handleFormChange('name', e.target.value)}
                 />
@@ -401,7 +401,7 @@ export function PriceLevelsPage() {
                 </Label>
                 <Input
                   dir="ltr"
-                  placeholder="retail"
+                  placeholder="tajzea"
                   value={formData.code}
                   onChange={(e) => handleFormChange('code', e.target.value)}
                 />

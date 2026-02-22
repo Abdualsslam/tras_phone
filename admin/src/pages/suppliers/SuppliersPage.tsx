@@ -336,7 +336,7 @@ export function SuppliersPage() {
           </p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 ml-2" />
+          <Plus className="h-4 w-4 ms-2" />
           إضافة مورد
         </Button>
       </div>
@@ -414,12 +414,12 @@ export function SuppliersPage() {
               قائمة الموردين
             </CardTitle>
             <div className="relative w-full sm:w-80">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="بحث عن مورد..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-10"
+                className="pe-10"
               />
             </div>
           </div>
@@ -517,20 +517,20 @@ export function SuppliersPage() {
                             <DropdownMenuItem
                               onClick={() => handleEdit(supplier)}
                             >
-                              <Pencil className="h-4 w-4 ml-2" />
+                              <Pencil className="h-4 w-4 ms-2" />
                               تعديل
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handlePayment(supplier)}
                             >
-                              <DollarSign className="h-4 w-4 ml-2" />
+                              <DollarSign className="h-4 w-4 ms-2" />
                               تسجيل دفعة
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDelete(supplier)}
                               className="text-red-600"
                             >
-                              <Trash2 className="h-4 w-4 ml-2" />
+                              <Trash2 className="h-4 w-4 ms-2" />
                               حذف
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -685,7 +685,7 @@ export function SuppliersPage() {
               </Button>
               <Button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 إضافة
               </Button>
@@ -823,7 +823,7 @@ export function SuppliersPage() {
               </Button>
               <Button type="submit" disabled={updateMutation.isPending}>
                 {updateMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 حفظ التغييرات
               </Button>
@@ -855,7 +855,7 @@ export function SuppliersPage() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending && (
-                <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                <Loader2 className="h-4 w-4 ms-2 animate-spin" />
               )}
               حذف
             </Button>
@@ -934,7 +934,7 @@ export function SuppliersPage() {
               </Button>
               <Button type="submit" disabled={paymentMutation.isPending}>
                 {paymentMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 تسجيل الدفعة
               </Button>

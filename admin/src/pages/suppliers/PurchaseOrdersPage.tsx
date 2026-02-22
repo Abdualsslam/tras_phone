@@ -338,7 +338,7 @@ export function PurchaseOrdersPage() {
           </p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 ml-2" />
+          <Plus className="h-4 w-4 ms-2" />
           أمر شراء جديد
         </Button>
       </div>
@@ -485,7 +485,7 @@ export function PurchaseOrdersPage() {
                               <DropdownMenuItem
                                 onClick={() => handleView(order)}
                               >
-                                <Eye className="h-4 w-4 ml-2" />
+                                <Eye className="h-4 w-4 ms-2" />
                                 عرض التفاصيل
                               </DropdownMenuItem>
                               {["draft", "pending"].includes(order.status) && (
@@ -494,7 +494,7 @@ export function PurchaseOrdersPage() {
                                     handleStatusChange(order._id, "approved")
                                   }
                                 >
-                                  <CheckCircle className="h-4 w-4 ml-2" />
+                                  <CheckCircle className="h-4 w-4 ms-2" />
                                   موافقة
                                 </DropdownMenuItem>
                               )}
@@ -504,7 +504,7 @@ export function PurchaseOrdersPage() {
                                     handleStatusChange(order._id, "ordered")
                                   }
                                 >
-                                  <Package className="h-4 w-4 ml-2" />
+                                  <Package className="h-4 w-4 ms-2" />
                                   تأكيد الطلب
                                 </DropdownMenuItem>
                               )}
@@ -514,7 +514,7 @@ export function PurchaseOrdersPage() {
                                 <DropdownMenuItem
                                   onClick={() => handleReceive(order)}
                                 >
-                                  <Truck className="h-4 w-4 ml-2" />
+                                  <Truck className="h-4 w-4 ms-2" />
                                   استلام البضاعة
                                 </DropdownMenuItem>
                               )}
@@ -528,7 +528,7 @@ export function PurchaseOrdersPage() {
                                   }
                                   className="text-red-600"
                                 >
-                                  <XCircle className="h-4 w-4 ml-2" />
+                                  <XCircle className="h-4 w-4 ms-2" />
                                   إلغاء
                                 </DropdownMenuItem>
                               )}
@@ -594,7 +594,7 @@ export function PurchaseOrdersPage() {
                     append({ productId: "", quantity: 1, unitPrice: 0 })
                   }
                 >
-                  <Plus className="h-4 w-4 ml-1" />
+                  <Plus className="h-4 w-4 ms-1" />
                   إضافة منتج
                 </Button>
               </div>
@@ -728,7 +728,7 @@ export function PurchaseOrdersPage() {
               </Button>
               <Button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 إنشاء أمر الشراء
               </Button>
@@ -750,7 +750,7 @@ export function PurchaseOrdersPage() {
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">المورد</p>
                   <p className="font-medium">{selectedOrder.supplier?.name}</p>
@@ -955,7 +955,7 @@ export function PurchaseOrdersPage() {
               disabled={receiveMutation.isPending}
             >
               {receiveMutation.isPending && (
-                <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                <Loader2 className="h-4 w-4 ms-2 animate-spin" />
               )}
               تأكيد الاستلام
             </Button>

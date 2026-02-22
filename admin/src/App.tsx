@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import {
   QueryClient,
   QueryClientProvider,
@@ -61,6 +62,8 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const { i18n } = useTranslation();
+
   const withAccess = (path: string, element: ReactElement) => {
     const requiredAccess = routeAccessConfig[path];
 
@@ -208,7 +211,7 @@ function App() {
             </AuthProvider>
             <Toaster
               position="top-center"
-              dir="rtl"
+              dir={i18n.dir() as "rtl" | "ltr"}
               richColors
               closeButton
               toastOptions={{ duration: 4000 }}

@@ -306,14 +306,14 @@ export function AuditLogsPage() {
                         <ShieldAlert className="h-4 w-4" />
                         حرج
                         {criticalLogs.length > 0 && (
-                            <Badge variant="danger" className="mr-1">{criticalLogs.length}</Badge>
+                            <Badge variant="danger" className="me-1">{criticalLogs.length}</Badge>
                         )}
                     </TabsTrigger>
                     <TabsTrigger value="suspicious" className="flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4" />
                         مشبوه
                         {suspiciousLogins.length > 0 && (
-                            <Badge variant="warning" className="mr-1">{suspiciousLogins.length}</Badge>
+                            <Badge variant="warning" className="me-1">{suspiciousLogins.length}</Badge>
                         )}
                     </TabsTrigger>
                 </TabsList>
@@ -329,12 +329,12 @@ export function AuditLogsPage() {
                                 </CardTitle>
                                 <div className="flex flex-wrap gap-2">
                                     <div className="relative w-60">
-                                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Search className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         <Input
                                             placeholder="بحث..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="pr-10"
+                                            className="pe-10"
                                         />
                                     </div>
                                     <Select value={actionFilter} onValueChange={setActionFilter}>

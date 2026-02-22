@@ -387,7 +387,7 @@ export function InventoryPage() {
             <AlertTriangle className="h-4 w-4" />
             التنبيهات
             {alerts.length > 0 && (
-              <Badge variant="danger" className="mr-1">
+              <Badge variant="danger" className="me-1">
                 {alerts.length}
               </Badge>
             )}
@@ -432,7 +432,7 @@ export function InventoryPage() {
                     </SelectContent>
                   </Select>
                   <Button onClick={() => setIsTransferDialogOpen(true)}>
-                    <ArrowLeftRight className="h-4 w-4 ml-2" />
+                    <ArrowLeftRight className="h-4 w-4 ms-2" />
                     نقل مخزون
                   </Button>
                 </div>
@@ -491,7 +491,7 @@ export function InventoryPage() {
                   المستودعات
                 </CardTitle>
                 <Button onClick={handleAddWarehouse}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة مستودع
                 </Button>
               </div>
@@ -613,7 +613,7 @@ export function InventoryPage() {
                                 : "secondary"
                             }
                           >
-                            <Clock className="h-3 w-3 ml-1" />
+                            <Clock className="h-3 w-3 ms-1" />
                             {alert.status === "pending" ? "معلق" : alert.status}
                           </Badge>
                         </TableCell>
@@ -1045,12 +1045,12 @@ export function InventoryPage() {
             onSubmit={warehouseForm.handleSubmit(onWarehouseSubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم (EN) *</Label>
                 <Input
                   {...warehouseForm.register("name")}
-                  placeholder="Main Warehouse"
+                  placeholder="المستودع الرئيسي"
                 />
               </div>
               <div className="space-y-2">
@@ -1069,7 +1069,7 @@ export function InventoryPage() {
                 className="font-mono"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>المدينة</Label>
                 <Input
@@ -1124,7 +1124,7 @@ export function InventoryPage() {
               >
                 {(createWarehouseMutation.isPending ||
                   updateWarehouseMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إضافة"}
               </Button>
@@ -1153,7 +1153,7 @@ export function InventoryPage() {
                 placeholder="معرف المنتج"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>من المستودع *</Label>
                 <Select
@@ -1220,7 +1220,7 @@ export function InventoryPage() {
               </Button>
               <Button type="submit" disabled={transferStockMutation.isPending}>
                 {transferStockMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 نقل
               </Button>

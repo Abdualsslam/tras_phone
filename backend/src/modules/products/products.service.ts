@@ -129,8 +129,14 @@ export class ProductsService {
     if (categoryId) query.categoryId = new Types.ObjectId(categoryId);
     if (brandId) query.brandId = new Types.ObjectId(brandId);
     if (qualityTypeId) query.qualityTypeId = new Types.ObjectId(qualityTypeId);
-    if (deviceId)
-      query.compatibleDevices = { $in: [new Types.ObjectId(deviceId)] };
+    if (deviceId) {
+      query.compatibleDevices = {
+        $in: [
+          new Types.ObjectId(deviceId),
+          deviceId as any,
+        ],
+      };
+    }
     if (status) query.status = status;
     if (isFeatured) query.isFeatured = true;
     if (isNewArrival) query.isNewArrival = true;

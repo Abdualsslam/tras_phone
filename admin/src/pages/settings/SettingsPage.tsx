@@ -994,9 +994,9 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                 </div>
                 <Button type="submit" disabled={updateStoreMutation.isPending}>
                   {updateStoreMutation.isPending && (
-                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                   )}
-                  <Save className="h-4 w-4 ml-2" />
+                  <Save className="h-4 w-4 ms-2" />
                   حفظ
                 </Button>
               </form>
@@ -1055,7 +1055,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   الدول
                 </CardTitle>
                 <Button onClick={handleAddCountry}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة دولة
                 </Button>
               </div>
@@ -1126,7 +1126,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   المدن
                 </CardTitle>
                 <Button onClick={handleAddCity}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة مدينة
                 </Button>
               </div>
@@ -1199,7 +1199,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   العملات
                 </CardTitle>
                 <Button onClick={handleAddCurrency}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة عملة
                 </Button>
               </div>
@@ -1272,7 +1272,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   معدلات الضرائب
                 </CardTitle>
                 <Button onClick={handleAddTaxRate}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة معدل
                 </Button>
               </div>
@@ -1344,7 +1344,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   مناطق الشحن
                 </CardTitle>
                 <Button onClick={handleAddShippingZone}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة منطقة
                 </Button>
               </div>
@@ -1426,7 +1426,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   طرق الدفع
                 </CardTitle>
                 <Button onClick={handleAddPaymentMethod}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة طريقة
                 </Button>
               </div>
@@ -1556,7 +1556,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   إصدارات التطبيق
                 </CardTitle>
                 <Button onClick={handleAddAppVersion}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة إصدار
                 </Button>
               </div>
@@ -1635,7 +1635,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                               <DropdownMenuItem
                                 onClick={() => handleEditAppVersion(version)}
                               >
-                                <Pencil className="h-4 w-4 ml-2" />
+                                <Pencil className="h-4 w-4 ms-2" />
                                 تعديل
                               </DropdownMenuItem>
                               {!version.isCurrent && (
@@ -1646,7 +1646,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                                     )
                                   }
                                 >
-                                  <Check className="h-4 w-4 ml-2" />
+                                  <Check className="h-4 w-4 ms-2" />
                                   تعيين كحالي
                                 </DropdownMenuItem>
                               )}
@@ -1656,7 +1656,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                                 }
                                 className="text-red-600"
                               >
-                                <Trash2 className="h-4 w-4 ml-2" />
+                                <Trash2 className="h-4 w-4 ms-2" />
                                 حذف
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -1687,12 +1687,12 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
             onSubmit={countryForm.handleSubmit(onCountrySubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم (EN) *</Label>
                 <Input
                   {...countryForm.register("name")}
-                  placeholder="Country Name"
+                  placeholder="اسم الدولة"
                 />
               </div>
               <div className="space-y-2">
@@ -1703,7 +1703,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الكود *</Label>
                 <Input
@@ -1751,7 +1751,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
               >
                 {(createCountryMutation.isPending ||
                   updateCountryMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إضافة"}
               </Button>
@@ -1775,10 +1775,10 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
             onSubmit={cityForm.handleSubmit(onCitySubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم (EN) *</Label>
-                <Input {...cityForm.register("name")} placeholder="City Name" />
+                <Input {...cityForm.register("name")} placeholder="اسم المدينة" />
               </div>
               <div className="space-y-2">
                 <Label>الاسم (AR)</Label>
@@ -1844,7 +1844,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
               >
                 {(createCityMutation.isPending ||
                   updateCityMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إضافة"}
               </Button>
@@ -1871,12 +1871,12 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
             onSubmit={currencyForm.handleSubmit(onCurrencySubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم (EN) *</Label>
                 <Input
                   {...currencyForm.register("name")}
-                  placeholder="Saudi Riyal"
+                  placeholder="ريال سعودي"
                 />
               </div>
               <div className="space-y-2">
@@ -1887,7 +1887,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>الكود *</Label>
                 <Input
@@ -1958,7 +1958,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
               >
                 {(createCurrencyMutation.isPending ||
                   updateCurrencyMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إضافة"}
               </Button>
@@ -1984,10 +1984,10 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
             onSubmit={taxForm.handleSubmit(onTaxSubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم (EN) *</Label>
-                <Input {...taxForm.register("name")} placeholder="VAT" />
+                <Input {...taxForm.register("name")} placeholder="ضريبة القيمة المضافة" />
               </div>
               <div className="space-y-2">
                 <Label>الاسم (AR)</Label>
@@ -1997,7 +1997,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>المعدل (%) *</Label>
                 <Input
@@ -2082,7 +2082,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
               >
                 {(createTaxRateMutation.isPending ||
                   updateTaxRateMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إضافة"}
               </Button>
@@ -2111,12 +2111,12 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
             onSubmit={shippingZoneForm.handleSubmit(onShippingZoneSubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم (EN) *</Label>
                 <Input
                   {...shippingZoneForm.register("name")}
-                  placeholder="Zone Name"
+                  placeholder="اسم المنطقة"
                 />
               </div>
               <div className="space-y-2">
@@ -2158,7 +2158,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
               >
                 {(createShippingZoneMutation.isPending ||
                   updateShippingZoneMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إضافة"}
               </Button>
@@ -2189,12 +2189,12 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
           >
             <div className="space-y-4">
               <h4 className="font-medium text-sm text-muted-foreground">المعلومات الأساسية</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>الاسم (EN) *</Label>
                   <Input
                     {...paymentMethodForm.register("name")}
-                    placeholder="Credit Card"
+                    placeholder="بطاقة ائتمان"
                   />
                 </div>
                 <div className="space-y-2">
@@ -2205,7 +2205,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>النوع *</Label>
                   <Controller
@@ -2223,8 +2223,8 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                           <SelectItem value="cash_on_delivery">الدفع عند الاستلام</SelectItem>
                           <SelectItem value="credit_card">بطاقة ائتمان</SelectItem>
                           <SelectItem value="mada">مدى</SelectItem>
-                          <SelectItem value="apple_pay">Apple Pay</SelectItem>
-                          <SelectItem value="stc_pay">STC Pay</SelectItem>
+                          <SelectItem value="apple_pay">آبل باي</SelectItem>
+                          <SelectItem value="stc_pay">إس تي سي باي</SelectItem>
                           <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
                           <SelectItem value="wallet">محفظة</SelectItem>
                           <SelectItem value="credit">آجل (حد ائتمان)</SelectItem>
@@ -2263,7 +2263,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
 
             <div className="space-y-4">
               <h4 className="font-medium text-sm text-muted-foreground">الصور والأيقونات</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>رابط الشعار (Logo)</Label>
                   <Input
@@ -2290,7 +2290,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
 
             <div className="space-y-4">
               <h4 className="font-medium text-sm text-muted-foreground">الرسوم والحدود</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>الرسوم الثابتة (ر.س)</Label>
                   <Input
@@ -2310,7 +2310,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>الحد الأدنى للمبلغ</Label>
                   <Input
@@ -2334,7 +2334,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
 
             <div className="space-y-4">
               <h4 className="font-medium text-sm text-muted-foreground">تفاصيل البنك (للتحويل البنكي)</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>اسم البنك (عربي)</Label>
                   <Input
@@ -2350,7 +2350,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>اسم صاحب الحساب</Label>
                   <Input
@@ -2366,7 +2366,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>رقم الآيبان (IBAN)</Label>
                   <Input
@@ -2386,7 +2386,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
 
             <div className="space-y-4">
               <h4 className="font-medium text-sm text-muted-foreground">التعليمات والوصف</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>الوصف (عربي)</Label>
                   <Textarea
@@ -2399,12 +2399,12 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   <Label>الوصف (إنجليزي)</Label>
                   <Textarea
                     {...paymentMethodForm.register("descriptionEn")}
-                    placeholder="Payment method description"
+                    placeholder="وصف طريقة الدفع"
                     rows={2}
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>تعليمات الدفع (عربي)</Label>
                   <Textarea
@@ -2417,7 +2417,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                   <Label>تعليمات الدفع (إنجليزي)</Label>
                   <Textarea
                     {...paymentMethodForm.register("instructionsEn")}
-                    placeholder="Instructions for customer"
+                    placeholder="تعليمات للعميل"
                     rows={3}
                   />
                 </div>
@@ -2426,7 +2426,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
 
             <div className="space-y-4">
               <h4 className="font-medium text-sm text-muted-foreground">إعدادات إضافية</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>ترتيب الظهور</Label>
                   <Input
@@ -2506,7 +2506,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
               >
                 {(createPaymentMethodMutation.isPending ||
                   updatePaymentMethodMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إضافة"}
               </Button>
@@ -2535,7 +2535,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
             onSubmit={appVersionForm.handleSubmit(onAppVersionSubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>المنصة *</Label>
                 <Controller
@@ -2566,7 +2566,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>رقم البناء *</Label>
                 <Input
@@ -2592,13 +2592,13 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                 placeholder="https://..."
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>ملاحظات الإصدار (EN)</Label>
                 <Textarea
                   {...appVersionForm.register("releaseNotes")}
                   rows={3}
-                  placeholder="Release notes..."
+                  placeholder="ملاحظات الإصدار..."
                 />
               </div>
               <div className="space-y-2">
@@ -2657,7 +2657,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
               >
                 {(createAppVersionMutation.isPending ||
                   updateAppVersionMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {isEditing ? "حفظ" : "إضافة"}
               </Button>

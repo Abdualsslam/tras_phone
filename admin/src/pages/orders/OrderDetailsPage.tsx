@@ -1004,7 +1004,7 @@ export function OrderDetailsPage() {
               <Label>رقم التتبع</Label>
               <Input
                 dir="ltr"
-                placeholder="Tracking Number"
+                placeholder="رقم التتبع"
                 value={shipmentData.trackingNumber}
                 onChange={(e) =>
                   setShipmentData({
@@ -1073,8 +1073,8 @@ export function OrderDetailsPage() {
                 <option value="cash_on_delivery">الدفع عند الاستلام</option>
                 <option value="credit_card">بطاقة ائتمان</option>
                 <option value="mada">مدى</option>
-                <option value="apple_pay">Apple Pay</option>
-                <option value="stc_pay">STC Pay</option>
+                <option value="apple_pay">آبل باي</option>
+                <option value="stc_pay">إس تي سي باي</option>
                 <option value="wallet">محفظة</option>
                 <option value="credit">آجل</option>
               </select>
@@ -1083,7 +1083,7 @@ export function OrderDetailsPage() {
               <Label>المرجع / رقم الحوالة</Label>
               <Input
                 dir="ltr"
-                placeholder="Reference Number"
+                placeholder="رقم المرجع"
                 value={paymentData.reference}
                 onChange={(e) =>
                   setPaymentData({ ...paymentData, reference: e.target.value })
@@ -1207,7 +1207,7 @@ export function OrderDetailsPage() {
                   }}
                   className="border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/20"
                 >
-                  <Upload className="h-4 w-4 mr-1" />
+                  <Upload className="h-4 w-4 me-1" />
                   تم الشحن
                 </Button>
               </div>
@@ -1263,7 +1263,7 @@ export function OrderDetailsPage() {
                     <span className="truncate">{shippingLabelFile.name}</span>
                     <button
                       onClick={() => setShippingLabelFile(null)}
-                      className="mr-auto text-red-500 hover:text-red-700"
+                      className="me-auto text-red-500 hover:text-red-700"
                     >
                       <XCircle className="h-4 w-4" />
                     </button>
@@ -1332,7 +1332,7 @@ export function OrderDetailsPage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400">الإجمالي الحالي</p>
                   <p className="font-bold text-lg">{formatCurrency(order.total, "SAR", locale)}</p>
                 </div>
-                <div className="text-left">
+                <div className="text-start">
                   <p className="text-sm text-gray-500 dark:text-gray-400">الإجمالي الجديد</p>
                   <p className={`font-bold text-lg ${calculateNewTotal() < order.total ? "text-green-600" : calculateNewTotal() > order.total ? "text-red-600" : ""}`}>
                     {formatCurrency(calculateNewTotal(), "SAR", locale)}
@@ -1441,7 +1441,7 @@ export function OrderDetailsPage() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        <div className="w-24 text-left">
+                        <div className="w-24 text-start">
                           <p className="font-medium">
                             {formatCurrency((item.unitPrice || 0) * item.quantity, "SAR", locale)}
                           </p>

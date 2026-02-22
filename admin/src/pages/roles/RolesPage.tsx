@@ -321,7 +321,7 @@ export function RolesPage() {
           </p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 ml-2" />
+          <Plus className="h-4 w-4 ms-2" />
           إضافة دور جديد
         </Button>
       </div>
@@ -449,7 +449,7 @@ export function RolesPage() {
                             <DropdownMenuItem
                               onClick={() => handlePermissions(role)}
                             >
-                              <Key className="h-4 w-4 ml-2" />
+                              <Key className="h-4 w-4 ms-2" />
                               إدارة الصلاحيات
                             </DropdownMenuItem>
                             {!role.isSystem && (
@@ -457,14 +457,14 @@ export function RolesPage() {
                                 <DropdownMenuItem
                                   onClick={() => handleEdit(role)}
                                 >
-                                  <Pencil className="h-4 w-4 ml-2" />
+                                  <Pencil className="h-4 w-4 ms-2" />
                                   تعديل
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleDelete(role)}
                                   className="text-red-600"
                                 >
-                                  <Trash2 className="h-4 w-4 ml-2" />
+                                  <Trash2 className="h-4 w-4 ms-2" />
                                   حذف
                                 </DropdownMenuItem>
                               </>
@@ -538,7 +538,7 @@ export function RolesPage() {
               </Button>
               <Button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 إنشاء
               </Button>
@@ -596,7 +596,7 @@ export function RolesPage() {
               </Button>
               <Button type="submit" disabled={updateMutation.isPending}>
                 {updateMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 حفظ التغييرات
               </Button>
@@ -628,7 +628,7 @@ export function RolesPage() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending && (
-                <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                <Loader2 className="h-4 w-4 ms-2 animate-spin" />
               )}
               حذف
             </Button>
@@ -726,7 +726,7 @@ export function RolesPage() {
               disabled={setPermissionsMutation.isPending}
             >
               {setPermissionsMutation.isPending && (
-                <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                <Loader2 className="h-4 w-4 ms-2 animate-spin" />
               )}
               حفظ الصلاحيات
             </Button>

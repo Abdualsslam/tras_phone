@@ -809,7 +809,7 @@ export function OrdersPage() {
               <Label>رقم التتبع</Label>
               <Input
                 dir="ltr"
-                placeholder="Tracking Number"
+                placeholder="رقم التتبع"
                 value={shipmentData.trackingNumber}
                 onChange={(e) =>
                   setShipmentData({
@@ -878,8 +878,8 @@ export function OrdersPage() {
                 <option value="cash_on_delivery">الدفع عند الاستلام</option>
                 <option value="credit_card">بطاقة ائتمان</option>
                 <option value="mada">مدى</option>
-                <option value="apple_pay">Apple Pay</option>
-                <option value="stc_pay">STC Pay</option>
+                <option value="apple_pay">آبل باي</option>
+                <option value="stc_pay">إس تي سي باي</option>
                 <option value="wallet">محفظة</option>
                 <option value="credit">آجل</option>
               </select>
@@ -888,7 +888,7 @@ export function OrdersPage() {
               <Label>المرجع / رقم الحوالة</Label>
               <Input
                 dir="ltr"
-                placeholder="Reference Number"
+                placeholder="رقم المرجع"
                 value={paymentData.reference}
                 onChange={(e) =>
                   setPaymentData({ ...paymentData, reference: e.target.value })

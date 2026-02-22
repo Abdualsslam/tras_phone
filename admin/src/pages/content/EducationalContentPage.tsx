@@ -685,7 +685,7 @@ export function EducationalContentPage() {
               <div className="flex items-center justify-between">
                 <CardTitle>الفئات التعليمية</CardTitle>
                 <Button onClick={handleCreateCategory}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة فئة
                 </Button>
               </div>
@@ -700,7 +700,7 @@ export function EducationalContentPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>الاسم</TableHead>
-                      <TableHead>Slug</TableHead>
+                      <TableHead>المعرّف (Slug)</TableHead>
                       <TableHead>عدد المحتوى</TableHead>
                       <TableHead>الترتيب</TableHead>
                       <TableHead>الحالة</TableHead>
@@ -743,7 +743,7 @@ export function EducationalContentPage() {
                               <DropdownMenuItem
                                 onClick={() => handleEditCategory(category)}
                               >
-                                <Pencil className="h-4 w-4 ml-2" />
+                                <Pencil className="h-4 w-4 ms-2" />
                                 تعديل
                               </DropdownMenuItem>
                               <DropdownMenuItem
@@ -752,7 +752,7 @@ export function EducationalContentPage() {
                                 }
                                 className="text-red-600"
                               >
-                                <Trash2 className="h-4 w-4 ml-2" />
+                                <Trash2 className="h-4 w-4 ms-2" />
                                 حذف
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -774,7 +774,7 @@ export function EducationalContentPage() {
               <div className="flex items-center justify-between">
                 <CardTitle>المحتوى التعليمي</CardTitle>
                 <Button onClick={handleCreateContent}>
-                  <Plus className="h-4 w-4 ml-2" />
+                  <Plus className="h-4 w-4 ms-2" />
                   إضافة محتوى
                 </Button>
               </div>
@@ -1018,7 +1018,7 @@ export function EducationalContentPage() {
                                   <DropdownMenuItem
                                     onClick={() => handleEditContent(item)}
                                   >
-                                    <Pencil className="h-4 w-4 ml-2" />
+                                    <Pencil className="h-4 w-4 ms-2" />
                                     تعديل
                                   </DropdownMenuItem>
                                   {item.status !== "published" && (
@@ -1027,7 +1027,7 @@ export function EducationalContentPage() {
                                         handlePublishContent(item._id)
                                       }
                                     >
-                                      <CheckCircle className="h-4 w-4 ml-2" />
+                                      <CheckCircle className="h-4 w-4 ms-2" />
                                       نشر
                                     </DropdownMenuItem>
                                   )}
@@ -1037,7 +1037,7 @@ export function EducationalContentPage() {
                                     }
                                     className="text-red-600"
                                   >
-                                    <Trash2 className="h-4 w-4 ml-2" />
+                                    <Trash2 className="h-4 w-4 ms-2" />
                                     حذف
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -1106,7 +1106,7 @@ export function EducationalContentPage() {
           </DialogHeader>
           <form onSubmit={categoryForm.handleSubmit(handleCategorySubmit)}>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">الاسم (EN)</Label>
                   <Input
@@ -1121,14 +1121,14 @@ export function EducationalContentPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="slug">Slug</Label>
+                <Label htmlFor="slug">المعرّف (Slug)</Label>
                 <Input
                   id="slug"
                   {...categoryForm.register("slug", { required: true })}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="description">الوصف (EN)</Label>
                   <Textarea
@@ -1145,7 +1145,7 @@ export function EducationalContentPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="icon">الأيقونة</Label>
                   <Input id="icon" {...categoryForm.register("icon")} />
@@ -1156,7 +1156,7 @@ export function EducationalContentPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="sortOrder">الترتيب</Label>
                   <Input
@@ -1213,7 +1213,7 @@ export function EducationalContentPage() {
               {/* Basic Info */}
               <div className="space-y-4">
                 <h3 className="font-semibold">معلومات أساسية</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="title">العنوان (EN)</Label>
                     <Input
@@ -1227,9 +1227,9 @@ export function EducationalContentPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="slug">Slug</Label>
+                    <Label htmlFor="slug">المعرّف (Slug)</Label>
                     <Input
                       id="slug"
                       {...contentForm.register("slug", { required: true })}
@@ -1290,7 +1290,7 @@ export function EducationalContentPage() {
               {/* Content */}
               <div className="space-y-4">
                 <h3 className="font-semibold">المحتوى</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="excerpt">الملخص (EN)</Label>
                     <Textarea
@@ -1307,7 +1307,7 @@ export function EducationalContentPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="content">المحتوى (EN)</Label>
                     <Textarea
@@ -1330,7 +1330,7 @@ export function EducationalContentPage() {
               {/* Media */}
               <div className="space-y-4">
                 <h3 className="font-semibold">الوسائط</h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="featuredImage">الصورة المميزة (URL)</Label>
                     <Input
@@ -1536,7 +1536,7 @@ export function EducationalContentPage() {
                     </Label>
                     <Input
                       id="targetingBrands"
-                      placeholder="IDs مفصولة بفواصل"
+                      placeholder="معرّفات مفصولة بفواصل"
                       {...contentForm.register("targetingBrands")}
                     />
                   </div>
@@ -1544,7 +1544,7 @@ export function EducationalContentPage() {
                     <Label htmlFor="targetingDevices">استهداف أجهزة</Label>
                     <Input
                       id="targetingDevices"
-                      placeholder="IDs مفصولة بفواصل"
+                      placeholder="معرّفات مفصولة بفواصل"
                       {...contentForm.register("targetingDevices")}
                     />
                   </div>
@@ -1555,7 +1555,7 @@ export function EducationalContentPage() {
                   </Label>
                   <Input
                     id="targetingIntentTags"
-                    placeholder="battery, overheating, screen"
+                    placeholder="بطارية, ارتفاع_الحرارة, شاشة"
                     {...contentForm.register("targetingIntentTags")}
                   />
                 </div>
@@ -1568,11 +1568,11 @@ export function EducationalContentPage() {
                   <Label htmlFor="tags">الوسوم (مفصولة بفواصل)</Label>
                   <Input
                     id="tags"
-                    placeholder="tag1, tag2, tag3"
+                    placeholder="وسم1, وسم2, وسم3"
                     {...contentForm.register("tags")}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="metaTitle">عنوان SEO</Label>
                     <Input
@@ -1593,7 +1593,7 @@ export function EducationalContentPage() {
               {/* Settings */}
               <div className="space-y-4">
                 <h3 className="font-semibold">الإعدادات</h3>
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="status">الحالة</Label>
                     <Controller

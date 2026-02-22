@@ -126,7 +126,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             className={cn(
                 'fixed top-0 h-screen bg-white dark:bg-slate-900 border-e border-gray-200 dark:border-slate-700 transition-all duration-300 z-40 flex flex-col',
                 collapsed ? 'w-[72px]' : 'w-64',
-                isRTL ? 'right-0' : 'left-0',
+                isRTL ? 'end-0' : 'start-0',
             )}
         >
             <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-slate-700 px-4">

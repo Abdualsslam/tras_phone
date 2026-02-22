@@ -500,7 +500,7 @@ export function ReturnsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => handleView(ret)}>
-                                <Eye className="h-4 w-4 ml-2" />
+                                <Eye className="h-4 w-4 ms-2" />
                                 عرض التفاصيل
                               </DropdownMenuItem>
                               {ret.status === "pending" && (
@@ -510,7 +510,7 @@ export function ReturnsPage() {
                                       handleStatusChange(ret._id, "approved")
                                     }
                                   >
-                                    <CheckCircle className="h-4 w-4 ml-2" />
+                                    <CheckCircle className="h-4 w-4 ms-2" />
                                     موافقة
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
@@ -519,7 +519,7 @@ export function ReturnsPage() {
                                     }
                                     className="text-red-600"
                                   >
-                                    <XCircle className="h-4 w-4 ml-2" />
+                                    <XCircle className="h-4 w-4 ms-2" />
                                     رفض
                                   </DropdownMenuItem>
                                 </>
@@ -530,7 +530,7 @@ export function ReturnsPage() {
                                     handleStatusChange(ret._id, "processing")
                                   }
                                 >
-                                  <Package className="h-4 w-4 ml-2" />
+                                  <Package className="h-4 w-4 ms-2" />
                                   بدء المعالجة
                                 </DropdownMenuItem>
                               )}
@@ -538,7 +538,7 @@ export function ReturnsPage() {
                                 <DropdownMenuItem
                                   onClick={() => handleRefund(ret)}
                                 >
-                                  <DollarSign className="h-4 w-4 ml-2" />
+                                  <DollarSign className="h-4 w-4 ms-2" />
                                   معالجة الاسترداد
                                 </DropdownMenuItem>
                               )}
@@ -775,7 +775,7 @@ export function ReturnsPage() {
                 variant={inspectForm.watch("approved") ? "default" : "outline"}
                 onClick={() => inspectForm.setValue("approved", true)}
               >
-                <CheckCircle className="h-4 w-4 ml-2" />
+                <CheckCircle className="h-4 w-4 ms-2" />
                 قبول
               </Button>
               <Button
@@ -785,7 +785,7 @@ export function ReturnsPage() {
                 }
                 onClick={() => inspectForm.setValue("approved", false)}
               >
-                <XCircle className="h-4 w-4 ml-2" />
+                <XCircle className="h-4 w-4 ms-2" />
                 رفض
               </Button>
             </div>
@@ -800,7 +800,7 @@ export function ReturnsPage() {
               </Button>
               <Button type="submit" disabled={inspectMutation.isPending}>
                 {inspectMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 حفظ
               </Button>
@@ -864,7 +864,7 @@ export function ReturnsPage() {
               </Button>
               <Button type="submit" disabled={refundMutation.isPending}>
                 {refundMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 تأكيد الاسترداد
               </Button>
