@@ -48,6 +48,10 @@ class CustomerEntity extends Equatable {
   final String? instagramHandle;
   final String? twitterHandle;
 
+  // Payment & Refund Permissions
+  final bool canCashRefund;
+  final bool canCashOnDelivery;
+
   final DateTime? approvedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -80,6 +84,8 @@ class CustomerEntity extends Equatable {
     this.preferredContactMethod = ContactMethod.whatsapp,
     this.instagramHandle,
     this.twitterHandle,
+    this.canCashRefund = false,
+    this.canCashOnDelivery = true,
     this.approvedAt,
     required this.createdAt,
     required this.updatedAt,

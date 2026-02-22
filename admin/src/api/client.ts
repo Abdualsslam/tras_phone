@@ -24,6 +24,11 @@ export function getErrorMessage(
   error: unknown,
   fallback = "حدث خطأ غير متوقع"
 ): string {
+  const normalizedMessage = (error as { userMessage?: string } | null)?.userMessage;
+  if (typeof normalizedMessage === "string" && normalizedMessage.trim()) {
+    return normalizedMessage;
+  }
+
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as ApiResponse<unknown> | undefined;
 
@@ -36,6 +41,17 @@ export function getErrorMessage(
     if (error.code === "ERR_NETWORK")
       return "لا يمكن الاتصال بالخادم. تحقق من اتصال الإنترنت";
     if (error.code === "ECONNABORTED") return "انتهت مهلة الطلب. حاول مرة أخرى";
+
+    // HTTP status fallback messages
+    const status = error.response?.status;
+    if (status === 400) return "الطلب غير صالح";
+    if (status === 401) return "انتهت الجلسة أو غير مصرح لك";
+    if (status === 403) return "ليس لديك صلاحية لهذا الإجراء";
+    if (status === 404) return "المورد المطلوب غير موجود";
+    if (status === 409) return "يوجد تعارض في البيانات";
+    if (status === 422) return "البيانات المدخلة غير صحيحة";
+    if (status === 429) return "طلبات كثيرة، حاول مرة أخرى لاحقاً";
+    if (status && status >= 500) return "حدث خطأ في الخادم، حاول لاحقاً";
   }
 
   if (error instanceof Error) return error.message;
@@ -92,7 +108,9 @@ const processQueue = (error: unknown, token: string | null = null) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError<ApiResponse<unknown>>) => {
+  async (
+    error: AxiosError<ApiResponse<unknown>> & { userMessage?: string }
+  ) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
@@ -138,6 +156,12 @@ apiClient.interceptors.response.use(
         isRefreshing = false;
       }
     }
+
+    const errorMessage =
+      error.response?.data?.messageAr ||
+      error.response?.data?.message ||
+      getErrorMessage(error, "حدث خطأ غير متوقع");
+    error.userMessage = errorMessage;
 
     return Promise.reject(error);
   }

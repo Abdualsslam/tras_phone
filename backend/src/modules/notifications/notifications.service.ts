@@ -373,6 +373,28 @@ export class NotificationsService {
                 pushBodyAr: 'تم استلام مبلغ {{amount}} ريال',
                 variables: ['amount'],
             },
+            {
+                code: 'order_modified',
+                name: 'Order Modified',
+                nameAr: 'تعديل الطلب',
+                category: 'order',
+                pushTitle: 'Order Modified 📝',
+                pushTitleAr: 'تم تعديل طلبك 📝',
+                pushBody: 'Your order #{{orderNumber}} has been modified. {{changes}}',
+                pushBodyAr: 'تم تعديل طلبك رقم #{{orderNumber}}. {{changes}}',
+                variables: ['orderNumber', 'changes', 'refundAmount'],
+            },
+            {
+                code: 'order_refund',
+                name: 'Order Refund',
+                nameAr: 'استرداد مبلغ',
+                category: 'payment',
+                pushTitle: 'Refund Processed 💵',
+                pushTitleAr: 'تم استرداد المبلغ 💵',
+                pushBody: 'A refund of {{amount}} SAR has been processed to your wallet for order #{{orderNumber}}',
+                pushBodyAr: 'تم استرداد مبلغ {{amount}} ر.س إلى محفظتك للطلب رقم #{{orderNumber}}',
+                variables: ['orderNumber', 'amount'],
+            },
         ];
 
         await this.templateModel.insertMany(templates);

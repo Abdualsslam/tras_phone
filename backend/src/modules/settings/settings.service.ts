@@ -998,6 +998,11 @@ export class SettingsService {
     };
   }
 
+  async deletePaymentMethod(id: string): Promise<void> {
+    const method = await this.paymentMethodModel.findByIdAndDelete(id);
+    if (!method) throw new NotFoundException('Payment method not found');
+  }
+
   // ==================== Seeding ====================
 
   async seedDefaultSettings(): Promise<void> {

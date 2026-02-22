@@ -41,6 +41,7 @@ import { UploadReceiptDto } from './dto/upload-receipt.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { RateOrderDto } from './dto/rate-order.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
+import { UpdateOrderItemsDto } from './dto/update-order-items.dto';
 import {
   CheckoutSessionQueryDto,
   CheckoutSessionResponseDto,
@@ -315,6 +316,7 @@ export class CheckoutController {
     let creditInfo:
       | { creditLimit: number; creditUsed: number; availableCredit: number }
       | undefined;
+    let canCashOnDelivery: boolean = true; // Default to true
 
     try {
       const customerDoc = await this.customersService.findByUserId(user.id);
@@ -329,6 +331,9 @@ export class CheckoutController {
           priceLevelId: customerDoc.priceLevelId?.toString(),
           walletBalance: customerDoc.walletBalance ?? 0,
         };
+
+        // Get cash on delivery permission
+        canCashOnDelivery = customerDoc.canCashOnDelivery ?? true;
 
         // Calculate credit info for credit payment method
         const creditLimit = customerDoc.creditLimit ?? 0;
@@ -381,11 +386,16 @@ export class CheckoutController {
 
     // 6. Add credit info to payment methods if customer has credit limit
     // Filter out credit payment method if customer has no available credit
+    // Filter out COD if customer is not allowed
     const filteredPaymentMethods = paymentMethods
       .filter((method: any) => {
         if (method.type === 'credit') {
           // Only show credit payment method if customer has available credit
           return creditInfo && creditInfo.availableCredit > 0;
+        }
+        if (method.type === 'cash_on_delivery') {
+          // Only show COD if customer is allowed
+          return canCashOnDelivery;
         }
         return true;
       })
@@ -776,6 +786,7 @@ export class OrdersController {
       updateOrderStatusDto.status,
       user._id,
       updateOrderStatusDto.notes,
+      updateOrderStatusDto.shippingLabelUrl,
     );
     return ResponseBuilder.success(order, 'Status updated', 'تم تحديث الحالة');
   }
@@ -1203,6 +1214,48 @@ export class AdminOrdersController {
       result,
       'Payment verification updated',
       'تم تحديث التحقق من الدفع',
+    );
+  }
+
+  @Put(':id/items')
+  @ApiOperation({
+    summary: 'Update order items',
+    description:
+      'Add, modify, or remove products from an order. Handles refund if total decreases. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Order ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Order items updated successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async updateOrderItems(
+    @Param('id') id: string,
+    @Body() updateOrderItemsDto: UpdateOrderItemsDto,
+    @CurrentUser() user: any,
+  ) {
+    const result = await this.ordersService.updateOrderItems(
+      id,
+      {
+        items: updateOrderItemsDto.items.map((item) => ({
+          orderItemId: item.orderItemId,
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        reason: updateOrderItemsDto.reason,
+      },
+      user.id,
+    );
+    return ResponseBuilder.success(
+      result,
+      'Order items updated',
+      'تم تحديث منتجات الطلب',
     );
   }
 }

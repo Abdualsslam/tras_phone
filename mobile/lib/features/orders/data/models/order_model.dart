@@ -183,6 +183,9 @@ class OrderModel {
   final DateTime? cancelledAt;
   final String? cancellationReason;
 
+  // Shipping Label
+  final String? shippingLabelUrl;
+
   // Rating
   final int? customerRating; // 1-5
   final String? customerRatingComment;
@@ -235,6 +238,7 @@ class OrderModel {
     this.completedAt,
     this.cancelledAt,
     this.cancellationReason,
+    this.shippingLabelUrl,
     this.customerRating,
     this.customerRatingComment,
     this.ratedAt,
@@ -345,6 +349,7 @@ class OrderModel {
       completedAt: completedAt,
       cancelledAt: cancelledAt,
       cancellationReason: cancellationReason,
+      shippingLabelUrl: shippingLabelUrl,
       customerRating: customerRating,
       customerRatingComment: customerRatingComment,
       ratedAt: ratedAt,

@@ -46,6 +46,10 @@ export interface UpdateCustomerDto extends Partial<CreateCustomerDto> {
     riskScore?: number;
     isFlagged?: boolean;
     flagReason?: string;
+    
+    // Payment & Refund Permissions
+    canCashRefund?: boolean;
+    canCashOnDelivery?: boolean;
 }
 
 export interface CustomersQueryParams {
@@ -115,6 +119,8 @@ const transformCustomer = (customer: any): Customer => {
         nationalId: customer.nationalId,
         approvedAt: customer.approvedAt,
         internalNotes: customer.internalNotes,
+        canCashRefund: customer.canCashRefund ?? false,
+        canCashOnDelivery: customer.canCashOnDelivery ?? true,
         createdAt: customer.createdAt,
         updatedAt: customer.updatedAt,
     };

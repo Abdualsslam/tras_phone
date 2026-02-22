@@ -63,6 +63,14 @@ export class WarehousesService {
         return this.stockLocationModel.find({ warehouseId, isActive: true }).sort({ name: 1 });
     }
 
+    async getAllLocations(warehouseId?: string): Promise<StockLocationDocument[]> {
+        const query: any = { isActive: true };
+        if (warehouseId) {
+            query.warehouseId = warehouseId;
+        }
+        return this.stockLocationModel.find(query).sort({ name: 1 });
+    }
+
     async updateLocation(id: string, data: any): Promise<StockLocationDocument> {
         const location = await this.stockLocationModel.findByIdAndUpdate(id, { $set: data }, { new: true });
         if (!location) throw new NotFoundException('Location not found');

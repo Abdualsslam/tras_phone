@@ -149,6 +149,9 @@ class OrderEntity extends Equatable {
   final DateTime? cancelledAt;
   final String? cancellationReason;
 
+  // Shipping Label
+  final String? shippingLabelUrl;
+
   // Rating
   final int? customerRating; // 1-5
   final String? customerRatingComment;
@@ -199,6 +202,7 @@ class OrderEntity extends Equatable {
     this.completedAt,
     this.cancelledAt,
     this.cancellationReason,
+    this.shippingLabelUrl,
     this.customerRating,
     this.customerRatingComment,
     this.ratedAt,

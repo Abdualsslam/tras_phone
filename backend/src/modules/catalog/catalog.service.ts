@@ -92,12 +92,55 @@ export class CatalogService {
             .find({ isActive: true })
             .populate('brandId', 'name nameAr slug logo')
             .sort({ displayOrder: 1, releaseYear: -1 });
-        
+
         if (limit) {
             query.limit(limit);
         }
-        
+
         return query.exec();
+    }
+
+    async findAllDevicesPaginated(params: {
+        page?: number;
+        limit?: number;
+        search?: string;
+        brandId?: string;
+        includeInactive?: boolean;
+    }): Promise<{ data: DeviceDocument[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+        const { page = 1, limit = 20, search, brandId, includeInactive = false } = params;
+        const skip = (page - 1) * limit;
+
+        const query: any = {};
+        if (!includeInactive) query.isActive = true;
+        if (brandId) query.brandId = brandId;
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { nameAr: { $regex: search, $options: 'i' } },
+                { slug: { $regex: search, $options: 'i' } },
+            ];
+        }
+
+        const [data, total] = await Promise.all([
+            this.deviceModel
+                .find(query)
+                .populate('brandId', 'name nameAr slug logo')
+                .sort({ displayOrder: 1, releaseYear: -1 })
+                .skip(skip)
+                .limit(limit)
+                .exec(),
+            this.deviceModel.countDocuments(query),
+        ]);
+
+        return {
+            data,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 
     async findPopularDevices(limit: number = 10): Promise<DeviceDocument[]> {

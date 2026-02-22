@@ -183,4 +183,10 @@ export class CreateProductDto {
     @IsMongoId({ each: true })
     @IsOptional()
     relatedProducts?: string[];
+
+    @ApiProperty({ type: [String], example: [], required: false, description: 'Related educational content IDs' })
+    @IsArray()
+    @IsMongoId({ each: true })
+    @IsOptional()
+    relatedEducationalContent?: string[];
 }

@@ -233,6 +233,29 @@ export class InventoryController {
   // ═════════════════════════════════════
 
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get('locations')
+  @ApiOperation({
+    summary: 'Get all locations',
+    description:
+      'Retrieve stock locations across warehouses with optional warehouse filter. Admin only.',
+  })
+  @ApiQuery({ name: 'warehouseId', required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description: 'Locations retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getAllLocations(@Query('warehouseId') warehouseId?: string) {
+    const locations = await this.warehousesService.getAllLocations(warehouseId);
+    return ResponseBuilder.success(
+      locations,
+      'Locations retrieved',
+      'تم استرجاع المواقع',
+    );
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Get('warehouses/:warehouseId/locations')
   @ApiOperation({
     summary: 'Get locations in warehouse',

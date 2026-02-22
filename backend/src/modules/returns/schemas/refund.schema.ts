@@ -31,6 +31,12 @@ export class Refund {
     @Prop({ type: Number, required: true })
     amount: number;
 
+    @Prop({ type: Number, default: 0 })
+    amountToCreditSettlement: number;
+
+    @Prop({ type: Number, default: 0 })
+    amountToWallet: number;
+
     @Prop({
         required: true,
         type: String,

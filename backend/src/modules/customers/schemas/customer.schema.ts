@@ -124,6 +124,15 @@ export class Customer {
     preferredContactMethod: string;
 
     // ═════════════════════════════════════
+    // Payment & Refund Permissions
+    // ═════════════════════════════════════
+    @Prop({ default: false })
+    canCashRefund: boolean;
+
+    @Prop({ default: true })
+    canCashOnDelivery: boolean;
+
+    // ═════════════════════════════════════
     // Social Media
     // ═════════════════════════════════════
     @Prop()

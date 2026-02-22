@@ -1,11 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, ValidateIf } from 'class-validator';
 
-/**
- * ═══════════════════════════════════════════════════════════════
- * 📦 Update Order Status DTO
- * ═══════════════════════════════════════════════════════════════
- */
 export class UpdateOrderStatusDto {
     @ApiProperty({
         description: 'New order status',
@@ -25,5 +20,15 @@ export class UpdateOrderStatusDto {
     @IsString()
     @IsOptional()
     notes?: string;
+
+    @ApiProperty({
+        description: 'Shipping label URL (required when status is shipped)',
+        example: 'https://storage.example.com/shipping-labels/label-123.pdf',
+        required: false,
+    })
+    @ValidateIf((o) => o.status === 'shipped')
+    @IsNotEmpty({ message: 'shippingLabelUrl is required when status is shipped' })
+    @IsString()
+    shippingLabelUrl?: string;
 }
 

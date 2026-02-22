@@ -107,7 +107,7 @@ export const notificationsApi = {
     },
 
     sendCampaign: async (id: string): Promise<NotificationCampaign> => {
-        const response = await apiClient.post<ApiResponse<NotificationCampaign>>(`/notifications/campaigns/${id}/send`);
+        const response = await apiClient.post<ApiResponse<NotificationCampaign>>(`/notifications/campaigns/${id}/launch`);
         return response.data.data;
     },
 

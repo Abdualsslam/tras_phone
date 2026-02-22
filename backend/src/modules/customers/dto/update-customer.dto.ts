@@ -195,4 +195,17 @@ export class UpdateCustomerDto {
     @IsString()
     @IsOptional()
     flagReason?: string;
+
+    // ═════════════════════════════════════
+    // Payment & Refund Permissions
+    // ═════════════════════════════════════
+    @ApiProperty({ required: false, description: 'Allow cash refund (original payment method or bank transfer)', default: false })
+    @IsBoolean()
+    @IsOptional()
+    canCashRefund?: boolean;
+
+    @ApiProperty({ required: false, description: 'Allow cash on delivery payment method', default: true })
+    @IsBoolean()
+    @IsOptional()
+    canCashOnDelivery?: boolean;
 }

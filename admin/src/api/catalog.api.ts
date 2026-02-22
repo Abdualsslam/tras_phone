@@ -169,6 +169,20 @@ export const catalogApi = {
         return extractArrayData<Device>(response.data);
     },
 
+    getDevicesPaginated: async (params?: {
+        page?: number;
+        limit?: number;
+        search?: string;
+        brandId?: string;
+        includeInactive?: boolean;
+    }): Promise<{ items: Device[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> => {
+        const response = await apiClient.get<ApiResponse<Device[]>>('/catalog/devices/paginated', { params });
+        return {
+            items: extractArrayData<Device>(response.data),
+            pagination: (response.data as any).pagination || { page: 1, limit: 20, total: 0, totalPages: 0 },
+        };
+    },
+
     getPopularDevices: async (limit = 10): Promise<Device[]> => {
         const response = await apiClient.get<ApiResponse<Device[]>>('/catalog/devices', {
             params: { limit }

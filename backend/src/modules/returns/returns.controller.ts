@@ -302,6 +302,37 @@ export class ReturnsController {
 
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Put(':returnId/items/:itemId/inspect')
+  @ApiOperation({
+    summary: 'Inspect return item (scoped route)',
+    description:
+      'Record inspection results for a returned item using return + item IDs. Admin only.',
+  })
+  @ApiBody({ type: InspectItemDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Item inspection completed successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async inspectItemByReturn(
+    @Param('itemId') itemId: string,
+    @Body() data: InspectItemDto,
+    @CurrentUser() user: any,
+  ) {
+    const item = await this.returnsService.inspectItem(itemId, {
+      condition: data.condition,
+      approvedQuantity: data.approvedQuantity,
+      rejectedQuantity: data.rejectedQuantity,
+      inspectionNotes: data.inspectionNotes,
+      inspectionImages: data.inspectionImages,
+      inspectedBy: user._id,
+    });
+    return ResponseBuilder.success(item, 'Item inspected', 'تم فحص العنصر');
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Put('items/:itemId/inspect')
   @ApiOperation({
     summary: 'Inspect return item',
@@ -369,6 +400,40 @@ export class ReturnsController {
       refund,
       'Refund processed',
       'تم معالجة الاسترداد',
+    );
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post(':id/refund/complete')
+  @ApiOperation({
+    summary: 'Complete refund by return request',
+    description:
+      'Mark refund as completed by using return request ID. Admin only.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Return request ID',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Refund completed successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async completeRefundByReturnId(
+    @Param('id') returnId: string,
+    @Body('transactionId') transactionId?: string,
+  ) {
+    const refund = await this.returnsService.completeRefundByReturnId(
+      returnId,
+      transactionId,
+    );
+    return ResponseBuilder.success(
+      refund,
+      'Refund completed',
+      'تم إكمال الاسترداد',
     );
   }
 

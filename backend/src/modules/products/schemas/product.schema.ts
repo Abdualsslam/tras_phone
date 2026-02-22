@@ -66,6 +66,12 @@ export class Product {
   relatedProducts?: Types.ObjectId[];
 
   // ═════════════════════════════════════
+  // Related Educational Content
+  // ═════════════════════════════════════
+  @Prop({ type: [Types.ObjectId], ref: 'EducationalContent', default: [] })
+  relatedEducationalContent?: Types.ObjectId[];
+
+  // ═════════════════════════════════════
   // Specifications
   // ═════════════════════════════════════
   @Prop({ type: Object })
@@ -226,6 +232,7 @@ ProductSchema.index({ categoryId: 1 });
 ProductSchema.index({ qualityTypeId: 1 });
 ProductSchema.index({ compatibleDevices: 1 });
 ProductSchema.index({ relatedProducts: 1 });
+ProductSchema.index({ relatedEducationalContent: 1 });
 ProductSchema.index({ status: 1 });
 ProductSchema.index({ isActive: 1, status: 1 });
 ProductSchema.index({ isFeatured: 1 });

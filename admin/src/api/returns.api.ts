@@ -139,8 +139,8 @@ export const returnsApi = {
         return response.data.data;
     },
 
-    inspectItem: async (itemId: string, data: InspectItemDto): Promise<ReturnItem> => {
-        const response = await apiClient.put<ApiResponse<ReturnItem>>(`/returns/items/${itemId}/inspect`, data);
+    inspectItem: async (returnId: string, itemId: string, data: InspectItemDto): Promise<ReturnItem> => {
+        const response = await apiClient.put<ApiResponse<ReturnItem>>(`/returns/${returnId}/items/${itemId}/inspect`, data);
         return response.data.data;
     },
 
@@ -149,8 +149,8 @@ export const returnsApi = {
         return response.data.data;
     },
 
-    completeRefund: async (refundId: string): Promise<Return> => {
-        const response = await apiClient.post<ApiResponse<Return>>(`/returns/refunds/${refundId}/complete`);
+    completeRefund: async (returnId: string): Promise<Return> => {
+        const response = await apiClient.post<ApiResponse<Return>>(`/returns/${returnId}/refund/complete`);
         return response.data.data;
     },
 

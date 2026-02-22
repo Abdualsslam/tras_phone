@@ -476,6 +476,7 @@ export class ReturnsService {
 
   /**
    * Process refund
+   * Priority: Credit settlement first (pay off debt), then wallet
    */
   async processRefund(
     returnRequestId: string,
@@ -490,6 +491,23 @@ export class ReturnsService {
       await this.returnRequestModel.findById(returnRequestId);
     if (!returnRequest) throw new NotFoundException('Return request not found');
 
+    // Check customer's cash refund permission
+    let refundMethod = data.refundMethod || 'wallet';
+    const customer = await this.customersService.findById(
+      returnRequest.customerId.toString(),
+    );
+
+    // If customer is not allowed to have cash refund, force wallet refund
+    if (
+      (refundMethod === 'original_payment' || refundMethod === 'bank_transfer') &&
+      !customer.canCashRefund
+    ) {
+      console.log(
+        `[ReturnsService] Customer ${returnRequest.customerId} not allowed cash refund, forcing wallet refund`,
+      );
+      refundMethod = 'wallet';
+    }
+
     const refundNumber = await this.generateRefundNumber();
 
     // Use first orderId from orderIds array for refund reference
@@ -497,13 +515,55 @@ export class ReturnsService {
       ? returnRequest.orderIds[0]
       : null;
 
+    // ═══════════════════════════════════════════════════════════════
+    // NEW LOGIC: Credit settlement priority
+    // 1. First, settle any outstanding credit debt (creditUsed)
+    // 2. Remaining amount goes to wallet
+    // ═══════════════════════════════════════════════════════════════
+    
+    const creditUsed = customer.creditUsed || 0;
+    const refundAmount = data.amount;
+    
+    // Calculate amounts for credit settlement and wallet
+    let amountToCreditSettlement = 0;
+    let amountToWallet = 0;
+    
+    if (creditUsed > 0) {
+      // Customer has debt - settle credit first
+      if (refundAmount <= creditUsed) {
+        // Full refund amount goes to settling debt
+        amountToCreditSettlement = refundAmount;
+        amountToWallet = 0;
+      } else {
+        // Partial settlement, remainder to wallet
+        amountToCreditSettlement = creditUsed;
+        amountToWallet = refundAmount - creditUsed;
+      }
+    } else {
+      // No debt - full amount to wallet
+      amountToCreditSettlement = 0;
+      amountToWallet = refundAmount;
+    }
+
+    console.log(
+      `[ReturnsService] Refund allocation for customer ${returnRequest.customerId}:`,
+      {
+        totalRefund: refundAmount,
+        creditUsed: creditUsed,
+        amountToCreditSettlement,
+        amountToWallet,
+      },
+    );
+
     const refund = await this.refundModel.create({
       refundNumber,
       returnRequestId,
       orderId: primaryOrderId,
       customerId: returnRequest.customerId,
       amount: data.amount,
-      refundMethod: data.refundMethod || 'wallet', // Default to wallet
+      amountToCreditSettlement,
+      amountToWallet,
+      refundMethod: refundMethod,
       status: 'processing',
       processedBy: data.processedBy,
       processedAt: new Date(),
@@ -515,18 +575,38 @@ export class ReturnsService {
       $set: { refundAmount: data.amount },
     });
 
-    // Add refund amount to customer wallet immediately
-    await this.walletService.credit({
-      customerId: returnRequest.customerId.toString(),
-      amount: data.amount,
-      transactionType: 'order_refund',
-      referenceType: 'refund',
-      referenceId: refund._id.toString(),
-      referenceNumber: refund.refundNumber,
-      description: 'Refund for return request',
-      descriptionAr: `استرداد مبلغ المرتجع ${returnRequest.returnNumber}`,
-      idempotencyKey: `refund:${refund._id.toString()}:wallet_credit`,
-    });
+    // ═══════════════════════════════════════════════════════════════
+    // 1. Settle credit debt first (if any)
+    // ═══════════════════════════════════════════════════════════════
+    if (amountToCreditSettlement > 0) {
+      await this.customersService.decrementCreditUsed(
+        returnRequest.customerId.toString(),
+        amountToCreditSettlement,
+      );
+      console.log(
+        `[ReturnsService] Credit settled: ${amountToCreditSettlement} for customer ${returnRequest.customerId}`,
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 2. Add remaining amount to wallet (if any)
+    // ═══════════════════════════════════════════════════════════════
+    if (amountToWallet > 0) {
+      await this.walletService.credit({
+        customerId: returnRequest.customerId.toString(),
+        amount: amountToWallet,
+        transactionType: 'order_refund',
+        referenceType: 'refund',
+        referenceId: refund._id.toString(),
+        referenceNumber: refund.refundNumber,
+        description: 'Refund for return request',
+        descriptionAr: `استرداد مبلغ المرتجع ${returnRequest.returnNumber}`,
+        idempotencyKey: `refund:${refund._id.toString()}:wallet_credit`,
+      });
+      console.log(
+        `[ReturnsService] Wallet credited: ${amountToWallet} for customer ${returnRequest.customerId}`,
+      );
+    }
 
     return refund;
   }
@@ -554,16 +634,10 @@ export class ReturnsService {
 
     if (!refund) throw new NotFoundException('Refund not found');
 
-    // Wallet credit is done in processRefund - no double credit here
-
-    // Decrement credit used when refund is for an order paid with credit
-    const order = await this.orderModel.findById(refund.orderId);
-    if (order?.paymentMethod === 'credit') {
-      await this.customersService.decrementCreditUsed(
-        refund.customerId.toString(),
-        refund.amount,
-      );
-    }
+    // Credit settlement and wallet credit are done in processRefund - no double processing here
+    // The new logic in processRefund handles:
+    // 1. Credit settlement (decrementing creditUsed) - up to the refund amount
+    // 2. Wallet credit - remaining amount after credit settlement
 
     // Update return request status
     const returnRequestId = (refund.returnRequestId as any)._id.toString();
@@ -587,6 +661,26 @@ export class ReturnsService {
     }
 
     return refund;
+  }
+
+  async completeRefundByReturnId(
+    returnRequestId: string,
+    transactionId?: string,
+  ): Promise<RefundDocument> {
+    const refund = await this.refundModel
+      .findOne({
+        returnRequestId: new Types.ObjectId(returnRequestId),
+        status: { $in: ['pending', 'processing'] },
+      })
+      .sort({ createdAt: -1 })
+      .select('_id')
+      .lean();
+
+    if (!refund?._id) {
+      throw new NotFoundException('Refund not found');
+    }
+
+    return this.completeRefund(refund._id.toString(), transactionId);
   }
 
   // ═════════════════════════════════════

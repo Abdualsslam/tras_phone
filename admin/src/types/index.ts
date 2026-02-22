@@ -124,6 +124,8 @@ export interface Customer {
     nationalId?: string;
     approvedAt?: string;
     internalNotes?: string;
+    canCashRefund?: boolean;
+    canCashOnDelivery?: boolean;
     createdAt: string;
     updatedAt: string;
 }

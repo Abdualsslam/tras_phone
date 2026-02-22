@@ -35,6 +35,7 @@ import {
 } from '@modules/audit/schemas/audit-log.schema';
 import { ReturnsService } from '@modules/returns/returns.service';
 import { WalletService } from '@modules/wallet/wallet.service';
+import { NotificationsService } from '@modules/notifications/notifications.service';
 import * as PDFDocument from 'pdfkit';
 import { StorageService } from '@modules/integrations/storage.service';
 import { ConfigService } from '@nestjs/config';
@@ -74,6 +75,8 @@ export class OrdersService {
     private configService: ConfigService,
     @Inject(forwardRef(() => ReturnsService))
     private returnsService: ReturnsService,
+    @Inject(forwardRef(() => NotificationsService))
+    private notificationsService: NotificationsService,
   ) { }
 
   private normalizePaymentMethod(method?: string): string {
@@ -310,6 +313,8 @@ export class OrdersService {
         ? 'awaiting_receipt'
         : 'not_required';
 
+    const creditAmount = paymentMethod === 'credit' ? remainingAfterWallet : 0;
+
     // Create order (currency default SAR)
     const order = await this.orderModel.create({
       orderNumber,
@@ -322,6 +327,7 @@ export class OrdersService {
       discount,
       couponDiscount,
       walletAmountUsed,
+      creditAmount,
       total,
       paidAmount,
       paymentStatus,
@@ -982,18 +988,20 @@ export class OrdersService {
     newStatus: string,
     userId?: string,
     notes?: string,
+    shippingLabelUrl?: string,
   ): Promise<OrderDocument> {
     const order = await this.orderModel.findById(orderId);
     if (!order) throw new NotFoundException('Order not found');
 
     const oldStatus = order.status;
-
-    // Validate status transition (allow admin to skip intermediate steps)
-    // If userId is provided, it's an admin action - allow more flexible transitions
     const isAdminAction = !!userId;
+
+    if (newStatus === 'shipped' && isAdminAction && !shippingLabelUrl) {
+      throw new BadRequestException('shippingLabelUrl is required when status is shipped');
+    }
+
     this.validateStatusTransition(oldStatus, newStatus, isAdminAction);
 
-    // Update order
     const updateData: any = { status: newStatus };
 
     switch (newStatus) {
@@ -1002,6 +1010,7 @@ export class OrdersService {
         break;
       case 'shipped':
         updateData.shippedAt = new Date();
+        updateData.shippingLabelUrl = shippingLabelUrl;
         break;
       case 'delivered':
         updateData.deliveredAt = new Date();
@@ -1855,5 +1864,290 @@ export class OrdersService {
       thisMonthOrders,
       thisMonthRevenue: thisMonthRevenue[0]?.total || 0,
     };
+  }
+
+  /**
+   * Update order items (admin only)
+   * - Add, modify, or remove products from an order
+   * - Handle price difference (refund or additional payment)
+   * - Send notification to customer
+   */
+  async updateOrderItems(
+    orderId: string,
+    data: { items: Array<{ orderItemId?: string; productId: string; quantity: number; unitPrice?: number }>; reason?: string },
+    adminId: string,
+  ): Promise<any> {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+
+    // Check order status - can modify if not delivered, completed, or cancelled
+    const forbiddenStatuses = ['delivered', 'completed', 'cancelled', 'refunded'];
+    if (forbiddenStatuses.includes(order.status)) {
+      throw new BadRequestException(
+        `Cannot modify order in '${order.status}' status`,
+      );
+    }
+
+    const oldTotal = order.total;
+    const oldItems = await this.orderItemModel.find({ orderId: order._id });
+
+    // Build new items list
+    const newItemsData: Array<{
+      productId: Types.ObjectId;
+      productSku: string;
+      productName: string;
+      productNameAr: string;
+      productImage: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+    }> = [];
+
+    for (const item of data.items) {
+      const product = await this.productsService.findByIdOrSlug(item.productId);
+      if (!product) {
+        throw new BadRequestException(`Product ${item.productId} not found`);
+      }
+
+      const unitPrice = item.unitPrice ?? product.price ?? 0;
+      const totalPrice = unitPrice * item.quantity;
+
+      newItemsData.push({
+        productId: new Types.ObjectId(item.productId),
+        productSku: product.sku || '',
+        productName: product.name || '',
+        productNameAr: product.nameAr || '',
+        productImage: product.mainImage || product.images?.[0] || '',
+        quantity: item.quantity,
+        unitPrice,
+        totalPrice,
+      });
+    }
+
+    // Calculate new totals
+    const newSubtotal = newItemsData.reduce((sum, item) => sum + item.totalPrice, 0);
+    const taxAmount = order.taxAmount;
+    const shippingCost = order.shippingCost;
+    const discount = order.discount;
+    const couponDiscount = order.couponDiscount;
+    const walletAmountUsed = order.walletAmountUsed;
+
+    const newTotal = newSubtotal - discount - couponDiscount + taxAmount + shippingCost;
+
+    // Calculate difference
+    const difference = oldTotal - newTotal;
+    const isRefund = difference > 0;
+
+    // Start updating
+    // 1. Delete old items
+    await this.orderItemModel.deleteMany({ orderId: order._id });
+
+    // 2. Insert new items
+    const newOrderItems = newItemsData.map((item) => ({
+      orderId: order._id,
+      productId: item.productId,
+      productSku: item.productSku,
+      productName: item.productName,
+      productNameAr: item.productNameAr,
+      productImage: item.productImage,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+    }));
+
+    const insertedItems = await this.orderItemModel.insertMany(newOrderItems);
+
+    // 3. Update order document with new items and totals
+    const orderItemsForDoc = newItemsData.map((item) => ({
+      productId: item.productId,
+      sku: item.productSku,
+      name: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      total: item.totalPrice,
+    }));
+
+    // Calculate new payment status
+    const paidAmount = order.paidAmount || 0;
+    const newPaymentStatus = paidAmount >= newTotal ? 'paid' : paidAmount > 0 ? 'partial' : 'unpaid';
+
+    order.items = orderItemsForDoc;
+    order.subtotal = newSubtotal;
+    order.total = newTotal;
+    order.paymentStatus = newPaymentStatus;
+
+    // 4. Handle price difference
+    let refundAmount = 0;
+    let additionalAmount = 0;
+
+    if (difference > 0) {
+      // Refund case
+      refundAmount = difference;
+
+      // Refund to wallet for bank_transfer or wallet payments
+      if (['bank_transfer', 'wallet'].includes(order.paymentMethod || '')) {
+        await this.walletService.credit({
+          customerId: order.customerId.toString(),
+          amount: refundAmount,
+          transactionType: 'order_refund',
+          referenceType: 'order',
+          referenceId: order._id.toString(),
+          referenceNumber: order.orderNumber,
+          description: `Refund for order ${order.orderNumber} modification - ${data.reason || 'Admin modification'}`,
+          descriptionAr: `استرداد لتعديل الطلب ${order.orderNumber} - ${data.reason || 'تعديل من الإدارة'}`,
+          idempotencyKey: `order:${order._id.toString()}:items_modify_refund:${Date.now()}`,
+        });
+      }
+
+      // Handle credit payment - reduce creditUsed
+      if (order.paymentMethod === 'credit') {
+        const creditRefund = Math.min(refundAmount, order.creditAmount || 0);
+        if (creditRefund > 0) {
+          await this.customersService.decrementCreditUsed(
+            order.customerId.toString(),
+            creditRefund,
+          );
+          // Update order's creditAmount
+          order.creditAmount = (order.creditAmount || 0) - creditRefund;
+        }
+      }
+    } else if (difference < 0) {
+      // Additional payment required
+      additionalAmount = Math.abs(difference);
+
+      // Handle credit payment - increase creditUsed
+      if (order.paymentMethod === 'credit') {
+        // Check if customer has enough credit limit
+        const customer = await this.customersService.findById(order.customerId.toString());
+        const creditLimit = customer?.creditLimit ?? 0;
+        const creditUsed = customer?.creditUsed ?? 0;
+        const availableCredit = creditLimit - creditUsed;
+
+        if (additionalAmount > availableCredit) {
+          throw new BadRequestException(
+            `حد الائتمان غير كافٍ للزيادة. المتاح: ${availableCredit.toFixed(2)} ر.س، المطلوب: ${additionalAmount.toFixed(2)} ر.س`,
+          );
+        }
+
+        await this.customersService.incrementCreditUsed(
+          order.customerId.toString(),
+          additionalAmount,
+        );
+        // Update order's creditAmount
+        order.creditAmount = (order.creditAmount || 0) + additionalAmount;
+      }
+      // For other payment methods, the customer will need to pay the difference later
+    }
+
+    // Save order changes (including creditAmount if modified)
+    await order.save();
+
+    // 5. Update invoice
+    const invoice = await this.invoiceModel.findOne({ orderId: order._id });
+    if (invoice) {
+      invoice.subtotal = newSubtotal;
+      invoice.total = newTotal;
+      invoice.discount = discount + couponDiscount;
+      invoice.status = newPaymentStatus;
+      invoice.pdfUrl = undefined; // Force regeneration
+      await invoice.save();
+    }
+
+    // 6. Add note about modification
+    const noteContent = data.reason
+      ? `تم تعديل المنتجات: ${data.reason}`
+      : 'تم تعديل المنتجات من الإدارة';
+    await this.addNote(orderId, noteContent, 'modification', adminId);
+
+    // 7. Send notification to customer
+    try {
+      let notificationBody = '';
+      let notificationBodyAr = '';
+      
+      if (isRefund && refundAmount > 0) {
+        notificationBody = `Your order #${order.orderNumber} has been modified. Refund of ${refundAmount.toFixed(2)} SAR has been credited to your wallet.`;
+        notificationBodyAr = `تم تعديل طلبك رقم #${order.orderNumber}. تم إضافة مبلغ ${refundAmount.toFixed(2)} ر.س إلى محفظتك.`;
+      } else if (!isRefund && additionalAmount > 0) {
+        notificationBody = `Your order #${order.orderNumber} has been modified. Additional payment of ${additionalAmount.toFixed(2)} SAR is required.`;
+        notificationBodyAr = `تم تعديل طلبك رقم #${order.orderNumber}. مبلغ إضافي ${additionalAmount.toFixed(2)} ر.س مطلوب.`;
+      } else {
+        notificationBody = `Your order #${order.orderNumber} has been modified.`;
+        notificationBodyAr = `تم تعديل طلبك رقم #${order.orderNumber}.`;
+      }
+      
+      await this.notificationsService.sendCustom({
+        customerId: order.customerId.toString(),
+        category: 'order',
+        title: 'Order Modified',
+        titleAr: 'تم تعديل طلبك',
+        body: notificationBody,
+        bodyAr: notificationBodyAr,
+        channels: ['push'],
+        actionType: 'order',
+        actionId: order._id.toString(),
+      });
+    } catch (error) {
+      this.logger.warn('Failed to send notification', error);
+    }
+
+    // 8. Audit log
+    await this.auditService
+      .log({
+        action: AuditAction.UPDATE,
+        resource: AuditResource.ORDER,
+        resourceId: orderId,
+        resourceName: order.orderNumber,
+        actorType: 'admin',
+        actorId: adminId,
+        description: `Order items modified. Old total: ${oldTotal}, New total: ${newTotal}. Reason: ${data.reason || 'N/A'}`,
+        descriptionAr: `تم تعديل منتجات الطلب. الإجمالي القديم: ${oldTotal}, الإجمالي الجديد: ${newTotal}. السبب: ${data.reason || 'غير محدد'}`,
+        severity: 'info',
+        success: true,
+        changes: {
+          before: { total: oldTotal, itemsCount: oldItems.length },
+          after: { total: newTotal, itemsCount: newItemsData.length },
+          changedFields: ['items', 'total', 'subtotal'],
+        },
+      })
+      .catch(() => undefined);
+
+    // Return updated order with items
+    return this.findById(orderId);
+  }
+
+  /**
+   * Generate modification summary for notification
+   */
+  private generateModificationSummary(
+    oldItems: OrderItemDocument[],
+    newItems: Array<{ productId: Types.ObjectId; productName: string; quantity: number }>,
+  ): string {
+    const changes: string[] = [];
+
+    // Check for removed items
+    for (const oldItem of oldItems) {
+      const exists = newItems.find(
+        (n) => n.productId.toString() === oldItem.productId.toString(),
+      );
+      if (!exists) {
+        changes.push(`Removed: ${oldItem.productName}`);
+      }
+    }
+
+    // Check for added or modified items
+    for (const newItem of newItems) {
+      const oldItem = oldItems.find(
+        (o) => o.productId.toString() === newItem.productId.toString(),
+      );
+      if (!oldItem) {
+        changes.push(`Added: ${newItem.productName} (${newItem.quantity})`);
+      } else if (oldItem.quantity !== newItem.quantity) {
+        changes.push(
+          `${newItem.productName}: ${oldItem.quantity} → ${newItem.quantity}`,
+        );
+      }
+    }
+
+    return changes.join(', ');
   }
 }

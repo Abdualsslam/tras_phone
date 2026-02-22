@@ -43,6 +43,7 @@ export interface CreateProductDto {
     color?: string;
     tags?: string[];
     relatedProducts?: string[];
+    relatedEducationalContent?: string[];
 }
 
 export interface UpdateProductDto extends Partial<CreateProductDto> { }

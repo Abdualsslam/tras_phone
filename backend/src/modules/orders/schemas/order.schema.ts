@@ -72,6 +72,9 @@ export class Order {
   @Prop({ type: Number, default: 0 })
   loyaltyPointsValue: number;
 
+  @Prop({ type: Number, default: 0 })
+  creditAmount: number;
+
   @Prop({ type: Number, required: true })
   total: number;
 
@@ -184,6 +187,9 @@ export class Order {
 
   @Prop({ type: Date })
   shippedAt?: Date;
+
+  @Prop()
+  shippingLabelUrl?: string;
 
   @Prop({ type: Date })
   deliveredAt?: Date;

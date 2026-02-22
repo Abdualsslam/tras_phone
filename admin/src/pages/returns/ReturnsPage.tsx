@@ -172,12 +172,14 @@ export function ReturnsPage() {
 
   const inspectMutation = useMutation({
     mutationFn: ({
+      returnId,
       itemId,
       data,
     }: {
+      returnId: string;
       itemId: string;
       data: { condition: string; inspectionNotes?: string; approved: boolean };
-    }) => returnsApi.inspectItem(itemId, data as any),
+    }) => returnsApi.inspectItem(returnId, itemId, data as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["returns"] });
       setIsInspectDialogOpen(false);
@@ -263,10 +265,11 @@ export function ReturnsPage() {
     inspectionNotes: string;
     approved: boolean;
   }) => {
-    if (selectedItem) {
+    if (selectedItem && selectedReturn) {
       inspectMutation.mutate({
+        returnId: selectedReturn._id,
         itemId: selectedItem._id,
-        data: {
+          data: {
           condition: data.condition,
           inspectionNotes: data.inspectionNotes || undefined,
           approved: data.approved,

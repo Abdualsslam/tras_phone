@@ -39,6 +39,18 @@ export class TicketsService {
         return category;
     }
 
+    async deleteCategory(id: string): Promise<void> {
+        const category = await this.categoryModel.findById(id);
+        if (!category) throw new NotFoundException('Category not found');
+
+        const linkedTickets = await this.ticketModel.countDocuments({ category: category._id });
+        if (linkedTickets > 0) {
+            throw new BadRequestException('Cannot delete category with linked tickets');
+        }
+
+        await this.categoryModel.deleteOne({ _id: id });
+    }
+
     // ==================== Tickets ====================
 
     async createTicket(data: {
@@ -478,6 +490,33 @@ export class TicketsService {
         return updatedTicket!;
     }
 
+    async updateTicketPriority(
+        ticketId: string,
+        priority: TicketPriority,
+        updatedBy: string,
+    ): Promise<Ticket> {
+        const ticket = await this.ticketModel.findById(ticketId);
+        if (!ticket) throw new NotFoundException('Ticket not found');
+
+        const previousPriority = ticket.priority;
+        const updatedTicket = await this.ticketModel.findByIdAndUpdate(
+            ticketId,
+            { priority },
+            { new: true },
+        );
+
+        await this.addMessage(ticketId, {
+            senderType: MessageSenderType.SYSTEM,
+            senderId: updatedBy,
+            senderName: 'System',
+            messageType: MessageType.STATUS_CHANGE,
+            content: `Priority changed from ${previousPriority} to ${priority}`,
+            isInternal: true,
+        });
+
+        return updatedTicket!;
+    }
+
     async escalateTicket(ticketId: string, agentId: string, reason: string): Promise<Ticket> {
         const ticket = await this.ticketModel.findById(ticketId);
         if (!ticket) throw new NotFoundException('Ticket not found');
@@ -681,6 +720,38 @@ export class TicketsService {
         );
         if (!response) throw new NotFoundException('Canned response not found');
         return response;
+    }
+
+    async updateCannedResponse(
+        responseId: string,
+        data: Partial<CannedResponse>,
+        agentId?: string,
+    ): Promise<CannedResponse> {
+        const response = await this.cannedResponseModel.findById(responseId);
+        if (!response) throw new NotFoundException('Canned response not found');
+
+        if (response.isPersonal && agentId && response.createdBy?.toString() !== agentId) {
+            throw new BadRequestException('Cannot update another agent personal response');
+        }
+
+        const updated = await this.cannedResponseModel.findByIdAndUpdate(
+            responseId,
+            { $set: data },
+            { new: true },
+        );
+        if (!updated) throw new NotFoundException('Canned response not found');
+        return updated;
+    }
+
+    async deleteCannedResponse(responseId: string, agentId?: string): Promise<void> {
+        const response = await this.cannedResponseModel.findById(responseId);
+        if (!response) throw new NotFoundException('Canned response not found');
+
+        if (response.isPersonal && agentId && response.createdBy?.toString() !== agentId) {
+            throw new BadRequestException('Cannot delete another agent personal response');
+        }
+
+        await this.cannedResponseModel.deleteOne({ _id: responseId });
     }
 
     // ==================== Statistics ====================

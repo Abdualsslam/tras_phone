@@ -31,6 +31,7 @@ import { InventoryModule } from '@modules/inventory/inventory.module';
 import { CustomersModule } from '@modules/customers/customers.module';
 import { WalletModule } from '@modules/wallet/wallet.module';
 import { ReturnsModule } from '@modules/returns/returns.module';
+import { NotificationsModule } from '@modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { ReturnsModule } from '@modules/returns/returns.module';
     CustomersModule,
     WalletModule,
     forwardRef(() => ReturnsModule),
+    forwardRef(() => NotificationsModule),
   ],
   controllers: [
     CartController,

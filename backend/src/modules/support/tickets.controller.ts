@@ -330,6 +330,24 @@ export class TicketsController {
     return ResponseBuilder.success(ticket, 'Ticket closed successfully');
   }
 
+  @Put(':id/priority')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Update ticket priority - PUT /support/tickets/:id/priority',
+  })
+  async updateTicketPriorityById(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() data: { priority: TicketPriority },
+  ) {
+    const ticket = await this.ticketsService.updateTicketPriority(
+      id,
+      data.priority,
+      user.adminId,
+    );
+    return ResponseBuilder.success(ticket, 'Priority updated successfully');
+  }
+
   @Put('admin/:id/status')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update ticket status' })

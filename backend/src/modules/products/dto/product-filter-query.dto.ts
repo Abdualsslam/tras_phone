@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsMongoId, IsNumber, IsBoolean, Min, Max, IsEnum } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsOptional, IsString, IsMongoId, IsNumber, IsBoolean, Min, Max, IsEnum, IsArray } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 import { PaginationQueryDto } from '@common/dto/pagination-query.dto';
 
 /**
@@ -34,6 +34,18 @@ export class ProductFilterQueryDto extends PaginationQueryDto {
     @IsOptional()
     deviceId?: string;
 
+    @ApiProperty({ example: ['screen', 'original'], required: false, description: 'Filter by tags (comma-separated or array)' })
+    @IsOptional()
+    @Transform(({ value }) => {
+        if (!value) return undefined;
+        if (Array.isArray(value)) return value;
+        if (typeof value === 'string') return value.split(',').map((t: string) => t.trim()).filter(Boolean);
+        return value;
+    })
+    @IsArray()
+    @IsString({ each: true })
+    tags?: string[];
+
     @ApiProperty({ example: 100, required: false, description: 'Minimum price' })
     @IsNumber()
     @Type(() => Number)
@@ -47,6 +59,39 @@ export class ProductFilterQueryDto extends PaginationQueryDto {
     @IsOptional()
     @Min(0)
     maxPrice?: number;
+
+    @ApiProperty({ example: 3, required: false, description: 'Minimum average rating (1-5)' })
+    @IsNumber()
+    @Type(() => Number)
+    @IsOptional()
+    @Min(1)
+    @Max(5)
+    minRating?: number;
+
+    @ApiProperty({ example: 5, required: false, description: 'Maximum average rating (1-5)' })
+    @IsNumber()
+    @Type(() => Number)
+    @IsOptional()
+    @Min(1)
+    @Max(5)
+    maxRating?: number;
+
+    @ApiProperty({ example: true, required: false, description: 'Filter products in stock (stockQuantity > 0)' })
+    @IsBoolean()
+    @Type(() => Boolean)
+    @IsOptional()
+    inStock?: boolean;
+
+    @ApiProperty({ example: 'black', required: false, description: 'Filter by color' })
+    @IsString()
+    @IsOptional()
+    color?: string;
+
+    @ApiProperty({ example: true, required: false, description: 'Filter products that have an offer (compareAtPrice > basePrice)' })
+    @IsBoolean()
+    @Type(() => Boolean)
+    @IsOptional()
+    hasOffer?: boolean;
 
     @ApiProperty({
         example: 'active',
@@ -64,11 +109,23 @@ export class ProductFilterQueryDto extends PaginationQueryDto {
     @IsOptional()
     isActive?: boolean;
 
-    @ApiProperty({ example: true, required: false, description: 'Filter featured products only (based on isFeatured field in schema)' })
+    @ApiProperty({ example: true, required: false, description: 'Filter featured products only' })
     @IsBoolean()
     @Type(() => Boolean)
     @IsOptional()
     isFeatured?: boolean;
+
+    @ApiProperty({ example: true, required: false, description: 'Filter new arrival products only' })
+    @IsBoolean()
+    @Type(() => Boolean)
+    @IsOptional()
+    isNewArrival?: boolean;
+
+    @ApiProperty({ example: true, required: false, description: 'Filter best seller products only' })
+    @IsBoolean()
+    @Type(() => Boolean)
+    @IsOptional()
+    isBestSeller?: boolean;
 
     @ApiProperty({
         example: 'price',

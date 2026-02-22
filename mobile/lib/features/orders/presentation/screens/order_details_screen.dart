@@ -470,6 +470,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
         label: 'تم الشحن',
         subtitle: fmt(order.shippedAt),
         icon: Iconsax.truck,
+        actionLabel: order.shippingLabelUrl != null ? 'عرض البوليصة' : null,
+        actionUrl: order.shippingLabelUrl,
       ),
       _TimelineStepData(
         label: 'تم التوصيل',
@@ -665,6 +667,37 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                         color: isDark
                             ? AppColors.textTertiaryDark
                             : AppColors.textTertiaryLight,
+                      ),
+                    ),
+                  ],
+                  if (step.actionLabel != null && step.actionUrl != null && isCompleted) ...[
+                    SizedBox(height: 6.h),
+                    GestureDetector(
+                      onTap: () => _openShippingLabel(step.actionUrl!),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6.r),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Iconsax.document, size: 12.sp, color: AppColors.primary),
+                            SizedBox(width: 4.w),
+                            Text(
+                              step.actionLabel!,
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -1234,17 +1267,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
     );
   }
 
-  // ─── Quick Actions (Grid Style) ───
   Widget _buildQuickActions(BuildContext context, ThemeData theme, bool isDark) {
     final order = _order!;
-<<<<<<< HEAD
     final canUploadReceipt = order.canUploadTransferReceipt;
-    final isTransferRejected = (order.transferStatus ?? '').toLowerCase() == 'rejected';
-=======
-    final canUploadReceipt =
-        order.paymentMethod == OrderPaymentMethod.bankTransfer &&
-        order.paymentStatus == PaymentStatus.unpaid;
->>>>>>> 96c6070156ffc0556f7d6fe90611d2d6011358a8
     final canReturn = order.status == OrderStatus.delivered ||
         order.status == OrderStatus.completed;
 
@@ -1265,6 +1290,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
             extra: {'amount': order.remainingAmount},
           ),
         ),
+      if (order.shippingLabelUrl != null)
+        _QuickAction(
+          icon: Iconsax.document,
+          label: 'بوليصة الشحن',
+          color: AppColors.primary,
+          onTap: () => _openShippingLabel(order.shippingLabelUrl!),
+        ),
       if (canReturn)
         _QuickAction(
           icon: Iconsax.rotate_left,
@@ -1283,50 +1315,20 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
             padding: EdgeInsets.only(
               left: entry.key < actions.length - 1 ? 8.w : 0,
             ),
-<<<<<<< HEAD
-            icon: const Icon(Iconsax.document_upload, size: 18),
-            label: Text(isTransferRejected ? 'إعادة رفع إيصال' : 'رفع إيصال'),
-=======
             child: _buildQuickActionCard(theme, isDark, entry.value),
->>>>>>> 96c6070156ffc0556f7d6fe90611d2d6011358a8
           ),
         );
       }).toList(),
     );
   }
 
-<<<<<<< HEAD
-  String _transferStatusLabel(String? status) {
-    switch ((status ?? '').toLowerCase()) {
-      case 'awaiting_receipt':
-        return 'بانتظار رفع الإيصال';
-      case 'receipt_uploaded':
-        return 'قيد المراجعة';
-      case 'verified':
-        return 'تم التحقق';
-      case 'rejected':
-        return 'مرفوض';
-      case 'not_required':
-      default:
-        return 'غير مطلوب';
+  void _openShippingLabel(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
-  Color _transferStatusColor(String? status) {
-    switch ((status ?? '').toLowerCase()) {
-      case 'verified':
-        return AppColors.success;
-      case 'rejected':
-        return AppColors.error;
-      case 'receipt_uploaded':
-      case 'awaiting_receipt':
-        return AppColors.warning;
-      default:
-        return AppColors.textSecondaryLight;
-    }
-  }
-
-=======
   Widget _buildQuickActionCard(
     ThemeData theme,
     bool isDark,
@@ -1373,9 +1375,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
       ),
     );
   }
-
-  // ─── Rate Section ───
->>>>>>> 96c6070156ffc0556f7d6fe90611d2d6011358a8
   Widget _buildRateSection(
     BuildContext context,
     ThemeData theme,
@@ -1541,11 +1540,15 @@ class _TimelineStepData {
   final String label;
   final String? subtitle;
   final IconData icon;
+  final String? actionLabel;
+  final String? actionUrl;
 
   _TimelineStepData({
     required this.label,
     this.subtitle,
     required this.icon,
+    this.actionLabel,
+    this.actionUrl,
   });
 }
 

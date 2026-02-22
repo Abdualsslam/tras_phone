@@ -7,7 +7,11 @@ import {
   type OrderNote,
   type OrderShipment,
   type CreateShipmentDto,
+  type UpdateOrderItemsDto,
+  type UpdateOrderItemDto,
 } from "@/api/orders.api";
+import { uploadsApi } from "@/api/uploads.api";
+import { productsApi } from "@/api/products.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +27,14 @@ import {
   Plus,
   RefreshCw,
   XCircle,
+  Upload,
+  FileText,
+  ExternalLink,
+  Package,
+  Trash2,
+  Search,
+  Save,
+  AlertTriangle,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -135,15 +147,23 @@ export function OrderDetailsPage() {
   const [isShipmentDialogOpen, setIsShipmentDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [isEditItemsDialogOpen, setIsEditItemsDialogOpen] = useState(false);
   const [noteContent, setNoteContent] = useState("");
   const [newStatus, setNewStatus] = useState("");
   const [statusDialogNote, setStatusDialogNote] = useState("");
   const [verificationNotes, setVerificationNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
+  const [editReason, setEditReason] = useState("");
+  const [editItems, setEditItems] = useState<UpdateOrderItemDto[]>([]);
+  const [searchProductId, setSearchProductId] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [shipmentData, setShipmentData] = useState({
     trackingNumber: "",
     carrier: "",
   });
+  const [shippingLabelFile, setShippingLabelFile] = useState<File | null>(null);
+  const [isUploadingLabel, setIsUploadingLabel] = useState(false);
   const [paymentData, setPaymentData] = useState({
     amount: "",
     method: "",
@@ -178,11 +198,13 @@ export function OrderDetailsPage() {
       orderId: id,
       status,
       note,
+      shippingLabelUrl,
     }: {
       orderId: string;
       status: string;
       note?: string;
-    }) => ordersApi.updateStatus(id, { status, note }),
+      shippingLabelUrl?: string;
+    }) => ordersApi.updateStatus(id, { status, note, shippingLabelUrl }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order", orderId] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -255,6 +277,24 @@ export function OrderDetailsPage() {
     },
   });
 
+  const updateItemsMutation = useMutation({
+    mutationFn: ({
+      orderId: id,
+      data,
+    }: {
+      orderId: string;
+      data: UpdateOrderItemsDto;
+    }) => ordersApi.updateOrderItems(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      setIsEditItemsDialogOpen(false);
+      setEditReason("");
+      setSearchProductId("");
+      setSearchResults([]);
+    },
+  });
+
   const handleAddNote = () => {
     if (!orderId || !noteContent.trim()) return;
     addNoteMutation.mutate({ orderId, content: noteContent });
@@ -302,13 +342,32 @@ export function OrderDetailsPage() {
     });
   };
 
-  const handleUpdateStatus = (overrideStatus?: string) => {
+  const handleUpdateStatus = async (overrideStatus?: string) => {
     const status = overrideStatus ?? newStatus;
     if (!orderId || !status) return;
+
+    if (status === "shipped" && !shippingLabelFile) {
+      return;
+    }
+
+    let shippingLabelUrl: string | undefined;
+    if (status === "shipped" && shippingLabelFile) {
+      setIsUploadingLabel(true);
+      try {
+        const uploaded = await uploadsApi.uploadSingle(shippingLabelFile, "shipping-labels");
+        shippingLabelUrl = uploaded.url;
+      } catch (error) {
+        setIsUploadingLabel(false);
+        return;
+      }
+      setIsUploadingLabel(false);
+    }
+
     updateStatusMutation.mutate({
       orderId,
       status,
       note: statusDialogNote.trim() || undefined,
+      shippingLabelUrl,
     });
   };
 
@@ -324,6 +383,74 @@ export function OrderDetailsPage() {
   const handleCloseStatusDialog = (open: boolean) => {
     if (!open) setStatusDialogNote("");
     setIsStatusDialogOpen(open);
+  };
+
+  const handleOpenEditItemsDialog = () => {
+    if (order) {
+      setEditItems(
+        order.items.map((item: any) => ({
+          orderItemId: item._id,
+          productId:
+            typeof item.product === "object" ? item.product._id : item.product,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        }))
+      );
+      setEditReason("");
+      updateItemsMutation.reset();
+      setIsEditItemsDialogOpen(true);
+    }
+  };
+
+  const handleSearchProducts = async () => {
+    if (!searchProductId.trim()) return;
+    setIsSearching(true);
+    try {
+      const result = await productsApi.getAll({ search: searchProductId, limit: 10 });
+      setSearchResults(result.items || []);
+    } catch (error) {
+      console.error("Search failed:", error);
+    }
+    setIsSearching(false);
+  };
+
+  const handleAddProductToEdit = (product: any) => {
+    const exists = editItems.find((item) => item.productId === product._id);
+    if (exists) return;
+    setEditItems([
+      ...editItems,
+      { productId: product._id, quantity: 1, unitPrice: product.price },
+    ]);
+    setSearchResults([]);
+    setSearchProductId("");
+  };
+
+  const handleRemoveItemFromEdit = (index: number) => {
+    setEditItems(editItems.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateItemQuantity = (index: number, quantity: number) => {
+    const newItems = [...editItems];
+    newItems[index] = { ...newItems[index], quantity };
+    setEditItems(newItems);
+  };
+
+  const handleUpdateItemPrice = (index: number, unitPrice: number) => {
+    const newItems = [...editItems];
+    newItems[index] = { ...newItems[index], unitPrice };
+    setEditItems(newItems);
+  };
+
+  const calculateNewTotal = () => {
+    const subtotal = editItems.reduce(
+      (sum, item) => sum + (item.unitPrice || 0) * item.quantity,
+      0
+    );
+    const taxAmount = (order as any).taxAmount || 0;
+    const shippingCost = (order as any).shippingCost || 0;
+    const discount = (order as any).discount || 0;
+    const couponDiscount = (order as any).couponDiscount || 0;
+    return subtotal - discount - couponDiscount + taxAmount + shippingCost;
   };
 
   if (isLoading || !order) {
@@ -375,6 +502,7 @@ export function OrderDetailsPage() {
   const isBankTransferOrder = (order as any).paymentMethod === "bank_transfer";
   const canReviewTransfer =
     isBankTransferOrder && Boolean(transferReceiptImage) && !isTransferVerified;
+  const shippingLabelUrl = (order as any).shippingLabelUrl as string | undefined;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -398,6 +526,14 @@ export function OrderDetailsPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleOpenEditItemsDialog}
+          >
+            <Package className="h-4 w-4" />
+            تعديل المنتجات
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -704,6 +840,29 @@ export function OrderDetailsPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Shipping Label */}
+              {shippingLabelUrl && (
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      بوليصة الشحن
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <a
+                      href={shippingLabelUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      عرض البوليصة
+                    </a>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="shipments" className="mt-4 space-y-4">
@@ -1015,7 +1174,6 @@ export function OrderDetailsPage() {
                 {[
                   { status: "confirmed", label: "تأكيد الطلب" },
                   { status: "processing", label: "قيد المعالجة" },
-                  { status: "shipped", label: "تم الشحن" },
                   { status: "delivered", label: "تم التوصيل" },
                   { status: "completed", label: "مكتمل" },
                   { status: "cancelled", label: "إلغاء" },
@@ -1034,6 +1192,24 @@ export function OrderDetailsPage() {
                     {label}
                   </Button>
                 ))}
+                {/* Shipped button - requires shipping label */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    updateStatusMutation.isPending ||
+                    isUploadingLabel ||
+                    (order?.status === "shipped")
+                  }
+                  onClick={() => {
+                    setNewStatus("shipped");
+                  }}
+                  className="border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/20"
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  تم الشحن
+                </Button>
               </div>
             </div>
 
@@ -1042,7 +1218,12 @@ export function OrderDetailsPage() {
               <Label>أو اختر حالة أخرى</Label>
               <select
                 value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
+                onChange={(e) => {
+                  setNewStatus(e.target.value);
+                  if (e.target.value !== "shipped") {
+                    setShippingLabelFile(null);
+                  }
+                }}
                 className="w-full h-10 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm"
               >
                 {ORDER_STATUS_KEYS.map((key) => (
@@ -1052,6 +1233,44 @@ export function OrderDetailsPage() {
                 ))}
               </select>
             </div>
+
+            {/* Shipping Label Upload - Required when status is shipped */}
+            {(newStatus === "shipped" || (order?.status !== "shipped" && newStatus === "shipped")) && (
+              <div className="space-y-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                <Label className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                  <FileText className="h-4 w-4" />
+                  بوليصة الشحن <span className="text-red-500">*</span>
+                </Label>
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  يرجى رفع صورة أو ملف PDF لبوليصة الشحن
+                </p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setShippingLabelFile(file);
+                      }
+                    }}
+                    className="cursor-pointer"
+                  />
+                </div>
+                {shippingLabelFile && (
+                  <div className="flex items-center gap-2 rounded bg-green-50 dark:bg-green-900/20 px-3 py-2 text-sm text-green-700 dark:text-green-300">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="truncate">{shippingLabelFile.name}</span>
+                    <button
+                      onClick={() => setShippingLabelFile(null)}
+                      className="mr-auto text-red-500 hover:text-red-700"
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Notes */}
             <div className="space-y-2">
@@ -1081,12 +1300,221 @@ export function OrderDetailsPage() {
             </Button>
             <Button
               onClick={() => handleUpdateStatus()}
-              disabled={updateStatusMutation.isPending}
+              disabled={
+                updateStatusMutation.isPending ||
+                isUploadingLabel ||
+                (newStatus === "shipped" && !shippingLabelFile)
+              }
             >
-              {updateStatusMutation.isPending && (
+              {(updateStatusMutation.isPending || isUploadingLabel) && (
                 <Loader2 className="h-4 w-4 animate-spin" />
               )}
-              تحديث الحالة
+              {isUploadingLabel ? "جاري رفع البوليصة..." : "تحديث الحالة"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Order Items Dialog */}
+      <Dialog open={isEditItemsDialogOpen} onOpenChange={setIsEditItemsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              تعديل منتجات الطلب
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Current Order Info */}
+            <div className="rounded-lg bg-gray-50 dark:bg-slate-800 px-3 py-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">الإجمالي الحالي</p>
+                  <p className="font-bold text-lg">{formatCurrency(order.total, "SAR", locale)}</p>
+                </div>
+                <div className="text-left">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">الإجمالي الجديد</p>
+                  <p className={`font-bold text-lg ${calculateNewTotal() < order.total ? "text-green-600" : calculateNewTotal() > order.total ? "text-red-600" : ""}`}>
+                    {formatCurrency(calculateNewTotal(), "SAR", locale)}
+                  </p>
+                </div>
+              </div>
+              {calculateNewTotal() !== order.total && (
+                <div className={`mt-2 text-sm ${calculateNewTotal() < order.total ? "text-green-600" : "text-red-600"}`}>
+                  {calculateNewTotal() < order.total ? (
+                    <span>💰 مبلغ مسترد: {formatCurrency(order.total - calculateNewTotal(), "SAR", locale)}</span>
+                  ) : (
+                    <span>⚠️ مبلغ إضافي مطلوب: {formatCurrency(calculateNewTotal() - order.total, "SAR", locale)}</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Search Products */}
+            <div className="space-y-2">
+              <Label>إضافة منتج جديد</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="ابحث عن منتج (اسم أو SKU)..."
+                  value={searchProductId}
+                  onChange={(e) => setSearchProductId(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearchProducts()}
+                  className="flex-1"
+                />
+                <Button onClick={handleSearchProducts} disabled={isSearching}>
+                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </div>
+              {searchResults.length > 0 && (
+                <div className="border rounded-lg max-h-48 overflow-y-auto">
+                  {searchResults.map((product) => (
+                    <div
+                      key={product._id}
+                      className="p-2 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer flex justify-between items-center border-b last:border-b-0"
+                      onClick={() => handleAddProductToEdit(product)}
+                    >
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-xs text-gray-500">{product.sku} | {formatCurrency(product.price, "SAR", locale)}</p>
+                      </div>
+                      <Plus className="h-4 w-4 text-primary" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Edit Items List */}
+            <div className="space-y-2">
+              <Label>المنتجات ({editItems.length})</Label>
+              <div className="border rounded-lg divide-y">
+                {editItems.length === 0 ? (
+                  <p className="p-4 text-center text-gray-500">لا توجد منتجات</p>
+                ) : (
+                  editItems.map((item, index) => {
+                    const originalItem = order?.items.find(
+                      (oi: any) =>
+                        (typeof oi.product === "object" ? oi.product._id : oi.product) === item.productId
+                    );
+                    return (
+                      <div key={index} className="p-3 flex items-center gap-3">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {originalItem
+                              ? (i18n.language === "ar"
+                                  ? (originalItem as any).nameAr || (originalItem as any).name
+                                  : (originalItem as any).name || (originalItem as any).nameAr)
+                              : `منتج جديد (${item.productId.slice(-6)})`}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {(originalItem as any)?.sku || item.productId.slice(-8)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Label className="text-xs">الكمية:</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleUpdateItemQuantity(index, parseInt(e.target.value) || 1)}
+                              className="w-20 h-8"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Label className="text-xs">السعر:</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.unitPrice || 0}
+                              onChange={(e) => handleUpdateItemPrice(index, parseFloat(e.target.value) || 0)}
+                              className="w-24 h-8"
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleRemoveItemFromEdit(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="w-24 text-left">
+                          <p className="font-medium">
+                            {formatCurrency((item.unitPrice || 0) * item.quantity, "SAR", locale)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Reason */}
+            <div className="space-y-2">
+              <Label>سبب التعديل (اختياري)</Label>
+              <Input
+                placeholder="مثال: العميل طلب تغيير الكمية..."
+                value={editReason}
+                onChange={(e) => setEditReason(e.target.value)}
+              />
+            </div>
+
+            {/* Warning */}
+            {calculateNewTotal() < order.total && (
+              <div className="rounded-lg bg-green-50 dark:bg-green-900/20 px-3 py-2 flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-green-600 mt-0.5" />
+                <div className="text-sm text-green-700 dark:text-green-300">
+                  <p className="font-medium">سيتم إرجاع المبلغ الفارق للمحفظة</p>
+                  <p>مبلغ {formatCurrency(order.total - calculateNewTotal(), "SAR", locale)} سيُضاف لمحفظة العميل</p>
+                </div>
+              </div>
+            )}
+
+            {calculateNewTotal() > order.total && (
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 px-3 py-2 flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div className="text-sm text-amber-700 dark:text-amber-300">
+                  <p className="font-medium">زيادة في المبلغ</p>
+                  <p>سيتم تسجيل المبلغ الإضافي {formatCurrency(calculateNewTotal() - order.total, "SAR", locale)} كمبلغ متبقي للدفع</p>
+                </div>
+              </div>
+            )}
+
+            {/* Error */}
+            {updateItemsMutation.isError && (
+              <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+                {(updateItemsMutation.error as Error)?.message ?? "فشل تحديث المنتجات"}
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditItemsDialogOpen(false)}
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={() => {
+                if (orderId) {
+                  updateItemsMutation.mutate({
+                    orderId,
+                    data: { items: editItems, reason: editReason || undefined },
+                  });
+                }
+              }}
+              disabled={editItems.length === 0 || updateItemsMutation.isPending}
+            >
+              {updateItemsMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              حفظ التعديلات
             </Button>
           </div>
         </DialogContent>

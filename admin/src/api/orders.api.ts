@@ -19,6 +19,7 @@ export interface OrdersQueryParams {
 export interface UpdateOrderStatusDto {
     status: string;
     note?: string;
+    shippingLabelUrl?: string;
 }
 
 export interface CreateShipmentDto {
@@ -50,6 +51,30 @@ export interface OrderShipment {
     shippedAt?: string;
     deliveredAt?: string;
     createdAt: string;
+}
+
+export interface UpdateOrderItemDto {
+    orderItemId?: string;
+    productId: string;
+    quantity: number;
+    unitPrice?: number;
+}
+
+export interface UpdateOrderItemsDto {
+    items: UpdateOrderItemDto[];
+    reason?: string;
+}
+
+export interface OrderItemWithDetails {
+    _id: string;
+    productId: string;
+    sku: string;
+    name: string;
+    nameAr?: string;
+    image?: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
 }
 
 export interface OrderStats {
@@ -229,6 +254,15 @@ export const ordersApi = {
             responseType: 'blob',
         });
         return response.data;
+    },
+
+    // ─────────────────────────────────────────
+    // Order Items Modification
+    // ─────────────────────────────────────────
+
+    updateOrderItems: async (orderId: string, data: UpdateOrderItemsDto): Promise<Order> => {
+        const response = await apiClient.put<ApiResponse<Order>>(`/admin/orders/${orderId}/items`, data);
+        return response.data.data;
     },
 };
 

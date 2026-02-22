@@ -122,6 +122,9 @@ interface FormData {
   riskScore: string;
   isFlagged: boolean;
   flagReason: string;
+  // Payment & Refund Permissions
+  canCashRefund: boolean;
+  canCashOnDelivery: boolean;
 }
 
 const initialFormData: FormData = {
@@ -151,6 +154,8 @@ const initialFormData: FormData = {
   riskScore: "50",
   isFlagged: false,
   flagReason: "",
+  canCashRefund: false,
+  canCashOnDelivery: true,
 };
 
 export function CustomersPage() {
@@ -324,6 +329,8 @@ export function CustomersPage() {
         riskScore: customerData.riskScore?.toString() || "50",
         isFlagged: customerData.isFlagged || false,
         flagReason: customerData.flagReason || "",
+        canCashRefund: customerData.canCashRefund ?? false,
+        canCashOnDelivery: customerData.canCashOnDelivery ?? true,
       });
       setIsEditDialogOpen(true);
     } catch (error) {
@@ -467,6 +474,9 @@ export function CustomersPage() {
       riskScore: formData.riskScore ? Number(formData.riskScore) : undefined,
       isFlagged: formData.isFlagged,
       flagReason: formData.flagReason || undefined,
+      // Payment & Refund Permissions
+      canCashRefund: formData.canCashRefund,
+      canCashOnDelivery: formData.canCashOnDelivery,
     };
 
     // Remove undefined and empty string values (but keep false for isFlagged)
@@ -1918,6 +1928,64 @@ export function CustomersPage() {
                   </select>
                 </div>
               </div>
+            </div>
+
+            {/* Payment & Refund Permissions Section */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 border-b pb-2">
+                صلاحيات الدفع والاسترداد
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="cursor-pointer font-medium">
+                        السماح بالاسترداد النقدي
+                      </Label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        يسمح للعميل باستلام المبلغ المسترد في حسابه البنكي أو بطريقة الدفع الأصلية
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      id="canCashRefund"
+                      checked={formData.canCashRefund}
+                      onChange={(e) =>
+                        handleFormChange("canCashRefund", e.target.checked)
+                      }
+                      className="h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+                <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="cursor-pointer font-medium">
+                        السماح بالدفع عند الاستلام
+                      </Label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        يسمح للعميل باختيار طريقة الدفع عند الاستلام (COD)
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      id="canCashOnDelivery"
+                      checked={formData.canCashOnDelivery}
+                      onChange={(e) =>
+                        handleFormChange("canCashOnDelivery", e.target.checked)
+                      }
+                      className="h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+              </div>
+              {!formData.canCashRefund && (
+                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    <strong>ملاحظة:</strong> عند تعطيل الاسترداد النقدي، سيتم إضافة مبالغ المرتجعات تلقائياً إلى محفظة العميل.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Risk & Flags Section */}

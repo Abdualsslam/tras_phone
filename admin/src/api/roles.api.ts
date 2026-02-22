@@ -77,7 +77,7 @@ export const rolesApi = {
     },
 
     setPermissions: async (roleId: string, permissions: string[]): Promise<Role> => {
-        const response = await apiClient.post<ApiResponse<Role>>(`/roles/${roleId}/permissions`, { permissions });
+        const response = await apiClient.post<ApiResponse<Role>>(`/roles/${roleId}/permissions`, { permissionIds: permissions });
         return response.data.data;
     },
 

@@ -70,6 +70,12 @@ class CustomerModel {
   final String? instagramHandle;
   final String? twitterHandle;
 
+  // Payment & Refund Permissions
+  @JsonKey(defaultValue: false)
+  final bool canCashRefund;
+  @JsonKey(defaultValue: true)
+  final bool canCashOnDelivery;
+
   final DateTime? approvedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -102,6 +108,8 @@ class CustomerModel {
     this.preferredContactMethod = 'whatsapp',
     this.instagramHandle,
     this.twitterHandle,
+    this.canCashRefund = false,
+    this.canCashOnDelivery = true,
     this.approvedAt,
     required this.createdAt,
     required this.updatedAt,
@@ -184,6 +192,8 @@ class CustomerModel {
       preferredContactMethod: ContactMethod.fromString(preferredContactMethod),
       instagramHandle: instagramHandle,
       twitterHandle: twitterHandle,
+      canCashRefund: canCashRefund,
+      canCashOnDelivery: canCashOnDelivery,
       approvedAt: approvedAt,
       createdAt: createdAt,
       updatedAt: updatedAt,

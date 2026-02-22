@@ -111,14 +111,49 @@ export interface ShippingZone {
     isActive: boolean;
 }
 
+export interface BankDetails {
+    bankNameAr?: string;
+    bankNameEn?: string;
+    accountName?: string;
+    accountNumber?: string;
+    iban?: string;
+    swiftCode?: string;
+}
+
+export interface PaymentGatewayConfig {
+    merchantId?: string;
+    apiKey?: string;
+    secretKey?: string;
+    publicKey?: string;
+    webhookSecret?: string;
+    testMode?: boolean;
+    callbackUrl?: string;
+    additionalConfig?: Record<string, any>;
+}
+
 export interface PaymentMethod {
     _id: string;
     name: string;
     nameAr?: string;
-    code: string;
-    type: 'online' | 'offline' | 'wallet';
-    settings?: Record<string, any>;
+    code?: string;
+    type: string;
+    descriptionAr?: string;
+    descriptionEn?: string;
+    icon?: string;
+    logo?: string;
+    gateway?: 'hyperpay' | 'moyasar' | 'tap' | 'payfort' | 'internal' | 'none';
+    gatewayConfig?: PaymentGatewayConfig;
+    fixedFee?: number;
+    percentageFee?: number;
+    minAmount?: number;
+    maxAmount?: number;
     isActive: boolean;
+    countries?: string[];
+    platforms?: string[];
+    sortOrder?: number;
+    instructionsAr?: string;
+    instructionsEn?: string;
+    bankDetails?: BankDetails;
 }
 
 // ══════════════════════════════════════════════════════════════

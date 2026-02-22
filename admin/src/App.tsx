@@ -5,12 +5,12 @@ import {
   QueryClientProvider,
   MutationCache,
 } from "@tanstack/react-query";
-import { Toaster, toast } from "sonner";
-import { getErrorMessage } from "@/api/client";
+import { Toaster } from "sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { showApiErrorToast } from "@/hooks/useToast";
 import { MainLayout } from "@/components/layout";
 import { routeAccessConfig } from "@/config/navigation";
 import { LoginPage } from "@/pages/auth/LoginPage";
@@ -48,7 +48,7 @@ const queryClient = new QueryClient({
     onError: (error, _variables, _context, mutation) => {
       // Only show global toast if the mutation has no local onError
       if (!mutation.options.onError) {
-        toast.error(getErrorMessage(error));
+        showApiErrorToast(error);
       }
     },
   }),

@@ -62,9 +62,29 @@ type ShippingZoneFormData = {
 type PaymentMethodFormData = {
   name: string;
   nameAr: string;
-  code: string;
-  type: "online" | "offline" | "wallet";
+  type: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  icon: string;
+  logo: string;
+  gateway: 'hyperpay' | 'moyasar' | 'tap' | 'payfort' | 'internal' | 'none';
+  fixedFee: number;
+  percentageFee: number;
+  minAmount: number;
+  maxAmount: number;
   isActive: boolean;
+  sortOrder: number;
+  platforms: string[];
+  instructionsAr: string;
+  instructionsEn: string;
+  bankDetails: {
+    bankNameAr: string;
+    bankNameEn: string;
+    accountName: string;
+    accountNumber: string;
+    iban: string;
+    swiftCode: string;
+  };
 };
 
 type AppVersionFormData = {
@@ -383,13 +403,22 @@ export function SettingsPage() {
     onError: () => toast.error("حدث خطأ"),
   });
 
-  const updatePaymentMethodMutation = useMutation({
+const updatePaymentMethodMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<PaymentMethod> }) =>
       settingsApi.updatePaymentMethod(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings-payment-methods"] });
       setIsPaymentMethodDialogOpen(false);
       toast.success("تم تحديث طريقة الدفع");
+    },
+    onError: () => toast.error("حدث خطأ"),
+  });
+
+  const deletePaymentMethodMutation = useMutation({
+    mutationFn: (id: string) => settingsApi.deletePaymentMethod(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings-payment-methods"] });
+      toast.success("تم حذف طريقة الدفع");
     },
     onError: () => toast.error("حدث خطأ"),
   });
@@ -499,13 +528,33 @@ export function SettingsPage() {
     },
   });
 
-  const paymentMethodForm = useForm<PaymentMethodFormData>({
+const paymentMethodForm = useForm<PaymentMethodFormData>({
     defaultValues: {
       name: "",
       nameAr: "",
-      code: "",
-      type: "online",
+      type: "cash_on_delivery",
+      descriptionAr: "",
+      descriptionEn: "",
+      icon: "",
+      logo: "",
+      gateway: "none",
+      fixedFee: 0,
+      percentageFee: 0,
+      minAmount: 0,
+      maxAmount: 0,
       isActive: true,
+      sortOrder: 0,
+      platforms: ["web", "mobile"],
+      instructionsAr: "",
+      instructionsEn: "",
+      bankDetails: {
+        bankNameAr: "",
+        bankNameEn: "",
+        accountName: "",
+        accountNumber: "",
+        iban: "",
+        swiftCode: "",
+      },
     },
   });
 
@@ -657,15 +706,35 @@ export function SettingsPage() {
     setIsShippingZoneDialogOpen(true);
   };
 
-  const handleAddPaymentMethod = () => {
+const handleAddPaymentMethod = () => {
     setIsEditing(false);
     setSelectedItem(null);
     paymentMethodForm.reset({
       name: "",
       nameAr: "",
-      code: "",
-      type: "online",
+      type: "cash_on_delivery",
+      descriptionAr: "",
+      descriptionEn: "",
+      icon: "",
+      logo: "",
+      gateway: "none",
+      fixedFee: 0,
+      percentageFee: 0,
+      minAmount: 0,
+      maxAmount: 0,
       isActive: true,
+      sortOrder: 0,
+      platforms: ["web", "mobile"],
+      instructionsAr: "",
+      instructionsEn: "",
+      bankDetails: {
+        bankNameAr: "",
+        bankNameEn: "",
+        accountName: "",
+        accountNumber: "",
+        iban: "",
+        swiftCode: "",
+      },
     });
     setIsPaymentMethodDialogOpen(true);
   };
@@ -676,11 +745,37 @@ export function SettingsPage() {
     paymentMethodForm.reset({
       name: method.name,
       nameAr: method.nameAr || "",
-      code: method.code,
       type: method.type,
+      descriptionAr: method.descriptionAr || "",
+      descriptionEn: method.descriptionEn || "",
+      icon: method.icon || "",
+      logo: method.logo || "",
+      gateway: method.gateway || "none",
+      fixedFee: method.fixedFee || 0,
+      percentageFee: method.percentageFee || 0,
+      minAmount: method.minAmount || 0,
+      maxAmount: method.maxAmount || 0,
       isActive: method.isActive,
+      sortOrder: method.sortOrder || 0,
+      platforms: method.platforms || ["web", "mobile"],
+      instructionsAr: method.instructionsAr || "",
+      instructionsEn: method.instructionsEn || "",
+      bankDetails: {
+        bankNameAr: method.bankDetails?.bankNameAr || "",
+        bankNameEn: method.bankDetails?.bankNameEn || "",
+        accountName: method.bankDetails?.accountName || "",
+        accountNumber: method.bankDetails?.accountNumber || "",
+        iban: method.bankDetails?.iban || "",
+        swiftCode: method.bankDetails?.swiftCode || "",
+      },
     });
     setIsPaymentMethodDialogOpen(true);
+  };
+
+  const handleDeletePaymentMethod = (method: PaymentMethod) => {
+    if (confirm(`هل أنت متأكد من حذف "${method.name}"؟`)) {
+      deletePaymentMethodMutation.mutate(method._id);
+    }
   };
 
   const handleAddAppVersion = () => {
@@ -765,11 +860,12 @@ export function SettingsPage() {
     }
   };
 
-  const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
+const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
+    const submitData = data as unknown as Omit<PaymentMethod, '_id'>;
     if (isEditing && selectedItem && "_id" in selectedItem) {
-      updatePaymentMethodMutation.mutate({ id: selectedItem._id, data });
+      updatePaymentMethodMutation.mutate({ id: selectedItem._id, data: submitData });
     } else {
-      createPaymentMethodMutation.mutate(data);
+      createPaymentMethodMutation.mutate(submitData);
     }
   };
 
@@ -1344,19 +1440,33 @@ export function SettingsPage() {
                   <p>لا توجد طرق دفع</p>
                 </div>
               ) : (
-                <Table>
+<Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>الشعار</TableHead>
                       <TableHead>الاسم</TableHead>
-                      <TableHead>الكود</TableHead>
                       <TableHead>النوع</TableHead>
+                      <TableHead>الرسوم</TableHead>
                       <TableHead>الحالة</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+                      <TableHead className="w-[100px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paymentMethods.map((method) => (
                       <TableRow key={method._id}>
+                        <TableCell>
+                          {method.logo ? (
+                            <img
+                              src={method.logo}
+                              alt={method.name}
+                              className="h-10 w-10 object-contain rounded"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
+                              <CreditCard className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <div>
                             <p className="font-medium">{method.name}</p>
@@ -1367,17 +1477,39 @@ export function SettingsPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono">
-                          {method.code}
-                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {method.type === "online"
-                              ? "إلكتروني"
-                              : method.type === "offline"
-                                ? "نقدي"
-                                : "محفظة"}
+                            {method.type === "cash_on_delivery"
+                              ? "الدفع عند الاستلام"
+                              : method.type === "credit_card"
+                                ? "بطاقة ائتمان"
+                                : method.type === "mada"
+                                  ? "مدى"
+                                  : method.type === "apple_pay"
+                                    ? "Apple Pay"
+                                    : method.type === "stc_pay"
+                                      ? "STC Pay"
+                                      : method.type === "bank_transfer"
+                                        ? "تحويل بنكي"
+                                        : method.type === "wallet"
+                                          ? "محفظة"
+                                          : method.type === "credit"
+                                            ? "آجل"
+                                            : method.type}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
+                            {method.fixedFee || method.percentageFee ? (
+                              <>
+                                {(method.fixedFee ?? 0) > 0 && `${method.fixedFee} ر.س`}
+                                {(method.fixedFee ?? 0) > 0 && (method.percentageFee ?? 0) > 0 && " + "}
+                                {(method.percentageFee ?? 0) > 0 && `${method.percentageFee}%`}
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -1387,13 +1519,23 @@ export function SettingsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditPaymentMethod(method)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditPaymentMethod(method)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeletePaymentMethod(method)}
+                              disabled={deletePaymentMethodMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -2025,12 +2167,12 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Payment Method Dialog */}
+{/* Payment Method Dialog */}
       <Dialog
         open={isPaymentMethodDialogOpen}
         onOpenChange={setIsPaymentMethodDialogOpen}
       >
-        <DialogContent>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {isEditing ? "تعديل طريقة الدفع" : "إضافة طريقة دفع جديدة"}
@@ -2043,70 +2185,310 @@ export function SettingsPage() {
           </DialogHeader>
           <form
             onSubmit={paymentMethodForm.handleSubmit(onPaymentMethodSubmit)}
-            className="space-y-4"
+            className="space-y-6"
           >
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>الاسم (EN) *</Label>
-                <Input
-                  {...paymentMethodForm.register("name")}
-                  placeholder="Credit Card"
-                />
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">المعلومات الأساسية</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>الاسم (EN) *</Label>
+                  <Input
+                    {...paymentMethodForm.register("name")}
+                    placeholder="Credit Card"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>الاسم (AR)</Label>
+                  <Input
+                    {...paymentMethodForm.register("nameAr")}
+                    placeholder="بطاقة ائتمان"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>الاسم (AR)</Label>
-                <Input
-                  {...paymentMethodForm.register("nameAr")}
-                  placeholder="بطاقة ائتمان"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>النوع *</Label>
+                  <Controller
+                    control={paymentMethodForm.control}
+                    name="type"
+                    render={({ field }) => (
+                      <Select
+                        value={field.value || undefined}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر النوع" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash_on_delivery">الدفع عند الاستلام</SelectItem>
+                          <SelectItem value="credit_card">بطاقة ائتمان</SelectItem>
+                          <SelectItem value="mada">مدى</SelectItem>
+                          <SelectItem value="apple_pay">Apple Pay</SelectItem>
+                          <SelectItem value="stc_pay">STC Pay</SelectItem>
+                          <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
+                          <SelectItem value="wallet">محفظة</SelectItem>
+                          <SelectItem value="credit">آجل (حد ائتمان)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>البوابة</Label>
+                  <Controller
+                    control={paymentMethodForm.control}
+                    name="gateway"
+                    render={({ field }) => (
+                      <Select
+                        value={field.value || "none"}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر البوابة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">بدون بوابة</SelectItem>
+                          <SelectItem value="hyperpay">HyperPay</SelectItem>
+                          <SelectItem value="moyasar">Moyasar</SelectItem>
+                          <SelectItem value="tap">Tap</SelectItem>
+                          <SelectItem value="payfort">PayFort</SelectItem>
+                          <SelectItem value="internal">داخلي</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>الكود *</Label>
-                <Input
-                  {...paymentMethodForm.register("code")}
-                  placeholder="credit_card"
-                  className="font-mono"
-                />
+
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">الصور والأيقونات</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>رابط الشعار (Logo)</Label>
+                  <Input
+                    {...paymentMethodForm.register("logo")}
+                    placeholder="https://example.com/logo.png"
+                  />
+                  {paymentMethodForm.watch("logo") && (
+                    <img
+                      src={paymentMethodForm.watch("logo")}
+                      alt="Logo preview"
+                      className="h-10 object-contain mt-2"
+                    />
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>رابط الأيقونة (Icon)</Label>
+                  <Input
+                    {...paymentMethodForm.register("icon")}
+                    placeholder="https://example.com/icon.png"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>النوع *</Label>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">الرسوم والحدود</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>الرسوم الثابتة (ر.س)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    {...paymentMethodForm.register("fixedFee", { valueAsNumber: true })}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>الرسوم النسبية (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    {...paymentMethodForm.register("percentageFee", { valueAsNumber: true })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>الحد الأدنى للمبلغ</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    {...paymentMethodForm.register("minAmount", { valueAsNumber: true })}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>الحد الأقصى للمبلغ</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    {...paymentMethodForm.register("maxAmount", { valueAsNumber: true })}
+                    placeholder="غير محدد"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">تفاصيل البنك (للتحويل البنكي)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>اسم البنك (عربي)</Label>
+                  <Input
+                    {...paymentMethodForm.register("bankDetails.bankNameAr")}
+                    placeholder="البنك الأهلي"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>اسم البنك (إنجليزي)</Label>
+                  <Input
+                    {...paymentMethodForm.register("bankDetails.bankNameEn")}
+                    placeholder="NCB"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>اسم صاحب الحساب</Label>
+                  <Input
+                    {...paymentMethodForm.register("bankDetails.accountName")}
+                    placeholder="اسم صاحب الحساب"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>رقم الحساب</Label>
+                  <Input
+                    {...paymentMethodForm.register("bankDetails.accountNumber")}
+                    placeholder="SA00 0000 0000 0000"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>رقم الآيبان (IBAN)</Label>
+                  <Input
+                    {...paymentMethodForm.register("bankDetails.iban")}
+                    placeholder="SA00 0000 0000 0000 0000 0000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>رمز SWIFT</Label>
+                  <Input
+                    {...paymentMethodForm.register("bankDetails.swiftCode")}
+                    placeholder="NCBKSAJE"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">التعليمات والوصف</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>الوصف (عربي)</Label>
+                  <Textarea
+                    {...paymentMethodForm.register("descriptionAr")}
+                    placeholder="وصف طريقة الدفع"
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>الوصف (إنجليزي)</Label>
+                  <Textarea
+                    {...paymentMethodForm.register("descriptionEn")}
+                    placeholder="Payment method description"
+                    rows={2}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>تعليمات الدفع (عربي)</Label>
+                  <Textarea
+                    {...paymentMethodForm.register("instructionsAr")}
+                    placeholder="تعليمات للعميل"
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>تعليمات الدفع (إنجليزي)</Label>
+                  <Textarea
+                    {...paymentMethodForm.register("instructionsEn")}
+                    placeholder="Instructions for customer"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">إعدادات إضافية</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>ترتيب الظهور</Label>
+                  <Input
+                    type="number"
+                    {...paymentMethodForm.register("sortOrder", { valueAsNumber: true })}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>المنصات</Label>
+                  <Controller
+                    control={paymentMethodForm.control}
+                    name="platforms"
+                    render={({ field }) => (
+                      <div className="flex gap-4 mt-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={field.value?.includes("web")}
+                            onChange={(e) => {
+                              const newValue = e.target.checked
+                                ? [...(field.value || []), "web"]
+                                : (field.value || []).filter((p: string) => p !== "web");
+                              field.onChange(newValue);
+                            }}
+                          />
+                          <span>ويب</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={field.value?.includes("mobile")}
+                            onChange={(e) => {
+                              const newValue = e.target.checked
+                                ? [...(field.value || []), "mobile"]
+                                : (field.value || []).filter((p: string) => p !== "mobile");
+                              field.onChange(newValue);
+                            }}
+                          />
+                          <span>تطبيق</span>
+                        </label>
+                      </div>
+                    )}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
                 <Controller
                   control={paymentMethodForm.control}
-                  name="type"
+                  name="isActive"
                   render={({ field }) => (
-                    <Select
-                      value={field.value || undefined}
-                      onValueChange={field.onChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر النوع" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="online">إلكتروني</SelectItem>
-                        <SelectItem value="offline">نقدي</SelectItem>
-                        <SelectItem value="wallet">محفظة</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Switch
+                      id="paymentMethodActive"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   )}
                 />
+                <Label htmlFor="paymentMethodActive">نشط</Label>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Controller
-                control={paymentMethodForm.control}
-                name="isActive"
-                render={({ field }) => (
-                  <Switch
-                    id="paymentMethodActive"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-              <Label htmlFor="paymentMethodActive">نشط</Label>
-            </div>
+
             <DialogFooter>
               <Button
                 type="button"

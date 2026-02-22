@@ -104,12 +104,18 @@ export class ProductsService {
       brandId,
       qualityTypeId,
       deviceId,
+      tags,
       minPrice,
       maxPrice,
+      minRating,
+      maxRating,
+      inStock,
+      color,
+      hasOffer,
       status = 'active',
       isFeatured,
-      newArrival,
-      bestSeller,
+      isNewArrival,
+      isBestSeller,
       sort = 'createdAt',
       order = 'desc',
     } = filters || {};
@@ -126,10 +132,40 @@ export class ProductsService {
     if (deviceId)
       query.compatibleDevices = { $in: [new Types.ObjectId(deviceId)] };
     if (status) query.status = status;
-    // Filter by isFeatured field from schema (not random - must be true in database)
     if (isFeatured) query.isFeatured = true;
-    if (newArrival) query.isNewArrival = true;
-    if (bestSeller) query.isBestSeller = true;
+    if (isNewArrival) query.isNewArrival = true;
+    if (isBestSeller) query.isBestSeller = true;
+
+    if (tags && tags.length > 0) {
+      query.tags = { $in: tags };
+    }
+
+    if (minRating !== undefined || maxRating !== undefined) {
+      query.averageRating = {};
+      if (minRating !== undefined) query.averageRating.$gte = minRating;
+      if (maxRating !== undefined) query.averageRating.$lte = maxRating;
+    }
+
+    if (inStock === true) {
+      query.stockQuantity = { $gt: 0 };
+    } else if (inStock === false) {
+      query.stockQuantity = { $lte: 0 };
+    }
+
+    if (color) {
+      query.color = { $regex: new RegExp(`^${color}$`, 'i') };
+    }
+
+    if (hasOffer === true) {
+      query.compareAtPrice = { $exists: true, $ne: null };
+      query.$expr = { $gt: ['$compareAtPrice', '$basePrice'] };
+    } else if (hasOffer === false) {
+      query.$or = [
+        { compareAtPrice: { $exists: false } },
+        { compareAtPrice: null },
+        { $expr: { $lte: ['$compareAtPrice', '$basePrice'] } },
+      ];
+    }
 
     if (minPrice || maxPrice) {
       query.basePrice = {};
@@ -138,7 +174,6 @@ export class ProductsService {
     }
 
     const skip = (page - 1) * limit;
-    // Convert sortBy field names to match schema fields
     let sortField = sort;
     if (sort === 'price') sortField = 'basePrice';
 

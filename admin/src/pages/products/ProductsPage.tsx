@@ -19,6 +19,7 @@ import {
   type CategoryTree,
   type QualityType,
 } from "@/api/catalog.api";
+import { contentApi, type EducationalContent } from "@/api/content.api";
 import type { Product, Brand } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,6 +133,7 @@ interface AddProductForm {
   specifications: Record<string, string>;
   compatibleDevices: string[];
   relatedProducts: string[];
+  relatedEducationalContent: string[];
   priceLevelsPrices: Record<string, string>;
 }
 
@@ -172,6 +174,7 @@ const initialFormData: AddProductForm = {
   specifications: {},
   compatibleDevices: [],
   relatedProducts: [],
+  relatedEducationalContent: [],
   priceLevelsPrices: {},
 };
 
@@ -199,6 +202,12 @@ export function ProductsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [relatedProductsSearch, setRelatedProductsSearch] = useState("");
   const [relatedProductsDisplayCount, setRelatedProductsDisplayCount] =
+    useState(5);
+  const [devicesSearch, setDevicesSearch] = useState("");
+  const [devicesPage, setDevicesPage] = useState(1);
+  const devicesLimit = 20;
+  const [educationalContentSearch, setEducationalContentSearch] = useState("");
+  const [educationalContentDisplayCount, setEducationalContentDisplayCount] =
     useState(5);
   const locale = i18n.language === "ar" ? "ar-SA" : "en-US";
 
@@ -241,12 +250,20 @@ export function ProductsPage() {
     enabled: isPricesDialogOpen || isAddDialogOpen,
   });
 
-  // Fetch devices for compatibility
-  const { data: devices = [] } = useQuery<Device[]>({
-    queryKey: ["devices-all"],
-    queryFn: () => catalogDeviceApi.getDevices({ limit: 200 }),
+  // Fetch devices for compatibility (paginated)
+  const { data: devicesData, isLoading: isLoadingDevices } = useQuery({
+    queryKey: ["devices-paginated", devicesSearch, devicesPage],
+    queryFn: () =>
+      catalogDeviceApi.getDevicesPaginated({
+        search: devicesSearch || undefined,
+        page: devicesPage,
+        limit: devicesLimit,
+      }),
     enabled: isAddDialogOpen || isDetailDialogOpen,
   });
+
+  const devices = devicesData?.items || [];
+  const devicesPagination = devicesData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
 
   // Fetch products for related products selection
   const { data: availableProductsData } = useQuery({
@@ -284,6 +301,37 @@ export function ProductsPage() {
   );
   const hasMoreProducts =
     availableProducts.length > relatedProductsDisplayCount;
+
+  // Fetch educational content for related educational content selection
+  const { data: educationalContentData } = useQuery({
+    queryKey: ["educational-content-for-products", isAddDialogOpen],
+    queryFn: () =>
+      contentApi.getEducationalContent({
+        status: "published",
+        limit: 1000,
+      }),
+    enabled: isAddDialogOpen,
+  });
+
+  // Filter educational content by search
+  const availableEducationalContent = (
+    educationalContentData?.data || []
+  ).filter((content: EducationalContent) => {
+    if (!educationalContentSearch.trim()) return true;
+    const searchLower = educationalContentSearch.toLowerCase();
+    return (
+      (content.title || "").toLowerCase().includes(searchLower) ||
+      (content.titleAr || "").toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Get displayed educational content (limited by displayCount)
+  const displayedEducationalContent = availableEducationalContent.slice(
+    0,
+    educationalContentDisplayCount
+  );
+  const hasMoreEducationalContent =
+    availableEducationalContent.length > educationalContentDisplayCount;
 
   // Fetch product reviews when detail dialog is open
   const { data: productReviews = [] } = useQuery<ProductReview[]>({
@@ -516,6 +564,8 @@ export function ProductsPage() {
     setUploadError(null);
     setRelatedProductsSearch("");
     setRelatedProductsDisplayCount(5);
+    setEducationalContentSearch("");
+    setEducationalContentDisplayCount(5);
     setIsAddDialogOpen(true);
   };
 
@@ -569,9 +619,13 @@ export function ProductsPage() {
         (product as any).compatibleDevices?.map((d: any) => d._id || d) || [],
       relatedProducts:
         (product as any).relatedProducts?.map((p: any) => p._id || p) || [],
+      relatedEducationalContent:
+        (product as any).relatedEducationalContent?.map((c: any) => c._id || c) || [],
       priceLevelsPrices: {},
     });
     setFormTagsInput(((product as any).tags || []).join(", "));
+    setEducationalContentSearch("");
+    setEducationalContentDisplayCount(5);
     setIsAddDialogOpen(true);
   };
 
@@ -648,6 +702,9 @@ export function ProductsPage() {
       }),
       ...(formData.relatedProducts.length > 0 && {
         relatedProducts: formData.relatedProducts,
+      }),
+      ...(formData.relatedEducationalContent.length > 0 && {
+        relatedEducationalContent: formData.relatedEducationalContent,
       }),
     };
 
@@ -872,6 +929,10 @@ export function ProductsPage() {
             setFormTagsInput("");
             setRelatedProductsSearch("");
             setRelatedProductsDisplayCount(5);
+            setEducationalContentSearch("");
+            setEducationalContentDisplayCount(5);
+            setDevicesSearch("");
+            setDevicesPage(1);
           }
         }}
       >
@@ -1207,39 +1268,114 @@ export function ProductsPage() {
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
                 الأجهزة المتوافقة
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg">
-                {devices.map((device) => (
-                  <label
-                    key={device._id}
-                    className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded cursor-pointer"
+
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="البحث عن جهاز بالاسم..."
+                  value={devicesSearch}
+                  onChange={(e) => {
+                    setDevicesSearch(e.target.value);
+                    setDevicesPage(1);
+                  }}
+                  className="ps-10"
+                />
+                {devicesSearch && (
+                  <button
+                    onClick={() => {
+                      setDevicesSearch("");
+                      setDevicesPage(1);
+                    }}
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
-                    <input
-                      type="checkbox"
-                      checked={formData.compatibleDevices.includes(device._id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          handleFormChange("compatibleDevices", [
-                            ...formData.compatibleDevices,
-                            device._id,
-                          ]);
-                        } else {
-                          handleFormChange(
-                            "compatibleDevices",
-                            formData.compatibleDevices.filter(
-                              (id) => id !== device._id
-                            )
-                          );
-                        }
-                      }}
-                      className="w-4 h-4 rounded"
-                    />
-                    <span className="text-sm">{device.name}</span>
-                  </label>
-                ))}
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
-              {devices.length === 0 && (
+
+              {/* Selected Devices Preview */}
+              {formData.compatibleDevices.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-2 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    تم اختيار {formData.compatibleDevices.length} جهاز
+                  </span>
+                </div>
+              )}
+
+              {/* Devices List */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg">
+                {isLoadingDevices ? (
+                  <div className="col-span-full flex items-center justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  </div>
+                ) : (
+                  devices.map((device) => (
+                    <label
+                      key={device._id}
+                      className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.compatibleDevices.includes(device._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            handleFormChange("compatibleDevices", [
+                              ...formData.compatibleDevices,
+                              device._id,
+                            ]);
+                          } else {
+                            handleFormChange(
+                              "compatibleDevices",
+                              formData.compatibleDevices.filter(
+                                (id) => id !== device._id
+                              )
+                            );
+                          }
+                        }}
+                        className="w-4 h-4 rounded"
+                      />
+                      <span className="text-sm truncate" title={device.nameAr || device.name}>
+                        {device.nameAr || device.name}
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+
+              {/* Pagination Controls */}
+              {devicesPagination.totalPages > 1 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {devicesPagination.total} جهاز - صفحة {devicesPagination.page} من {devicesPagination.totalPages}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={devicesPage === 1}
+                      onClick={() => setDevicesPage((p) => p - 1)}
+                    >
+                      السابق
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={devicesPage >= devicesPagination.totalPages}
+                      onClick={() => setDevicesPage((p) => p + 1)}
+                    >
+                      التالي
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {!isLoadingDevices && devices.length === 0 && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
-                  جاري تحميل الأجهزة...
+                  {devicesSearch ? "لا توجد أجهزة تطابق البحث" : "لا توجد أجهزة"}
                 </p>
               )}
             </div>
@@ -1344,6 +1480,108 @@ export function ProductsPage() {
               {formData.relatedProducts.length > 0 && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                   تم اختيار {formData.relatedProducts.length} منتج
+                </p>
+              )}
+            </div>
+
+            {/* Related Educational Content Section */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-slate-700 pb-2">
+                المحتوى التعليمي المرتبط
+              </h3>
+
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="البحث عن محتوى تعليمي..."
+                  value={educationalContentSearch}
+                  onChange={(e) => {
+                    setEducationalContentSearch(e.target.value);
+                    setEducationalContentDisplayCount(5);
+                  }}
+                  className="ps-10"
+                />
+                {educationalContentSearch && (
+                  <button
+                    onClick={() => {
+                      setEducationalContentSearch("");
+                      setEducationalContentDisplayCount(5);
+                    }}
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Educational Content List */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg">
+                {displayedEducationalContent.map((content: EducationalContent) => (
+                  <label
+                    key={content._id}
+                    className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-slate-800 rounded cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.relatedEducationalContent.includes(content._id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          handleFormChange("relatedEducationalContent", [
+                            ...formData.relatedEducationalContent,
+                            content._id,
+                          ]);
+                        } else {
+                          handleFormChange(
+                            "relatedEducationalContent",
+                            formData.relatedEducationalContent.filter(
+                              (id) => id !== content._id
+                            )
+                          );
+                        }
+                      }}
+                      className="w-4 h-4 rounded"
+                    />
+                    <span
+                      className="text-sm truncate"
+                      title={content.titleAr || content.title}
+                    >
+                      {content.titleAr || content.title}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Show More Button */}
+              {hasMoreEducationalContent && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setEducationalContentDisplayCount((prev) => prev + 5)
+                  }
+                  className="w-full"
+                >
+                  المزيد (
+                  {availableEducationalContent.length - educationalContentDisplayCount}{" "}
+                  متبقي)
+                </Button>
+              )}
+
+              {/* Empty State */}
+              {displayedEducationalContent.length === 0 && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                  {educationalContentSearch
+                    ? "لا يوجد محتوى تعليمي يطابق البحث"
+                    : "جاري تحميل المحتوى التعليمي..."}
+                </p>
+              )}
+
+              {/* Selected Count */}
+              {formData.relatedEducationalContent.length > 0 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                  تم اختيار {formData.relatedEducationalContent.length} محتوى
                 </p>
               )}
             </div>

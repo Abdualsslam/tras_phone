@@ -401,6 +401,14 @@ export class SettingsController {
     return ResponseBuilder.success(method, 'Payment method updated');
   }
 
+  @Delete('admin/payment-methods/:id')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete payment method' })
+  async deletePaymentMethod(@Param('id') id: string) {
+    await this.settingsService.deletePaymentMethod(id);
+    return ResponseBuilder.success(null, 'Payment method deleted');
+  }
+
   // ==================== App Versions ====================
 
   @Get('app-versions')

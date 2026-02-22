@@ -531,6 +531,73 @@ export class CatalogController {
   // Devices (Public Read)
   // ═════════════════════════════════════
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Get('devices/paginated')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get devices with pagination (admin only)',
+    description:
+      'Retrieve devices with search and pagination. Admin only endpoint.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 20)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search by name, nameAr, or slug',
+  })
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    type: String,
+    description: 'Filter by brand ID',
+  })
+  @ApiQuery({
+    name: 'includeInactive',
+    required: false,
+    type: Boolean,
+    description: 'Include inactive devices',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Devices retrieved successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async getDevicesPaginated(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('brandId') brandId?: string,
+    @Query('includeInactive') includeInactive?: boolean,
+  ) {
+    const result = await this.catalogService.findAllDevicesPaginated({
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 20,
+      search,
+      brandId,
+      includeInactive,
+    });
+    return ResponseBuilder.success(
+      result.data,
+      'Devices retrieved',
+      'تم استرجاع الأجهزة',
+      result.pagination,
+    );
+  }
+
   @Public()
   @Get('devices')
   @ApiOperation({
