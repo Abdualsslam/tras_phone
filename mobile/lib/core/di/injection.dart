@@ -72,6 +72,7 @@ import '../cubit/theme_cubit.dart';
 import '../services/biometric_credential_service.dart';
 import '../services/biometric_service.dart';
 import '../services/share_service.dart';
+import '../constants/storage_keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -500,7 +501,8 @@ Future<void> setupDependencies() async {
 Future<void> _handleForcedLogout() async {
   // Clear all auth-related data
   await getIt<TokenManager>().clearTokens();
-  await getIt<SecureStorage>().deleteAll();
+  await getIt<LocalStorage>().setBool(StorageKeys.isLoggedIn, false);
+  await getIt<LocalStorage>().remove(StorageKeys.userData);
 
   // Clear product/home/profile cache - prices differ by customer tier
   try {
