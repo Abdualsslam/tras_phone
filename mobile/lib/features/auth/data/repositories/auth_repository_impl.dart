@@ -278,7 +278,15 @@ class AuthRepositoryImpl implements AuthRepository {
     await _secureStorage.delete(StorageKeys.refreshToken);
     await _localStorage.setBool(StorageKeys.isLoggedIn, false);
     await _localStorage.remove(StorageKeys.userData);
-    await clearBiometricCredentials();
+
+    // Keep biometric credentials after logout when biometric is enabled,
+    // so user can sign in again using fingerprint/Face ID.
+    final biometricEnabled =
+        _localStorage.getBool(StorageKeys.biometricEnabled) ?? false;
+    if (!biometricEnabled) {
+      await clearBiometricCredentials();
+    }
+
     _cachedUser = null;
   }
 

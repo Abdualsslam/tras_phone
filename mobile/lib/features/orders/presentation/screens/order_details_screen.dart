@@ -406,6 +406,28 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
     };
   }
 
+  String _transferStatusLabel(String? status) {
+    return switch ((status ?? 'not_required').toLowerCase()) {
+      'awaiting_receipt' => 'بانتظار رفع الإيصال',
+      'receipt_uploaded' => 'تم رفع الإيصال',
+      'verified' => 'تم التحقق',
+      'rejected' => 'مرفوض',
+      'not_required' => 'غير مطلوب',
+      _ => 'غير معروف',
+    };
+  }
+
+  Color _transferStatusColor(String? status) {
+    return switch ((status ?? 'not_required').toLowerCase()) {
+      'awaiting_receipt' => AppColors.warning,
+      'receipt_uploaded' => AppColors.info,
+      'verified' => AppColors.success,
+      'rejected' => AppColors.error,
+      'not_required' => AppColors.textSecondaryLight,
+      _ => AppColors.textSecondaryLight,
+    };
+  }
+
   // ─── Status Timeline (Modern Vertical) ───
   Widget _buildStatusTimeline(ThemeData theme, bool isDark) {
     final order = _order!;

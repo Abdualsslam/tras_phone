@@ -12,7 +12,6 @@ import '../../../catalog/data/models/product_review_model.dart';
 import '../../../catalog/presentation/widgets/add_review_bottom_sheet.dart';
 import '../../../catalog/presentation/widgets/product_review_card.dart';
 import '../../../catalog/presentation/widgets/rating_bar_row.dart';
-import '../../../../l10n/app_localizations.dart';
 
 class ProductReviewsScreen extends StatefulWidget {
   final String productId;
