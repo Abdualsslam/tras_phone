@@ -30,6 +30,7 @@ abstract class FavoriteRemoteDataSource {
 class FavoriteRemoteDataSourceImpl implements FavoriteRemoteDataSource {
   final ApiClient _apiClient;
   final FavoriteCacheService _cacheService;
+  Future<Set<String>>? _favoriteIdsInFlight;
 
   FavoriteRemoteDataSourceImpl({
     required ApiClient apiClient,
@@ -68,6 +69,19 @@ class FavoriteRemoteDataSourceImpl implements FavoriteRemoteDataSource {
       return cachedIds;
     }
 
+    if (_favoriteIdsInFlight != null) {
+      return _favoriteIdsInFlight!;
+    }
+
+    _favoriteIdsInFlight = _resolveFavoriteIds();
+    try {
+      return await _favoriteIdsInFlight!;
+    } finally {
+      _favoriteIdsInFlight = null;
+    }
+  }
+
+  Future<Set<String>> _resolveFavoriteIds() async {
     final favorites = await getFavorites();
     return favorites
         .map((item) => item.productId.trim())

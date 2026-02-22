@@ -3,14 +3,17 @@ library;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
+import '../../../favorite/data/datasources/favorite_remote_datasource.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/extensions/product_offer_extension.dart';
 
 /// Card widget for displaying products with offers
-class ProductOfferCard extends StatelessWidget {
+class ProductOfferCard extends StatefulWidget {
   final ProductEntity product;
   final VoidCallback? onTap;
   final bool isFavorite;
@@ -25,11 +28,107 @@ class ProductOfferCard extends StatelessWidget {
   });
 
   @override
+  State<ProductOfferCard> createState() => _ProductOfferCardState();
+}
+
+class _ProductOfferCardState extends State<ProductOfferCard> {
+  FavoriteRemoteDataSource? _favoriteDataSource;
+  bool _isFavoriteLocal = false;
+  bool _isTogglingFavorite = false;
+
+  bool get _usesExternalFavoriteControl => widget.onToggleFavorite != null;
+
+  bool get _displayedFavorite =>
+      _usesExternalFavoriteControl ? widget.isFavorite : _isFavoriteLocal;
+
+  @override
+  void initState() {
+    super.initState();
+    _isFavoriteLocal = widget.isFavorite;
+
+    if (!_usesExternalFavoriteControl) {
+      _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
+      _resolveInitialFavoriteState();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ProductOfferCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.product.id != widget.product.id ||
+        oldWidget.isFavorite != widget.isFavorite) {
+      _isFavoriteLocal = widget.isFavorite;
+    }
+
+    if (!_usesExternalFavoriteControl &&
+        oldWidget.product.id != widget.product.id) {
+      _resolveInitialFavoriteState();
+    }
+  }
+
+  Future<void> _resolveInitialFavoriteState() async {
+    final dataSource = _favoriteDataSource;
+    if (dataSource == null) return;
+
+    try {
+      final ids = await dataSource.getFavoriteProductIds();
+      if (!mounted) return;
+      setState(() {
+        _isFavoriteLocal = ids.contains(widget.product.id);
+      });
+    } catch (_) {
+      // Keep current local state when resolving fails.
+    }
+  }
+
+  Future<void> _handleFavoriteTap() async {
+    HapticFeedback.lightImpact();
+
+    if (_usesExternalFavoriteControl) {
+      widget.onToggleFavorite?.call();
+      return;
+    }
+
+    if (_isTogglingFavorite) return;
+    final dataSource = _favoriteDataSource;
+    if (dataSource == null) return;
+
+    final previous = _isFavoriteLocal;
+    setState(() {
+      _isFavoriteLocal = !previous;
+      _isTogglingFavorite = true;
+    });
+
+    try {
+      final next = await dataSource.toggleFavorite(widget.product.id, previous);
+
+      if (!mounted) return;
+      setState(() {
+        _isFavoriteLocal = next;
+        _isTogglingFavorite = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isFavoriteLocal = previous;
+        _isTogglingFavorite = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تعذر تحديث المفضلة، حاول مرة أخرى'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : AppColors.cardLight,
@@ -58,7 +157,7 @@ class ProductOfferCard extends StatelessWidget {
                 children: [
                   // Product Name
                   Text(
-                    product.nameAr,
+                    widget.product.nameAr,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -76,10 +175,10 @@ class ProductOfferCard extends StatelessWidget {
                   _buildPriceSection(isDark),
 
                   // Saved Amount
-                  if (product.hasDirectOffer) ...[
+                  if (widget.product.hasDirectOffer) ...[
                     SizedBox(height: 4.h),
                     Text(
-                      product.savedAmountText,
+                      widget.product.savedAmountText,
                       style: TextStyle(
                         fontSize: 11.sp,
                         color: AppColors.success,
@@ -107,9 +206,9 @@ class ProductOfferCard extends StatelessWidget {
           ),
           child: AspectRatio(
             aspectRatio: 1,
-            child: product.mainImage != null
+            child: widget.product.mainImage != null
                 ? CachedNetworkImage(
-                    imageUrl: product.mainImage!,
+                    imageUrl: widget.product.mainImage!,
                     fit: BoxFit.cover,
                     width: double.infinity,
                     placeholder: (context, url) => Center(
@@ -141,7 +240,7 @@ class ProductOfferCard extends StatelessWidget {
         ),
 
         // Discount Badge
-        if (product.hasDirectOffer)
+        if (widget.product.hasDirectOffer)
           Positioned(
             top: 8.h,
             left: 8.w,
@@ -151,8 +250,8 @@ class ProductOfferCard extends StatelessWidget {
                 color: AppColors.error,
                 borderRadius: BorderRadius.circular(8.r),
               ),
-              child: Text(
-                product.discountText,
+                child: Text(
+                  widget.product.discountText,
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -163,39 +262,38 @@ class ProductOfferCard extends StatelessWidget {
           ),
 
         // Favorite Button
-        if (onToggleFavorite != null)
-          Positioned(
-            top: 8.h,
-            right: 8.w,
-            child: GestureDetector(
-              onTap: onToggleFavorite,
-              child: Container(
-                width: 32.w,
-                height: 32.w,
-                decoration: BoxDecoration(
-                  color: (isDark ? AppColors.cardDark : Colors.white)
-                      .withValues(alpha: 0.95),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  isFavorite ? Iconsax.heart5 : Iconsax.heart,
-                  size: 16.sp,
-                  color: isFavorite
-                      ? AppColors.error
-                      : (isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight),
-                ),
+        Positioned(
+          top: 8.h,
+          right: 8.w,
+          child: GestureDetector(
+            onTap: _handleFavoriteTap,
+            child: Container(
+              width: 32.w,
+              height: 32.w,
+              decoration: BoxDecoration(
+                color: (isDark ? AppColors.cardDark : Colors.white)
+                    .withValues(alpha: 0.95),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(
+                _displayedFavorite ? Iconsax.heart5 : Iconsax.heart,
+                size: 16.sp,
+                color: _displayedFavorite
+                    ? AppColors.error
+                    : (isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight),
               ),
             ),
           ),
+        ),
       ],
     );
   }
@@ -210,7 +308,7 @@ class ProductOfferCard extends StatelessWidget {
           children: [
             Flexible(
               child: Text(
-                '${product.currentPriceForOffer.toStringAsFixed(0)} ر.س',
+                '${widget.product.currentPriceForOffer.toStringAsFixed(0)} ر.س',
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w700,
@@ -224,10 +322,10 @@ class ProductOfferCard extends StatelessWidget {
         ),
 
         // Original Price (if discounted)
-        if (product.hasDirectOffer && product.compareAtPrice != null) ...[
+        if (widget.product.hasDirectOffer && widget.product.compareAtPrice != null) ...[
           SizedBox(height: 4.h),
           Text(
-            '${product.originalPriceForOffer.toStringAsFixed(0)} ر.س',
+            '${widget.product.originalPriceForOffer.toStringAsFixed(0)} ر.س',
             style: TextStyle(
               fontSize: 12.sp,
               decoration: TextDecoration.lineThrough,
