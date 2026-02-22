@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as ExcelJS from 'exceljs';
@@ -71,8 +75,6 @@ const PRODUCT_HEADERS = [
   'compatibleDevices',
 ] as const;
 
-type UploadedExcelBuffer = Buffer | Uint8Array | ArrayBuffer;
-
 @Injectable()
 export class ProductsImportExportService {
   constructor(
@@ -99,7 +101,8 @@ export class ProductsImportExportService {
     const filter: Record<string, any> = {};
 
     if (query.brandId) filter.brandId = new Types.ObjectId(query.brandId);
-    if (query.categoryId) filter.categoryId = new Types.ObjectId(query.categoryId);
+    if (query.categoryId)
+      filter.categoryId = new Types.ObjectId(query.categoryId);
     if (query.qualityTypeId) {
       filter.qualityTypeId = new Types.ObjectId(query.qualityTypeId);
     }
@@ -149,7 +152,7 @@ export class ProductsImportExportService {
     }
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(file.buffer as UploadedExcelBuffer);
+    await workbook.xlsx.load(file.buffer as any);
 
     const products = this.readSheetRows<ProductRow>(workbook, 'Products');
     const compatibility = this.readSheetRows<DeviceCompatibilityRow>(
@@ -169,7 +172,9 @@ export class ProductsImportExportService {
     });
 
     const brandSlugs = uniq(products.map((r) => r.brandSlug).filter(Boolean));
-    const categorySlugs = uniq(products.map((r) => r.categorySlug).filter(Boolean));
+    const categorySlugs = uniq(
+      products.map((r) => r.categorySlug).filter(Boolean),
+    );
     const qualityTypeCodes = uniq(
       products.map((r) => r.qualityTypeSlug).filter(Boolean),
     );
@@ -178,12 +183,13 @@ export class ProductsImportExportService {
       ...compatibility.map((r) => r.deviceSlug),
     ]);
 
-    const missingReferences = await this.referenceResolver.findMissingReferences(
-      brandSlugs,
-      categorySlugs,
-      qualityTypeCodes,
-      deviceSlugs,
-    );
+    const missingReferences =
+      await this.referenceResolver.findMissingReferences(
+        brandSlugs,
+        categorySlugs,
+        qualityTypeCodes,
+        deviceSlugs,
+      );
 
     if (hasMissingReferences(missingReferences)) {
       for (const slug of missingReferences.brands) {
@@ -276,7 +282,7 @@ export class ProductsImportExportService {
     }
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(file.buffer as UploadedExcelBuffer);
+    await workbook.xlsx.load(file.buffer as any);
 
     const rows = this.readSheetRows<ProductRow>(workbook, 'Products');
     const compatibility = this.readSheetRows<DeviceCompatibilityRow>(
@@ -296,7 +302,9 @@ export class ProductsImportExportService {
       const row = rows[i];
 
       try {
-        const existingBySku = await this.productModel.findOne({ sku: row.sku }).exec();
+        const existingBySku = await this.productModel
+          .findOne({ sku: row.sku })
+          .exec();
 
         if (row.id && existingBySku && String(existingBySku._id) !== row.id) {
           errors.push({
@@ -371,7 +379,7 @@ export class ProductsImportExportService {
     }
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(file.buffer as UploadedExcelBuffer);
+    await workbook.xlsx.load(file.buffer as any);
 
     const rows = this.readSheetRows<Record<string, any>>(workbook, 'Products');
     const errors: ValidationError[] = [];
@@ -445,7 +453,9 @@ export class ProductsImportExportService {
         patch.isBestSeller = parseBoolean(row.isBestSeller);
       }
 
-      await this.productModel.updateOne({ _id: product._id }, { $set: patch }).exec();
+      await this.productModel
+        .updateOne({ _id: product._id }, { $set: patch })
+        .exec();
       updated += 1;
     }
 
@@ -457,16 +467,24 @@ export class ProductsImportExportService {
     });
   }
 
-  private mapProductRow(row: ProductRow, refs: Awaited<ReturnType<ReferenceResolver['loadAllReferences']>>) {
+  private mapProductRow(
+    row: ProductRow,
+    refs: Awaited<ReturnType<ReferenceResolver['loadAllReferences']>>,
+  ) {
     const brandId = this.referenceResolver.resolveBrand(row.brandSlug, refs);
-    const categoryId = this.referenceResolver.resolveCategory(row.categorySlug, refs);
+    const categoryId = this.referenceResolver.resolveCategory(
+      row.categorySlug,
+      refs,
+    );
     const qualityTypeId = this.referenceResolver.resolveQualityType(
       row.qualityTypeSlug,
       refs,
     );
 
     if (!brandId || !categoryId || !qualityTypeId) {
-      throw new BadRequestException('Invalid reference values (brand/category/quality)');
+      throw new BadRequestException(
+        'Invalid reference values (brand/category/quality)',
+      );
     }
 
     const additionalCategoryIds = parseStringArray(row.additionalCategorySlugs)
@@ -498,7 +516,9 @@ export class ProductsImportExportService {
       stockQuantity: parseNumber(row.stockQuantity) ?? 0,
       lowStockThreshold: parseNumber(row.lowStockThreshold) ?? 5,
       trackInventory:
-        row.trackInventory === undefined ? true : parseBoolean(row.trackInventory),
+        row.trackInventory === undefined
+          ? true
+          : parseBoolean(row.trackInventory),
       allowBackorder: parseBoolean((row as any).allowBackorder),
       status: row.status || 'draft',
       isActive: row.isActive === undefined ? true : parseBoolean(row.isActive),
@@ -534,8 +554,13 @@ export class ProductsImportExportService {
     for (let i = 0; i < rows.length; i += 1) {
       const row = rows[i];
       const rowNumber = i + 2;
-      const product = await this.productModel.findOne({ sku: row.productSku }).exec();
-      const deviceId = this.referenceResolver.resolveDevice(row.deviceSlug, refs);
+      const product = await this.productModel
+        .findOne({ sku: row.productSku })
+        .exec();
+      const deviceId = this.referenceResolver.resolveDevice(
+        row.deviceSlug,
+        refs,
+      );
 
       if (!product) {
         errors.push({
@@ -637,7 +662,14 @@ export class ProductsImportExportService {
     brandsWs.getRow(1).font = { bold: true };
 
     const categoriesWs = workbook.addWorksheet('Categories');
-    categoriesWs.addRow(['slug', 'name', 'nameAr', 'parentSlug', 'level', 'isActive']);
+    categoriesWs.addRow([
+      'slug',
+      'name',
+      'nameAr',
+      'parentSlug',
+      'level',
+      'isActive',
+    ]);
     categoriesWs.getRow(1).font = { bold: true };
 
     const devicesWs = workbook.addWorksheet('Devices');
@@ -670,7 +702,9 @@ export class ProductsImportExportService {
       ]);
     });
 
-    const brandById = new Map(refs.brands.map((b: any) => [String(b._id), b.slug]));
+    const brandById = new Map(
+      refs.brands.map((b: any) => [String(b._id), b.slug]),
+    );
     refs.devices.forEach((d: any) => {
       devicesWs.addRow([
         d.slug,
@@ -709,7 +743,9 @@ export class ProductsImportExportService {
     const ws = workbook.getWorksheet(sheetName);
     if (!ws) {
       if (required) {
-        throw new NotFoundException(`Sheet '${sheetName}' not found in workbook`);
+        throw new NotFoundException(
+          `Sheet '${sheetName}' not found in workbook`,
+        );
       }
       return [];
     }
