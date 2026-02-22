@@ -12,10 +12,7 @@ import 'section_header.dart';
 class BrandsSection extends StatelessWidget {
   final List<BrandEntity> brands;
 
-  const BrandsSection({
-    super.key,
-    required this.brands,
-  });
+  const BrandsSection({super.key, required this.brands});
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +53,17 @@ class _BrandChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/brand/${brand.slug}'),
+      onTap: () {
+        final route = Uri(
+          path: '/devices',
+          queryParameters: {
+            'flow': '1',
+            'brandId': brand.id,
+            'brandName': brand.nameAr,
+          },
+        ).toString();
+        context.push(route);
+      },
       child: SizedBox(
         width: 74.w,
         child: Column(
@@ -120,11 +127,7 @@ class _BrandChip extends StatelessWidget {
     return Container(
       color: AppColors.primary.withValues(alpha: 0.06),
       child: Center(
-        child: Icon(
-          Iconsax.tag,
-          size: 24.sp,
-          color: AppColors.primary,
-        ),
+        child: Icon(Iconsax.tag, size: 24.sp, color: AppColors.primary),
       ),
     );
   }

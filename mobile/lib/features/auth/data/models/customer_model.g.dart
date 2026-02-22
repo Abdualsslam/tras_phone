@@ -42,6 +42,8 @@ CustomerModel _$CustomerModelFromJson(Map<String, dynamic> json) =>
           json['preferredContactMethod'] as String? ?? 'whatsapp',
       instagramHandle: json['instagramHandle'] as String?,
       twitterHandle: json['twitterHandle'] as String?,
+      canCashRefund: json['canCashRefund'] as bool? ?? false,
+      canCashOnDelivery: json['canCashOnDelivery'] as bool? ?? true,
       approvedAt: json['approvedAt'] == null
           ? null
           : DateTime.parse(json['approvedAt'] as String),
@@ -78,6 +80,8 @@ Map<String, dynamic> _$CustomerModelToJson(CustomerModel instance) =>
       'preferredContactMethod': instance.preferredContactMethod,
       'instagramHandle': instance.instagramHandle,
       'twitterHandle': instance.twitterHandle,
+      'canCashRefund': instance.canCashRefund,
+      'canCashOnDelivery': instance.canCashOnDelivery,
       'approvedAt': instance.approvedAt?.toIso8601String(),
       'createdAt': instance.createdAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),

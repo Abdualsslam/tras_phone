@@ -15,7 +15,7 @@ import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../../data/models/product_review_model.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../wishlist/data/datasources/wishlist_remote_datasource.dart';
+import '../../../favorite/data/datasources/favorite_remote_datasource.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../widgets/add_review_bottom_sheet.dart';
 import '../widgets/product_review_card.dart';
@@ -34,9 +34,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   int _currentImageIndex = 0;
   int _quantity = 1;
   bool _isFavorite = false;
-  bool _isLoadingWishlist = false;
+  bool _isLoadingFavorite = false;
   late PageController _pageController;
-  late WishlistRemoteDataSource _wishlistDataSource;
+  late FavoriteRemoteDataSource _favoriteDataSource;
   late CatalogRepository _catalogRepository;
 
   List<ProductReviewModel> _reviews = [];
@@ -51,9 +51,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     super.initState();
     _printProductData();
     _pageController = PageController();
-    _wishlistDataSource = getIt<WishlistRemoteDataSource>();
+    _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
     _catalogRepository = getIt<CatalogRepository>();
-    _checkWishlistStatus();
+    _checkFavoriteStatus();
     _loadReviews();
   }
 
@@ -145,47 +145,47 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
   }
 
-  Future<void> _checkWishlistStatus() async {
+  Future<void> _checkFavoriteStatus() async {
     try {
-      final isInWishlist = await _wishlistDataSource.isInWishlist(widget.product.id);
+      final isFavorite = await _favoriteDataSource.isFavorite(widget.product.id);
       if (mounted) {
         setState(() {
-          _isFavorite = isInWishlist;
+          _isFavorite = isFavorite;
         });
       }
     } catch (e) {
-      // Silently fail - wishlist check is optional
-      // If check fails, try to get wishlist and check if product is in it
+      // Silently fail - favorite check is optional
+      // If check fails, try to get favorites and check if product is in it
       try {
-        final wishlist = await _wishlistDataSource.getWishlist();
-        final isInWishlist = wishlist.any((item) => item.productId.toString() == widget.product.id);
+        final favorites = await _favoriteDataSource.getFavorites();
+        final isFavorite = favorites.any((item) => item.productId.toString() == widget.product.id);
         if (mounted) {
           setState(() {
-            _isFavorite = isInWishlist;
+            _isFavorite = isFavorite;
           });
         }
       } catch (e2) {
         // If both fail, just leave it as false
-        debugPrint('Error checking wishlist status: $e, $e2');
+        debugPrint('Error checking favorite status: $e, $e2');
       }
     }
   }
 
-  Future<void> _toggleWishlist() async {
-    if (_isLoadingWishlist) return;
+  Future<void> _toggleFavorite() async {
+    if (_isLoadingFavorite) return;
 
     final wasFavorite = _isFavorite;
     
     // Optimistic update
     setState(() {
       _isFavorite = !_isFavorite;
-      _isLoadingWishlist = true;
+      _isLoadingFavorite = true;
     });
 
     HapticFeedback.lightImpact();
 
     try {
-      final newState = await _wishlistDataSource.toggleWishlist(
+      final newState = await _favoriteDataSource.toggleFavorite(
         widget.product.id,
         wasFavorite,
       );
@@ -193,7 +193,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       if (mounted) {
         setState(() {
           _isFavorite = newState;
-          _isLoadingWishlist = false;
+          _isLoadingFavorite = false;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -210,7 +210,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _isLoadingWishlist = false;
+          _isLoadingFavorite = false;
         });
 
         // 409 = المنتج موجود فعلاً في المفضلة → نحدّث الواجهة ولا نعتبره خطأ
@@ -351,7 +351,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             ),
           ),
           child: IconButton(
-            icon: _isLoadingWishlist
+            icon: _isLoadingFavorite
                 ? SizedBox(
                     width: 20.sp,
                     height: 20.sp,
@@ -366,7 +366,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     _isFavorite ? Iconsax.heart5 : Iconsax.heart,
                     color: _isFavorite ? AppColors.error : null,
                   ),
-            onPressed: _toggleWishlist,
+            onPressed: _toggleFavorite,
           ),
         ),
         Container(

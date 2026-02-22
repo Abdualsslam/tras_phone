@@ -66,9 +66,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get orders => 'طلباتي';
 
   @override
-  String get wishlist => 'المفضلة';
-
-  @override
   String get favorites => 'المفضلة';
 
   @override
@@ -435,29 +432,30 @@ class AppLocalizationsAr extends AppLocalizations {
   String get retryAction => 'إعادة المحاولة';
 
   @override
-  String get removedFromWishlist => 'تم الإزالة من المفضلة';
+  String get removedFromFavorites => 'تم الإزالة من المفضلة';
 
   @override
   String get movedToCart => 'تم نقل المنتج للسلة';
 
   @override
-  String get clearWishlist => 'مسح المفضلة';
+  String get clearFavorites => 'مسح المفضلة';
 
   @override
   String get clearAll => 'مسح الكل';
 
   @override
-  String get clearWishlistConfirm =>
+  String get clearFavoritesConfirm =>
       'هل أنت متأكد من مسح جميع المنتجات من المفضلة؟';
 
   @override
-  String get wishlistCleared => 'تم مسح المفضلة';
+  String get favoritesCleared => 'تم مسح المفضلة';
 
   @override
-  String get emptyWishlist => 'قائمة المفضلة فارغة';
+  String get emptyFavorites => 'قائمة المفضلة فارغة';
 
   @override
-  String get emptyWishlistHint => 'أضف المنتجات التي تعجبك للوصول إليها لاحقاً';
+  String get emptyFavoritesHint =>
+      'أضف المنتجات التي تعجبك للوصول إليها لاحقاً';
 
   @override
   String get featureUnderDevelopment => 'هذه الميزة قيد التطوير';
@@ -705,8 +703,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get viewStockAlerts => 'عرض تنبيهات المخزون';
 
   @override
-  String get emptyWishlistDescription =>
+  String get emptyFavoritesDescription =>
       'لم تقم بإضافة أي منتجات إلى المفضلة بعد.\nتصفح منتجاتنا وأضف ما يعجبك!';
+
+  @override
+  String get stockAlertRemoved => 'تم حذف تنبيه المخزون';
 
   @override
   String get browseProducts => 'تصفح المنتجات';

@@ -127,8 +127,8 @@ export class ProductResponseDto {
     @ApiProperty({ example: 0, description: 'Average rating' })
     averageRating: number;
 
-    @ApiProperty({ example: 0, description: 'Wishlist count' })
-    wishlistCount: number;
+    @ApiProperty({ example: 0, description: 'Favorite count' })
+    favoriteCount: number;
 
     @ApiProperty({ type: [ProductResponseDto], required: false, description: 'Related products' })
     relatedProducts?: ProductResponseDto[];

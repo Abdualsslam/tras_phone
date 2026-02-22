@@ -974,60 +974,60 @@ export class ProductsController {
   // ═════════════════════════════════════
 
   @UseGuards(JwtAuthGuard)
-  @Get('wishlist/my')
+  @Get('favorite/my')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get my wishlist' })
-  async getWishlist(@CurrentUser() user: any) {
-    const wishlist = await this.productsService.getWishlist(user.customerId);
+  @ApiOperation({ summary: 'Get my favorites' })
+  async getFavorites(@CurrentUser() user: any) {
+    const favorites = await this.productsService.getFavorites(user.customerId);
     return ResponseBuilder.success(
-      wishlist,
-      'Wishlist retrieved',
+      favorites,
+      'Favorites retrieved',
       'تم استرجاع المفضلة',
     );
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get(':id/wishlist/check')
+  @Get(':id/favorite/check')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Check if product is in wishlist' })
+  @ApiOperation({ summary: 'Check if product is in favorites' })
   @ApiParam({ name: 'id', description: 'Product ID' })
-  async checkWishlist(
+  async checkFavorite(
     @Param('id') id: string,
     @CurrentUser() user: any,
   ) {
-    const inWishlist = await this.productsService.isInWishlist(
+    const isFavorite = await this.productsService.isFavorite(
       user.customerId,
       id,
     );
     return ResponseBuilder.success(
-      { inWishlist },
-      'Wishlist status checked',
+      { isFavorite },
+      'Favorite status checked',
       'تم التحقق من حالة المفضلة',
     );
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post(':id/wishlist')
+  @Post(':id/favorite')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Add to wishlist' })
-  async addToWishlist(@Param('id') id: string, @CurrentUser() user: any) {
-    await this.productsService.addToWishlist(user.customerId, id);
+  @ApiOperation({ summary: 'Add to favorites' })
+  async addToFavorites(@Param('id') id: string, @CurrentUser() user: any) {
+    await this.productsService.addToFavorites(user.customerId, id);
     return ResponseBuilder.success(
       null,
-      'Added to wishlist',
+      'Added to favorites',
       'تم الإضافة للمفضلة',
     );
   }
 
   @UseGuards(JwtAuthGuard)
-  @Delete(':id/wishlist')
+  @Delete(':id/favorite')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Remove from wishlist' })
-  async removeFromWishlist(@Param('id') id: string, @CurrentUser() user: any) {
-    await this.productsService.removeFromWishlist(user.customerId, id);
+  @ApiOperation({ summary: 'Remove from favorites' })
+  async removeFromFavorites(@Param('id') id: string, @CurrentUser() user: any) {
+    await this.productsService.removeFromFavorites(user.customerId, id);
     return ResponseBuilder.success(
       null,
-      'Removed from wishlist',
+      'Removed from favorites',
       'تم الإزالة من المفضلة',
     );
   }

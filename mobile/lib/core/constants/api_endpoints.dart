@@ -56,13 +56,11 @@ class ApiEndpoints {
   static const String productsOnOffer = '/products/on-offer';
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // WISHLIST & REVIEWS
+  // FAVORITES & REVIEWS
   // ═══════════════════════════════════════════════════════════════════════════
-  static const String wishlist = '/wishlist';
-  static const String wishlistMy = '/products/wishlist/my';
-  static String productWishlist(String id) => '/products/$id/wishlist';
-  /// التحقق من وجود منتج في المفضلة (بدون جلب القائمة كاملة)
-  static String productWishlistCheck(String id) => '/products/$id/wishlist/check';
+  static const String favoritesMy = '/products/favorite/my';
+  static String productFavorite(String id) => '/products/$id/favorite';
+  static String productFavoriteCheck(String id) => '/products/$id/favorite/check';
   static String productReviews(String id) => '/products/$id/reviews';
   static String productReviewsMine(String id) => '/products/$id/reviews/mine';
   static String productReviewUpdate(String productId, String reviewId) =>
@@ -70,8 +68,8 @@ class ApiEndpoints {
   static const String reviews = '/reviews';
   static const String myReviews = '/customer/reviews';
   static const String pendingReviews = '/customer/pending-reviews';
-  static const String recentlyViewed = '/recently-viewed';
-  static const String stockAlerts = '/stock-alerts';
+  static const String recentlyViewed = '/analytics/recently-viewed';
+  static const String stockAlerts = '/products/stock-alerts';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // CART & CHECKOUT

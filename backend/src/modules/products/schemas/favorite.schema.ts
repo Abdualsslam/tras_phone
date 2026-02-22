@@ -1,18 +1,18 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-export type WishlistDocument = Wishlist & Document;
+export type FavoriteDocument = Favorite & Document;
 
 /**
  * ═══════════════════════════════════════════════════════════════
- * ❤️ Wishlist Schema
+ * ❤️ Favorite Schema
  * ═══════════════════════════════════════════════════════════════
  */
 @Schema({
     timestamps: true,
-    collection: 'wishlists',
+    collection: 'favorites',
 })
-export class Wishlist {
+export class Favorite {
     @Prop({ type: Types.ObjectId, ref: 'Customer', required: true, index: true })
     customerId: Types.ObjectId;
 
@@ -31,9 +31,9 @@ export class Wishlist {
     createdAt: Date;
 }
 
-export const WishlistSchema = SchemaFactory.createForClass(Wishlist);
+export const FavoriteSchema = SchemaFactory.createForClass(Favorite);
 
 // ═════════════════════════════════════
 // Indexes
 // ═════════════════════════════════════
-WishlistSchema.index({ customerId: 1, productId: 1 }, { unique: true });
+FavoriteSchema.index({ customerId: 1, productId: 1 }, { unique: true });

@@ -17,7 +17,7 @@ import '../../../orders/presentation/screens/orders_list_screen.dart';
 import '../../../profile/presentation/cubit/profile_cubit.dart';
 import '../../../profile/presentation/cubit/profile_state.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
-import '../../../wishlist/presentation/screens/wishlist_screen.dart';
+import '../../../favorite/presentation/screens/favorite_screen.dart';
 
 class MainNavigationShell extends StatefulWidget {
   final int initialIndex;
@@ -36,7 +36,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   final List<Widget> _screens = const [
     HomeScreen(),
     OrdersListScreen(),
-    WishlistScreen(),
+    FavoriteScreen(),
     CartScreen(),
     ProfileScreen(),
   ];

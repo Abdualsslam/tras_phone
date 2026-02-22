@@ -103,7 +103,7 @@ class ProductModel {
   @JsonKey(defaultValue: 0.0)
   final double averageRating;
   @JsonKey(defaultValue: 0)
-  final int wishlistCount;
+  final int favoriteCount;
 
   // Tags
   @JsonKey(defaultValue: [])
@@ -171,7 +171,7 @@ class ProductModel {
     this.salesCount = 0,
     this.reviewsCount = 0,
     this.averageRating = 0,
-    this.wishlistCount = 0,
+    this.favoriteCount = 0,
     this.relatedProducts,
     this.tags = const [],
     this.publishedAt,
@@ -289,7 +289,7 @@ class ProductModel {
       salesCount: model.salesCount,
       reviewsCount: model.reviewsCount,
       averageRating: model.averageRating,
-      wishlistCount: model.wishlistCount,
+      favoriteCount: model.favoriteCount,
       relatedProducts: model.relatedProducts,
       tags: model.tags,
       publishedAt: model.publishedAt,
@@ -351,7 +351,7 @@ class ProductModel {
       salesCount: salesCount,
       reviewsCount: reviewsCount,
       averageRating: averageRating,
-      wishlistCount: wishlistCount,
+      favoriteCount: favoriteCount,
       relatedProducts: relatedProducts,
       tags: tags,
       publishedAt: publishedAt,

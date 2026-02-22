@@ -14,4 +14,4 @@ export 'search_shimmer.dart';
 export 'settings_shimmer.dart';
 export 'shimmer_base.dart';
 export 'wallet_shimmer.dart';
-export 'wishlist_shimmer.dart';
+export 'favorite_shimmer.dart';

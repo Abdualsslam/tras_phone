@@ -19,21 +19,41 @@ import '../cubit/brands_state.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class BrandsListScreen extends StatelessWidget {
-  const BrandsListScreen({super.key});
+  final bool flowMode;
+  final String? categoryId;
+  final String? categoryName;
+
+  const BrandsListScreen({
+    super.key,
+    this.flowMode = true,
+    this.categoryId,
+    this.categoryName,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => BrandsCubit(
-        repository: getIt<CatalogRepository>(),
-      )..loadBrands(),
-      child: const _BrandsListView(),
+      create: (context) =>
+          BrandsCubit(repository: getIt<CatalogRepository>())..loadBrands(),
+      child: _BrandsListView(
+        flowMode: flowMode,
+        categoryId: categoryId,
+        categoryName: categoryName,
+      ),
     );
   }
 }
 
 class _BrandsListView extends StatelessWidget {
-  const _BrandsListView();
+  final bool flowMode;
+  final String? categoryId;
+  final String? categoryName;
+
+  const _BrandsListView({
+    required this.flowMode,
+    this.categoryId,
+    this.categoryName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +63,9 @@ class _BrandsListView extends StatelessWidget {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.brands),
+        title: Text(
+          flowMode ? 'اختر الماركة' : AppLocalizations.of(context)!.brands,
+        ),
         leading: IconButton(
           icon: const Icon(Iconsax.arrow_right_3),
           onPressed: () => context.pop(),
@@ -63,8 +85,7 @@ class _BrandsListView extends StatelessWidget {
                   Text(state.message),
                   SizedBox(height: 16.h),
                   ElevatedButton(
-                    onPressed: () =>
-                        context.read<BrandsCubit>().loadBrands(),
+                    onPressed: () => context.read<BrandsCubit>().loadBrands(),
                     child: const Text('إعادة المحاولة'),
                   ),
                 ],
@@ -90,7 +111,24 @@ class _BrandsListView extends StatelessWidget {
                     brand: brand,
                     isDark: isDark,
                     onTap: () {
-                      context.push('/brand/${brand.slug}');
+                      if (flowMode) {
+                        final route = Uri(
+                          path: '/devices',
+                          queryParameters: {
+                            'flow': '1',
+                            'brandId': brand.id,
+                            'brandName': brand.nameAr,
+                            if (categoryId != null && categoryId!.isNotEmpty)
+                              'categoryId': categoryId!,
+                            if (categoryName != null &&
+                                categoryName!.isNotEmpty)
+                              'categoryName': categoryName!,
+                          },
+                        ).toString();
+                        context.push(route);
+                      } else {
+                        context.push('/brand/${brand.slug}');
+                      }
                     },
                   );
                 },
@@ -186,9 +224,7 @@ class _BrandCard extends StatelessWidget {
                           cacheManager: imageCacheManager,
                           fit: BoxFit.contain,
                           placeholder: (context, url) => Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                           errorWidget: (context, url, error) => Icon(
                             Iconsax.tag,

@@ -66,9 +66,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orders => 'My Orders';
 
   @override
-  String get wishlist => 'Wishlist';
-
-  @override
   String get favorites => 'Favorites';
 
   @override
@@ -435,29 +432,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retryAction => 'Retry';
 
   @override
-  String get removedFromWishlist => 'Removed from favorites';
+  String get removedFromFavorites => 'Removed from favorites';
 
   @override
   String get movedToCart => 'Product moved to cart';
 
   @override
-  String get clearWishlist => 'Clear Favorites';
+  String get clearFavorites => 'Clear Favorites';
 
   @override
   String get clearAll => 'Clear All';
 
   @override
-  String get clearWishlistConfirm =>
+  String get clearFavoritesConfirm =>
       'Are you sure you want to clear all products from favorites?';
 
   @override
-  String get wishlistCleared => 'Favorites cleared';
+  String get favoritesCleared => 'Favorites cleared';
 
   @override
-  String get emptyWishlist => 'Favorites list is empty';
+  String get emptyFavorites => 'Favorites list is empty';
 
   @override
-  String get emptyWishlistHint => 'Add products you like to access them later';
+  String get emptyFavoritesHint => 'Add products you like to access them later';
 
   @override
   String get featureUnderDevelopment => 'This feature is under development';
@@ -708,8 +705,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewStockAlerts => 'View Stock Alerts';
 
   @override
-  String get emptyWishlistDescription =>
+  String get emptyFavoritesDescription =>
       'You haven\'t added any products to favorites yet.\nBrowse our products and add what you like!';
+
+  @override
+  String get stockAlertRemoved => 'Stock alert removed';
 
   @override
   String get browseProducts => 'Browse Products';

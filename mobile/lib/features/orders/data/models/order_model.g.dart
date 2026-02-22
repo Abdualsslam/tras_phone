@@ -105,6 +105,7 @@ OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => OrderModel(
       ? null
       : DateTime.parse(json['cancelledAt'] as String),
   cancellationReason: json['cancellationReason'] as String?,
+  shippingLabelUrl: json['shippingLabelUrl'] as String?,
   customerRating: (json['customerRating'] as num?)?.toInt(),
   customerRatingComment: json['customerRatingComment'] as String?,
   ratedAt: json['ratedAt'] == null
@@ -159,6 +160,7 @@ Map<String, dynamic> _$OrderModelToJson(
   'completedAt': instance.completedAt?.toIso8601String(),
   'cancelledAt': instance.cancelledAt?.toIso8601String(),
   'cancellationReason': instance.cancellationReason,
+  'shippingLabelUrl': instance.shippingLabelUrl,
   'customerRating': instance.customerRating,
   'customerRatingComment': instance.customerRatingComment,
   'ratedAt': instance.ratedAt?.toIso8601String(),

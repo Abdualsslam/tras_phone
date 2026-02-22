@@ -25,12 +25,12 @@ export class ProductAnalytics {
     @Prop({ default: 0 })
     removeFromCart: number;
 
-    // Wishlist
+    // Favorite
     @Prop({ default: 0 })
-    addToWishlist: number;
+    addToFavorite: number;
 
     @Prop({ default: 0 })
-    removeFromWishlist: number;
+    removeFromFavorite: number;
 
     // Sales
     @Prop({ default: 0 })

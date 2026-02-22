@@ -212,12 +212,6 @@ abstract class AppLocalizations {
   /// **'طلباتي'**
   String get orders;
 
-  /// عنوان المفضلة
-  ///
-  /// In ar, this message translates to:
-  /// **'المفضلة'**
-  String get wishlist;
-
   /// عنوان قائمة المفضلة
   ///
   /// In ar, this message translates to:
@@ -954,7 +948,7 @@ abstract class AppLocalizations {
   ///
   /// In ar, this message translates to:
   /// **'تم الإزالة من المفضلة'**
-  String get removedFromWishlist;
+  String get removedFromFavorites;
 
   /// رسالة نقل المنتج للسلة
   ///
@@ -966,7 +960,7 @@ abstract class AppLocalizations {
   ///
   /// In ar, this message translates to:
   /// **'مسح المفضلة'**
-  String get clearWishlist;
+  String get clearFavorites;
 
   /// زر مسح الكل
   ///
@@ -978,25 +972,25 @@ abstract class AppLocalizations {
   ///
   /// In ar, this message translates to:
   /// **'هل أنت متأكد من مسح جميع المنتجات من المفضلة؟'**
-  String get clearWishlistConfirm;
+  String get clearFavoritesConfirm;
 
   /// رسالة نجاح مسح المفضلة
   ///
   /// In ar, this message translates to:
   /// **'تم مسح المفضلة'**
-  String get wishlistCleared;
+  String get favoritesCleared;
 
   /// رسالة المفضلة الفارغة
   ///
   /// In ar, this message translates to:
   /// **'قائمة المفضلة فارغة'**
-  String get emptyWishlist;
+  String get emptyFavorites;
 
   /// تلميح المفضلة الفارغة
   ///
   /// In ar, this message translates to:
   /// **'أضف المنتجات التي تعجبك للوصول إليها لاحقاً'**
-  String get emptyWishlistHint;
+  String get emptyFavoritesHint;
 
   /// رسالة الميزة قيد التطوير
   ///
@@ -1464,7 +1458,13 @@ abstract class AppLocalizations {
   ///
   /// In ar, this message translates to:
   /// **'لم تقم بإضافة أي منتجات إلى المفضلة بعد.\nتصفح منتجاتنا وأضف ما يعجبك!'**
-  String get emptyWishlistDescription;
+  String get emptyFavoritesDescription;
+
+  /// رسالة حذف تنبيه المخزون
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حذف تنبيه المخزون'**
+  String get stockAlertRemoved;
 
   /// زر تصفح المنتجات
   ///

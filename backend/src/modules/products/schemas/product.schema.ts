@@ -208,7 +208,7 @@ export class Product {
   averageRating: number;
 
   @Prop({ type: Number, default: 0 })
-  wishlistCount: number;
+  favoriteCount: number;
 
   // ═════════════════════════════════════
   // Timestamps

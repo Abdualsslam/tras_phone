@@ -1,13 +1,13 @@
-/// Wishlist Shimmer - Loading placeholder for wishlist screen
+/// Favorite Shimmer - Loading placeholder for favorites screen
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../widgets/loading/shimmer_widgets.dart';
 
-/// Shimmer for wishlist screen (product cards in list)
-class WishlistShimmer extends StatelessWidget {
-  const WishlistShimmer({super.key});
+/// Shimmer for favorites screen (product cards in list)
+class FavoriteShimmer extends StatelessWidget {
+  const FavoriteShimmer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,12 +15,12 @@ class WishlistShimmer extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 100.h),
       itemCount: 5,
       separatorBuilder: (context, index) => SizedBox(height: 12.h),
-      itemBuilder: (context, index) => _ShimmerWishlistCard(),
+      itemBuilder: (context, index) => _ShimmerFavoriteCard(),
     );
   }
 }
 
-class _ShimmerWishlistCard extends StatelessWidget {
+class _ShimmerFavoriteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(

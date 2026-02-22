@@ -60,7 +60,7 @@ ProductModel _$ProductModelFromJson(Map<String, dynamic> json) => ProductModel(
   salesCount: (json['salesCount'] as num?)?.toInt() ?? 0,
   reviewsCount: (json['reviewsCount'] as num?)?.toInt() ?? 0,
   averageRating: (json['averageRating'] as num?)?.toDouble() ?? 0.0,
-  wishlistCount: (json['wishlistCount'] as num?)?.toInt() ?? 0,
+  favoriteCount: (json['favoriteCount'] as num?)?.toInt() ?? 0,
   relatedProducts:
       (ProductModel._readRelatedProducts(json, 'relatedProducts')
               as List<dynamic>?)
@@ -121,7 +121,7 @@ Map<String, dynamic> _$ProductModelToJson(ProductModel instance) =>
       'salesCount': instance.salesCount,
       'reviewsCount': instance.reviewsCount,
       'averageRating': instance.averageRating,
-      'wishlistCount': instance.wishlistCount,
+      'favoriteCount': instance.favoriteCount,
       'tags': instance.tags,
       'publishedAt': instance.publishedAt?.toIso8601String(),
       'createdAt': instance.createdAt.toIso8601String(),

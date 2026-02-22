@@ -37,8 +37,8 @@ import '../features/cart/presentation/screens/checkout_screen.dart';
 import '../features/cart/presentation/screens/order_confirmation_screen.dart';
 import '../features/cart/presentation/screens/payment_method_screen.dart';
 import '../features/cart/presentation/screens/address_selection_screen.dart';
-import '../features/wishlist/presentation/screens/wishlist_screen.dart';
-import '../features/wishlist/presentation/screens/stock_alerts_screen.dart';
+import '../features/favorite/presentation/screens/favorite_screen.dart';
+import '../features/favorite/presentation/screens/stock_alerts_screen.dart';
 import '../features/reviews/presentation/screens/product_reviews_screen.dart';
 import '../features/reviews/presentation/screens/write_review_screen.dart';
 import '../features/reviews/presentation/screens/my_reviews_screen.dart';
@@ -70,7 +70,7 @@ import '../features/catalog/presentation/screens/product_search_results_screen.d
 import '../features/reviews/presentation/screens/pending_reviews_screen.dart';
 import '../features/support/presentation/screens/ticket_details_screen.dart';
 import '../features/support/presentation/screens/live_chat_screen.dart';
-import '../features/wishlist/presentation/screens/wishlist_empty_screen.dart';
+import '../features/favorite/presentation/screens/favorite_empty_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -152,7 +152,19 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/brands',
-      builder: (context, state) => const BrandsListScreen(),
+      builder: (context, state) {
+        final flowParam = state.uri.queryParameters['flow'];
+        final flow =
+            flowParam == null || flowParam == '1' || flowParam == 'true';
+        final categoryId = state.uri.queryParameters['categoryId'];
+        final categoryName = state.uri.queryParameters['categoryName'];
+
+        return BrandsListScreen(
+          flowMode: flow,
+          categoryId: categoryId,
+          categoryName: categoryName,
+        );
+      },
     ),
     GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
     GoRoute(
@@ -162,9 +174,21 @@ final GoRouter appRouter = GoRouter(
             state.uri.queryParameters['isFeatured'] ??
             state.uri.queryParameters['featured'];
         final sort = state.uri.queryParameters['sort'];
+        final categoryId = state.uri.queryParameters['categoryId'];
+        final categoryName = state.uri.queryParameters['categoryName'];
+        final brandId = state.uri.queryParameters['brandId'];
+        final brandName = state.uri.queryParameters['brandName'];
+        final deviceId = state.uri.queryParameters['deviceId'];
+        final deviceName = state.uri.queryParameters['deviceName'];
         return ProductsListScreen(
           isFeatured: isFeatured == 'true' ? true : null,
           sortBy: sort,
+          categoryId: categoryId,
+          categoryName: categoryName,
+          brandId: brandId,
+          brandName: brandName,
+          deviceId: deviceId,
+          deviceName: deviceName,
         );
       },
     ),
@@ -214,11 +238,11 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // ═══════════════════════════════════════════════════════════════════════
-    // WISHLIST & REVIEWS ROUTES
+    // FAVORITES & REVIEWS ROUTES
     // ═══════════════════════════════════════════════════════════════════════
     GoRoute(
-      path: '/wishlist',
-      builder: (context, state) => const WishlistScreen(),
+      path: '/favorites',
+      builder: (context, state) => const FavoriteScreen(),
     ),
     GoRoute(
       path: '/product/:id/reviews',
@@ -383,7 +407,23 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/devices',
-      builder: (context, state) => const DevicesListScreen(),
+      builder: (context, state) {
+        final flow =
+            state.uri.queryParameters['flow'] == '1' ||
+            state.uri.queryParameters['flow'] == 'true';
+        final categoryId = state.uri.queryParameters['categoryId'];
+        final categoryName = state.uri.queryParameters['categoryName'];
+        final brandId = state.uri.queryParameters['brandId'];
+        final brandName = state.uri.queryParameters['brandName'];
+
+        return DevicesListScreen(
+          flowMode: flow,
+          categoryId: categoryId,
+          categoryName: categoryName,
+          initialBrandId: brandId,
+          initialBrandName: brandName,
+        );
+      },
     ),
     GoRoute(
       path: '/device/:id',
@@ -503,7 +543,7 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // ═══════════════════════════════════════════════════════════════════════
-    // NEW WISHLIST ROUTES
+    // NEW FAVORITES ROUTES
     // ═══════════════════════════════════════════════════════════════════════
     GoRoute(
       path: '/stock-alerts',
@@ -571,8 +611,8 @@ final GoRouter appRouter = GoRouter(
     // NEW WISHLIST ROUTES
     // ═══════════════════════════════════════════════════════════════════════
     GoRoute(
-      path: '/wishlist-empty',
-      builder: (context, state) => const WishlistEmptyScreen(),
+      path: '/favorites-empty',
+      builder: (context, state) => const FavoriteEmptyScreen(),
     ),
   ],
 );

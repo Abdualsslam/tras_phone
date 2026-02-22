@@ -19,30 +19,59 @@ import '../cubit/devices_state.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class DevicesListScreen extends StatelessWidget {
-  const DevicesListScreen({super.key});
+  final bool flowMode;
+  final String? categoryId;
+  final String? categoryName;
+  final String? initialBrandId;
+  final String? initialBrandName;
+
+  const DevicesListScreen({
+    super.key,
+    this.flowMode = false,
+    this.categoryId,
+    this.categoryName,
+    this.initialBrandId,
+    this.initialBrandName,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => BrandsCubit(
-            repository: getIt<CatalogRepository>(),
-          )..loadBrands(),
+          create: (context) =>
+              BrandsCubit(repository: getIt<CatalogRepository>())..loadBrands(),
         ),
         BlocProvider(
-          create: (context) => DevicesCubit(
-            repository: getIt<CatalogRepository>(),
-          ),
+          create: (context) =>
+              DevicesCubit(repository: getIt<CatalogRepository>()),
         ),
       ],
-      child: const _DevicesListView(),
+      child: _DevicesListView(
+        flowMode: flowMode,
+        categoryId: categoryId,
+        categoryName: categoryName,
+        initialBrandId: initialBrandId,
+        initialBrandName: initialBrandName,
+      ),
     );
   }
 }
 
 class _DevicesListView extends StatefulWidget {
-  const _DevicesListView();
+  final bool flowMode;
+  final String? categoryId;
+  final String? categoryName;
+  final String? initialBrandId;
+  final String? initialBrandName;
+
+  const _DevicesListView({
+    required this.flowMode,
+    this.categoryId,
+    this.categoryName,
+    this.initialBrandId,
+    this.initialBrandName,
+  });
 
   @override
   State<_DevicesListView> createState() => _DevicesListViewState();
@@ -50,7 +79,15 @@ class _DevicesListView extends StatefulWidget {
 
 class _DevicesListViewState extends State<_DevicesListView> {
   String? _selectedBrandId;
+  String? _selectedBrandName;
   final _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedBrandId = widget.initialBrandId;
+    _selectedBrandName = widget.initialBrandName;
+  }
 
   @override
   void dispose() {
@@ -64,7 +101,11 @@ class _DevicesListViewState extends State<_DevicesListView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.devices),
+        title: Text(
+          widget.flowMode
+              ? 'اختر الجهاز'
+              : AppLocalizations.of(context)!.devices,
+        ),
         actions: [
           IconButton(
             onPressed: () => context.push('/search'),
@@ -75,10 +116,24 @@ class _DevicesListViewState extends State<_DevicesListView> {
       body: BlocConsumer<BrandsCubit, BrandsState>(
         listener: (context, state) {
           if (state is BrandsLoaded && state.brands.isNotEmpty) {
-            if (_selectedBrandId == null) {
+            final brandIds = state.brands.map((b) => b.id).toSet();
+
+            if (_selectedBrandId != null &&
+                !brandIds.contains(_selectedBrandId)) {
               _selectedBrandId = state.brands.first.id;
-              context.read<DevicesCubit>().loadDevicesByBrand(_selectedBrandId!);
             }
+
+            _selectedBrandId ??= state.brands.first.id;
+
+            if (_selectedBrandName == null && _selectedBrandId != null) {
+              final selectedBrand = state.brands.firstWhere(
+                (b) => b.id == _selectedBrandId,
+                orElse: () => state.brands.first,
+              );
+              _selectedBrandName = selectedBrand.nameAr;
+            }
+
+            context.read<DevicesCubit>().loadDevicesByBrand(_selectedBrandId!);
           }
         },
         builder: (context, brandsState) {
@@ -176,7 +231,10 @@ class _DevicesListViewState extends State<_DevicesListView> {
 
           return GestureDetector(
             onTap: () {
-              setState(() => _selectedBrandId = brand.id);
+              setState(() {
+                _selectedBrandId = brand.id;
+                _selectedBrandName = brand.nameAr;
+              });
               context.read<DevicesCubit>().loadDevicesByBrand(brand.id);
             },
             child: Container(
@@ -241,7 +299,31 @@ class _DevicesListViewState extends State<_DevicesListView> {
 
   Widget _buildDeviceCard(DeviceEntity device, bool isDark) {
     return GestureDetector(
-      onTap: () => context.push('/device/${device.id}/products'),
+      onTap: () {
+        if (widget.flowMode) {
+          final queryParams = <String, String>{
+            if (widget.categoryId != null && widget.categoryId!.isNotEmpty)
+              'categoryId': widget.categoryId!,
+            if (widget.categoryName != null && widget.categoryName!.isNotEmpty)
+              'categoryName': widget.categoryName!,
+            'deviceId': device.id,
+            'deviceName': device.nameAr,
+          };
+
+          final route = Uri(
+            path: '/products',
+            queryParameters: queryParams,
+          ).toString();
+          context.push(route);
+          return;
+        }
+
+        final route = Uri(
+          path: '/device/${device.id}',
+          queryParameters: {'name': device.nameAr},
+        ).toString();
+        context.push(route);
+      },
       child: Container(
         margin: EdgeInsets.only(bottom: 8.h),
         padding: EdgeInsets.all(16.w),

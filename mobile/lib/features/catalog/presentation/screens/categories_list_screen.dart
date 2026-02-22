@@ -22,9 +22,9 @@ class CategoriesListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => CategoriesCubit(
-        repository: getIt<CatalogRepository>(),
-      )..loadCategories(),
+      create: (context) =>
+          CategoriesCubit(repository: getIt<CatalogRepository>())
+            ..loadCategories(),
       child: const _CategoriesListView(),
     );
   }
@@ -72,8 +72,7 @@ class _CategoriesListView extends StatelessWidget {
 
           if (state is CategoriesLoaded) {
             return RefreshIndicator(
-              onRefresh: () =>
-                  context.read<CategoriesCubit>().loadCategories(),
+              onRefresh: () => context.read<CategoriesCubit>().loadCategories(),
               child: GridView.builder(
                 padding: EdgeInsets.all(16.w),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -89,7 +88,15 @@ class _CategoriesListView extends StatelessWidget {
                     category: category,
                     isDark: isDark,
                     onTap: () {
-                      context.push('/category/${category.id}');
+                      final route = Uri(
+                        path: '/brands',
+                        queryParameters: {
+                          'flow': '1',
+                          'categoryId': category.id,
+                          'categoryName': category.nameAr,
+                        },
+                      ).toString();
+                      context.push(route);
                     },
                   );
                 },
@@ -190,9 +197,7 @@ class _CategoryCard extends StatelessWidget {
                             imageUrl: category.image!,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                             errorWidget: (context, url, error) => Icon(
                               Iconsax.category,

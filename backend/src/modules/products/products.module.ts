@@ -11,7 +11,7 @@ import {
   ProductReview,
   ProductReviewSchema,
 } from './schemas/product-review.schema';
-import { Wishlist, WishlistSchema } from './schemas/wishlist.schema';
+import { Favorite, FavoriteSchema } from './schemas/favorite.schema';
 import { PriceLevel, PriceLevelSchema } from './schemas/price-level.schema';
 import {
   ProductDeviceCompatibility,
@@ -45,7 +45,7 @@ import { ContentModule } from '@modules/content/content.module';
       { name: Product.name, schema: ProductSchema },
       { name: ProductPrice.name, schema: ProductPriceSchema },
       { name: ProductReview.name, schema: ProductReviewSchema },
-      { name: Wishlist.name, schema: WishlistSchema },
+      { name: Favorite.name, schema: FavoriteSchema },
       { name: PriceLevel.name, schema: PriceLevelSchema },
       {
         name: ProductDeviceCompatibility.name,

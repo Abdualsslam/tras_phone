@@ -17,10 +17,10 @@ class ProductCard extends StatelessWidget {
   final double price;
   final double? originalPrice;
   final int? stockQuantity;
-  final bool isInWishlist;
+  final bool isFavorite;
   final VoidCallback? onTap;
   final VoidCallback? onAddToCart;
-  final VoidCallback? onToggleWishlist;
+  final VoidCallback? onToggleFavorite;
 
   const ProductCard({
     super.key,
@@ -31,10 +31,10 @@ class ProductCard extends StatelessWidget {
     required this.price,
     this.originalPrice,
     this.stockQuantity,
-    this.isInWishlist = false,
+    this.isFavorite = false,
     this.onTap,
     this.onAddToCart,
-    this.onToggleWishlist,
+    this.onToggleFavorite,
   });
 
   bool get hasDiscount => originalPrice != null && originalPrice! > price;
@@ -144,12 +144,12 @@ class ProductCard extends StatelessWidget {
               ),
             ),
 
-          // Wishlist Button
+          // Favorite Button
           Positioned(
             top: 8.h,
             right: 8.w,
             child: GestureDetector(
-              onTap: onToggleWishlist,
+              onTap: onToggleFavorite,
               child: Container(
                 width: 32.w,
                 height: 32.w,
@@ -166,9 +166,9 @@ class ProductCard extends StatelessWidget {
                   ],
                 ),
                 child: Icon(
-                  isInWishlist ? Iconsax.heart5 : Iconsax.heart,
+                  isFavorite ? Iconsax.heart5 : Iconsax.heart,
                   size: 16.sp,
-                  color: isInWishlist
+                  color: isFavorite
                       ? AppColors.error
                       : (isDark
                             ? AppColors.textSecondaryDark
