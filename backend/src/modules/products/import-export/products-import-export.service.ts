@@ -141,13 +141,13 @@ export class ProductsImportExportService {
     return Buffer.from(buffer);
   }
 
-  async validateImport(file: Express.Multer.File): Promise<ValidationResultDto> {
+  async validateImport(file: UploadedExcelFile): Promise<ValidationResultDto> {
     if (!file?.buffer) {
       throw new BadRequestException('Excel file is required');
     }
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(file.buffer);
+    await workbook.xlsx.load(file.buffer as any);
 
     const products = this.readSheetRows<ProductRow>(workbook, 'Products');
     const compatibility = this.readSheetRows<DeviceCompatibilityRow>(
@@ -264,7 +264,7 @@ export class ProductsImportExportService {
     };
   }
 
-  async importProducts(file: Express.Multer.File, query: ImportProductsQueryDto) {
+  async importProducts(file: UploadedExcelFile, query: ImportProductsQueryDto) {
     const validation = await this.validateImport(file);
     if (!validation.isValid && !query.skipValidation) {
       return {
@@ -274,7 +274,7 @@ export class ProductsImportExportService {
     }
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(file.buffer);
+    await workbook.xlsx.load(file.buffer as any);
 
     const rows = this.readSheetRows<ProductRow>(workbook, 'Products');
     const compatibility = this.readSheetRows<DeviceCompatibilityRow>(
@@ -363,13 +363,13 @@ export class ProductsImportExportService {
     });
   }
 
-  async partialUpdate(file: Express.Multer.File) {
+  async partialUpdate(file: UploadedExcelFile) {
     if (!file?.buffer) {
       throw new BadRequestException('Excel file is required');
     }
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(file.buffer);
+    await workbook.xlsx.load(file.buffer as any);
 
     const rows = this.readSheetRows<Record<string, any>>(workbook, 'Products');
     const errors: ValidationError[] = [];
@@ -789,4 +789,10 @@ function hasMissingReferences(refs: {
 function stringifyId(value: any): string {
   if (!value) return '';
   return String(value);
+}
+
+interface UploadedExcelFile {
+  buffer: Buffer;
+  originalname?: string;
+  mimetype?: string;
 }

@@ -85,7 +85,7 @@ export class ProductsImportExportController {
     },
   })
   @ApiOperation({ summary: 'Validate Excel import file without saving' })
-  async validate(@UploadedFile() file?: Express.Multer.File) {
+  async validate(@UploadedFile() file?: UploadedExcelFile) {
     if (!file?.buffer) {
       throw new BadRequestException('No file uploaded');
     }
@@ -114,7 +114,7 @@ export class ProductsImportExportController {
   @ApiOperation({ summary: 'Import products from Excel file' })
   @ApiResponse({ status: 200, description: 'Import completed' })
   async importProducts(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: UploadedExcelFile,
     @Query() query: ImportProductsQueryDto,
   ) {
     if (!file?.buffer) {
@@ -142,7 +142,7 @@ export class ProductsImportExportController {
     },
   })
   @ApiOperation({ summary: 'Partial update (price/stock/status) via Excel file' })
-  async partialUpdate(@UploadedFile() file: Express.Multer.File) {
+  async partialUpdate(@UploadedFile() file: UploadedExcelFile) {
     if (!file?.buffer) {
       throw new BadRequestException('No file uploaded');
     }
@@ -154,4 +154,10 @@ export class ProductsImportExportController {
       'تم التحديث الجزئي',
     );
   }
+}
+
+interface UploadedExcelFile {
+  buffer: Buffer;
+  originalname?: string;
+  mimetype?: string;
 }
