@@ -3,13 +3,16 @@ library;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../cache/image_cache_config.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../config/theme/app_colors.dart';
+import '../../di/injection.dart';
+import '../../../features/favorite/data/datasources/favorite_remote_datasource.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final String id;
   final String name;
   final String? nameAr;
@@ -37,12 +40,111 @@ class ProductCard extends StatelessWidget {
     this.onToggleFavorite,
   });
 
-  bool get hasDiscount => originalPrice != null && originalPrice! > price;
-  bool get isOutOfStock => stockQuantity != null && stockQuantity! <= 0;
+  @override
+  State<ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> {
+  FavoriteRemoteDataSource? _favoriteDataSource;
+  bool _isFavoriteLocal = false;
+  bool _isTogglingFavorite = false;
+
+  bool get _usesExternalFavoriteControl => widget.onToggleFavorite != null;
+
+  bool get _displayedFavorite =>
+      _usesExternalFavoriteControl ? widget.isFavorite : _isFavoriteLocal;
+
+  bool get hasDiscount =>
+      widget.originalPrice != null && widget.originalPrice! > widget.price;
+
+  bool get isOutOfStock =>
+      widget.stockQuantity != null && widget.stockQuantity! <= 0;
 
   int get discountPercent {
     if (!hasDiscount) return 0;
-    return (((originalPrice! - price) / originalPrice!) * 100).round();
+    return (((widget.originalPrice! - widget.price) / widget.originalPrice!) *
+            100)
+        .round();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _isFavoriteLocal = widget.isFavorite;
+
+    if (!_usesExternalFavoriteControl) {
+      _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
+      _resolveInitialFavoriteState();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ProductCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.id != widget.id || oldWidget.isFavorite != widget.isFavorite) {
+      _isFavoriteLocal = widget.isFavorite;
+    }
+
+    if (!_usesExternalFavoriteControl && oldWidget.id != widget.id) {
+      _resolveInitialFavoriteState();
+    }
+  }
+
+  Future<void> _resolveInitialFavoriteState() async {
+    final dataSource = _favoriteDataSource;
+    if (dataSource == null) return;
+
+    try {
+      final ids = await dataSource.getFavoriteProductIds();
+      if (!mounted) return;
+      setState(() {
+        _isFavoriteLocal = ids.contains(widget.id);
+      });
+    } catch (_) {
+      // Keep current local state when resolving fails.
+    }
+  }
+
+  Future<void> _handleFavoriteTap() async {
+    HapticFeedback.lightImpact();
+
+    if (_usesExternalFavoriteControl) {
+      widget.onToggleFavorite?.call();
+      return;
+    }
+
+    if (_isTogglingFavorite) return;
+    final dataSource = _favoriteDataSource;
+    if (dataSource == null) return;
+
+    final previous = _isFavoriteLocal;
+    setState(() {
+      _isFavoriteLocal = !previous;
+      _isTogglingFavorite = true;
+    });
+
+    try {
+      final next = await dataSource.toggleFavorite(widget.id, previous);
+
+      if (!mounted) return;
+      setState(() {
+        _isFavoriteLocal = next;
+        _isTogglingFavorite = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isFavoriteLocal = previous;
+        _isTogglingFavorite = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تعذر تحديث المفضلة، حاول مرة أخرى'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -50,7 +152,7 @@ class ProductCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : AppColors.cardLight,
@@ -79,7 +181,7 @@ class ProductCard extends StatelessWidget {
                 children: [
                   // Product Name
                   Text(
-                    nameAr ?? name,
+                    widget.nameAr ?? widget.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -148,11 +250,11 @@ class ProductCard extends StatelessWidget {
           Positioned(
             top: 8.h,
             right: 8.w,
-            child: GestureDetector(
-              onTap: onToggleFavorite,
-              child: Container(
-                width: 32.w,
-                height: 32.w,
+              child: GestureDetector(
+                onTap: _handleFavoriteTap,
+                child: Container(
+                  width: 32.w,
+                  height: 32.w,
                 decoration: BoxDecoration(
                   color: (isDark ? AppColors.cardDark : Colors.white)
                       .withValues(alpha: 0.95),
@@ -166,9 +268,9 @@ class ProductCard extends StatelessWidget {
                   ],
                 ),
                 child: Icon(
-                  isFavorite ? Iconsax.heart5 : Iconsax.heart,
+                  _displayedFavorite ? Iconsax.heart5 : Iconsax.heart,
                   size: 16.sp,
-                  color: isFavorite
+                  color: _displayedFavorite
                       ? AppColors.error
                       : (isDark
                             ? AppColors.textSecondaryDark
@@ -217,7 +319,7 @@ class ProductCard extends StatelessWidget {
   }
 
   Widget _buildImage() {
-    if (imageUrl == null || imageUrl!.isEmpty) {
+    if (widget.imageUrl == null || widget.imageUrl!.isEmpty) {
       return Center(
         child: Icon(
           Iconsax.mobile,
@@ -227,11 +329,11 @@ class ProductCard extends StatelessWidget {
       );
     }
 
-    final isLocalAsset = imageUrl!.startsWith('assets/');
+    final isLocalAsset = widget.imageUrl!.startsWith('assets/');
 
     if (isLocalAsset) {
       return Image.asset(
-        imageUrl!,
+        widget.imageUrl!,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
@@ -246,8 +348,8 @@ class ProductCard extends StatelessWidget {
     }
 
     return CachedNetworkImage(
-      imageUrl: imageUrl!,
-      cacheKey: imageCacheKey(imageUrl!),
+      imageUrl: widget.imageUrl!,
+      cacheKey: imageCacheKey(widget.imageUrl!),
       cacheManager: imageCacheManager,
       fit: BoxFit.cover,
       width: double.infinity,
@@ -277,7 +379,7 @@ class ProductCard extends StatelessWidget {
           children: [
             Flexible(
               child: Text(
-                '${price.toStringAsFixed(0)} ر.س',
+                '${widget.price.toStringAsFixed(0)} ر.س',
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w700,
@@ -294,7 +396,7 @@ class ProductCard extends StatelessWidget {
         if (hasDiscount) ...[
           SizedBox(height: 2.h),
           Text(
-            '${originalPrice!.toStringAsFixed(0)} ر.س',
+            '${widget.originalPrice!.toStringAsFixed(0)} ر.س',
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: FontWeight.w400,
@@ -312,12 +414,12 @@ class ProductCard extends StatelessWidget {
         ],
 
         // Low Stock Warning
-        if (stockQuantity != null &&
-            stockQuantity! > 0 &&
-            stockQuantity! <= 10) ...[
+        if (widget.stockQuantity != null &&
+            widget.stockQuantity! > 0 &&
+            widget.stockQuantity! <= 10) ...[
           SizedBox(height: 4.h),
           Text(
-            'متبقي $stockQuantity فقط',
+            'متبقي ${widget.stockQuantity} فقط',
             style: TextStyle(
               fontSize: 10.sp,
               fontWeight: FontWeight.w600,

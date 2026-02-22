@@ -18,6 +18,7 @@ import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../../catalog/data/services/product_cache_service.dart';
 import '../../../profile/presentation/cubit/profile_cubit.dart';
 import '../../../home/data/services/home_cache_service.dart';
+import '../../../favorite/data/services/favorite_cache_service.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
@@ -207,6 +208,7 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       await getIt<ProductCacheService>().clearAll();
       await getIt<HomeCacheService>().clearHomeData();
+      await getIt<FavoriteCacheService>().clearAll();
       getIt<ProfileCubit>().clearCache();
       getIt<AddressesCubit>().clearCache();
       developer.log('Cleared product, home, and profile caches on auth change', name: 'AuthCubit');
