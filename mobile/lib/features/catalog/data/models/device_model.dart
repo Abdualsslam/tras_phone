@@ -61,26 +61,41 @@ class DeviceModel {
   /// Handle both String id and ObjectId map from MongoDB
   static Object? _readId(Map<dynamic, dynamic> json, String key) {
     final value = json['_id'] ?? json['id'];
+    if (value == null) return '';
+    if (value is String) return value;
     if (value is Map) {
-      return value['\$oid'] ?? value.toString();
+      final nestedId = value['\$oid'] ?? value['_id'] ?? value['id'];
+      if (nestedId is Map) {
+        return (nestedId['\$oid'] ?? nestedId['_id'] ?? nestedId['id'] ?? '')
+            .toString();
+      }
+      return (nestedId ?? '').toString();
     }
-    return value;
+    return value.toString();
   }
 
   /// Handle brandId which can be String or populated Brand object
   static Object? _readBrandId(Map<dynamic, dynamic> json, String key) {
     final value = json['brandId'];
+    if (value == null) return '';
+    if (value is String) return value;
     if (value is Map) {
-      return value['_id'] ?? value['\$oid'] ?? value.toString();
+      final nestedId = value['_id'] ?? value['id'] ?? value['\$oid'];
+      if (nestedId is Map) {
+        return (nestedId['\$oid'] ?? nestedId['_id'] ?? nestedId['id'] ?? '')
+            .toString();
+      }
+      return (nestedId ?? '').toString();
     }
-    return value;
+    return value.toString();
   }
 
   factory DeviceModel.fromJson(Map<String, dynamic> json) {
     final model = _$DeviceModelFromJson(json);
     // Check if brandId is a populated object
     final brandData = json['brandId'];
-    if (brandData is Map<String, dynamic>) {
+    if (brandData is Map) {
+      final brandJson = Map<String, dynamic>.from(brandData);
       return DeviceModel(
         id: model.id,
         brandId: model.brandId,
@@ -99,10 +114,49 @@ class DeviceModel {
         productsCount: model.productsCount,
         createdAt: model.createdAt,
         updatedAt: model.updatedAt,
-        brand: BrandModel.fromJson(brandData),
+        brand: _parseEmbeddedBrand(brandJson),
       );
     }
     return model;
+  }
+
+  static BrandModel _parseEmbeddedBrand(Map<String, dynamic> json) {
+    final now = DateTime.now();
+
+    String readString(dynamic value) {
+      if (value == null) return '';
+      if (value is String) return value;
+      if (value is Map) {
+        final nested = value['_id'] ?? value['id'] ?? value['\$oid'];
+        return nested?.toString() ?? '';
+      }
+      return value.toString();
+    }
+
+    DateTime readDate(dynamic value) {
+      if (value is String && value.isNotEmpty) {
+        final parsed = DateTime.tryParse(value);
+        if (parsed != null) return parsed;
+      }
+      return now;
+    }
+
+    return BrandModel(
+      id: readString(json['_id'] ?? json['id']),
+      name: readString(json['name']),
+      nameAr: readString(json['nameAr'] ?? json['name']),
+      slug: readString(json['slug']),
+      description: json['description']?.toString(),
+      descriptionAr: json['descriptionAr']?.toString(),
+      logo: json['logo']?.toString(),
+      website: json['website']?.toString(),
+      isActive: json['isActive'] as bool? ?? true,
+      isFeatured: json['isFeatured'] as bool? ?? false,
+      displayOrder: (json['displayOrder'] as num?)?.toInt() ?? 0,
+      productsCount: (json['productsCount'] as num?)?.toInt() ?? 0,
+      createdAt: readDate(json['createdAt']),
+      updatedAt: readDate(json['updatedAt']),
+    );
   }
 
   Map<String, dynamic> toJson() => _$DeviceModelToJson(this);

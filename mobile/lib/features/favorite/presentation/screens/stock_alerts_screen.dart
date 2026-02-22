@@ -8,7 +8,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../data/datasources/wishlist_remote_datasource.dart';
+import '../../data/datasources/favorite_remote_datasource.dart';
 import '../cubit/stock_alerts_cubit.dart';
 import '../cubit/stock_alerts_state.dart';
 
@@ -26,7 +26,7 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
   void initState() {
     super.initState();
     _cubit = StockAlertsCubit(
-      dataSource: getIt<WishlistRemoteDataSource>(),
+      dataSource: getIt<FavoriteRemoteDataSource>(),
     );
     _cubit.loadStockAlerts();
   }
@@ -37,11 +37,11 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
     super.dispose();
   }
 
-  Future<void> _removeStockAlert(String productId) async {
-    await _cubit.removeStockAlert(productId);
+  Future<void> _removeStockAlert(String alertId) async {
+    await _cubit.removeStockAlert(alertId);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.removedFromWishlist)),
+        SnackBar(content: Text(AppLocalizations.of(context)!.stockAlertRemoved)),
       );
     }
   }
@@ -143,7 +143,10 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
   }
 
   Widget _buildAlertCard(Map<String, dynamic> alert, bool isDark) {
-    final product = alert['product'] as Map<String, dynamic>?;
+    final productField = alert['productId'];
+    final product =
+        productField is Map<String, dynamic> ? productField : null;
+    final alertId = alert['_id']?.toString() ?? alert['id']?.toString() ?? '';
     final productName = product?['nameAr'] ?? product?['name'] ?? 'منتج';
     final isAvailable = alert['status'] == 'available' || alert['isAvailable'] == true;
     
@@ -223,10 +226,8 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
           ),
           IconButton(
             onPressed: () {
-              final productId = alert['productId']?.toString() ?? 
-                                product?['id']?.toString() ?? '';
-              if (productId.isNotEmpty) {
-                _removeStockAlert(productId);
+              if (alertId.isNotEmpty) {
+                _removeStockAlert(alertId);
               }
             },
             icon: Icon(Iconsax.trash, size: 20.sp, color: AppColors.error),

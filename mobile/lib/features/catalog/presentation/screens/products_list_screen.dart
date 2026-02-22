@@ -13,19 +13,31 @@ import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../data/datasources/catalog_remote_datasource.dart';
 import '../../data/models/product_filter_query.dart';
-import '../../../wishlist/data/datasources/wishlist_remote_datasource.dart';
+import '../../../favorite/data/datasources/favorite_remote_datasource.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class ProductsListScreen extends StatefulWidget {
   final bool? isFeatured;
   final String? sortBy;
   final String? title;
+  final String? categoryId;
+  final String? categoryName;
+  final String? brandId;
+  final String? brandName;
+  final String? deviceId;
+  final String? deviceName;
 
   const ProductsListScreen({
     super.key,
     this.isFeatured,
     this.sortBy,
     this.title,
+    this.categoryId,
+    this.categoryName,
+    this.brandId,
+    this.brandName,
+    this.deviceId,
+    this.deviceName,
   });
 
   @override
@@ -34,7 +46,7 @@ class ProductsListScreen extends StatefulWidget {
 
 class _ProductsListScreenState extends State<ProductsListScreen> {
   final _dataSource = getIt<CatalogRemoteDataSource>();
-  late final WishlistRemoteDataSource _wishlistDataSource;
+  late final FavoriteRemoteDataSource _favoriteDataSource;
   final ScrollController _scrollController = ScrollController();
 
   List<ProductEntity> _products = [];
@@ -46,12 +58,12 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   String _sortBy = 'createdAt';
   String _sortOrder = 'desc';
   bool _isGridView = true;
-  final Set<String> _wishlistProductIds = {};
+  final Set<String> _favoriteProductIds = {};
 
   @override
   void initState() {
     super.initState();
-    _wishlistDataSource = WishlistRemoteDataSourceImpl(
+    _favoriteDataSource = FavoriteRemoteDataSourceImpl(
       apiClient: getIt<ApiClient>(),
     );
     // Initialize sort from widget parameter or defaults
@@ -64,46 +76,46 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
     _scrollController.addListener(_onScroll);
     _loadProducts();
-    _loadWishlistIds();
+    _loadFavoriteIds();
   }
 
-  Future<void> _loadWishlistIds() async {
+  Future<void> _loadFavoriteIds() async {
     try {
-      final wishlist = await _wishlistDataSource.getWishlist();
+      final favorites = await _favoriteDataSource.getFavorites();
       setState(() {
-        _wishlistProductIds.clear();
-        for (var item in wishlist) {
+        _favoriteProductIds.clear();
+        for (var item in favorites) {
           if (item.product != null) {
-            _wishlistProductIds.add(item.product!.id);
+            _favoriteProductIds.add(item.product!.id);
           }
         }
       });
     } catch (e) {
-      // Silently fail - wishlist check is optional
+      // Silently fail - favorite check is optional
     }
   }
 
-  Future<void> _toggleWishlist(String productId) async {
-    final isInWishlist = _wishlistProductIds.contains(productId);
+  Future<void> _toggleFavorite(String productId) async {
+    final isFavorite = _favoriteProductIds.contains(productId);
 
     setState(() {
-      if (isInWishlist) {
-        _wishlistProductIds.remove(productId);
+      if (isFavorite) {
+        _favoriteProductIds.remove(productId);
       } else {
-        _wishlistProductIds.add(productId);
+        _favoriteProductIds.add(productId);
       }
     });
 
     try {
       HapticFeedback.lightImpact();
-      await _wishlistDataSource.toggleWishlist(productId, isInWishlist);
+      await _favoriteDataSource.toggleFavorite(productId, isFavorite);
     } catch (e) {
       // Revert on error
       setState(() {
-        if (isInWishlist) {
-          _wishlistProductIds.add(productId);
+        if (isFavorite) {
+          _favoriteProductIds.add(productId);
         } else {
-          _wishlistProductIds.remove(productId);
+          _favoriteProductIds.remove(productId);
         }
       });
 
@@ -146,6 +158,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           : SortOrder.desc;
 
       final filter = ProductFilterQuery(
+        categoryId: widget.categoryId,
+        brandId: widget.brandId,
+        deviceId: widget.deviceId,
         isFeatured: widget.isFeatured,
         sortBy: sortByEnum,
         sortOrder: sortOrderEnum,
@@ -198,6 +213,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           : SortOrder.desc;
 
       final filter = ProductFilterQuery(
+        categoryId: widget.categoryId,
+        brandId: widget.brandId,
+        deviceId: widget.deviceId,
         isFeatured: widget.isFeatured,
         sortBy: sortByEnum,
         sortOrder: sortOrderEnum,
@@ -223,15 +241,24 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final title =
-        widget.title ??
-        (widget.isFeatured == true
-            ? AppLocalizations.of(context)!.featuredProducts
-            : AppLocalizations.of(context)!.products);
+    String resolvedTitle;
+    if (widget.title != null && widget.title!.isNotEmpty) {
+      resolvedTitle = widget.title!;
+    } else if (widget.deviceName != null && widget.deviceName!.isNotEmpty) {
+      resolvedTitle = 'منتجات ${widget.deviceName!}';
+    } else if (widget.brandName != null && widget.brandName!.isNotEmpty) {
+      resolvedTitle = 'منتجات ${widget.brandName!}';
+    } else if (widget.categoryName != null && widget.categoryName!.isNotEmpty) {
+      resolvedTitle = 'منتجات ${widget.categoryName!}';
+    } else {
+      resolvedTitle = widget.isFeatured == true
+          ? AppLocalizations.of(context)!.featuredProducts
+          : AppLocalizations.of(context)!.products;
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: Text(resolvedTitle),
         actions: [
           IconButton(
             onPressed: () => context.push('/search'),
@@ -357,9 +384,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             price: product.price,
             originalPrice: product.originalPrice,
             stockQuantity: product.stockQuantity,
-            isInWishlist: _wishlistProductIds.contains(product.id),
+            isFavorite: _favoriteProductIds.contains(product.id),
             onTap: () => context.push('/product/${product.id}', extra: product),
-            onToggleWishlist: () => _toggleWishlist(product.id),
+            onToggleFavorite: () => _toggleFavorite(product.id),
           );
         } else if (_isLoadingMore) {
           return const Center(

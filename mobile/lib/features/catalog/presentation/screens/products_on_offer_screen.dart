@@ -11,7 +11,7 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/network/api_client.dart';
 import '../../domain/repositories/catalog_repository.dart';
-import '../../../wishlist/data/datasources/wishlist_remote_datasource.dart';
+import '../../../favorite/data/datasources/favorite_remote_datasource.dart';
 import '../cubit/products_on_offer_cubit.dart';
 import '../cubit/products_on_offer_state.dart';
 import '../widgets/product_offer_card.dart';
@@ -26,8 +26,8 @@ class ProductsOnOfferScreen extends StatefulWidget {
 class _ProductsOnOfferScreenState extends State<ProductsOnOfferScreen> {
   final ScrollController _scrollController = ScrollController();
   late final ProductsOnOfferCubit _cubit;
-  late final WishlistRemoteDataSource _wishlistDataSource;
-  final Set<String> _wishlistProductIds = {};
+  late final FavoriteRemoteDataSource _favoriteDataSource;
+  final Set<String> _favoriteProductIds = {};
 
   @override
   void initState() {
@@ -35,51 +35,51 @@ class _ProductsOnOfferScreenState extends State<ProductsOnOfferScreen> {
     _cubit = ProductsOnOfferCubit(
       repository: getIt<CatalogRepository>(),
     );
-    _wishlistDataSource = WishlistRemoteDataSourceImpl(
+    _favoriteDataSource = FavoriteRemoteDataSourceImpl(
       apiClient: getIt<ApiClient>(),
     );
     _cubit.loadProducts();
     _scrollController.addListener(_onScroll);
-    _loadWishlistIds();
+    _loadFavoriteIds();
   }
 
-  Future<void> _loadWishlistIds() async {
+  Future<void> _loadFavoriteIds() async {
     try {
-      final wishlist = await _wishlistDataSource.getWishlist();
+      final favorites = await _favoriteDataSource.getFavorites();
       setState(() {
-        _wishlistProductIds.clear();
-        for (var item in wishlist) {
+        _favoriteProductIds.clear();
+        for (var item in favorites) {
           if (item.product != null) {
-            _wishlistProductIds.add(item.product!.id);
+            _favoriteProductIds.add(item.product!.id);
           }
         }
       });
     } catch (e) {
-      // Silently fail - wishlist check is optional
+      // Silently fail - favorite check is optional
     }
   }
 
-  Future<void> _toggleWishlist(String productId) async {
-    final isInWishlist = _wishlistProductIds.contains(productId);
+  Future<void> _toggleFavorite(String productId) async {
+    final isFavorite = _favoriteProductIds.contains(productId);
     
     setState(() {
-      if (isInWishlist) {
-        _wishlistProductIds.remove(productId);
+      if (isFavorite) {
+        _favoriteProductIds.remove(productId);
       } else {
-        _wishlistProductIds.add(productId);
+        _favoriteProductIds.add(productId);
       }
     });
 
     try {
       HapticFeedback.lightImpact();
-      await _wishlistDataSource.toggleWishlist(productId, isInWishlist);
+      await _favoriteDataSource.toggleFavorite(productId, isFavorite);
     } catch (e) {
       // Revert on error
       setState(() {
-        if (isInWishlist) {
-          _wishlistProductIds.add(productId);
+        if (isFavorite) {
+          _favoriteProductIds.add(productId);
         } else {
-          _wishlistProductIds.remove(productId);
+          _favoriteProductIds.remove(productId);
         }
       });
       
@@ -191,12 +191,12 @@ class _ProductsOnOfferScreenState extends State<ProductsOnOfferScreen> {
                     final product = state.products[index];
                     return ProductOfferCard(
                       product: product,
-                      isInWishlist: _wishlistProductIds.contains(product.id),
+                       isFavorite: _favoriteProductIds.contains(product.id),
                       onTap: () => context.push(
                         '/product/${product.id}',
                         extra: product,
                       ),
-                      onToggleWishlist: () => _toggleWishlist(product.id),
+                       onToggleFavorite: () => _toggleFavorite(product.id),
                     );
                   },
                 ),

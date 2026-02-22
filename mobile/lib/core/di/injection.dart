@@ -26,7 +26,7 @@ import '../../features/orders/data/datasources/orders_remote_datasource.dart';
 import '../../features/orders/presentation/cubit/orders_cubit.dart';
 import '../../features/orders/presentation/cubit/payment_methods_cubit.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
-import '../../features/wishlist/data/datasources/wishlist_remote_datasource.dart';
+import '../../features/favorite/data/datasources/favorite_remote_datasource.dart';
 import '../../features/notifications/data/datasources/notifications_remote_datasource.dart';
 import '../../features/notifications/data/repositories/notifications_repository.dart';
 import '../../features/notifications/presentation/cubit/notifications_cubit.dart';
@@ -265,12 +265,12 @@ Future<void> setupDependencies() async {
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // WISHLIST FEATURE
+  // FAVORITE FEATURE
   // ═══════════════════════════════════════════════════════════════════════════
 
   // DataSources
-  getIt.registerLazySingleton<WishlistRemoteDataSource>(
-    () => WishlistRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+  getIt.registerLazySingleton<FavoriteRemoteDataSource>(
+    () => FavoriteRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════

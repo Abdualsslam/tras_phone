@@ -13,7 +13,7 @@ import {
   ProductPrice,
   ProductPriceDocument,
 } from './schemas/product-price.schema';
-import { Wishlist, WishlistDocument } from './schemas/wishlist.schema';
+import { Favorite, FavoriteDocument } from './schemas/favorite.schema';
 import {
   ProductReview,
   ProductReviewDocument,
@@ -46,8 +46,8 @@ export class ProductsService {
     private customersService: CustomersService,
     @InjectModel(ProductPrice.name)
     private productPriceModel: Model<ProductPriceDocument>,
-    @InjectModel(Wishlist.name)
-    private wishlistModel: Model<WishlistDocument>,
+    @InjectModel(Favorite.name)
+    private favoriteModel: Model<FavoriteDocument>,
     @InjectModel(ProductReview.name)
     private productReviewModel: Model<ProductReviewDocument>,
     @InjectModel(PriceLevel.name)
@@ -602,58 +602,58 @@ export class ProductsService {
   }
 
   // ═════════════════════════════════════
-  // Wishlist
+  // Favorite
   // ═════════════════════════════════════
 
-  async addToWishlist(
+  async addToFavorites(
     customerId: string,
     productId: string,
-  ): Promise<WishlistDocument> {
+  ): Promise<FavoriteDocument> {
     try {
-      const wishlist = await this.wishlistModel.create({
+      const favorite = await this.favoriteModel.create({
         customerId,
         productId,
       });
       await this.productModel.findByIdAndUpdate(productId, {
-        $inc: { wishlistCount: 1 },
+        $inc: { favoriteCount: 1 },
       });
-      return wishlist;
+      return favorite;
     } catch (error: any) {
       if (error.code === 11000) {
-        throw new ConflictException('Product already in wishlist');
+        throw new ConflictException('Product already in favorites');
       }
       throw error;
     }
   }
 
-  async removeFromWishlist(
+  async removeFromFavorites(
     customerId: string,
     productId: string,
   ): Promise<void> {
-    const result = await this.wishlistModel.deleteOne({
+    const result = await this.favoriteModel.deleteOne({
       customerId,
       productId,
     });
     if (result.deletedCount > 0) {
       await this.productModel.findByIdAndUpdate(productId, {
-        $inc: { wishlistCount: -1 },
+        $inc: { favoriteCount: -1 },
       });
     }
   }
 
-  async getWishlist(customerId: string): Promise<WishlistDocument[]> {
-    return this.wishlistModel.find({ customerId }).populate('productId');
+  async getFavorites(customerId: string): Promise<FavoriteDocument[]> {
+    return this.favoriteModel.find({ customerId }).populate('productId');
   }
 
   /**
-   * Check if a product is in the customer's wishlist.
-   * Used by the app to show correct heart state without fetching full wishlist.
+   * Check if a product is in the customer's favorites.
+   * Used by the app to show correct heart state without fetching full favorites.
    */
-  async isInWishlist(
+  async isFavorite(
     customerId: string,
     productId: string,
   ): Promise<boolean> {
-    const count = await this.wishlistModel.countDocuments({
+    const count = await this.favoriteModel.countDocuments({
       customerId,
       productId,
     });

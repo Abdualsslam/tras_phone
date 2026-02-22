@@ -1,13 +1,13 @@
-/// Wishlist Item Model - Data layer model with JSON serialization
+/// Favorite Item Model - Data layer model with JSON serialization
 library;
 
 import 'package:json_annotation/json_annotation.dart';
 import '../../../catalog/data/models/product_model.dart';
 
-part 'wishlist_item_model.g.dart';
+part 'favorite_item_model.g.dart';
 
 @JsonSerializable(explicitToJson: true)
-class WishlistItemModel {
+class FavoriteItemModel {
   @JsonKey(name: '_id', readValue: _readId)
   final String id;
   
@@ -35,7 +35,7 @@ class WishlistItemModel {
   @JsonKey(name: 'note')
   final String? note;
 
-  const WishlistItemModel({
+  const FavoriteItemModel({
     required this.id,
     this.customerId,
     this.productData,
@@ -71,8 +71,8 @@ class WishlistItemModel {
     return json[key];
   }
 
-  factory WishlistItemModel.fromJson(Map<String, dynamic> json) {
-    final model = _$WishlistItemModelFromJson(json);
+  factory FavoriteItemModel.fromJson(Map<String, dynamic> json) {
+    final model = _$FavoriteItemModelFromJson(json);
     
     // Extract product and productId from productData
     String? extractedProductId;
@@ -93,7 +93,7 @@ class WishlistItemModel {
       }
     }
     
-    return WishlistItemModel(
+    return FavoriteItemModel(
       id: model.id,
       customerId: model.customerId,
       productData: model.productData,
@@ -106,7 +106,7 @@ class WishlistItemModel {
     );
   }
   
-  Map<String, dynamic> toJson() => _$WishlistItemModelToJson(this);
+  Map<String, dynamic> toJson() => _$FavoriteItemModelToJson(this);
 
   // Computed properties based on product data
   String get productId => productIdString ?? product?.id ?? '';

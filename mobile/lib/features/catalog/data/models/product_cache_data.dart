@@ -125,7 +125,7 @@ class ProductCacheData {
       'salesCount': entity.salesCount,
       'reviewsCount': entity.reviewsCount,
       'averageRating': entity.averageRating,
-      'wishlistCount': entity.wishlistCount,
+      'favoriteCount': entity.favoriteCount,
       'relatedProducts': entity.relatedProducts,
       'tags': entity.tags,
       'publishedAt': entity.publishedAt?.toIso8601String(),

@@ -32,7 +32,7 @@ class AppConstants {
   static const int maxCartQuantity = 99;
   static const int maxSearchHistory = 10;
   static const int maxRecentlyViewed = 20;
-  static const int maxWishlistItems = 100;
+  static const int maxFavoriteItems = 100;
   static const int maxImageUpload = 5;
   static const int maxImageSizeMB = 5;
 

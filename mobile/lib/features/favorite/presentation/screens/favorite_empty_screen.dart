@@ -1,4 +1,4 @@
-/// Wishlist Empty Screen - Empty wishlist state
+/// Favorite Empty Screen - Empty favorites state
 library;
 
 import 'package:flutter/material.dart';
@@ -8,8 +8,8 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 
-class WishlistEmptyScreen extends StatelessWidget {
-  const WishlistEmptyScreen({super.key});
+class FavoriteEmptyScreen extends StatelessWidget {
+  const FavoriteEmptyScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +41,7 @@ class WishlistEmptyScreen extends StatelessWidget {
 
               // Title
               Text(
-                AppLocalizations.of(context)!.emptyWishlist,
+                AppLocalizations.of(context)!.emptyFavorites,
                 style: TextStyle(
                   fontSize: 22.sp,
                   fontWeight: FontWeight.w700,
@@ -55,7 +55,7 @@ class WishlistEmptyScreen extends StatelessWidget {
 
               // Description
               Text(
-                AppLocalizations.of(context)!.emptyWishlistDescription,
+                AppLocalizations.of(context)!.emptyFavoritesDescription,
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: isDark

@@ -13,15 +13,15 @@ import '../../domain/extensions/product_offer_extension.dart';
 class ProductOfferCard extends StatelessWidget {
   final ProductEntity product;
   final VoidCallback? onTap;
-  final bool isInWishlist;
-  final VoidCallback? onToggleWishlist;
+  final bool isFavorite;
+  final VoidCallback? onToggleFavorite;
 
   const ProductOfferCard({
     super.key,
     required this.product,
     this.onTap,
-    this.isInWishlist = false,
-    this.onToggleWishlist,
+    this.isFavorite = false,
+    this.onToggleFavorite,
   });
 
   @override
@@ -162,13 +162,13 @@ class ProductOfferCard extends StatelessWidget {
             ),
           ),
 
-        // Wishlist Button
-        if (onToggleWishlist != null)
+        // Favorite Button
+        if (onToggleFavorite != null)
           Positioned(
             top: 8.h,
             right: 8.w,
             child: GestureDetector(
-              onTap: onToggleWishlist,
+              onTap: onToggleFavorite,
               child: Container(
                 width: 32.w,
                 height: 32.w,
@@ -185,9 +185,9 @@ class ProductOfferCard extends StatelessWidget {
                   ],
                 ),
                 child: Icon(
-                  isInWishlist ? Iconsax.heart5 : Iconsax.heart,
+                  isFavorite ? Iconsax.heart5 : Iconsax.heart,
                   size: 16.sp,
-                  color: isInWishlist
+                  color: isFavorite
                       ? AppColors.error
                       : (isDark
                             ? AppColors.textSecondaryDark

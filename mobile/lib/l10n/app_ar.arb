@@ -97,11 +97,6 @@
     "description": "عنوان الطلبات"
   },
 
-  "wishlist": "المفضلة",
-  "@wishlist": {
-    "description": "عنوان المفضلة"
-  },
-
   "favorites": "المفضلة",
   "@favorites": {
     "description": "عنوان قائمة المفضلة"
@@ -710,29 +705,29 @@
   "retryAction": "إعادة المحاولة",
   "@retryAction": { "description": "زر إعادة المحاولة" },
 
-  "removedFromWishlist": "تم الإزالة من المفضلة",
-  "@removedFromWishlist": { "description": "رسالة الإزالة من المفضلة" },
+  "removedFromFavorites": "تم الإزالة من المفضلة",
+  "@removedFromFavorites": { "description": "رسالة الإزالة من المفضلة" },
 
   "movedToCart": "تم نقل المنتج للسلة",
   "@movedToCart": { "description": "رسالة نقل المنتج للسلة" },
 
-  "clearWishlist": "مسح المفضلة",
-  "@clearWishlist": { "description": "زر مسح المفضلة" },
+  "clearFavorites": "مسح المفضلة",
+  "@clearFavorites": { "description": "زر مسح المفضلة" },
 
   "clearAll": "مسح الكل",
   "@clearAll": { "description": "زر مسح الكل" },
 
-  "clearWishlistConfirm": "هل أنت متأكد من مسح جميع المنتجات من المفضلة؟",
-  "@clearWishlistConfirm": { "description": "رسالة تأكيد مسح المفضلة" },
+  "clearFavoritesConfirm": "هل أنت متأكد من مسح جميع المنتجات من المفضلة؟",
+  "@clearFavoritesConfirm": { "description": "رسالة تأكيد مسح المفضلة" },
 
-  "wishlistCleared": "تم مسح المفضلة",
-  "@wishlistCleared": { "description": "رسالة نجاح مسح المفضلة" },
+  "favoritesCleared": "تم مسح المفضلة",
+  "@favoritesCleared": { "description": "رسالة نجاح مسح المفضلة" },
 
-  "emptyWishlist": "قائمة المفضلة فارغة",
-  "@emptyWishlist": { "description": "رسالة المفضلة الفارغة" },
+  "emptyFavorites": "قائمة المفضلة فارغة",
+  "@emptyFavorites": { "description": "رسالة المفضلة الفارغة" },
 
-  "emptyWishlistHint": "أضف المنتجات التي تعجبك للوصول إليها لاحقاً",
-  "@emptyWishlistHint": { "description": "تلميح المفضلة الفارغة" },
+  "emptyFavoritesHint": "أضف المنتجات التي تعجبك للوصول إليها لاحقاً",
+  "@emptyFavoritesHint": { "description": "تلميح المفضلة الفارغة" },
 
   "featureUnderDevelopment": "هذه الميزة قيد التطوير",
   "@featureUnderDevelopment": { "description": "رسالة الميزة قيد التطوير" },
@@ -983,8 +978,11 @@
   "viewStockAlerts": "عرض تنبيهات المخزون",
   "@viewStockAlerts": { "description": "زر عرض تنبيهات المخزون" },
 
-  "emptyWishlistDescription": "لم تقم بإضافة أي منتجات إلى المفضلة بعد.\nتصفح منتجاتنا وأضف ما يعجبك!",
-  "@emptyWishlistDescription": { "description": "وصف المفضلة الفارغة" },
+  "emptyFavoritesDescription": "لم تقم بإضافة أي منتجات إلى المفضلة بعد.\nتصفح منتجاتنا وأضف ما يعجبك!",
+  "@emptyFavoritesDescription": { "description": "وصف المفضلة الفارغة" },
+
+  "stockAlertRemoved": "تم حذف تنبيه المخزون",
+  "@stockAlertRemoved": { "description": "رسالة حذف تنبيه المخزون" },
 
   "browseProducts": "تصفح المنتجات",
   "@browseProducts": { "description": "زر تصفح المنتجات" },

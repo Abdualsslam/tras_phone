@@ -2,14 +2,14 @@
 library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/datasources/wishlist_remote_datasource.dart';
+import '../../data/datasources/favorite_remote_datasource.dart';
 import 'stock_alerts_state.dart';
 
 /// Cubit for managing stock alerts
 class StockAlertsCubit extends Cubit<StockAlertsState> {
-  final WishlistRemoteDataSource _dataSource;
+  final FavoriteRemoteDataSource _dataSource;
 
-  StockAlertsCubit({required WishlistRemoteDataSource dataSource})
+  StockAlertsCubit({required FavoriteRemoteDataSource dataSource})
       : _dataSource = dataSource,
         super(const StockAlertsInitial());
 
@@ -37,9 +37,9 @@ class StockAlertsCubit extends Cubit<StockAlertsState> {
   }
 
   /// Remove stock alert
-  Future<void> removeStockAlert(String productId) async {
+  Future<void> removeStockAlert(String alertId) async {
     try {
-      await _dataSource.removeStockAlert(productId);
+      await _dataSource.removeStockAlert(alertId);
       // Reload to get updated list
       loadStockAlerts();
     } catch (e) {

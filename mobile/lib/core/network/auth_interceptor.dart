@@ -340,9 +340,9 @@ class AuthInterceptor extends Interceptor {
     }
     
     // Private endpoints (require authentication)
-    // /products/:id/wishlist - POST/DELETE wishlist (private)
-    // /products/wishlist/my - GET my wishlist (private)
-    if (basePath.contains('/wishlist') || 
+    // /products/:id/favorite - POST/DELETE favorite (private)
+    // /products/favorite/my - GET my favorites (private)
+    if (basePath.contains('/favorite') || 
         basePath.contains('/cart') ||
         basePath.contains('/orders') ||
         basePath.contains('/customer/') ||

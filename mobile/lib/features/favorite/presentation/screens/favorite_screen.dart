@@ -1,4 +1,4 @@
-/// Wishlist Screen - Saved products list
+/// Favorite Screen - Saved products list
 library;
 
 import 'package:flutter/material.dart';
@@ -10,27 +10,27 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../data/datasources/wishlist_remote_datasource.dart';
-import '../cubit/wishlist_cubit.dart';
-import '../cubit/wishlist_state.dart';
+import '../../data/datasources/favorite_remote_datasource.dart';
+import '../cubit/favorite_cubit.dart';
+import '../cubit/favorite_state.dart';
 
-class WishlistScreen extends StatefulWidget {
-  const WishlistScreen({super.key});
+class FavoriteScreen extends StatefulWidget {
+  const FavoriteScreen({super.key});
 
   @override
-  State<WishlistScreen> createState() => _WishlistScreenState();
+  State<FavoriteScreen> createState() => _FavoriteScreenState();
 }
 
-class _WishlistScreenState extends State<WishlistScreen> {
-  late final WishlistCubit _cubit;
+class _FavoriteScreenState extends State<FavoriteScreen> {
+  late final FavoriteCubit _cubit;
 
   @override
   void initState() {
     super.initState();
-    _cubit = WishlistCubit(
-      dataSource: getIt<WishlistRemoteDataSource>(),
+    _cubit = FavoriteCubit(
+      dataSource: getIt<FavoriteRemoteDataSource>(),
     );
-    _cubit.loadWishlist();
+    _cubit.loadFavorites();
   }
 
   @override
@@ -39,31 +39,22 @@ class _WishlistScreenState extends State<WishlistScreen> {
     super.dispose();
   }
 
-  Future<void> _removeFromWishlist(String productId) async {
-    await _cubit.removeFromWishlist(productId);
+  Future<void> _removeFromFavorites(String productId) async {
+    await _cubit.removeFromFavorites(productId);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.removedFromWishlist)),
+        SnackBar(content: Text(AppLocalizations.of(context)!.removedFromFavorites)),
       );
     }
   }
 
-  Future<void> _moveToCart(String productId) async {
-    await _cubit.moveToCart(productId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.movedToCart)),
-      );
-    }
-  }
-
-  Future<void> _clearWishlist() async {
+  Future<void> _clearFavorites() async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.clearWishlist),
-        content: Text(l10n.clearWishlistConfirm),
+        title: Text(l10n.clearFavorites),
+        content: Text(l10n.clearFavoritesConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -78,10 +69,10 @@ class _WishlistScreenState extends State<WishlistScreen> {
     );
 
     if (confirmed == true) {
-      await _cubit.clearWishlist();
+      await _cubit.clearFavorites();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.wishlistCleared)),
+          SnackBar(content: Text(AppLocalizations.of(context)!.favoritesCleared)),
         );
       }
     }
@@ -97,22 +88,22 @@ class _WishlistScreenState extends State<WishlistScreen> {
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          title: BlocBuilder<WishlistCubit, WishlistState>(
+          title: BlocBuilder<FavoriteCubit, FavoriteState>(
             bloc: _cubit,
             builder: (context, state) {
-              final count = state is WishlistLoaded ? state.items.length : 0;
+              final count = state is FavoriteLoaded ? state.items.length : 0;
               return Text(
                 '${AppLocalizations.of(context)!.favorites} ($count)',
               );
             },
           ),
           actions: [
-            BlocBuilder<WishlistCubit, WishlistState>(
+            BlocBuilder<FavoriteCubit, FavoriteState>(
               bloc: _cubit,
               builder: (context, state) {
-                if (state is WishlistLoaded && state.items.isNotEmpty) {
+                if (state is FavoriteLoaded && state.items.isNotEmpty) {
                   return TextButton(
-                    onPressed: _clearWishlist,
+                    onPressed: _clearFavorites,
                     child: Text(AppLocalizations.of(context)!.clearAll),
                   );
                 }
@@ -121,14 +112,14 @@ class _WishlistScreenState extends State<WishlistScreen> {
             ),
           ],
         ),
-        body: BlocBuilder<WishlistCubit, WishlistState>(
+        body: BlocBuilder<FavoriteCubit, FavoriteState>(
           bloc: _cubit,
           builder: (context, state) {
-            if (state is WishlistLoading) {
-              return const WishlistShimmer();
+            if (state is FavoriteLoading) {
+              return const FavoriteShimmer();
             }
 
-            if (state is WishlistError) {
+            if (state is FavoriteError) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -150,7 +141,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     ),
                     SizedBox(height: 16.h),
                     ElevatedButton(
-                      onPressed: () => _cubit.loadWishlist(),
+                      onPressed: () => _cubit.loadFavorites(),
                       child: Text(AppLocalizations.of(context)!.retryAction),
                     ),
                   ],
@@ -158,19 +149,19 @@ class _WishlistScreenState extends State<WishlistScreen> {
               );
             }
 
-            if (state is WishlistLoaded) {
+            if (state is FavoriteLoaded) {
               if (state.items.isEmpty) {
                 return _buildEmptyState(theme, isDark);
               }
 
               return RefreshIndicator(
-                onRefresh: () => _cubit.loadWishlist(),
+                onRefresh: () => _cubit.loadFavorites(),
                 child: ListView.separated(
                   padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 100.h),
                   itemCount: state.items.length,
                   separatorBuilder: (_, __) => SizedBox(height: 12.h),
                   itemBuilder: (context, index) {
-                    return _buildWishlistCard(
+                    return _buildFavoriteCard(
                       context,
                       theme,
                       isDark,
@@ -200,14 +191,14 @@ class _WishlistScreenState extends State<WishlistScreen> {
           ),
           SizedBox(height: 24.h),
           Text(
-            AppLocalizations.of(context)!.emptyWishlist,
+            AppLocalizations.of(context)!.emptyFavorites,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
           SizedBox(height: 8.h),
           Text(
-            AppLocalizations.of(context)!.emptyWishlistHint,
+            AppLocalizations.of(context)!.emptyFavoritesHint,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: AppColors.textTertiaryLight,
             ),
@@ -217,7 +208,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
     );
   }
 
-  Widget _buildWishlistCard(
+  Widget _buildFavoriteCard(
     BuildContext context,
     ThemeData theme,
     bool isDark,
@@ -369,17 +360,8 @@ class _WishlistScreenState extends State<WishlistScreen> {
             children: [
               IconButton(
                 icon: Icon(Iconsax.trash, color: AppColors.error, size: 20.sp),
-                onPressed: () => _removeFromWishlist(product.id),
+                onPressed: () => _removeFromFavorites(product.id),
               ),
-              if (item.isInStock)
-                IconButton(
-                  icon: Icon(
-                    Iconsax.shopping_cart,
-                    color: AppColors.primary,
-                    size: 20.sp,
-                  ),
-                  onPressed: () => _moveToCart(product.id),
-                ),
             ],
           ),
         ],

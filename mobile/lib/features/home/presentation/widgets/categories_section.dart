@@ -13,10 +13,7 @@ import 'section_header.dart';
 class CategoriesSection extends StatelessWidget {
   final List<CategoryEntity> categories;
 
-  const CategoriesSection({
-    super.key,
-    required this.categories,
-  });
+  const CategoriesSection({super.key, required this.categories});
 
   @override
   Widget build(BuildContext context) {
@@ -39,10 +36,7 @@ class CategoriesSection extends StatelessWidget {
             separatorBuilder: (_, _) => SizedBox(width: 14.w),
             itemBuilder: (context, index) {
               final category = categories[index];
-              return _CategoryChip(
-                category: category,
-                isDark: isDark,
-              );
+              return _CategoryChip(category: category, isDark: isDark);
             },
           ),
         ),
@@ -55,15 +49,22 @@ class _CategoryChip extends StatelessWidget {
   final CategoryEntity category;
   final bool isDark;
 
-  const _CategoryChip({
-    required this.category,
-    required this.isDark,
-  });
+  const _CategoryChip({required this.category, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/category/${category.id}'),
+      onTap: () {
+        final route = Uri(
+          path: '/brands',
+          queryParameters: {
+            'flow': '1',
+            'categoryId': category.id,
+            'categoryName': category.nameAr,
+          },
+        ).toString();
+        context.push(route);
+      },
       child: SizedBox(
         width: 74.w,
         child: Column(
@@ -75,9 +76,7 @@ class _CategoryChip extends StatelessWidget {
               height: 56.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isDark
-                    ? AppColors.cardDark
-                    : Colors.white,
+                color: isDark ? AppColors.cardDark : Colors.white,
                 border: Border.all(
                   color: AppColors.primary.withValues(alpha: 0.12),
                   width: 1.5,
