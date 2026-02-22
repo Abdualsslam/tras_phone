@@ -2,7 +2,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import type { ApiResponse } from "@/types";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+  import.meta.env.VITE_API_URL || "https://api-trasphone.smartagency-ye.com/api/v1";
 
 // Create axios instance
 export const apiClient = axios.create({
