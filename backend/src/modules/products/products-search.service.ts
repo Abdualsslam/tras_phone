@@ -55,7 +55,11 @@ export class ProductsSearchService {
     if (categoryId) baseQuery.categoryId = new Types.ObjectId(categoryId);
     if (brandId) baseQuery.brandId = new Types.ObjectId(brandId);
     if (qualityTypeId) baseQuery.qualityTypeId = new Types.ObjectId(qualityTypeId);
-    if (deviceId) baseQuery.compatibleDevices = new Types.ObjectId(deviceId);
+    if (deviceId) {
+      baseQuery.compatibleDevices = {
+        $in: [new Types.ObjectId(deviceId), deviceId as any],
+      };
+    }
     if (featured) baseQuery.isFeatured = true;
     if (newArrival) baseQuery.isNewArrival = true;
     if (bestSeller) baseQuery.isBestSeller = true;

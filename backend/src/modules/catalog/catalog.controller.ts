@@ -760,13 +760,11 @@ export class CatalogController {
     @Param('identifier') identifier: string,
     @Query() query: Partial<ProductFilterQueryDto>,
   ) {
-    // Find device by ID or slug to get device ID
     const device = await this.catalogService.findDeviceByIdOrSlug(identifier);
     
-    // Use productsService with deviceId filter
     const result = await this.productsService.findAll({
       ...query,
-      deviceId: device._id.toString(),
+      deviceId: device._id,
     });
     
     return ResponseBuilder.success(

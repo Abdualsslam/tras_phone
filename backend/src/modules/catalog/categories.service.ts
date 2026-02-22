@@ -248,7 +248,11 @@ export class CategoriesService {
             }
             if (brandId) query.brandId = new Types.ObjectId(brandId);
             if (qualityTypeId) query.qualityTypeId = new Types.ObjectId(qualityTypeId);
-            if (deviceId) query.compatibleDevices = new Types.ObjectId(deviceId);
+            if (deviceId) {
+                query.compatibleDevices = {
+                    $in: [new Types.ObjectId(deviceId), deviceId as any],
+                };
+            }
 
             if (minPrice || maxPrice) {
                 query.basePrice = {};
