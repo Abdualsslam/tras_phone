@@ -9,7 +9,6 @@ import 'package:iconsax/iconsax.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/network/api_client.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../../../favorite/data/datasources/favorite_remote_datasource.dart';
 import '../cubit/products_on_offer_cubit.dart';
@@ -35,9 +34,7 @@ class _ProductsOnOfferScreenState extends State<ProductsOnOfferScreen> {
     _cubit = ProductsOnOfferCubit(
       repository: getIt<CatalogRepository>(),
     );
-    _favoriteDataSource = FavoriteRemoteDataSourceImpl(
-      apiClient: getIt<ApiClient>(),
-    );
+    _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
     _cubit.loadProducts();
     _scrollController.addListener(_onScroll);
     _loadFavoriteIds();
@@ -45,14 +42,10 @@ class _ProductsOnOfferScreenState extends State<ProductsOnOfferScreen> {
 
   Future<void> _loadFavoriteIds() async {
     try {
-      final favorites = await _favoriteDataSource.getFavorites();
+      final favoriteIds = await _favoriteDataSource.getFavoriteProductIds();
       setState(() {
         _favoriteProductIds.clear();
-        for (var item in favorites) {
-          if (item.product != null) {
-            _favoriteProductIds.add(item.product!.id);
-          }
-        }
+        _favoriteProductIds.addAll(favoriteIds);
       });
     } catch (e) {
       // Silently fail - favorite check is optional

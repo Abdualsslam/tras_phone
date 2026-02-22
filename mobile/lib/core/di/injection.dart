@@ -27,6 +27,7 @@ import '../../features/orders/presentation/cubit/orders_cubit.dart';
 import '../../features/orders/presentation/cubit/payment_methods_cubit.dart';
 import '../../features/profile/data/datasources/profile_remote_datasource.dart';
 import '../../features/favorite/data/datasources/favorite_remote_datasource.dart';
+import '../../features/favorite/data/services/favorite_cache_service.dart';
 import '../../features/notifications/data/datasources/notifications_remote_datasource.dart';
 import '../../features/notifications/data/repositories/notifications_repository.dart';
 import '../../features/notifications/presentation/cubit/notifications_cubit.dart';
@@ -117,6 +118,9 @@ Future<void> setupDependencies() async {
 
   final productCacheService = ProductCacheService(hiveCacheService);
   getIt.registerSingleton<ProductCacheService>(productCacheService);
+
+  final favoriteCacheService = FavoriteCacheService(hiveCacheService);
+  getIt.registerSingleton<FavoriteCacheService>(favoriteCacheService);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // AUTH FEATURE
@@ -270,7 +274,10 @@ Future<void> setupDependencies() async {
 
   // DataSources
   getIt.registerLazySingleton<FavoriteRemoteDataSource>(
-    () => FavoriteRemoteDataSourceImpl(apiClient: getIt<ApiClient>()),
+    () => FavoriteRemoteDataSourceImpl(
+      apiClient: getIt<ApiClient>(),
+      cacheService: getIt<FavoriteCacheService>(),
+    ),
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -508,6 +515,7 @@ Future<void> _handleForcedLogout() async {
   try {
     await getIt<ProductCacheService>().clearAll();
     await getIt<HomeCacheService>().clearHomeData();
+    await getIt<FavoriteCacheService>().clearAll();
     getIt<ProfileCubit>().clearCache();
     getIt<AddressesCubit>().clearCache();
   } catch (_) {

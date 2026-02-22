@@ -15,7 +15,9 @@ import '../cubit/favorite_cubit.dart';
 import '../cubit/favorite_state.dart';
 
 class FavoriteScreen extends StatefulWidget {
-  const FavoriteScreen({super.key});
+  final bool isActive;
+
+  const FavoriteScreen({super.key, this.isActive = true});
 
   @override
   State<FavoriteScreen> createState() => _FavoriteScreenState();
@@ -30,7 +32,17 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     _cubit = FavoriteCubit(
       dataSource: getIt<FavoriteRemoteDataSource>(),
     );
-    _cubit.loadFavorites();
+    if (widget.isActive) {
+      _cubit.loadFavorites();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant FavoriteScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isActive && widget.isActive) {
+      _cubit.loadFavorites();
+    }
   }
 
   @override

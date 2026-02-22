@@ -33,14 +33,6 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   late int _currentIndex;
   late AnimationController _animationController;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    OrdersListScreen(),
-    FavoriteScreen(),
-    CartScreen(),
-    ProfileScreen(),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -75,9 +67,16 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screens = [
+      const HomeScreen(),
+      const OrdersListScreen(),
+      FavoriteScreen(isActive: _currentIndex == 2),
+      const CartScreen(),
+      const ProfileScreen(),
+    ];
 
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(index: _currentIndex, children: screens),
       extendBody: true,
       bottomNavigationBar: _buildFloatingNavBar(isDark),
     );

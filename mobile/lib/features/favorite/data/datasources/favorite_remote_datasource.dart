@@ -1,6 +1,7 @@
 /// Favorite Remote DataSource - Real API implementation
 library;
 
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 
@@ -8,9 +9,11 @@ import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../catalog/data/models/product_model.dart';
 import '../models/favorite_item_model.dart';
+import '../services/favorite_cache_service.dart';
 
 abstract class FavoriteRemoteDataSource {
   Future<List<FavoriteItemModel>> getFavorites();
+  Future<Set<String>> getFavoriteProductIds();
   Future<void> addToFavorites(String productId);
   Future<void> removeFromFavorites(String productId);
   Future<bool> toggleFavorite(String productId, bool isFavorite);
@@ -26,9 +29,13 @@ abstract class FavoriteRemoteDataSource {
 
 class FavoriteRemoteDataSourceImpl implements FavoriteRemoteDataSource {
   final ApiClient _apiClient;
+  final FavoriteCacheService _cacheService;
 
-  FavoriteRemoteDataSourceImpl({required ApiClient apiClient})
-    : _apiClient = apiClient;
+  FavoriteRemoteDataSourceImpl({
+    required ApiClient apiClient,
+    required FavoriteCacheService cacheService,
+  }) : _apiClient = apiClient,
+       _cacheService = cacheService;
 
   FavoriteItemModel _productJsonToFavoriteItem(Map<String, dynamic> json) {
     final productId = json['_id']?.toString() ?? json['id']?.toString() ?? '';
@@ -44,11 +51,44 @@ class FavoriteRemoteDataSourceImpl implements FavoriteRemoteDataSource {
   @override
   Future<List<FavoriteItemModel>> getFavorites() async {
     developer.log('Fetching favorites', name: 'FavoriteDataSource');
+
+    final cachedFavorites = await _cacheService.getFavorites();
+    if (cachedFavorites != null) {
+      unawaited(_refreshFavoritesCache());
+      return cachedFavorites;
+    }
+
+    return _fetchFavoritesFromApi();
+  }
+
+  @override
+  Future<Set<String>> getFavoriteProductIds() async {
+    final cachedIds = await _cacheService.getFavoriteIds();
+    if (cachedIds != null) {
+      return cachedIds;
+    }
+
+    final favorites = await getFavorites();
+    return favorites
+        .map((item) => item.productId.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+  }
+
+  Future<void> _refreshFavoritesCache() async {
+    try {
+      await _fetchFavoritesFromApi();
+    } catch (_) {
+      // Ignore background refresh errors.
+    }
+  }
+
+  Future<List<FavoriteItemModel>> _fetchFavoritesFromApi() async {
     final response = await _apiClient.get(ApiEndpoints.favoritesMy);
     final data = response.data['data'] ?? response.data;
     final list = data is List ? data : <dynamic>[];
 
-    return list.map((json) {
+    final items = list.map((json) {
       if (json is! Map<String, dynamic>) {
         throw Exception('Invalid favorite item format');
       }
@@ -63,6 +103,9 @@ class FavoriteRemoteDataSourceImpl implements FavoriteRemoteDataSource {
 
       return FavoriteItemModel.fromJson(json);
     }).toList();
+
+    await _cacheService.saveFavorites(items);
+    return items;
   }
 
   @override
@@ -71,8 +114,11 @@ class FavoriteRemoteDataSourceImpl implements FavoriteRemoteDataSource {
 
     try {
       await _apiClient.post(ApiEndpoints.productFavorite(productId));
+      await _cacheService.markFavorite(productId);
+      await _cacheService.clearFavoritesList();
     } on DioException catch (e) {
       if (e.response?.statusCode == 409) {
+        await _cacheService.markFavorite(productId);
         return;
       }
       rethrow;
@@ -86,6 +132,8 @@ class FavoriteRemoteDataSourceImpl implements FavoriteRemoteDataSource {
       name: 'FavoriteDataSource',
     );
     await _apiClient.delete(ApiEndpoints.productFavorite(productId));
+    await _cacheService.unmarkFavorite(productId);
+    await _cacheService.clearFavoritesList();
   }
 
   @override
@@ -103,13 +151,24 @@ class FavoriteRemoteDataSourceImpl implements FavoriteRemoteDataSource {
   Future<bool> isFavorite(String productId) async {
     developer.log('Checking favorite: $productId', name: 'FavoriteDataSource');
 
+    final cached = await _cacheService.isFavorite(productId);
+    if (cached != null) {
+      return cached;
+    }
+
     try {
       final response = await _apiClient.get(
         ApiEndpoints.productFavoriteCheck(productId),
       );
       final data = response.data['data'] ?? response.data;
       if (data is Map && data.containsKey('isFavorite')) {
-        return data['isFavorite'] == true;
+        final isFavorite = data['isFavorite'] == true;
+        if (isFavorite) {
+          await _cacheService.markFavorite(productId);
+        } else {
+          await _cacheService.unmarkFavorite(productId);
+        }
+        return isFavorite;
       }
     } catch (_) {
       // Fallback to full list when check endpoint fails.
@@ -129,6 +188,7 @@ class FavoriteRemoteDataSourceImpl implements FavoriteRemoteDataSource {
       if (item.productId.isEmpty) continue;
       await removeFromFavorites(item.productId);
     }
+    await _cacheService.clearAll();
   }
 
   @override

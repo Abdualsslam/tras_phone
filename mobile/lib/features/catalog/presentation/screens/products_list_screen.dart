@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/network/api_client.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../data/datasources/catalog_remote_datasource.dart';
@@ -63,9 +62,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   @override
   void initState() {
     super.initState();
-    _favoriteDataSource = FavoriteRemoteDataSourceImpl(
-      apiClient: getIt<ApiClient>(),
-    );
+    _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
     // Initialize sort from widget parameter or defaults
     if (widget.sortBy == 'newest') {
       _sortBy = 'createdAt';
@@ -81,14 +78,10 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
   Future<void> _loadFavoriteIds() async {
     try {
-      final favorites = await _favoriteDataSource.getFavorites();
+      final favoriteIds = await _favoriteDataSource.getFavoriteProductIds();
       setState(() {
         _favoriteProductIds.clear();
-        for (var item in favorites) {
-          if (item.product != null) {
-            _favoriteProductIds.add(item.product!.id);
-          }
-        }
+        _favoriteProductIds.addAll(favoriteIds);
       });
     } catch (e) {
       // Silently fail - favorite check is optional
