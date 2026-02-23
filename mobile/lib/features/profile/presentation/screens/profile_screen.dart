@@ -61,7 +61,9 @@ class ProfileScreen extends StatelessWidget {
                         ElevatedButton(
                           onPressed: () =>
                               context.read<ProfileCubit>().loadProfile(),
-                          child: Text(AppLocalizations.of(context)!.retryAction),
+                          child: Text(
+                            AppLocalizations.of(context)!.retryAction,
+                          ),
                         ),
                       ],
                     ),
@@ -84,15 +86,28 @@ class ProfileScreen extends StatelessWidget {
                           SizedBox(height: 24.h),
 
                           // Statistics Grid
-                          _buildSectionTitle(theme, isDark, AppLocalizations.of(context)!.statistics),
+                          _buildSectionTitle(
+                            theme,
+                            isDark,
+                            AppLocalizations.of(context)!.statistics,
+                          ),
                           SizedBox(height: 12.h),
                           _buildStatsGrid(context, theme, isDark, customer),
                           SizedBox(height: 12.h),
 
                           // Business Info
-                          _buildSectionTitle(theme, isDark, AppLocalizations.of(context)!.businessInfo),
+                          _buildSectionTitle(
+                            theme,
+                            isDark,
+                            AppLocalizations.of(context)!.businessInfo,
+                          ),
                           SizedBox(height: 12.h),
-                          _buildBusinessInfoCard(context, theme, isDark, customer),
+                          _buildBusinessInfoCard(
+                            context,
+                            theme,
+                            isDark,
+                            customer,
+                          ),
                           SizedBox(height: 12.h),
 
                           // Location Info - Default Address
@@ -122,6 +137,8 @@ class ProfileScreen extends StatelessWidget {
                           _buildReturnsCard(context, theme, isDark),
                           SizedBox(height: 12.h),
                           _buildSupportCard(context, theme, isDark),
+                          SizedBox(height: 12.h),
+                          _buildEducationCenterCard(context, theme, isDark),
                           SizedBox(height: 24.h),
 
                           // Logout Button
@@ -267,7 +284,12 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsGrid(BuildContext context, ThemeData theme, bool isDark, customer) {
+  Widget _buildStatsGrid(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    customer,
+  ) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -289,7 +311,8 @@ class ProfileScreen extends StatelessWidget {
           theme: theme,
           isDark: isDark,
           title: AppLocalizations.of(context)!.totalSpent,
-          value: '${customer.totalSpent.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+          value:
+              '${customer.totalSpent.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
           icon: Iconsax.wallet_money,
           color: Colors.green,
         ),
@@ -297,7 +320,8 @@ class ProfileScreen extends StatelessWidget {
           theme: theme,
           isDark: isDark,
           title: AppLocalizations.of(context)!.averageOrderValue,
-          value: '${customer.averageOrderValue.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+          value:
+              '${customer.averageOrderValue.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
           icon: Iconsax.trend_up,
           color: Colors.orange,
         ),
@@ -398,7 +422,12 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBusinessInfoCard(BuildContext context, ThemeData theme, bool isDark, customer) {
+  Widget _buildBusinessInfoCard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    customer,
+  ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18.r),
       child: BackdropFilter(
@@ -807,7 +836,12 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWalletCard(BuildContext context, ThemeData theme, bool isDark, customer) {
+  Widget _buildWalletCard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    customer,
+  ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18.r),
       child: BackdropFilter(
@@ -908,7 +942,9 @@ class ProfileScreen extends StatelessWidget {
               ),
               SizedBox(height: 8.h),
               Text(
-                AppLocalizations.of(context)!.creditAvailable(customer.availableCredit.toStringAsFixed(2)),
+                AppLocalizations.of(
+                  context,
+                )!.creditAvailable(customer.availableCredit.toStringAsFixed(2)),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: isDark
                       ? AppColors.textSecondaryDark
@@ -922,11 +958,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReturnsCard(
-    BuildContext context,
-    ThemeData theme,
-    bool isDark,
-  ) {
+  Widget _buildReturnsCard(BuildContext context, ThemeData theme, bool isDark) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1005,11 +1037,7 @@ class ProfileScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Icon(
-                    Iconsax.arrow_left_2,
-                    size: 20.sp,
-                    color: Colors.orange,
-                  ),
+                  Icon(Iconsax.arrow_left_2, size: 20.sp, color: Colors.orange),
                 ],
               ),
             ),
@@ -1019,11 +1047,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSupportCard(
-    BuildContext context,
-    ThemeData theme,
-    bool isDark,
-  ) {
+  Widget _buildSupportCard(BuildContext context, ThemeData theme, bool isDark) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1179,11 +1203,7 @@ class ProfileScreen extends StatelessWidget {
                 color: AppColors.error.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14.r),
               ),
-              child: Icon(
-                Iconsax.logout,
-                color: AppColors.error,
-                size: 20.sp,
-              ),
+              child: Icon(Iconsax.logout, color: AppColors.error, size: 20.sp),
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -1212,7 +1232,9 @@ class ProfileScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(ctx),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(
-                  color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+                  color: isDark
+                      ? AppColors.dividerDark
+                      : AppColors.dividerLight,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12.r),
@@ -1243,6 +1265,99 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEducationCenterCard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => context.push('/education'),
+        borderRadius: BorderRadius.circular(18.r),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          Colors.white.withValues(alpha: 0.08),
+                          Colors.white.withValues(alpha: 0.04),
+                        ]
+                      : [
+                          Colors.white.withValues(alpha: 0.9),
+                          Colors.white.withValues(alpha: 0.7),
+                        ],
+                ),
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : Colors.teal.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42.w,
+                    height: 42.w,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.teal.withValues(alpha: 0.2),
+                          Colors.teal.withValues(alpha: 0.08),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Icon(
+                      Iconsax.book_1,
+                      size: 20.sp,
+                      color: Colors.teal,
+                    ),
+                  ),
+                  SizedBox(width: 16.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppLocalizations.of(context)!.education,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          'مقالات، فيديوهات ودروس عملية',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Iconsax.arrow_left_2, size: 20.sp, color: Colors.teal),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

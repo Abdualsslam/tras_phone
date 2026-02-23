@@ -56,6 +56,7 @@ import '../features/address/presentation/screens/map_location_picker_screen.dart
 import '../features/education/presentation/screens/education_categories_screen.dart';
 import '../features/education/presentation/screens/education_list_screen.dart';
 import '../features/education/presentation/screens/education_details_screen.dart';
+import '../features/education/presentation/screens/product_education_list_screen.dart';
 import '../features/orders/presentation/screens/order_details_screen.dart';
 import '../features/profile/domain/entities/address_entity.dart';
 import '../features/orders/presentation/screens/order_tracking_screen.dart';
@@ -143,6 +144,21 @@ final GoRouter appRouter = GoRouter(
         return Scaffold(
           appBar: AppBar(title: const Text('المنتج')),
           body: const Center(child: Text('المنتج غير موجود')),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/product/:id/education',
+      builder: (context, state) {
+        final id = state.pathParameters['id'] ?? '';
+        final extra = state.extra;
+        final productName = extra is Map<String, dynamic>
+            ? extra['productName'] as String?
+            : state.uri.queryParameters['productName'];
+
+        return ProductEducationListScreen(
+          productId: id,
+          productName: productName,
         );
       },
     ),

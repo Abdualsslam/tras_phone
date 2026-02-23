@@ -1,13 +1,17 @@
 /// Education Details Screen - Article or video content
 library;
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../catalog/domain/entities/product_entity.dart';
+import '../../../catalog/domain/repositories/catalog_repository.dart';
 import '../../data/services/favorites_service.dart';
 import '../../domain/entities/educational_content_entity.dart';
 import '../cubit/education_details_cubit.dart';
@@ -23,7 +27,8 @@ class EducationDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => getIt<EducationDetailsCubit>()..loadContent(contentId),
+      create: (context) =>
+          getIt<EducationDetailsCubit>()..loadContent(contentId),
       child: const _EducationDetailsView(),
     );
   }
@@ -38,7 +43,13 @@ class _EducationDetailsView extends StatefulWidget {
 
 class _EducationDetailsViewState extends State<_EducationDetailsView> {
   final FavoritesService _favoritesService = getIt<FavoritesService>();
+  final CatalogRepository _catalogRepository = getIt<CatalogRepository>();
   bool _isFavorite = false;
+  String? _favoriteLoadedForContentId;
+  String? _relatedProductsLoadedForContentId;
+  bool _relatedProductsLoading = false;
+  String? _relatedProductsError;
+  List<ProductEntity> _relatedProducts = [];
 
   @override
   Widget build(BuildContext context) {
@@ -64,12 +75,18 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
                   SizedBox(height: 16.h),
                   Text(
                     'حدث خطأ في تحميل المحتوى',
-                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   SizedBox(height: 8.h),
                   Text(
                     state.message,
-                    style: TextStyle(fontSize: 14.sp, color: AppColors.textSecondaryLight),
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: AppColors.textSecondaryLight,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 24.h),
@@ -86,10 +103,17 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
 
         if (state is EducationDetailsLoaded) {
           final content = state.content;
-          _checkFavoriteStatus(content.id);
+          if (_favoriteLoadedForContentId != content.id) {
+            _favoriteLoadedForContentId = content.id;
+            unawaited(_checkFavoriteStatus(content.id));
+          }
+          if (_relatedProductsLoadedForContentId != content.id) {
+            _relatedProductsLoadedForContentId = content.id;
+            unawaited(_loadRelatedProducts(content.relatedProducts));
+          }
 
           final locale = 'ar'; // TODO: Get from localization
-          
+
           return Scaffold(
             appBar: AppBar(
               title: Text(content.getTitle(locale)),
@@ -121,7 +145,7 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
                       width: double.infinity,
                       height: 220.h,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (context, error, stackTrace) => Container(
                         height: 220.h,
                         color: AppColors.primary.withValues(alpha: 0.1),
                         child: Icon(
@@ -177,10 +201,7 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
                         else
                           Text(
                             content.getContentText(locale),
-                            style: TextStyle(
-                              fontSize: 15.sp,
-                              height: 1.8,
-                            ),
+                            style: TextStyle(fontSize: 15.sp, height: 1.8),
                           ),
                         SizedBox(height: 24.h),
 
@@ -204,7 +225,9 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
                                   vertical: 6.h,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(20.r),
                                 ),
                                 child: Text(
@@ -217,6 +240,45 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
                               );
                             }).toList(),
                           ),
+                          SizedBox(height: 24.h),
+                        ],
+
+                        if (content.relatedProducts.isNotEmpty) ...[
+                          Text(
+                            'منتجات مرتبطة',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 12.h),
+                          if (_relatedProductsLoading)
+                            const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else if (_relatedProductsError != null)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _relatedProductsError!,
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    color: AppColors.error,
+                                  ),
+                                ),
+                                SizedBox(height: 8.h),
+                                TextButton.icon(
+                                  onPressed: () => _loadRelatedProducts(
+                                    content.relatedProducts,
+                                  ),
+                                  icon: const Icon(Iconsax.refresh),
+                                  label: const Text('إعادة المحاولة'),
+                                ),
+                              ],
+                            )
+                          else
+                            _buildRelatedProductsSection(),
                           SizedBox(height: 24.h),
                         ],
 
@@ -297,10 +359,10 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
         Icon(Iconsax.clock, size: 14.sp, color: AppColors.textSecondaryLight),
         SizedBox(width: 4.w),
         Text(
-          content.videoDurationFormatted ?? 
-          (content.readingTimeFormatted.isNotEmpty 
-              ? content.readingTimeFormatted 
-              : '5 دقائق'),
+          content.videoDurationFormatted ??
+              (content.readingTimeFormatted.isNotEmpty
+                  ? content.readingTimeFormatted
+                  : '5 دقائق'),
           style: TextStyle(
             fontSize: 12.sp,
             color: AppColors.textSecondaryLight,
@@ -321,7 +383,7 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
         SizedBox(width: 24.w),
         GestureDetector(
           onTap: () {
-            context.read<EducationDetailsCubit>().likeContent(content.id);
+            _likeContent(content.id);
           },
           child: _buildStatItem(
             icon: Iconsax.heart,
@@ -351,15 +413,14 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
         Icon(
           icon,
           size: 18.sp,
-          color: isInteractive ? AppColors.primary : AppColors.textSecondaryLight,
+          color: isInteractive
+              ? AppColors.primary
+              : AppColors.textSecondaryLight,
         ),
         SizedBox(width: 4.w),
         Text(
           '$value',
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
         ),
         SizedBox(width: 4.w),
         Text(
@@ -373,6 +434,144 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
     );
   }
 
+  Future<void> _loadRelatedProducts(List<String> productIds) async {
+    final normalizedIds = productIds
+        .where((id) => id.trim().isNotEmpty)
+        .map((id) => id.trim())
+        .toSet()
+        .take(6)
+        .toList();
+
+    if (normalizedIds.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _relatedProducts = [];
+        _relatedProductsError = null;
+        _relatedProductsLoading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _relatedProductsLoading = true;
+      _relatedProductsError = null;
+    });
+
+    try {
+      final results = await Future.wait(
+        normalizedIds.map((id) => _catalogRepository.getProduct(id)),
+      );
+
+      final products = <ProductEntity>[];
+      for (final result in results) {
+        result.fold((_) {}, (product) => products.add(product));
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _relatedProducts = products;
+        _relatedProductsLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _relatedProductsError = 'تعذر تحميل المنتجات المرتبطة';
+        _relatedProductsLoading = false;
+      });
+    }
+  }
+
+  Widget _buildRelatedProductsSection() {
+    if (_relatedProducts.isEmpty) {
+      return Text(
+        'لا توجد منتجات مرتبطة متاحة حاليا',
+        style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondaryLight),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _relatedProducts.length,
+      separatorBuilder: (context, index) => SizedBox(height: 8.h),
+      itemBuilder: (context, index) {
+        final product = _relatedProducts[index];
+        return InkWell(
+          borderRadius: BorderRadius.circular(10.r),
+          onTap: () => _openProduct(product),
+          child: Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8.r),
+                  child: product.imageUrl != null
+                      ? Image.network(
+                          product.imageUrl!,
+                          width: 48.w,
+                          height: 48.h,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _relatedProductFallback(),
+                        )
+                      : _relatedProductFallback(),
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                    product.getName('ar'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Iconsax.arrow_left_2,
+                  size: 16.sp,
+                  color: AppColors.textSecondaryLight,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _relatedProductFallback() {
+    return Container(
+      width: 48.w,
+      height: 48.h,
+      color: AppColors.inputBackgroundLight,
+      child: Icon(Iconsax.box, size: 16.sp, color: AppColors.textTertiaryLight),
+    );
+  }
+
+  void _openProduct(ProductEntity product) {
+    context.push('/product/${product.id}', extra: product);
+  }
+
+  Future<void> _likeContent(String contentId) async {
+    final success = await context.read<EducationDetailsCubit>().likeContent(
+      contentId,
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success ? 'تم تسجيل الإعجاب' : 'تعذر تسجيل الإعجاب'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _checkFavoriteStatus(String contentId) async {
     final isFav = await _favoritesService.isFavorite(contentId);
     if (mounted) {
@@ -381,19 +580,47 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
   }
 
   Future<void> _toggleFavorite(String contentId) async {
-    await _favoritesService.toggleFavorite(contentId);
-    await _checkFavoriteStatus(contentId);
+    try {
+      await _favoritesService.toggleFavorite(contentId);
+      await _checkFavoriteStatus(contentId);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isFavorite ? 'تمت الاضافة للمفضلة' : 'تمت الازالة من المفضلة',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تعذر تحديث المفضلة'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _shareContent(EducationalContentEntity content) async {
     final cubit = context.read<EducationDetailsCubit>();
-    
+
     await Share.share(
       '${content.titleAr ?? content.title}\n\n${content.excerptAr ?? content.excerpt ?? ''}\n\nشاهد المزيد على تطبيق TRAS Phone',
       subject: content.titleAr ?? content.title,
     );
-    
-    // Track share
-    cubit.shareContent(content.id);
+
+    final tracked = await cubit.shareContent(content.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          tracked ? 'تمت مشاركة المحتوى' : 'تمت المشاركة بدون تتبع',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 }

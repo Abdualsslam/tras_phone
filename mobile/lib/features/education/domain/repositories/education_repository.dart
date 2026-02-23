@@ -19,9 +19,14 @@ abstract class EducationRepository {
     int page = 1,
     int limit = 20,
   });
-  
+
   Future<EducationalContentEntity?> getContentBySlug(String slug);
   Future<EducationalContentEntity?> getContentById(String id);
+  Future<Map<String, dynamic>> getProductEducationalContent({
+    required String productId,
+    int page = 1,
+    int limit = 20,
+  });
   Future<List<EducationalContentEntity>> getFeaturedContent({int? limit});
   Future<List<EducationalContentEntity>> getContentByCategory(
     String categorySlug, {
