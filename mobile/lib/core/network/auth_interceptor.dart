@@ -37,7 +37,7 @@ class AuthInterceptor extends Interceptor {
       'onRequest: ${options.method} ${options.path}',
       name: 'AuthInterceptor',
     );
-    
+
     // Skip if this is a retry request (token already added in _retryRequest)
     if (options.headers['X-Retry-Request'] == 'true') {
       developer.log(
@@ -55,7 +55,7 @@ class AuthInterceptor extends Interceptor {
       }
       return handler.next(options);
     }
-    
+
     // Public endpoints: skip token refresh, but add token when available
     // (e.g. products API returns 'price' per customer tier when token is sent)
     if (_isPublicEndpoint(options.path)) {
@@ -79,7 +79,7 @@ class AuthInterceptor extends Interceptor {
       'Fetching token data for authenticated endpoint...',
       name: 'AuthInterceptor',
     );
-    
+
     final tokenData = await _tokenManager.getTokenData();
     if (tokenData != null) {
       final now = DateTime.now();
@@ -87,7 +87,7 @@ class AuthInterceptor extends Interceptor {
         'Token check: expiresAt=${tokenData.expiresAt}, isExpired=${tokenData.isExpired}, willExpireSoon=${tokenData.willExpireSoon}, now=$now',
         name: 'AuthInterceptor',
       );
-      
+
       // If expiresAt is null, log warning
       if (tokenData.expiresAt == null) {
         developer.log(
@@ -95,7 +95,7 @@ class AuthInterceptor extends Interceptor {
           name: 'AuthInterceptor',
         );
       }
-      
+
       // Check if token is expired or will expire soon
       if (tokenData.isExpired) {
         developer.log(
@@ -108,7 +108,7 @@ class AuthInterceptor extends Interceptor {
           try {
             final refreshed = await _refreshToken();
             _isRefreshing = false;
-            
+
             if (!refreshed) {
               developer.log(
                 'Failed to refresh expired token',
@@ -120,14 +120,11 @@ class AuthInterceptor extends Interceptor {
                   requestOptions: options,
                   error: 'Token expired and refresh failed',
                   type: DioExceptionType.badResponse,
-                  response: Response(
-                    requestOptions: options,
-                    statusCode: 401,
-                  ),
+                  response: Response(requestOptions: options, statusCode: 401),
                 ),
               );
             }
-            
+
             // After successful refresh, get the new token
             developer.log(
               'Token refreshed successfully, using new token for request',
@@ -167,23 +164,27 @@ class AuthInterceptor extends Interceptor {
         // Token will expire soon - refresh in background (don't wait)
         if (!_isRefreshing) {
           _isRefreshing = true;
-          _refreshToken().then((_) {
-            _isRefreshing = false;
-            developer.log(
-              'Background token refresh completed',
-              name: 'AuthInterceptor',
-            );
-          }).catchError((e) {
-            _isRefreshing = false;
-            developer.log(
-              'Background token refresh failed: $e',
-              name: 'AuthInterceptor',
-              error: e,
-            );
-          });
+          _refreshToken()
+              .then((_) {
+                _isRefreshing = false;
+                developer.log(
+                  'Background token refresh completed',
+                  name: 'AuthInterceptor',
+                );
+              })
+              .catchError((e) {
+                _isRefreshing = false;
+                developer.log(
+                  'Background token refresh failed: $e',
+                  name: 'AuthInterceptor',
+                  error: e,
+                );
+              });
         }
       } else {
-        final minutesUntilExpiry = tokenData.expiresAt?.difference(now).inMinutes;
+        final minutesUntilExpiry = tokenData.expiresAt
+            ?.difference(now)
+            .inMinutes;
         developer.log(
           'Token is valid, expires in ${minutesUntilExpiry ?? "unknown"} minutes',
           name: 'AuthInterceptor',
@@ -200,10 +201,7 @@ class AuthInterceptor extends Interceptor {
     final token = await _tokenManager.getAccessToken();
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
-      developer.log(
-        'Added token to request headers',
-        name: 'AuthInterceptor',
-      );
+      developer.log('Added token to request headers', name: 'AuthInterceptor');
     } else {
       developer.log(
         'WARNING: No token available for request',
@@ -229,7 +227,10 @@ class AuthInterceptor extends Interceptor {
       // Don't retry if this is already a retry request (prevent infinite loop)
       if (requestOptions.headers['X-Retry-Request'] == 'true') {
         // Don't logout here - just pass the error
-        developer.log('Retry request failed, not clearing tokens', name: 'AuthInterceptor');
+        developer.log(
+          'Retry request failed, not clearing tokens',
+          name: 'AuthInterceptor',
+        );
         return handler.next(err);
       }
 
@@ -306,7 +307,7 @@ class AuthInterceptor extends Interceptor {
   bool _isPublicEndpoint(String path) {
     // Extract base path (remove query parameters)
     final basePath = path.split('?').first;
-    
+
     // Exact match endpoints (public)
     const exactPublicEndpoints = [
       ApiEndpoints.login,
@@ -324,25 +325,25 @@ class AuthInterceptor extends Interceptor {
       ApiEndpoints.settings,
       ApiEndpoints.appVersion,
     ];
-    
+
     // Check exact matches
     if (exactPublicEndpoints.any((endpoint) => basePath == endpoint)) {
       return true;
     }
-    
+
     // Public GET endpoints (read-only operations)
     // /products/:id - GET product details (public)
     // /products/:id/reviews - GET reviews (public)
-    if (basePath.startsWith('/products/') && 
-        (basePath.endsWith('/reviews') || 
-         RegExp(r'^/products/[^/]+$').hasMatch(basePath))) {
+    if (basePath.startsWith('/products/') &&
+        (basePath.endsWith('/reviews') ||
+            RegExp(r'^/products/[^/]+$').hasMatch(basePath))) {
       return true;
     }
-    
+
     // Private endpoints (require authentication)
     // /products/:id/favorite - POST/DELETE favorite (private)
     // /products/favorite/my - GET my favorites (private)
-    if (basePath.contains('/favorite') || 
+    if (basePath.contains('/favorite') ||
         basePath.contains('/cart') ||
         basePath.contains('/orders') ||
         basePath.contains('/customer/') ||
@@ -350,7 +351,7 @@ class AuthInterceptor extends Interceptor {
         basePath.contains('/stock-alerts')) {
       return false;
     }
-    
+
     // Default: check if path starts with known public endpoints
     const prefixPublicEndpoints = [
       '/auth/',
@@ -361,7 +362,7 @@ class AuthInterceptor extends Interceptor {
       '/products/on-offer',
       '/products/search',
     ];
-    
+
     return prefixPublicEndpoints.any((prefix) => basePath.startsWith(prefix));
   }
 
@@ -381,12 +382,18 @@ class AuthInterceptor extends Interceptor {
 
       if ((response.statusCode == 200 || response.statusCode == 201) &&
           response.data != null) {
-        developer.log('Refresh response: ${response.data}', name: 'AuthInterceptor');
+        developer.log(
+          'Refresh response: ${response.data}',
+          name: 'AuthInterceptor',
+        );
         await _tokenManager.saveTokensFromResponse(response.data);
 
         // Verify token was saved correctly
         final savedToken = await _tokenManager.getAccessToken();
-        developer.log('Verified saved token: ${savedToken?.substring(0, 30)}...', name: 'AuthInterceptor');
+        developer.log(
+          'Verified saved token: ${savedToken?.substring(0, 30)}...',
+          name: 'AuthInterceptor',
+        );
 
         // Retry pending requests
         await _retryPendingRequests();
@@ -421,10 +428,13 @@ class AuthInterceptor extends Interceptor {
         ),
       );
     }
-    
+
     developer.log('Retrying ${requestOptions.path}', name: 'AuthInterceptor');
-    developer.log('Full token for retry: ${token.substring(0, 30)}...', name: 'AuthInterceptor');
-    
+    developer.log(
+      'Full token for retry: ${token.substring(0, 30)}...',
+      name: 'AuthInterceptor',
+    );
+
     // Extract relative path (remove base URL if present)
     String relativePath = requestOptions.path;
     final baseUrl = _dio.options.baseUrl;
@@ -435,7 +445,7 @@ class AuthInterceptor extends Interceptor {
     if (!relativePath.startsWith('/')) {
       relativePath = '/$relativePath';
     }
-    
+
     // Create new options to avoid modifying the original
     final newOptions = Options(
       method: requestOptions.method,
@@ -519,7 +529,9 @@ class AuthInterceptor extends Interceptor {
 class LoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    developer.log('→ ${options.method} ${options.path}', name: 'API');
+    final hasQuery = options.queryParameters.isNotEmpty;
+    final requestTarget = hasQuery ? options.uri.toString() : options.path;
+    developer.log('→ ${options.method} $requestTarget', name: 'API');
     if (options.data != null) {
       developer.log('Request data: ${options.data}', name: 'API');
     }
@@ -559,10 +571,15 @@ class LoggingInterceptor extends Interceptor {
       if (_isListEndpoint(path)) {
         final list = data is Map ? data['data'] ?? data : data;
         final count = list is List ? list.length : 0;
-        developer.log('Response: list of $count items (body not printed)', name: 'API');
+        developer.log(
+          'Response: list of $count items (body not printed)',
+          name: 'API',
+        );
       } else {
         try {
-          final toPrint = data is Map ? data : (data is List ? {'data': data} : {'raw': data});
+          final toPrint = data is Map
+              ? data
+              : (data is List ? {'data': data} : {'raw': data});
           final pretty = _prettyJson(toPrint);
           developer.log('Response data:\n$pretty', name: 'API');
         } catch (_) {
