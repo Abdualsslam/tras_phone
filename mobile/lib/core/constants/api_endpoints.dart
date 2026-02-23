@@ -54,13 +54,16 @@ class ApiEndpoints {
   static const String productsNewArrivals = '/products/new-arrivals';
   static const String productsBestSellers = '/products/best-sellers';
   static const String productsOnOffer = '/products/on-offer';
+  static String productEducationalContent(String id) =>
+      '/products/$id/educational-content';
 
   // ═══════════════════════════════════════════════════════════════════════════
   // FAVORITES & REVIEWS
   // ═══════════════════════════════════════════════════════════════════════════
   static const String favoritesMy = '/products/favorite/my';
   static String productFavorite(String id) => '/products/$id/favorite';
-  static String productFavoriteCheck(String id) => '/products/$id/favorite/check';
+  static String productFavoriteCheck(String id) =>
+      '/products/$id/favorite/check';
   static String productReviews(String id) => '/products/$id/reviews';
   static String productReviewsMine(String id) => '/products/$id/reviews/mine';
   static String productReviewUpdate(String productId, String reviewId) =>

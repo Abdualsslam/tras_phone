@@ -25,9 +25,14 @@ abstract class EducationRemoteDataSource {
     int page,
     int limit,
   });
-  
+
   Future<EducationalContentEntity?> getContentBySlug(String slug);
   Future<EducationalContentEntity?> getContentById(String id);
+  Future<Map<String, dynamic>> getProductEducationalContent({
+    required String productId,
+    int page,
+    int limit,
+  });
   Future<List<EducationalContentEntity>> getFeaturedContent({int? limit});
   Future<List<EducationalContentEntity>> getContentByCategory(
     String categorySlug, {
@@ -44,7 +49,7 @@ class EducationRemoteDataSourceImpl implements EducationRemoteDataSource {
   final ApiClient _apiClient;
 
   EducationRemoteDataSourceImpl({required ApiClient apiClient})
-      : _apiClient = apiClient;
+    : _apiClient = apiClient;
 
   @override
   Future<List<EducationalCategoryEntity>> getCategories({
@@ -82,10 +87,7 @@ class EducationRemoteDataSourceImpl implements EducationRemoteDataSource {
       final data = response.data['data'] ?? response.data;
       return EducationalCategoryModel.fromJson(data).toEntity();
     } catch (e) {
-      developer.log(
-        'Category not found: $slug',
-        name: 'EducationDataSource',
-      );
+      developer.log('Category not found: $slug', name: 'EducationDataSource');
       return null;
     }
   }
@@ -122,25 +124,28 @@ class EducationRemoteDataSourceImpl implements EducationRemoteDataSource {
       );
 
       final responseData = response.data;
-      
+
       // Handle paginated response (from documentation: response.data['data'] and response.data['pagination'])
       if (responseData is Map && responseData.containsKey('data')) {
         final List<dynamic> list = responseData['data'] ?? [];
         final contentList = list
             .map((json) => EducationalContentModel.fromJson(json).toEntity())
             .toList();
-        
+
         // Extract pagination info
         final pagination = responseData['pagination'] as Map<String, dynamic>?;
-        
+
         return {
           'content': contentList,
-          'pagination': pagination ?? {
-            'page': page,
-            'limit': limit,
-            'total': responseData['total'] ?? contentList.length,
-            'pages': (responseData['total'] ?? contentList.length / limit).ceil(),
-          },
+          'pagination':
+              pagination ??
+              {
+                'page': page,
+                'limit': limit,
+                'total': responseData['total'] ?? contentList.length,
+                'pages': (responseData['total'] ?? contentList.length / limit)
+                    .ceil(),
+              },
         };
       } else {
         // Handle simple list response
@@ -148,7 +153,7 @@ class EducationRemoteDataSourceImpl implements EducationRemoteDataSource {
         final contentList = list
             .map((json) => EducationalContentModel.fromJson(json).toEntity())
             .toList();
-        
+
         return {
           'content': contentList,
           'pagination': {
@@ -183,10 +188,7 @@ class EducationRemoteDataSourceImpl implements EducationRemoteDataSource {
       final data = response.data['data'] ?? response.data;
       return EducationalContentModel.fromJson(data).toEntity();
     } catch (e) {
-      developer.log(
-        'Content not found: $slug',
-        name: 'EducationDataSource',
-      );
+      developer.log('Content not found: $slug', name: 'EducationDataSource');
       return null;
     }
   }
@@ -205,11 +207,69 @@ class EducationRemoteDataSourceImpl implements EducationRemoteDataSource {
       final data = response.data['data'] ?? response.data;
       return EducationalContentModel.fromJson(data).toEntity();
     } catch (e) {
-      developer.log(
-        'Content not found: $id',
-        name: 'EducationDataSource',
-      );
+      developer.log('Content not found: $id', name: 'EducationDataSource');
       return null;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getProductEducationalContent({
+    required String productId,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    developer.log(
+      'Fetching product educational content (productId: $productId, page: $page)',
+      name: 'EducationDataSource',
+    );
+
+    try {
+      final response = await _apiClient.get(
+        ApiEndpoints.productEducationalContent(productId),
+        queryParameters: {'page': page, 'limit': limit},
+      );
+
+      final responseData = response.data;
+      final Map<String, dynamic> normalized =
+          responseData is Map<String, dynamic>
+          ? responseData
+          : <String, dynamic>{};
+
+      final rawList = normalized['data'];
+      final List<dynamic> list = rawList is List ? rawList : <dynamic>[];
+      final contentList = list
+          .map((json) => EducationalContentModel.fromJson(json).toEntity())
+          .toList();
+
+      final rawPagination = normalized['pagination'];
+      final pagination = rawPagination is Map<String, dynamic>
+          ? rawPagination
+          : <String, dynamic>{};
+
+      final total =
+          (pagination['total'] as num?)?.toInt() ??
+          (normalized['total'] as num?)?.toInt() ??
+          contentList.length;
+      final pages =
+          (pagination['pages'] as num?)?.toInt() ??
+          (total / limit).ceil().clamp(1, 1000000);
+
+      return {
+        'content': contentList,
+        'pagination': {
+          'page': (pagination['page'] as num?)?.toInt() ?? page,
+          'limit': (pagination['limit'] as num?)?.toInt() ?? limit,
+          'total': total,
+          'pages': pages,
+        },
+      };
+    } catch (e) {
+      developer.log(
+        'Error fetching product educational content: $e',
+        name: 'EducationDataSource',
+        error: e,
+      );
+      rethrow;
     }
   }
 

@@ -51,6 +51,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   List<EducationalContentEntity> _relatedEducationalContent = [];
   bool _educationLoading = false;
   String? _educationError;
+  bool _educationHasMore = false;
 
   @override
   void initState() {
@@ -71,42 +72,26 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       _educationError = null;
     });
 
-    List<String> ids = widget.product.relatedEducationalContent ?? [];
-
-    final productResult = await _catalogRepository.getProduct(widget.product.id);
-    productResult.fold((_) {}, (product) {
-      if ((product.relatedEducationalContent ?? []).isNotEmpty) {
-        ids = product.relatedEducationalContent!;
-      }
-    });
-
-    final normalizedIds = ids
-        .where((id) => id.trim().isNotEmpty)
-        .map((id) => id.trim())
-        .toSet()
-        .toList();
-
-    if (normalizedIds.isEmpty) {
-      if (!mounted) return;
-      setState(() {
-        _relatedEducationalContent = [];
-        _educationLoading = false;
-      });
-      return;
-    }
-
     try {
-      final loaded = await Future.wait(
-        normalizedIds.map(
-          (id) => _educationRepository
-              .getContentById(id)
-              .catchError((_) => null),
-        ),
+      final result = await _educationRepository.getProductEducationalContent(
+        productId: widget.product.id,
+        page: 1,
+        limit: 3,
       );
 
+      final content =
+          (result['content'] as List<EducationalContentEntity>?) ??
+          <EducationalContentEntity>[];
+      final pagination =
+          (result['pagination'] as Map<String, dynamic>?) ??
+          <String, dynamic>{};
+      final pages = (pagination['pages'] as num?)?.toInt() ?? 1;
+      final total = (pagination['total'] as num?)?.toInt() ?? content.length;
+
       if (!mounted) return;
       setState(() {
-        _relatedEducationalContent = loaded.whereType<EducationalContentEntity>().toList();
+        _relatedEducationalContent = content;
+        _educationHasMore = pages > 1 || total > content.length;
         _educationLoading = false;
       });
     } catch (e) {
@@ -116,6 +101,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         _educationLoading = false;
       });
     }
+  }
+
+  void _openAllEducationalContent() {
+    context.push(
+      '/product/${widget.product.id}/education',
+      extra: {'productName': widget.product.getName('ar')},
+    );
   }
 
   void _printProductData() {
@@ -140,8 +132,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     debugPrint('  mainImage: ${p.mainImage}');
     debugPrint('  images count: ${p.images.length}');
     if (p.descriptionAr != null || p.description != null) {
-      final desc = (p.descriptionAr ?? p.description ?? '').replaceAll('\n', ' ');
-      debugPrint('  description: ${desc.length > 80 ? '${desc.substring(0, 80)}...' : desc}');
+      final desc = (p.descriptionAr ?? p.description ?? '').replaceAll(
+        '\n',
+        ' ',
+      );
+      debugPrint(
+        '  description: ${desc.length > 80 ? '${desc.substring(0, 80)}...' : desc}',
+      );
     }
     debugPrint('═══════════════════════════════════════════════════');
   }
@@ -154,10 +151,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       _reviewsCount = widget.product.reviewsCount;
     });
 
-    final reviewsResult =
-        await _catalogRepository.getProductReviews(widget.product.id);
-    final myReviewResult =
-        await _catalogRepository.getMyReview(widget.product.id);
+    final reviewsResult = await _catalogRepository.getProductReviews(
+      widget.product.id,
+    );
+    final myReviewResult = await _catalogRepository.getMyReview(
+      widget.product.id,
+    );
 
     if (!mounted) return;
 
@@ -169,10 +168,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       (failure) => error = failure.message,
       (list) => reviews = list,
     );
-    myReviewResult.fold(
-      (_) => myReview = null,
-      (r) => myReview = r,
-    );
+    myReviewResult.fold((_) => myReview = null, (r) => myReview = r);
 
     if (!mounted) return;
     setState(() {
@@ -182,9 +178,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       _myReview = myReview;
       _reviewsCount = reviews.length;
       if (reviews.isNotEmpty) {
-        _reviewsAverageRating = reviews
-                .map((r) => r.rating)
-                .reduce((a, b) => a + b) /
+        _reviewsAverageRating =
+            reviews.map((r) => r.rating).reduce((a, b) => a + b) /
             reviews.length;
       }
     });
@@ -208,7 +203,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
   Future<void> _checkFavoriteStatus() async {
     try {
-      final isFavorite = await _favoriteDataSource.isFavorite(widget.product.id);
+      final isFavorite = await _favoriteDataSource.isFavorite(
+        widget.product.id,
+      );
       if (mounted) {
         setState(() {
           _isFavorite = isFavorite;
@@ -219,7 +216,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       // If check fails, try to get favorites and check if product is in it
       try {
         final favorites = await _favoriteDataSource.getFavorites();
-        final isFavorite = favorites.any((item) => item.productId.toString() == widget.product.id);
+        final isFavorite = favorites.any(
+          (item) => item.productId.toString() == widget.product.id,
+        );
         if (mounted) {
           setState(() {
             _isFavorite = isFavorite;
@@ -236,7 +235,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     if (_isLoadingFavorite) return;
 
     final wasFavorite = _isFavorite;
-    
+
     // Optimistic update
     setState(() {
       _isFavorite = !_isFavorite;
@@ -356,15 +355,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   _buildStockStatus(theme, product),
                   SizedBox(height: 24.h),
 
-                  if (
-                    _educationLoading ||
-                    _relatedEducationalContent.isNotEmpty ||
-                    _educationError != null
-                  )
-                    ...[
-                      _buildRelatedEducationalContentSection(theme, isDark),
-                      SizedBox(height: 24.h),
-                    ],
+                  _buildRelatedEducationalContentSection(theme, isDark),
+                  SizedBox(height: 24.h),
 
                   // Reviews Section (inline)
                   _buildReviewsSection(theme, isDark, product),
@@ -400,10 +392,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         decoration: BoxDecoration(
           color: isDark ? AppColors.glassDark : AppColors.glassLight,
           shape: BoxShape.circle,
-          border: Border.all(
-            color: AppColors.glassBorder,
-            width: 1,
-          ),
+          border: Border.all(color: AppColors.glassBorder, width: 1),
         ),
         child: IconButton(
           icon: const Icon(Iconsax.arrow_right_3),
@@ -416,10 +405,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           decoration: BoxDecoration(
             color: isDark ? AppColors.glassDark : AppColors.glassLight,
             shape: BoxShape.circle,
-            border: Border.all(
-              color: AppColors.glassBorder,
-              width: 1,
-            ),
+            border: Border.all(color: AppColors.glassBorder, width: 1),
           ),
           child: IconButton(
             icon: _isLoadingFavorite
@@ -445,10 +431,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           decoration: BoxDecoration(
             color: isDark ? AppColors.glassDark : AppColors.glassLight,
             shape: BoxShape.circle,
-            border: Border.all(
-              color: AppColors.glassBorder,
-              width: 1,
-            ),
+            border: Border.all(color: AppColors.glassBorder, width: 1),
           ),
           child: IconButton(
             icon: const Icon(Iconsax.share),
@@ -491,9 +474,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             imageUrl: imageUrl,
                             fit: BoxFit.contain,
                             placeholder: (context, url) => Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                             errorWidget: (context, url, error) => Center(
                               child: Icon(
@@ -834,10 +815,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   color: AppColors.textTertiaryLight,
                 ),
                 SizedBox(height: 12.h),
-                Text(
-                  'لا توجد تقييمات بعد',
-                  style: theme.textTheme.titleMedium,
-                ),
+                Text('لا توجد تقييمات بعد', style: theme.textTheme.titleMedium),
                 SizedBox(height: 8.h),
                 Text(
                   'كن أول من يقيم هذا المنتج',
@@ -908,8 +886,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       child: Column(
                         children: List.generate(5, (i) {
                           final star = 5 - i;
-                          final count =
-                              _reviews.where((r) => r.rating == star).length;
+                          final count = _reviews
+                              .where((r) => r.rating == star)
+                              .length;
                           final pct = _reviews.isEmpty
                               ? 0.0
                               : count / _reviews.length;
@@ -963,16 +942,72 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         ),
         SizedBox(height: 12.h),
         if (_educationLoading)
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 12.h),
-              child: const CircularProgressIndicator(strokeWidth: 2),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.cardDark : AppColors.cardLight,
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
           )
         else if (_educationError != null)
-          Text(
-            _educationError!,
-            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.error),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(
+                color: AppColors.error.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _educationError!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                TextButton.icon(
+                  onPressed: _loadRelatedEducationalContent,
+                  icon: const Icon(Iconsax.refresh),
+                  label: const Text('إعادة المحاولة'),
+                ),
+              ],
+            ),
+          )
+        else if (_relatedEducationalContent.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.cardDark : AppColors.cardLight,
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'لا يوجد محتوى تعليمي مرتبط بهذا المنتج حاليا',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondaryLight,
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                FilledButton.tonalIcon(
+                  onPressed: () => context.push('/education'),
+                  icon: const Icon(Iconsax.book_1),
+                  label: const Text('استكشف المركز التعليمي'),
+                ),
+              ],
+            ),
           )
         else
           Column(
@@ -982,11 +1017,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     padding: EdgeInsets.only(bottom: 10.h),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12.r),
-                      onTap: () => context.push('/education/details/${content.slug}'),
+                      onTap: () =>
+                          context.push('/education/details/${content.slug}'),
                       child: Container(
                         padding: EdgeInsets.all(12.w),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.cardDark : AppColors.cardLight,
+                          color: isDark
+                              ? AppColors.cardDark
+                              : AppColors.cardLight,
                           borderRadius: BorderRadius.circular(12.r),
                           boxShadow: [
                             BoxShadow(
@@ -1007,16 +1045,17 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                   width: 72.w,
                                   height: 72.h,
                                   fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) => Container(
-                                    width: 72.w,
-                                    height: 72.h,
-                                    color: AppColors.inputBackgroundLight,
-                                    child: Icon(
-                                      Iconsax.book,
-                                      size: 20.sp,
-                                      color: AppColors.textTertiaryLight,
-                                    ),
-                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        width: 72.w,
+                                        height: 72.h,
+                                        color: AppColors.inputBackgroundLight,
+                                        child: Icon(
+                                          Iconsax.book,
+                                          size: 20.sp,
+                                          color: AppColors.textTertiaryLight,
+                                        ),
+                                      ),
                                 ),
                               )
                             else
@@ -1061,9 +1100,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                         content.getExcerpt('ar')!,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: AppColors.textSecondaryLight,
-                                        ),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color:
+                                                  AppColors.textSecondaryLight,
+                                            ),
                                       ),
                                     ),
                                 ],
@@ -1082,6 +1123,22 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 )
                 .toList(),
           ),
+        if (!_educationLoading &&
+            _educationError == null &&
+            _relatedEducationalContent.isNotEmpty) ...[
+          SizedBox(height: 8.h),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _openAllEducationalContent,
+              icon: Icon(
+                _educationHasMore ? Iconsax.arrow_left_2 : Iconsax.book,
+                size: 18.sp,
+              ),
+              label: const Text('عرض كل المحتوى التعليمي'),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1177,17 +1234,18 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       ? () {
                           HapticFeedback.mediumImpact();
                           context.read<CartCubit>().addToCartLocal(
-                                productId: product.id,
-                                quantity: _quantity,
-                                unitPrice: product.effectivePrice,
-                                productName: product.name,
-                                productNameAr: product.nameAr,
-                                productImage: product.mainImage ??
-                                    (product.images.isNotEmpty
-                                        ? product.images.first
-                                        : null),
-                                productSku: product.sku,
-                              );
+                            productId: product.id,
+                            quantity: _quantity,
+                            unitPrice: product.effectivePrice,
+                            productName: product.name,
+                            productNameAr: product.nameAr,
+                            productImage:
+                                product.mainImage ??
+                                (product.images.isNotEmpty
+                                    ? product.images.first
+                                    : null),
+                            productSku: product.sku,
+                          );
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(

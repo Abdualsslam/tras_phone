@@ -9,9 +9,8 @@ import '../datasources/education_remote_datasource.dart';
 class EducationRepositoryImpl implements EducationRepository {
   final EducationRemoteDataSource _remoteDataSource;
 
-  EducationRepositoryImpl({
-    required EducationRemoteDataSource remoteDataSource,
-  }) : _remoteDataSource = remoteDataSource;
+  EducationRepositoryImpl({required EducationRemoteDataSource remoteDataSource})
+    : _remoteDataSource = remoteDataSource;
 
   @override
   Future<List<EducationalCategoryEntity>> getCategories({
@@ -73,6 +72,23 @@ class EducationRepositoryImpl implements EducationRepository {
       return await _remoteDataSource.getContentById(id);
     } catch (e) {
       throw Exception('Failed to fetch content: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getProductEducationalContent({
+    required String productId,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      return await _remoteDataSource.getProductEducationalContent(
+        productId: productId,
+        page: page,
+        limit: limit,
+      );
+    } catch (e) {
+      throw Exception('Failed to fetch product educational content: $e');
     }
   }
 
