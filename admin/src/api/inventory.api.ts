@@ -183,17 +183,22 @@ export const inventoryApi = {
     },
 
     getProductStock: async (productId: string): Promise<StockItem[]> => {
-        const response = await apiClient.get<ApiResponse<StockItem[]>>(`/inventory/stock/${productId}`);
+        const response = await apiClient.get<ApiResponse<StockItem[]>>(`/inventory/products/${productId}/stock`);
         return response.data.data;
     },
 
     adjustStock: async (data: { productId: string; warehouseId: string; quantity: number; type: 'add' | 'subtract' | 'set'; reason?: string }): Promise<StockItem> => {
-        const response = await apiClient.post<ApiResponse<StockItem>>('/inventory/stock/adjust', data);
+        const response = await apiClient.post<ApiResponse<StockItem>>('/inventory/adjust', data);
         return response.data.data;
     },
 
     transferStock: async (data: StockTransferDto): Promise<void> => {
-        await apiClient.post('/inventory/stock/transfer', data);
+        await apiClient.post('/inventory/transfers', {
+            fromWarehouseId: data.fromWarehouseId,
+            toWarehouseId: data.toWarehouseId,
+            items: [{ productId: data.productId, quantity: data.quantity }],
+            note: data.reason,
+        });
     },
 
     updateStockLevels: async (productId: string, data: { minStockLevel?: number; maxStockLevel?: number }): Promise<StockItem> => {
@@ -369,4 +374,3 @@ export interface StockReservation {
 }
 
 export default inventoryApi;
-

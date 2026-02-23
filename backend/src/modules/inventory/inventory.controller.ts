@@ -618,6 +618,31 @@ export class InventoryController {
   // ═════════════════════════════════════
 
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post('transfers')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create stock transfer',
+    description: 'Create a stock transfer request between warehouses. Admin only.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Stock transfer created successfully',
+    type: ApiResponseDto,
+  })
+  @ApiCommonErrorResponses()
+  async createStockTransfer(@Body() data: any, @CurrentUser() user: any) {
+    const transfer = await this.inventoryService.createStockTransfer({
+      ...data,
+      requestedBy: user?.adminUserId ?? user?.id,
+    });
+    return ResponseBuilder.created(
+      transfer,
+      'Stock transfer created',
+      'تم إنشاء تحويل المخزون',
+    );
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Get('transfers')
   @ApiOperation({
     summary: 'Get stock transfers',

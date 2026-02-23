@@ -66,6 +66,14 @@ ProductModel _$ProductModelFromJson(Map<String, dynamic> json) => ProductModel(
               as List<dynamic>?)
           ?.map((e) => e as String)
           .toList(),
+  relatedEducationalContent:
+      (ProductModel._readRelatedEducationalContent(
+                json,
+                'relatedEducationalContent',
+              )
+              as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
   tags:
       (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
   publishedAt: json['publishedAt'] == null
@@ -92,6 +100,7 @@ Map<String, dynamic> _$ProductModelToJson(ProductModel instance) =>
       'qualityTypeId': instance.qualityTypeId,
       'compatibleDevices': instance.compatibleDevices,
       'relatedProducts': instance.relatedProducts,
+      'relatedEducationalContent': instance.relatedEducationalContent,
       'mainImage': instance.mainImage,
       'images': instance.images,
       'video': instance.video,

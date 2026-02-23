@@ -86,6 +86,21 @@ const statusConfig: Record<
     variant: "default",
     icon: <Package className="h-3 w-3" />,
   },
+  pickup_scheduled: {
+    label: "تم جدولة الاستلام",
+    variant: "default",
+    icon: <Package className="h-3 w-3" />,
+  },
+  picked_up: {
+    label: "تم الاستلام",
+    variant: "default",
+    icon: <Package className="h-3 w-3" />,
+  },
+  inspecting: {
+    label: "قيد الفحص",
+    variant: "default",
+    icon: <ClipboardCheck className="h-3 w-3" />,
+  },
   refunded: {
     label: "تم الاسترداد",
     variant: "success",
@@ -196,7 +211,7 @@ export function ReturnsPage() {
       data,
     }: {
       id: string;
-      data: { refundMethod: string; refundAmount: number; notes?: string };
+      data: { refundMethod: string; amount: number; notes?: string };
     }) => returnsApi.processRefund(id, data as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["returns"] });
@@ -284,7 +299,7 @@ export function ReturnsPage() {
         id: selectedReturn._id,
         data: {
           refundMethod: "wallet", // Default to wallet refund
-          refundAmount: data.refundAmount,
+          amount: data.refundAmount,
           notes: data.notes || undefined,
         },
       });
@@ -297,11 +312,12 @@ export function ReturnsPage() {
 
   const pendingReturns = returns.filter((r) => r.status === "pending").length;
   const processingReturns = returns.filter((r) =>
-    ["approved", "processing"].includes(r.status)
+    ["approved", "pickup_scheduled", "picked_up", "inspecting", "processing"].includes(r.status)
   ).length;
-  const totalRefunded = returns
-    .filter((r) => r.status === "refunded" || r.status === "completed")
-    .reduce((sum, r) => sum + (r.refundAmount || 0), 0);
+  const totalRefunded = returns.reduce(
+    (sum, r) => sum + (Number(r.refundAmount) || 0),
+    0
+  );
 
   // ─────────────────────────────────────────
   // Render
@@ -409,9 +425,11 @@ export function ReturnsPage() {
                   <SelectItem value="pending">قيد الانتظار</SelectItem>
                   <SelectItem value="approved">موافق عليه</SelectItem>
                   <SelectItem value="rejected">مرفوض</SelectItem>
-                  <SelectItem value="processing">قيد المعالجة</SelectItem>
-                  <SelectItem value="refunded">تم الاسترداد</SelectItem>
+                  <SelectItem value="pickup_scheduled">تم جدولة الاستلام</SelectItem>
+                  <SelectItem value="picked_up">تم الاستلام</SelectItem>
+                  <SelectItem value="inspecting">قيد الفحص</SelectItem>
                   <SelectItem value="completed">مكتمل</SelectItem>
+                  <SelectItem value="cancelled">ملغي</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -527,14 +545,14 @@ export function ReturnsPage() {
                               {ret.status === "approved" && (
                                 <DropdownMenuItem
                                   onClick={() =>
-                                    handleStatusChange(ret._id, "processing")
+                                    handleStatusChange(ret._id, "inspecting")
                                   }
                                 >
                                   <Package className="h-4 w-4 ms-2" />
-                                  بدء المعالجة
+                                  بدء الفحص
                                 </DropdownMenuItem>
                               )}
-                              {ret.status === "processing" && (
+                              {ret.status === "inspecting" && (
                                 <DropdownMenuItem
                                   onClick={() => handleRefund(ret)}
                                 >

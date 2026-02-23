@@ -74,6 +74,7 @@ class ProductEntity extends Equatable {
 
   // Related products
   final List<String>? relatedProducts;
+  final List<String>? relatedEducationalContent;
 
   // Tags
   final List<String> tags;
@@ -136,6 +137,7 @@ class ProductEntity extends Equatable {
     this.averageRating = 0,
     this.favoriteCount = 0,
     this.relatedProducts,
+    this.relatedEducationalContent,
     this.tags = const [],
     this.publishedAt,
     required this.createdAt,

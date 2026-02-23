@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import type { ReactElement } from "react";
+import { type ReactElement, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   QueryClient,
@@ -63,6 +63,16 @@ const queryClient = new QueryClient({
 
 function App() {
   const { i18n } = useTranslation();
+
+  useEffect(() => {
+    const dir = i18n.dir();
+    document.documentElement.setAttribute("dir", dir);
+    document.body.setAttribute("dir", dir);
+    document.documentElement.setAttribute(
+      "lang",
+      i18n.language === "ar" ? "ar" : "en"
+    );
+  }, [i18n, i18n.language]);
 
   const withAccess = (path: string, element: ReactElement) => {
     const requiredAccess = routeAccessConfig[path];

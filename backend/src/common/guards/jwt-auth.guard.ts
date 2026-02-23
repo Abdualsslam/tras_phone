@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
@@ -53,9 +54,14 @@ export class JwtAuthGuard implements CanActivate {
         'your-super-secret-jwt-key',
       );
 
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: jwtSecret,
-      });
+      let payload: any;
+      try {
+        payload = await this.jwtService.verifyAsync(token, {
+          secret: jwtSecret,
+        });
+      } catch {
+        throw new UnauthorizedException('Invalid or expired token');
+      }
 
       // Validate user exists and is active
       const user = await this.authService.validateUser(payload.sub);
@@ -126,11 +132,23 @@ export class JwtAuthGuard implements CanActivate {
         throw error;
       }
 
-      // For JWT verification errors, provide more context
+      // DB/DNS connectivity issues should not be reported as invalid token
       const errorMessage =
         error instanceof Error ? error.message : String(error);
+      const isConnectivityIssue =
+        /ENOTFOUND|ECONNREFUSED|EAI_AGAIN|Server selection timed out|MongoServerSelectionError/i.test(
+          errorMessage,
+        );
+
+      if (isConnectivityIssue) {
+        throw new ServiceUnavailableException(
+          'Authentication service temporarily unavailable',
+        );
+      }
+
+      // Preserve error context for unexpected failures
       throw new UnauthorizedException(
-        `Invalid or expired token: ${errorMessage}`,
+        `Authentication failed: ${errorMessage}`,
       );
     }
   }

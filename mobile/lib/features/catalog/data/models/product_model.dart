@@ -39,6 +39,12 @@ class ProductModel {
   @JsonKey(name: 'relatedProducts', readValue: _readRelatedProducts)
   final List<String>? relatedProducts;
 
+  @JsonKey(
+    name: 'relatedEducationalContent',
+    readValue: _readRelatedEducationalContent,
+  )
+  final List<String>? relatedEducationalContent;
+
   // Images
   final String? mainImage;
   @JsonKey(defaultValue: [])
@@ -174,6 +180,7 @@ class ProductModel {
     this.averageRating = 0,
     this.favoriteCount = 0,
     this.relatedProducts,
+    this.relatedEducationalContent,
     this.tags = const [],
     this.publishedAt,
     required this.createdAt,
@@ -222,6 +229,30 @@ class ProductModel {
           })
           .toList()
           .cast<String>();
+    }
+    return null;
+  }
+
+  static Object? _readRelatedEducationalContent(
+    Map<dynamic, dynamic> json,
+    String key,
+  ) {
+    final value = json[key];
+    if (value == null) return null;
+    if (value is List) {
+      return value
+          .map((item) {
+            if (item is String) return item;
+            if (item is Map) {
+              return item['_id']?.toString() ??
+                  item['\$oid']?.toString() ??
+                  item['id']?.toString();
+            }
+            return item.toString();
+          })
+          .whereType<String>()
+          .where((id) => id.isNotEmpty)
+          .toList();
     }
     return null;
   }
@@ -331,6 +362,7 @@ class ProductModel {
       averageRating: model.averageRating,
       favoriteCount: model.favoriteCount,
       relatedProducts: model.relatedProducts,
+      relatedEducationalContent: model.relatedEducationalContent,
       tags: model.tags,
       publishedAt: model.publishedAt,
       createdAt: model.createdAt,
@@ -393,6 +425,7 @@ class ProductModel {
       averageRating: averageRating,
       favoriteCount: favoriteCount,
       relatedProducts: relatedProducts,
+      relatedEducationalContent: relatedEducationalContent,
       tags: tags,
       publishedAt: publishedAt,
       createdAt: createdAt,

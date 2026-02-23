@@ -49,7 +49,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const { isDark } = useTheme();
     const { user } = useAuth();
     const location = useLocation();
-    const isRTL = i18n.language === 'ar';
+    const isRTL = i18n.dir() === 'rtl';
     const currentLogo = isDark ? logoDark : logo;
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() =>
         parseExpandedSections(),
@@ -88,10 +88,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
     return (
         <aside
+            dir={i18n.dir()}
             className={cn(
                 'fixed top-0 h-screen bg-white dark:bg-slate-900 border-e border-gray-200 dark:border-slate-700 transition-all duration-300 z-40 flex flex-col',
                 collapsed ? 'w-[72px]' : 'w-64',
-                isRTL ? 'end-0' : 'start-0',
+                'start-0',
             )}
         >
             <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-slate-700 px-4">

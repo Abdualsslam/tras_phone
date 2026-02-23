@@ -127,6 +127,7 @@ class ProductCacheData {
       'averageRating': entity.averageRating,
       'favoriteCount': entity.favoriteCount,
       'relatedProducts': entity.relatedProducts,
+      'relatedEducationalContent': entity.relatedEducationalContent,
       'tags': entity.tags,
       'publishedAt': entity.publishedAt?.toIso8601String(),
       'createdAt': entity.createdAt.toIso8601String(),

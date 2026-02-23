@@ -19,7 +19,7 @@ i18n.use(initReactI18next).init({
 
 // Update document direction based on language
 export const updateDocumentDirection = (lang: string) => {
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dir = i18n.dir(lang);
     document.documentElement.lang = lang;
     localStorage.setItem('language', lang);
 };

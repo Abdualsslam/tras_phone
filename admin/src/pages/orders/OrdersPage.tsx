@@ -276,6 +276,32 @@ export function OrdersPage() {
     });
   };
 
+  const getCustomerShopName = (order: Order) => {
+    const customer = order.customer;
+    const customerId = order.customerId;
+
+    if (customer?.companyName) return customer.companyName;
+
+    if (customerId && typeof customerId === "object") {
+      return customerId.shopName || customerId.responsiblePersonName || "-";
+    }
+
+    return "-";
+  };
+
+  const getCustomerContactName = (order: Order) => {
+    const customer = order.customer;
+    const customerId = order.customerId;
+
+    if (customer?.contactName) return customer.contactName;
+
+    if (customerId && typeof customerId === "object") {
+      return customerId.responsiblePersonName || customerId.shopName || "-";
+    }
+
+    return "-";
+  };
+
   const orders = data?.items || [];
 
   return (
@@ -438,10 +464,10 @@ export function OrdersPage() {
                     <TableCell>
                       <div>
                         <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {order.customer?.companyName || "-"}
+                          {getCustomerShopName(order)}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {order.customer?.contactName || "-"}
+                          {getCustomerContactName(order)}
                         </p>
                       </div>
                     </TableCell>
@@ -539,7 +565,7 @@ export function OrdersPage() {
                       العميل
                     </p>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {selectedOrder.customer?.companyName || "-"}
+                      {getCustomerShopName(selectedOrder)}
                     </p>
                   </div>
                   <div>

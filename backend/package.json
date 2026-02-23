@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed:admin": "ts-node -r tsconfig-paths/register src/scripts/seed-admin.ts",
     "seed:all": "ts-node -r tsconfig-paths/register src/scripts/seed-all.ts",
+    "migrate:product-stock": "ts-node -r tsconfig-paths/register src/scripts/migrate-product-stock-to-inventory.ts",
     "dedupe:customers": "ts-node -r tsconfig-paths/register src/scripts/dedupe-customers.ts",
     "fix:admin-super": "ts-node -r tsconfig-paths/register src/scripts/fix-admin-super.ts",
     "fix:compatible-devices": "ts-node -r tsconfig-paths/register src/scripts/fix-compatible-devices.ts"

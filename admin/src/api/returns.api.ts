@@ -43,7 +43,17 @@ export interface Return {
     orderNumber?: string;
     customerId: string;
     customerName: string;
-    status: 'pending' | 'approved' | 'rejected' | 'processing' | 'refunded' | 'completed' | 'cancelled';
+    status:
+        | 'pending'
+        | 'approved'
+        | 'rejected'
+        | 'pickup_scheduled'
+        | 'picked_up'
+        | 'inspecting'
+        | 'processing'
+        | 'refunded'
+        | 'completed'
+        | 'cancelled';
     items: ReturnItem[];
     subtotal: number;
     refundAmount: number;
@@ -78,7 +88,7 @@ export interface InspectItemDto {
 }
 
 export interface ProcessRefundDto {
-    refundAmount: number;
+    amount: number;
     notes?: string;
 }
 
@@ -113,7 +123,8 @@ export const returnsApi = {
     }): Promise<PaginatedResponse<Return>> => {
         const response = await apiClient.get<ApiResponse<any>>('/returns', { params });
         const data = response.data.data;
-        const returns = Array.isArray(data) ? data : (data?.items || data?.returns || []);
+        const returnsRaw = Array.isArray(data) ? data : (data?.items || data?.returns || []);
+        const returns = returnsRaw.map((ret: any) => normalizeReturn(ret));
         const meta = (response.data as any).meta || data?.pagination || {};
 
         return {
@@ -131,12 +142,12 @@ export const returnsApi = {
 
     getById: async (id: string): Promise<Return> => {
         const response = await apiClient.get<ApiResponse<Return>>(`/returns/${id}`);
-        return response.data.data;
+        return normalizeReturn(response.data.data);
     },
 
     updateStatus: async (id: string, data: UpdateReturnStatusDto): Promise<Return> => {
         const response = await apiClient.put<ApiResponse<Return>>(`/returns/${id}/status`, data);
-        return response.data.data;
+        return normalizeReturn(response.data.data);
     },
 
     inspectItem: async (returnId: string, itemId: string, data: InspectItemDto): Promise<ReturnItem> => {
@@ -146,12 +157,12 @@ export const returnsApi = {
 
     processRefund: async (id: string, data: ProcessRefundDto): Promise<Return> => {
         const response = await apiClient.post<ApiResponse<Return>>(`/returns/${id}/refund`, data);
-        return response.data.data;
+        return normalizeReturn(response.data.data);
     },
 
     completeRefund: async (returnId: string): Promise<Return> => {
         const response = await apiClient.post<ApiResponse<Return>>(`/returns/${returnId}/refund/complete`);
-        return response.data.data;
+        return normalizeReturn(response.data.data);
     },
 
     // ─────────────────────────────────────────
@@ -215,5 +226,88 @@ export interface SupplierReturnBatch {
     createdAt: string;
     updatedAt: string;
 }
+
+const normalizeReturnItem = (item: any, parentReturn: any): ReturnItem => ({
+    _id: item?._id || '',
+    productId:
+        typeof item?.productId === 'object'
+            ? item.productId?._id || ''
+            : item?.productId || '',
+    productName:
+        item?.productName ||
+        item?.productId?.nameAr ||
+        item?.productId?.name ||
+        '-',
+    productImage: item?.productImage || item?.productId?.mainImage,
+    sku: item?.sku || item?.productSku || '-',
+    quantity: Number(item?.quantity) || 0,
+    unitPrice: Number(item?.unitPrice) || 0,
+    returnReason:
+        item?.returnReason ||
+        parentReturn?.reasonId?.nameAr ||
+        parentReturn?.reasonId?.name ||
+        '-',
+    condition: item?.condition,
+    inspectionNotes: item?.inspectionNotes,
+    inspectionStatus: item?.inspectionStatus || 'pending',
+    inspectedAt: item?.inspectedAt,
+    inspectedBy: item?.inspectedBy,
+});
+
+const normalizeReturn = (raw: any): Return => {
+    const orderNumbers = Array.isArray(raw?.orderNumbers)
+        ? raw.orderNumbers
+        : Array.isArray(raw?.orderIds)
+            ? raw.orderIds
+                  .map((order: any) =>
+                      typeof order === 'object' ? order?.orderNumber : order
+                  )
+                  .filter(Boolean)
+            : [];
+
+    const orderIds = Array.isArray(raw?.orderIds)
+        ? raw.orderIds
+              .map((order: any) =>
+                  typeof order === 'object' ? order?._id : order
+              )
+              .filter(Boolean)
+        : raw?.orderId
+            ? [raw.orderId]
+            : [];
+
+    const customerName =
+        raw?.customerName ||
+        raw?.customerId?.shopName ||
+        raw?.customerId?.responsiblePersonName ||
+        '-';
+
+    const items = Array.isArray(raw?.items)
+        ? raw.items.map((item: any) => normalizeReturnItem(item, raw))
+        : [];
+
+    return {
+        _id: raw?._id || '',
+        returnNumber: raw?.returnNumber || '-',
+        orderIds,
+        orderNumbers,
+        orderId: raw?.orderId,
+        orderNumber: raw?.orderNumber || orderNumbers[0],
+        customerId:
+            typeof raw?.customerId === 'object'
+                ? raw.customerId?._id || ''
+                : raw?.customerId || '',
+        customerName,
+        status: raw?.status || 'pending',
+        items,
+        subtotal: Number(raw?.subtotal ?? raw?.totalItemsValue ?? 0),
+        refundAmount: Number(raw?.refundAmount ?? 0),
+        refundMethod: raw?.refundMethod || raw?.returnType,
+        refundStatus: raw?.refundStatus,
+        notes: raw?.notes || raw?.customerNotes,
+        adminNotes: raw?.adminNotes,
+        createdAt: raw?.createdAt || '',
+        updatedAt: raw?.updatedAt || '',
+    };
+};
 
 export default returnsApi;

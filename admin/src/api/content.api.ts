@@ -413,7 +413,33 @@ export const contentApi = {
         const response = await apiClient.get<ApiResponse<{ data: EducationalContent[]; total: number; page: number; limit: number }>>('/educational/admin/content', {
             params: filters,
         });
-        return response.data.data;
+        const payload = response.data.data as any;
+        const pagination = (response.data as any)?.meta?.pagination || {};
+
+        if (Array.isArray(payload)) {
+            return {
+                data: payload,
+                total: Number(pagination.total ?? payload.length ?? 0),
+                page: Number(pagination.page ?? filters?.page ?? 1),
+                limit: Number(pagination.limit ?? filters?.limit ?? payload.length ?? 0),
+            };
+        }
+
+        if (payload && typeof payload === 'object') {
+            return {
+                data: Array.isArray(payload.data) ? payload.data : [],
+                total: Number(payload.total ?? pagination.total ?? 0),
+                page: Number(payload.page ?? pagination.page ?? filters?.page ?? 1),
+                limit: Number(payload.limit ?? pagination.limit ?? filters?.limit ?? 0),
+            };
+        }
+
+        return {
+            data: [],
+            total: 0,
+            page: Number(filters?.page ?? 1),
+            limit: Number(filters?.limit ?? 0),
+        };
     },
 
     getEducationalContentById: async (id: string): Promise<EducationalContent> => {

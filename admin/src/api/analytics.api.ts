@@ -123,34 +123,8 @@ export const analyticsApi = {
     // ─────────────────────────────────────────
 
     getDashboard: async (): Promise<DashboardStats> => {
-        const response = await apiClient.get<ApiResponse<any>>('/analytics/dashboard');
-        let data = response.data.data;
-        
-        // Handle nested response: response.data.data.data
-        if (data && typeof data === 'object' && 'data' in data) {
-            data = (data as any).data;
-        }
-        
-        // Ensure arrays are arrays
-        if (data && typeof data === 'object') {
-            if (data.topProducts && !Array.isArray(data.topProducts)) {
-                data.topProducts = [];
-            }
-            if (data.topCustomers && !Array.isArray(data.topCustomers)) {
-                data.topCustomers = [];
-            }
-            if (data.lowStock && !Array.isArray(data.lowStock)) {
-                data.lowStock = [];
-            }
-            if (data.recentOrders && !Array.isArray(data.recentOrders)) {
-                data.recentOrders = [];
-            }
-            if (data.salesChart && !Array.isArray(data.salesChart)) {
-                data.salesChart = [];
-            }
-        }
-        
-        return data as DashboardStats;
+        const response = await apiClient.get<ApiResponse<DashboardStats>>('/analytics/dashboard');
+        return response.data.data as DashboardStats;
     },
 
     // ─────────────────────────────────────────

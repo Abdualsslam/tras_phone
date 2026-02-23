@@ -13,7 +13,7 @@ export function MainLayout() {
     );
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const { i18n } = useTranslation();
-    const isRTL = i18n.language === 'ar';
+    const isRTL = i18n.dir() === 'rtl';
 
     useEffect(() => {
         localStorage.setItem('sidebarCollapsed', String(sidebarCollapsed));
@@ -41,7 +41,7 @@ export function MainLayout() {
             <div
                 className={cn(
                     'fixed top-0 h-screen w-64 bg-white dark:bg-slate-900 z-40 transform transition-transform duration-300 lg:hidden',
-                    isRTL ? 'end-0' : 'start-0',
+                    'start-0',
                     mobileSidebarOpen
                         ? 'translate-x-0'
                         : isRTL

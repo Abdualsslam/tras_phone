@@ -26,12 +26,11 @@ export function AnalyticsPage() {
 
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ["analytics-dashboard"],
     queryFn: analyticsApi.getDashboard,
   });
 
-  // Fetch top products (may return [] for date range; fallback to dashboard topProducts)
-  const { data: topProducts, isLoading: productsLoading } = useQuery({
+  const { data: topProducts } = useQuery({
     queryKey: ["top-products", startDate, endDate],
     queryFn: () => analyticsApi.getTopProducts(startDate, endDate, 5),
   });
@@ -89,7 +88,7 @@ export function AnalyticsPage() {
     },
   ];
 
-  const isLoading = statsLoading || productsLoading;
+  const isLoading = statsLoading && !stats;
 
   if (isLoading) {
     return (
@@ -119,7 +118,7 @@ export function AnalyticsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                     {stat.format === "currency"
                       ? formatCurrency(stat.value, "SAR", locale)
                       : formatNumber(stat.value, locale)}

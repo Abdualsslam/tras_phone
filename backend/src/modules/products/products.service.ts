@@ -31,6 +31,14 @@ import {
   CustomerDocument,
 } from '@modules/customers/schemas/customer.schema';
 import { CustomersService } from '@modules/customers/customers.service';
+import {
+  ProductStock,
+  ProductStockDocument,
+} from '@modules/inventory/schemas/product-stock.schema';
+import {
+  Warehouse,
+  WarehouseDocument,
+} from '@modules/inventory/schemas/warehouse.schema';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -62,6 +70,10 @@ export class ProductsService {
     private stockAlertModel: Model<StockAlertDocument>,
     @InjectModel(Customer.name)
     private customerModel: Model<CustomerDocument>,
+    @InjectModel(ProductStock.name)
+    private productStockModel: Model<ProductStockDocument>,
+    @InjectModel(Warehouse.name)
+    private warehouseModel: Model<WarehouseDocument>,
   ) {}
 
   /**
@@ -87,6 +99,13 @@ export class ProductsService {
     }
 
     const product = await this.productModel.create(data);
+
+    await this.syncDefaultWarehouseStock(product, {
+      stockQuantity: data.stockQuantity,
+      lowStockThreshold: data.lowStockThreshold,
+      trackInventory: data.trackInventory,
+    });
+
     return product;
   }
 
@@ -541,7 +560,77 @@ export class ProductsService {
       { new: true },
     );
     if (!product) throw new NotFoundException('Product not found');
+
+    if (
+      data.stockQuantity !== undefined ||
+      data.lowStockThreshold !== undefined ||
+      data.trackInventory !== undefined
+    ) {
+      await this.syncDefaultWarehouseStock(product, {
+        stockQuantity: data.stockQuantity,
+        lowStockThreshold: data.lowStockThreshold,
+        trackInventory: data.trackInventory,
+      });
+    }
+
     return product;
+  }
+
+  private async syncDefaultWarehouseStock(
+    product: ProductDocument,
+    payload: {
+      stockQuantity?: number;
+      lowStockThreshold?: number;
+      trackInventory?: boolean;
+    },
+  ): Promise<void> {
+    const trackInventory = payload.trackInventory ?? product.trackInventory;
+    if (!trackInventory) return;
+
+    const shouldSyncQuantity = payload.stockQuantity !== undefined;
+    const shouldSyncThreshold = payload.lowStockThreshold !== undefined;
+
+    if (!shouldSyncQuantity && !shouldSyncThreshold) {
+      return;
+    }
+
+    const defaultWarehouse =
+      (await this.warehouseModel.findOne({ isDefault: true, isActive: true })) ||
+      (await this.warehouseModel.findOne({ isActive: true }));
+
+    if (!defaultWarehouse) {
+      return;
+    }
+
+    const lowStockThreshold = Math.max(
+      0,
+      Number(payload.lowStockThreshold ?? product.lowStockThreshold ?? 0),
+    );
+    const update: Record<string, unknown> = {
+      lowStockThreshold,
+      criticalStockThreshold: Math.max(0, Math.min(2, lowStockThreshold || 2)),
+    };
+
+    if (shouldSyncQuantity) {
+      update.quantity = Math.max(0, Number(payload.stockQuantity ?? 0));
+    }
+
+    await this.productStockModel.findOneAndUpdate(
+      {
+        productId: product._id,
+        warehouseId: defaultWarehouse._id,
+      },
+      {
+        $set: update,
+        $setOnInsert: {
+          productId: product._id,
+          warehouseId: defaultWarehouse._id,
+          reservedQuantity: 0,
+          damagedQuantity: 0,
+        },
+      },
+      { upsert: true, new: true },
+    );
   }
 
   /**

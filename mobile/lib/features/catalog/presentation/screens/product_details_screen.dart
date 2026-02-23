@@ -14,6 +14,8 @@ import '../../../../core/di/injection.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../../data/models/product_review_model.dart';
+import '../../../education/domain/entities/educational_content_entity.dart';
+import '../../../education/domain/repositories/education_repository.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../favorite/data/datasources/favorite_remote_datasource.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
@@ -38,6 +40,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   late PageController _pageController;
   late FavoriteRemoteDataSource _favoriteDataSource;
   late CatalogRepository _catalogRepository;
+  late EducationRepository _educationRepository;
 
   List<ProductReviewModel> _reviews = [];
   ProductReviewModel? _myReview;
@@ -45,6 +48,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   String? _reviewsError;
   double _reviewsAverageRating = 0;
   int _reviewsCount = 0;
+  List<EducationalContentEntity> _relatedEducationalContent = [];
+  bool _educationLoading = false;
+  String? _educationError;
 
   @override
   void initState() {
@@ -53,8 +59,63 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     _pageController = PageController();
     _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
     _catalogRepository = getIt<CatalogRepository>();
+    _educationRepository = getIt<EducationRepository>();
     _checkFavoriteStatus();
     _loadReviews();
+    _loadRelatedEducationalContent();
+  }
+
+  Future<void> _loadRelatedEducationalContent() async {
+    setState(() {
+      _educationLoading = true;
+      _educationError = null;
+    });
+
+    List<String> ids = widget.product.relatedEducationalContent ?? [];
+
+    final productResult = await _catalogRepository.getProduct(widget.product.id);
+    productResult.fold((_) {}, (product) {
+      if ((product.relatedEducationalContent ?? []).isNotEmpty) {
+        ids = product.relatedEducationalContent!;
+      }
+    });
+
+    final normalizedIds = ids
+        .where((id) => id.trim().isNotEmpty)
+        .map((id) => id.trim())
+        .toSet()
+        .toList();
+
+    if (normalizedIds.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _relatedEducationalContent = [];
+        _educationLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final loaded = await Future.wait(
+        normalizedIds.map(
+          (id) => _educationRepository
+              .getContentById(id)
+              .catchError((_) => null),
+        ),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _relatedEducationalContent = loaded.whereType<EducationalContentEntity>().toList();
+        _educationLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _educationError = 'تعذر تحميل المحتوى التعليمي';
+        _educationLoading = false;
+      });
+    }
   }
 
   void _printProductData() {
@@ -294,6 +355,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   // Stock Status
                   _buildStockStatus(theme, product),
                   SizedBox(height: 24.h),
+
+                  if (
+                    _educationLoading ||
+                    _relatedEducationalContent.isNotEmpty ||
+                    _educationError != null
+                  )
+                    ...[
+                      _buildRelatedEducationalContentSection(theme, isDark),
+                      SizedBox(height: 24.h),
+                    ],
 
                   // Reviews Section (inline)
                   _buildReviewsSection(theme, isDark, product),
@@ -875,6 +946,141 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 label: const Text('أضف تقييم'),
               ),
             ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRelatedEducationalContentSection(ThemeData theme, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'المحتوى التعليمي الخاص بالمنتج',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(height: 12.h),
+        if (_educationLoading)
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              child: const CircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
+        else if (_educationError != null)
+          Text(
+            _educationError!,
+            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.error),
+          )
+        else
+          Column(
+            children: _relatedEducationalContent
+                .map(
+                  (content) => Padding(
+                    padding: EdgeInsets.only(bottom: 10.h),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12.r),
+                      onTap: () => context.push('/education/details/${content.slug}'),
+                      child: Container(
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.cardDark : AppColors.cardLight,
+                          borderRadius: BorderRadius.circular(12.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.shadowLight,
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (content.featuredImage != null)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8.r),
+                                child: CachedNetworkImage(
+                                  imageUrl: content.featuredImage!,
+                                  width: 72.w,
+                                  height: 72.h,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, __, ___) => Container(
+                                    width: 72.w,
+                                    height: 72.h,
+                                    color: AppColors.inputBackgroundLight,
+                                    child: Icon(
+                                      Iconsax.book,
+                                      size: 20.sp,
+                                      color: AppColors.textTertiaryLight,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              Container(
+                                width: 72.w,
+                                height: 72.h,
+                                decoration: BoxDecoration(
+                                  color: AppColors.inputBackgroundLight,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Icon(
+                                  Iconsax.book,
+                                  size: 20.sp,
+                                  color: AppColors.textTertiaryLight,
+                                ),
+                              ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    content.getTitle('ar'),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  SizedBox(height: 6.h),
+                                  Text(
+                                    content.type.getName('ar'),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  if (content.getExcerpt('ar') != null)
+                                    Padding(
+                                      padding: EdgeInsets.only(top: 4.h),
+                                      child: Text(
+                                        content.getExcerpt('ar')!,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: AppColors.textSecondaryLight,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Iconsax.arrow_left_2,
+                              size: 16.sp,
+                              color: AppColors.textTertiaryLight,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
           ),
       ],
     );

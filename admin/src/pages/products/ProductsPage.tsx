@@ -311,7 +311,7 @@ export function ProductsPage() {
     availableProducts.length > relatedProductsDisplayCount;
 
   // Fetch educational content for related educational content selection
-  const { data: educationalContentData } = useQuery({
+  const { data: educationalContentData, isLoading: educationalContentLoading } = useQuery({
     queryKey: ["educational-content-for-products", isAddDialogOpen],
     queryFn: () =>
       contentApi.getEducationalContent({
@@ -1605,7 +1605,9 @@ export function ProductsPage() {
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                   {educationalContentSearch
                     ? "لا يوجد محتوى تعليمي يطابق البحث"
-                    : "جاري تحميل المحتوى التعليمي..."}
+                    : educationalContentLoading
+                      ? "جاري تحميل المحتوى التعليمي..."
+                      : "لا يوجد محتوى تعليمي متاح"}
                 </p>
               )}
 

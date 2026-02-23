@@ -50,7 +50,7 @@ export function LoginPage() {
     };
 
     const toggleLanguage = () => {
-        const newLang = i18n.language === 'ar' ? 'en' : 'ar';
+        const newLang = i18n.dir() === 'rtl' ? 'en' : 'ar';
         i18n.changeLanguage(newLang);
         updateDocumentDirection(newLang);
     };

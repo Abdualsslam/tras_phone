@@ -768,6 +768,56 @@ export class InventoryService {
   // Stock Transfers
   // ═════════════════════════════════════
 
+  async createStockTransfer(data: {
+    fromWarehouseId: string;
+    toWarehouseId: string;
+    items: Array<{ productId: string; quantity?: number; requestedQuantity?: number }>;
+    note?: string;
+    requestedBy?: string;
+  }): Promise<StockTransferDocument> {
+    if (data.fromWarehouseId === data.toWarehouseId) {
+      throw new BadRequestException(
+        'Source and destination warehouses must be different',
+      );
+    }
+
+    if (!Array.isArray(data.items) || data.items.length === 0) {
+      throw new BadRequestException('Transfer must include at least one item');
+    }
+
+    const transferNumber = await this.generateTransferNumber();
+    const normalizedItems = data.items
+      .map((item) => {
+        const requestedQuantity = Number(
+          item.requestedQuantity ?? item.quantity ?? 0,
+        );
+        return {
+          productId: new Types.ObjectId(item.productId),
+          requestedQuantity,
+        };
+      })
+      .filter((item) => item.requestedQuantity > 0);
+
+    if (normalizedItems.length === 0) {
+      throw new BadRequestException('Transfer items must have valid quantities');
+    }
+
+    const transfer = await this.stockTransferModel.create({
+      transferNumber,
+      fromWarehouseId: new Types.ObjectId(data.fromWarehouseId),
+      toWarehouseId: new Types.ObjectId(data.toWarehouseId),
+      status: 'pending',
+      items: normalizedItems,
+      notes: data.note,
+      requestedBy: data.requestedBy
+        ? new Types.ObjectId(data.requestedBy)
+        : undefined,
+      requestedAt: new Date(),
+    });
+
+    return transfer;
+  }
+
   /**
    * Approve stock transfer
    */
@@ -954,5 +1004,20 @@ export class InventoryService {
       .populate('sentBy', 'fullName')
       .populate('receivedBy', 'fullName')
       .sort({ createdAt: -1 });
+  }
+
+  private async generateTransferNumber(): Promise<string> {
+    const date = new Date();
+    const prefix = 'TRF';
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+
+    const count = await this.stockTransferModel.countDocuments({
+      createdAt: {
+        $gte: new Date(date.setHours(0, 0, 0, 0)),
+        $lt: new Date(date.setHours(23, 59, 59, 999)),
+      },
+    });
+
+    return `${prefix}${dateStr}${(count + 1).toString().padStart(4, '0')}`;
   }
 }

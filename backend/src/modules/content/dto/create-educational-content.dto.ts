@@ -14,27 +14,43 @@ import {
 } from '../schemas/educational-content.schema';
 
 export class ContentTargetingDto {
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Context targeting product IDs used for automatic content matching at runtime',
+  })
   @IsArray()
   @IsOptional()
   products?: string[];
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Context targeting category IDs',
+  })
   @IsArray()
   @IsOptional()
   categories?: string[];
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Context targeting brand IDs',
+  })
   @IsArray()
   @IsOptional()
   brands?: string[];
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Context targeting device IDs',
+  })
   @IsArray()
   @IsOptional()
   devices?: string[];
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Context targeting intent tags (normalized to lowercase)',
+  })
   @IsArray()
   @IsOptional()
   intentTags?: string[];
@@ -101,17 +117,27 @@ export class CreateEducationalContentDto {
   @IsOptional()
   videoDuration?: number;
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Attachment URLs (images/videos/files)',
+  })
   @IsArray()
   @IsOptional()
   attachments?: string[];
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Directly related product IDs shown explicitly as linked products in content UI',
+  })
   @IsArray()
   @IsOptional()
   relatedProducts?: string[];
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Other related educational content IDs',
+  })
   @IsArray()
   @IsOptional()
   relatedContent?: string[];
@@ -121,7 +147,11 @@ export class CreateEducationalContentDto {
   @IsOptional()
   scope?: ContentScope;
 
-  @ApiPropertyOptional({ type: ContentTargetingDto })
+  @ApiPropertyOptional({
+    type: ContentTargetingDto,
+    description:
+      'Contextual targeting rules for automatic content retrieval based on runtime context',
+  })
   @IsOptional()
   targeting?: ContentTargetingDto;
 
