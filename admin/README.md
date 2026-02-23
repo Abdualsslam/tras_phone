@@ -71,3 +71,21 @@ export default defineConfig([
   },
 ])
 ```
+
+## UI quality checks
+
+- Run UI guardrails (RTL + responsive + lint):
+
+```bash
+npm run check:ui
+```
+
+- Full production validation:
+
+```bash
+npm run check:ui
+npm run build
+```
+
+- QA checklist:
+  - `docs/RTL_RESPONSIVE_CHECKLIST.md`

@@ -741,7 +741,6 @@ export function SupportPage() {
                         <div className="space-y-2">
                             <Label>الاسم (EN) <span className="text-red-500">*</span></Label>
                             <Input
-                                dir="ltr"
                                 value={categoryForm.name}
                                 onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
                             />

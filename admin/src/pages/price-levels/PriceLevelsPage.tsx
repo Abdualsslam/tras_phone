@@ -379,8 +379,7 @@ export function PriceLevelsPage() {
                   الاسم بالإنجليزية <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  dir="ltr"
-                  placeholder="تجزئة"
+                  placeholder="Retail"
                   value={formData.name}
                   onChange={(e) => handleFormChange('name', e.target.value)}
                 />

@@ -21,7 +21,11 @@
     "showLess": "Show less",
     "back": "Back",
     "next": "Next",
-    "previous": "Previous"
+    "previous": "Previous",
+    "close": "Close",
+    "switchToLightMode": "Switch to light mode",
+    "switchToDarkMode": "Switch to dark mode",
+    "systemAdmin": "System Admin"
   },
   "auth": {
     "login": "Login",

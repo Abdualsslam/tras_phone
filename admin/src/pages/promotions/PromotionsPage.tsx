@@ -341,7 +341,7 @@ export function PromotionsPage() {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'promotions' | 'coupons')}>
-                <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsList className="grid w-full max-w-md grid-cols-1 sm:grid-cols-2">
                     <TabsTrigger value="coupons">القسائم</TabsTrigger>
                     <TabsTrigger value="promotions">العروض</TabsTrigger>
                 </TabsList>

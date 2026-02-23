@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "lint:rtl": "node scripts/rtl-responsive-guard.cjs",
+    "check:ui": "npm run lint:rtl",
     "preview": "vite preview"
   },
   "dependencies": {

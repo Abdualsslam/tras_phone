@@ -60,55 +60,20 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         [user],
     );
 
-    useEffect(() => {
-        if (sections.length === 0) {
-            return;
-        }
+    const sectionExpansion = useMemo(() => {
+        const next: Record<string, boolean> = {};
 
-        setExpandedSections((previous) => {
-            const next: Record<string, boolean> = {};
-            let changed = false;
+        sections.forEach((section) => {
+            const hasActiveItem = section.items.some((item) =>
+                isPathActive(location.pathname, item.path),
+            );
+            const isUserExpanded = expandedSections[section.id] !== false;
 
-            sections.forEach((section) => {
-                if (typeof previous[section.id] === 'boolean') {
-                    next[section.id] = previous[section.id];
-                } else {
-                    next[section.id] = true;
-                    changed = true;
-                }
-            });
-
-            if (Object.keys(previous).length !== Object.keys(next).length) {
-                changed = true;
-            }
-
-            return changed ? next : previous;
+            next[section.id] = isUserExpanded || hasActiveItem;
         });
-    }, [sections]);
 
-    useEffect(() => {
-        if (sections.length === 0) {
-            return;
-        }
-
-        setExpandedSections((previous) => {
-            let changed = false;
-            const next = { ...previous };
-
-            sections.forEach((section) => {
-                const hasActiveItem = section.items.some((item) =>
-                    isPathActive(location.pathname, item.path),
-                );
-
-                if (hasActiveItem && next[section.id] === false) {
-                    next[section.id] = true;
-                    changed = true;
-                }
-            });
-
-            return changed ? next : previous;
-        });
-    }, [location.pathname, sections]);
+        return next;
+    }, [expandedSections, location.pathname, sections]);
 
     useEffect(() => {
         localStorage.setItem(SECTION_STATE_KEY, JSON.stringify(expandedSections));
@@ -157,15 +122,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                                 className="w-full flex items-center justify-between px-3 pb-2 text-xs font-semibold tracking-wide text-gray-400 dark:text-slate-500 uppercase"
                             >
                                 <span>{t(section.labelKey)}</span>
-                                <ChevronDown
-                                    className={cn(
-                                        'h-4 w-4 transition-transform duration-200',
-                                        expandedSections[section.id] === false && '-rotate-90',
-                                    )}
-                                />
-                            </button>
+                                    <ChevronDown
+                                        className={cn(
+                                            'h-4 w-4 transition-transform duration-200',
+                                            !sectionExpansion[section.id] && '-rotate-90',
+                                        )}
+                                    />
+                                </button>
                         )}
-                        {(collapsed || expandedSections[section.id] !== false) && (
+                        {(collapsed || sectionExpansion[section.id]) && (
                             <ul className="space-y-1">
                                 {section.items.map((item) => (
                                     <li key={item.id}>

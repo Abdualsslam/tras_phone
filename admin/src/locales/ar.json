@@ -21,7 +21,11 @@
     "showLess": "عرض أقل",
     "back": "رجوع",
     "next": "التالي",
-    "previous": "السابق"
+    "previous": "السابق",
+    "close": "إغلاق",
+    "switchToLightMode": "التبديل للوضع الفاتح",
+    "switchToDarkMode": "التبديل للوضع الداكن",
+    "systemAdmin": "مدير النظام"
   },
   "auth": {
     "login": "تسجيل الدخول",

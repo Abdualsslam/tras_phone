@@ -1004,8 +1004,7 @@ export function ProductsPage() {
                     الاسم بالإنجليزية <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    dir="ltr"
-                    placeholder="اسم المنتج"
+                    placeholder="Product Name"
                     value={formData.name}
                     onChange={(e) => handleFormChange("name", e.target.value)}
                   />
@@ -1202,8 +1201,7 @@ export function ProductsPage() {
                 <div className="space-y-2">
                   <Label>الوصف المختصر (إنجليزي)</Label>
                   <Input
-                    dir="ltr"
-                    placeholder="وصف مختصر"
+                    placeholder="Short description"
                     value={formData.shortDescription}
                     onChange={(e) =>
                       handleFormChange("shortDescription", e.target.value)
@@ -1223,8 +1221,7 @@ export function ProductsPage() {
                 <div className="space-y-2">
                   <Label>الوصف الكامل (إنجليزي)</Label>
                   <textarea
-                    dir="ltr"
-                    placeholder="وصف كامل"
+                    placeholder="Full description"
                     value={formData.description}
                     onChange={(e) =>
                       handleFormChange("description", e.target.value)

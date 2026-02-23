@@ -622,7 +622,6 @@ export function NotificationsPage() {
                   الاسم (EN) <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  dir="ltr"
                   value={templateForm.name}
                   onChange={(e) =>
                     setTemplateForm({ ...templateForm, name: e.target.value })

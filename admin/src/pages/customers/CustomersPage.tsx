@@ -1362,8 +1362,7 @@ export function CustomersPage() {
                       <span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      dir="ltr"
-                      placeholder="المتجر المحمول"
+                      placeholder="Mobile Shop"
                       value={formData.shopName}
                       onChange={(e) =>
                         handleFormChange("shopName", e.target.value)
@@ -1691,8 +1690,7 @@ export function CustomersPage() {
                     اسم المحل (إنجليزي) <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    dir="ltr"
-                    placeholder="المتجر المحمول"
+                    placeholder="Mobile Shop"
                     value={formData.shopName}
                     onChange={(e) =>
                       handleFormChange("shopName", e.target.value)

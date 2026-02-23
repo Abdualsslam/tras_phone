@@ -328,8 +328,7 @@ function BrandsTab() {
                 الاسم بالإنجليزية <span className="text-red-500">*</span>
               </Label>
               <Input
-                dir="ltr"
-                placeholder="اسم العلامة التجارية"
+                placeholder="Brand Name"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
@@ -799,7 +798,6 @@ function DevicesTab() {
                 الاسم بالإنجليزية <span className="text-red-500">*</span>
               </Label>
               <Input
-                dir="ltr"
                 placeholder="iPhone 15 Pro"
                 value={formData.name}
                 onChange={(e) =>
@@ -1168,8 +1166,7 @@ function QualityTypesTab() {
                 الاسم بالإنجليزية <span className="text-red-500">*</span>
               </Label>
               <Input
-                dir="ltr"
-                placeholder="جديد"
+                placeholder="New"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })

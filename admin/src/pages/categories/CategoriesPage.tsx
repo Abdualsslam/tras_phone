@@ -256,8 +256,7 @@ export function CategoriesPage() {
                         <div className="space-y-2">
                             <Label>الاسم بالإنجليزية <span className="text-red-500">*</span></Label>
                             <Input
-                                dir="ltr"
-                                placeholder="اسم الفئة"
+                                placeholder="Category Name"
                                 value={formData.name}
                                 onChange={(e) => handleFormChange('name', e.target.value)}
                             />

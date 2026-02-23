@@ -54,7 +54,11 @@ export function Header({ onMenuClick }: HeaderProps) {
           size="icon"
           onClick={toggleTheme}
           className="dark:text-gray-300 dark:hover:bg-slate-800"
-          title={isDark ? "التبديل للوضع الفاتح" : "التبديل للوضع الداكن"}
+          title={
+            isDark
+              ? t("common.switchToLightMode")
+              : t("common.switchToDarkMode")
+          }
         >
           {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </Button>
@@ -86,7 +90,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               {user?.fullName}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {user?.department || "مدير النظام"}
+              {user?.department || t("common.systemAdmin")}
             </p>
           </div>
           <Avatar>
