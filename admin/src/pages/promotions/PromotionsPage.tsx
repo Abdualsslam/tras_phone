@@ -56,6 +56,7 @@ import {
     Gift,
     Loader2,
     AlertCircle,
+    CheckCircle2,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
@@ -131,6 +132,7 @@ export function PromotionsPage() {
     const [isEditMode, setIsEditMode] = useState(false);
     const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
     const locale = i18n.language === 'ar' ? 'ar-SA' : 'en-US';
+    const direction = i18n.dir() as 'rtl' | 'ltr';
 
     // Fetch promotions and coupons from backend
     const { data: promotions, isLoading: isLoadingPromotions } = useQuery({
@@ -271,7 +273,7 @@ export function PromotionsPage() {
     };
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6 animate-fade-in" dir={direction}>
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
@@ -340,16 +342,41 @@ export function PromotionsPage() {
             </Card>
 
             {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'promotions' | 'coupons')}>
-                <TabsList className="grid w-full max-w-md grid-cols-1 sm:grid-cols-2">
-                    <TabsTrigger value="coupons">القسائم</TabsTrigger>
-                    <TabsTrigger value="promotions">العروض</TabsTrigger>
+            <Tabs
+                value={activeTab}
+                onValueChange={(v) => setActiveTab(v as 'promotions' | 'coupons')}
+                dir={direction}
+            >
+                <TabsList className="flex w-full max-w-md">
+                    {direction === 'rtl' ? (
+                        <>
+                            <TabsTrigger value="promotions" className="flex-1 gap-2 cursor-pointer">
+                                {activeTab === 'promotions' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                                العروض
+                            </TabsTrigger>
+                            <TabsTrigger value="coupons" className="flex-1 gap-2 cursor-pointer">
+                                {activeTab === 'coupons' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                                القسائم
+                            </TabsTrigger>
+                        </>
+                    ) : (
+                        <>
+                            <TabsTrigger value="coupons" className="flex-1 gap-2 cursor-pointer">
+                                {activeTab === 'coupons' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                                القسائم
+                            </TabsTrigger>
+                            <TabsTrigger value="promotions" className="flex-1 gap-2 cursor-pointer">
+                                {activeTab === 'promotions' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                                العروض
+                            </TabsTrigger>
+                        </>
+                    )}
                 </TabsList>
 
                 {/* Coupons Tab */}
                 <TabsContent value="coupons" className="space-y-4">
                     <Card>
-                        <CardHeader className="pb-4">
+                        <CardHeader className="pb-4 text-start">
                             <CardTitle className="text-lg">قائمة القسائم</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
@@ -363,7 +390,7 @@ export function PromotionsPage() {
                                     <p>حدث خطأ في تحميل البيانات</p>
                                 </div>
                             ) : (
-                                <Table>
+                                <Table dir={direction}>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>الكود</TableHead>
@@ -380,7 +407,7 @@ export function PromotionsPage() {
                                             <TableRow key={coupon._id}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                                                        <code className="bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-gray-100 px-2 py-1 rounded text-sm font-mono">
                                                             {coupon.code}
                                                         </code>
                                                         <Button
@@ -468,7 +495,7 @@ export function PromotionsPage() {
                 {/* Promotions Tab */}
                 <TabsContent value="promotions" className="space-y-4">
                     <Card>
-                        <CardHeader className="pb-4">
+                        <CardHeader className="pb-4 text-start">
                             <CardTitle className="text-lg">قائمة العروض</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
@@ -477,7 +504,7 @@ export function PromotionsPage() {
                                     <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
                                 </div>
                             ) : (
-                                <Table>
+                                <Table dir={direction}>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>الكود</TableHead>
@@ -494,7 +521,7 @@ export function PromotionsPage() {
                                             <TableRow key={promotion._id}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                                                        <code className="bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-gray-100 px-2 py-1 rounded text-sm font-mono">
                                                             {promotion.code || '-'}
                                                         </code>
                                                         {promotion.code && (
