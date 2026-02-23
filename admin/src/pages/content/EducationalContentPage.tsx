@@ -8,12 +8,6 @@ import {
 } from "@/api/content.api";
 import { productsApi } from "@/api/products.api";
 import { uploadsApi, isValidFileSize, isValidImageType, isValidVideoType } from "@/api/uploads.api";
-import {
-  catalogApi,
-  type BrandWithDevices,
-  type CategoryTree,
-  type Device,
-} from "@/api/catalog.api";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,11 +97,6 @@ type ContentFormData = {
   scope: "general" | "contextual" | "hybrid";
   relatedProducts: string[];
   relatedContent: string[];
-  targetingProducts: string[];
-  targetingCategories: string[];
-  targetingBrands: string[];
-  targetingDevices: string[];
-  targetingIntentTags: string;
   attachments: string[];
   tags: string;
   metaTitle: string;
@@ -186,20 +175,6 @@ export function EducationalContentPage() {
     queryFn: () => productsApi.getAll({ page: 1, limit: 1000 }),
   });
 
-  const { data: brandsData = [], isLoading: brandsLoading } = useQuery<
-    BrandWithDevices[]
-  >({
-    queryKey: ["brands-for-education-targeting"],
-    queryFn: () => catalogApi.getAllBrands(),
-  });
-
-  const { data: devicesData = [], isLoading: devicesLoading } = useQuery<
-    Device[]
-  >({
-    queryKey: ["devices-for-education-targeting"],
-    queryFn: () => catalogApi.getDevices({ limit: 1000 }),
-  });
-
   const { data: allContentData, isLoading: allContentLoading } = useQuery({
     queryKey: ["all-educational-content-for-relations", isContentDialogOpen],
     queryFn: () =>
@@ -211,38 +186,11 @@ export function EducationalContentPage() {
     enabled: isContentDialogOpen,
   });
 
-  const { data: categoryTreeData, isLoading: catalogCategoriesLoading } = useQuery({
-    queryKey: ["catalog-category-tree-for-education-targeting"],
-    queryFn: () => catalogApi.getCategoryTree(),
-  });
-
   const content = contentData?.data || [];
   const totalContent = contentData?.total || 0;
   const productOptions = productsData?.items || [];
 
-  const flattenCategoryTree = (items: CategoryTree[]): CategoryTree[] => {
-    const output: CategoryTree[] = [];
-    const traverse = (nodes: CategoryTree[]) => {
-      nodes.forEach((node) => {
-        output.push(node);
-        if (Array.isArray(node.children) && node.children.length > 0) {
-          traverse(node.children);
-        }
-      });
-    };
-    traverse(items);
-    return output;
-  };
-
-  const catalogCategoryOptions = useMemo(
-    () => flattenCategoryTree(categoryTreeData || []),
-    [categoryTreeData],
-  );
-
   const [productPickerSearch, setProductPickerSearch] = useState("");
-  const [categoryPickerSearch, setCategoryPickerSearch] = useState("");
-  const [brandPickerSearch, setBrandPickerSearch] = useState("");
-  const [devicePickerSearch, setDevicePickerSearch] = useState("");
   const [relatedContentSearch, setRelatedContentSearch] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploadingFeaturedImage, setIsUploadingFeaturedImage] = useState(false);
@@ -258,36 +206,6 @@ export function EducationalContentPage() {
       return name.includes(keyword) || sku.includes(keyword);
     });
   }, [productOptions, productPickerSearch]);
-
-  const filteredCatalogCategoryOptions = useMemo(() => {
-    const keyword = categoryPickerSearch.trim().toLowerCase();
-    if (!keyword) return catalogCategoryOptions;
-    return catalogCategoryOptions.filter((item) => {
-      const name = (item.nameAr || item.name || "").toLowerCase();
-      const slug = (item.slug || "").toLowerCase();
-      return name.includes(keyword) || slug.includes(keyword);
-    });
-  }, [catalogCategoryOptions, categoryPickerSearch]);
-
-  const filteredBrands = useMemo(() => {
-    const keyword = brandPickerSearch.trim().toLowerCase();
-    if (!keyword) return brandsData;
-    return brandsData.filter((item) => {
-      const name = (item.nameAr || item.name || "").toLowerCase();
-      const slug = (item.slug || "").toLowerCase();
-      return name.includes(keyword) || slug.includes(keyword);
-    });
-  }, [brandsData, brandPickerSearch]);
-
-  const filteredDevices = useMemo(() => {
-    const keyword = devicePickerSearch.trim().toLowerCase();
-    if (!keyword) return devicesData;
-    return devicesData.filter((item) => {
-      const name = (item.nameAr || item.name || "").toLowerCase();
-      const slug = (item.slug || "").toLowerCase();
-      return name.includes(keyword) || slug.includes(keyword);
-    });
-  }, [devicesData, devicePickerSearch]);
 
   const availableRelatedContent = useMemo(() => {
     const currentId = selectedContent?._id;
@@ -451,11 +369,6 @@ export function EducationalContentPage() {
       scope: "general",
       relatedProducts: [],
       relatedContent: [],
-      targetingProducts: [],
-      targetingCategories: [],
-      targetingBrands: [],
-      targetingDevices: [],
-      targetingIntentTags: "",
       attachments: [],
       tags: "",
       metaTitle: "",
@@ -487,11 +400,7 @@ export function EducationalContentPage() {
   const toggleArraySelection = (
     field:
       | "relatedProducts"
-      | "relatedContent"
-      | "targetingProducts"
-      | "targetingCategories"
-      | "targetingBrands"
-      | "targetingDevices",
+      | "relatedContent",
     id: string,
     checked: boolean,
   ) => {
@@ -549,9 +458,6 @@ export function EducationalContentPage() {
     setSelectedContent(null);
     contentForm.reset();
     setProductPickerSearch("");
-    setCategoryPickerSearch("");
-    setBrandPickerSearch("");
-    setDevicePickerSearch("");
     setRelatedContentSearch("");
     setUploadError(null);
     setIsContentDialogOpen(true);
@@ -564,11 +470,7 @@ export function EducationalContentPage() {
       typeof content.categoryId === "string"
         ? content.categoryId
         : content.categoryId._id;
-    const targeting = (content as any).targeting || {};
     setProductPickerSearch("");
-    setCategoryPickerSearch("");
-    setBrandPickerSearch("");
-    setDevicePickerSearch("");
     setRelatedContentSearch("");
     setUploadError(null);
     contentForm.reset({
@@ -587,13 +489,6 @@ export function EducationalContentPage() {
       scope: content.scope || "general",
       relatedProducts: toIdList(content.relatedProducts as any[]),
       relatedContent: toIdList(content.relatedContent as any[]),
-      targetingProducts: toIdList(targeting.products),
-      targetingCategories: toIdList(targeting.categories),
-      targetingBrands: toIdList(targeting.brands),
-      targetingDevices: toIdList(targeting.devices),
-      targetingIntentTags: Array.isArray(targeting.intentTags)
-        ? targeting.intentTags.join(", ")
-        : "",
       attachments: Array.isArray(content.attachments)
         ? content.attachments
         : [],
@@ -622,34 +517,18 @@ export function EducationalContentPage() {
     const {
       relatedProducts: relatedProductsInput,
       relatedContent: relatedContentInput,
-      targetingProducts: targetingProductsInput,
-      targetingCategories: targetingCategoriesInput,
-      targetingBrands,
-      targetingDevices,
-      targetingIntentTags,
       ...baseData
     } = data;
 
     const tags = parseCsv(baseData.tags);
     const relatedProducts = relatedProductsInput;
     const relatedContent = relatedContentInput;
-    const parsedTargetingProducts = targetingProductsInput;
-    const parsedTargetingCategories = targetingCategoriesInput;
-    const parsedTargetingBrands = targetingBrands;
-    const parsedTargetingDevices = targetingDevices;
-    const parsedTargetingIntentTags = parseCsv(targetingIntentTags);
 
-    const hasTargeting =
-      relatedProducts.length > 0 ||
-      parsedTargetingProducts.length > 0 ||
-      parsedTargetingCategories.length > 0 ||
-      parsedTargetingBrands.length > 0 ||
-      parsedTargetingDevices.length > 0 ||
-      parsedTargetingIntentTags.length > 0;
+    const hasTargeting = relatedProducts.length > 0;
 
     if (baseData.scope === "contextual" && !hasTargeting) {
       toast.error(
-        "المحتوى السياقي يحتاج استهداف واحد على الأقل (منتج/فئة/علامة/جهاز/وسم)",
+        "المحتوى السياقي يحتاج استهداف منتج واحد على الأقل",
       );
       return;
     }
@@ -660,25 +539,6 @@ export function EducationalContentPage() {
       attachments: baseData.attachments || [],
       ...(relatedProducts.length > 0 && { relatedProducts }),
       ...(relatedContent.length > 0 && { relatedContent }),
-      ...(hasTargeting && {
-        targeting: {
-          ...(parsedTargetingProducts.length > 0 && {
-            products: parsedTargetingProducts,
-          }),
-          ...(parsedTargetingCategories.length > 0 && {
-            categories: parsedTargetingCategories,
-          }),
-          ...(parsedTargetingBrands.length > 0 && {
-            brands: parsedTargetingBrands,
-          }),
-          ...(parsedTargetingDevices.length > 0 && {
-            devices: parsedTargetingDevices,
-          }),
-          ...(parsedTargetingIntentTags.length > 0 && {
-            intentTags: parsedTargetingIntentTags,
-          }),
-        },
-      }),
     };
 
     if (isEditing && selectedContent) {
@@ -692,12 +552,7 @@ export function EducationalContentPage() {
   };
 
   const selectedRelatedProducts = contentForm.watch("relatedProducts") || [];
-  const selectedTargetingProducts = contentForm.watch("targetingProducts") || [];
-  const selectedTargetingCategories =
-    contentForm.watch("targetingCategories") || [];
   const selectedRelatedContent = contentForm.watch("relatedContent") || [];
-  const selectedTargetingBrands = contentForm.watch("targetingBrands") || [];
-  const selectedTargetingDevices = contentForm.watch("targetingDevices") || [];
   const selectedAttachments = contentForm.watch("attachments") || [];
   const featuredImageValue = contentForm.watch("featuredImage") || "";
   const metaTitleValue = contentForm.watch("metaTitle") || "";
@@ -1748,11 +1603,11 @@ export function EducationalContentPage() {
                 </summary>
                 <div className="space-y-4 mt-4">
                 <p className="text-xs text-muted-foreground">
-                  المنتجات المرتبطة = روابط مرئية داخل المحتوى. الاستهداف = قواعد ظهور المحتوى تلقائياً حسب السياق.
+                  المنتجات المرتبطة = روابط مرئية داخل المحتوى وهي أيضًا المصدر الوحيد لربط المحتوى بالمنتج.
                 </p>
                 {scopeValue === "contextual" && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    ملاحظة: النطاق السياقي يتطلب على الأقل معيار استهداف واحد.
+                    ملاحظة: النطاق السياقي يتطلب منتجًا مرتبطًا واحدًا على الأقل.
                   </p>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1883,182 +1738,9 @@ export function EducationalContentPage() {
                     <p className="text-xs text-muted-foreground">جاري تحميل المحتوى...</p>
                   )}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="targetingProducts">استهداف منتجات</Label>
-                    <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto border rounded-md p-2">
-                      {filteredProductOptions.map((product) => (
-                        <label
-                          key={`targeting-product-${product._id}`}
-                          className="flex items-center gap-2 p-2 rounded hover:bg-muted/40 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedTargetingProducts.includes(product._id)}
-                            onChange={(e) =>
-                              toggleArraySelection(
-                                "targetingProducts",
-                                product._id,
-                                e.target.checked,
-                              )
-                            }
-                            className="w-4 h-4 rounded"
-                          />
-                          <span className="text-sm truncate" title={product.nameAr || product.name}>
-                            {product.nameAr || product.name}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      تم اختيار {selectedTargetingProducts.length} منتج
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>استهداف فئات</Label>
-                    <div className="relative">
-                      <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="ابحث باسم الفئة أو slug"
-                        value={categoryPickerSearch}
-                        onChange={(e) => setCategoryPickerSearch(e.target.value)}
-                        className="ps-10"
-                      />
-                      {categoryPickerSearch && (
-                        <button
-                          type="button"
-                          onClick={() => setCategoryPickerSearch("")}
-                          className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto border rounded-md p-2">
-                      {filteredCatalogCategoryOptions.map((item) => (
-                        <label
-                          key={`targeting-category-${item._id}`}
-                          className="flex items-center gap-2 p-2 rounded hover:bg-muted/40 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedTargetingCategories.includes(item._id)}
-                            onChange={(e) =>
-                              toggleArraySelection(
-                                "targetingCategories",
-                                item._id,
-                                e.target.checked,
-                              )
-                            }
-                            className="w-4 h-4 rounded"
-                          />
-                          <span className="text-sm truncate" title={item.nameAr || item.name}>
-                            {item.nameAr || item.name}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      تم اختيار {selectedTargetingCategories.length} فئة
-                    </p>
-                    {catalogCategoriesLoading && (
-                      <p className="text-xs text-muted-foreground">جاري تحميل الفئات...</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>استهداف علامات تجارية</Label>
-                    <div className="relative">
-                      <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="ابحث باسم العلامة"
-                        value={brandPickerSearch}
-                        onChange={(e) => setBrandPickerSearch(e.target.value)}
-                        className="ps-10"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 max-h-44 overflow-y-auto border rounded-md p-2">
-                      {filteredBrands.map((brand) => (
-                        <label
-                          key={`targeting-brand-${brand._id}`}
-                          className="flex items-center gap-2 p-2 rounded hover:bg-muted/40 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedTargetingBrands.includes(brand._id)}
-                            onChange={(e) =>
-                              toggleArraySelection(
-                                "targetingBrands",
-                                brand._id,
-                                e.target.checked,
-                              )
-                            }
-                            className="w-4 h-4 rounded"
-                          />
-                          <span className="text-sm truncate" title={brand.nameAr || brand.name}>
-                            {brand.nameAr || brand.name}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      تم اختيار {selectedTargetingBrands.length} علامة
-                    </p>
-                    {brandsLoading && (
-                      <p className="text-xs text-muted-foreground">جاري تحميل العلامات...</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>استهداف أجهزة</Label>
-                    <div className="relative">
-                      <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="ابحث باسم الجهاز"
-                        value={devicePickerSearch}
-                        onChange={(e) => setDevicePickerSearch(e.target.value)}
-                        className="ps-10"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 max-h-44 overflow-y-auto border rounded-md p-2">
-                      {filteredDevices.map((device) => (
-                        <label
-                          key={`targeting-device-${device._id}`}
-                          className="flex items-center gap-2 p-2 rounded hover:bg-muted/40 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedTargetingDevices.includes(device._id)}
-                            onChange={(e) =>
-                              toggleArraySelection(
-                                "targetingDevices",
-                                device._id,
-                                e.target.checked,
-                              )
-                            }
-                            className="w-4 h-4 rounded"
-                          />
-                          <span className="text-sm truncate" title={device.nameAr || device.name}>
-                            {device.nameAr || device.name}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      تم اختيار {selectedTargetingDevices.length} جهاز
-                    </p>
-                    {devicesLoading && (
-                      <p className="text-xs text-muted-foreground">جاري تحميل الأجهزة...</p>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="targetingIntentTags">
-                    Intent Tags (battery, screen, ...)
-                  </Label>
-                  <Input
-                    id="targetingIntentTags"
-                    placeholder="بطارية, ارتفاع_الحرارة, شاشة"
-                    {...contentForm.register("targetingIntentTags")}
-                  />
+                <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                  تم اعتماد مصدر ربط واحد فقط: <strong>المنتجات المرتبطة</strong>.
+                  الاستهداف السياقي عبر الحقول الأخرى لم يعد مستخدمًا.
                 </div>
                 </div>
               </details>
@@ -2201,7 +1883,7 @@ export function EducationalContentPage() {
                   SEO: {metaTitleValue.length}/60 - {metaDescriptionValue.length}/160
                 </span>
                 <span>
-                  مرتبط: {selectedRelatedProducts.length} منتجات | استهداف: {selectedTargetingProducts.length + selectedTargetingCategories.length + selectedTargetingBrands.length + selectedTargetingDevices.length}
+                  مرتبط: {selectedRelatedProducts.length} منتجات
                 </span>
               </div>
               <Button

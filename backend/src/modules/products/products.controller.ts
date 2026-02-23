@@ -381,14 +381,13 @@ export class ProductsController {
   @ApiOperation({
     summary: 'Get educational content for product',
     description:
-      'Retrieve educational content ranked by relevance for a given product context',
+      'Retrieve educational content linked directly to the requested product',
   })
   @ApiParam({
     name: 'id',
     description: 'Product ID',
     example: '507f1f77bcf86cd799439011',
   })
-  @ApiQuery({ name: 'tags', required: false, description: 'Comma-separated intent tags' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({
@@ -399,20 +398,11 @@ export class ProductsController {
   @ApiPublicErrorResponses()
   async getEducationalContentForProduct(
     @Param('id') id: string,
-    @Query('tags') tags?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    const parsedTags = tags
-      ? tags
-          .split(',')
-          .map((tag) => tag.trim())
-          .filter(Boolean)
-      : [];
-
     const result = await this.educationalService.getContentByContext({
       productId: id,
-      tags: parsedTags,
       page: page || 1,
       limit: limit || 20,
     });

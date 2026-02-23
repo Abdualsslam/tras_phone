@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Product, ProductDocument } from '@modules/products/schemas/product.schema';
 import {
   EducationalCategory,
   EducationalCategoryDocument,
@@ -30,8 +29,6 @@ export class EducationalService {
     private categoryModel: Model<EducationalCategoryDocument>,
     @InjectModel(EducationalContent.name)
     private contentModel: Model<EducationalContentDocument>,
-    @InjectModel(Product.name)
-    private productModel: Model<ProductDocument>,
   ) {}
 
   private toObjectIds(ids?: Types.ObjectId[] | string[]): Types.ObjectId[] {
@@ -42,47 +39,27 @@ export class EducationalService {
       .map((id) => new Types.ObjectId(id));
   }
 
-  private normalizeTargeting(
-    targeting?: Partial<ContentTargeting>,
-  ): ContentTargeting {
+  private normalizeTargeting(): ContentTargeting {
     return {
-      products: this.toObjectIds(targeting?.products as Types.ObjectId[]),
-      categories: this.toObjectIds(targeting?.categories as Types.ObjectId[]),
-      brands: this.toObjectIds(targeting?.brands as Types.ObjectId[]),
-      devices: this.toObjectIds(targeting?.devices as Types.ObjectId[]),
-      intentTags: Array.isArray(targeting?.intentTags)
-        ? targeting!.intentTags
-            .map((tag) => tag?.trim().toLowerCase())
-            .filter((tag): tag is string => Boolean(tag))
-        : [],
+      products: [],
+      categories: [],
+      brands: [],
+      devices: [],
+      intentTags: [],
     };
   }
 
-  private hasAnyTargeting(
-    targeting?: Partial<ContentTargeting>,
-    relatedProducts?: Types.ObjectId[] | string[],
-  ): boolean {
-    return (
-      this.toObjectIds(relatedProducts).length > 0 ||
-      this.toObjectIds(targeting?.products as Types.ObjectId[]).length > 0 ||
-      this.toObjectIds(targeting?.categories as Types.ObjectId[]).length > 0 ||
-      this.toObjectIds(targeting?.brands as Types.ObjectId[]).length > 0 ||
-      this.toObjectIds(targeting?.devices as Types.ObjectId[]).length > 0 ||
-      (targeting?.intentTags?.length ?? 0) > 0
-    );
+  private hasAnyTargeting(relatedProducts?: Types.ObjectId[] | string[]): boolean {
+    return this.toObjectIds(relatedProducts).length > 0;
   }
 
   private validateScopeAndTargeting(
     scope: ContentScope,
-    targeting?: Partial<ContentTargeting>,
     relatedProducts?: Types.ObjectId[] | string[],
   ) {
-    if (
-      scope === ContentScope.CONTEXTUAL &&
-      !this.hasAnyTargeting(targeting, relatedProducts)
-    ) {
+    if (scope === ContentScope.CONTEXTUAL && !this.hasAnyTargeting(relatedProducts)) {
       throw new BadRequestException(
-        'Contextual content must include at least one targeting field',
+        'Contextual content must include at least one related product',
       );
     }
   }
@@ -108,43 +85,12 @@ export class EducationalService {
             .filter(Boolean)
         : [];
 
-    const targeting = content.targeting || {};
     const directRelatedProducts = normalizeIdArray(content.relatedProducts || []);
-    const targetingProducts = normalizeIdArray(targeting.products || []);
-    const targetingCategories = normalizeIdArray(targeting.categories || []);
-    const targetingBrands = normalizeIdArray(targeting.brands || []);
-    const targetingDevices = normalizeIdArray(targeting.devices || []);
-    const targetingIntentTags = Array.isArray(targeting.intentTags)
-      ? targeting.intentTags.map((tag: string) => tag.toLowerCase())
-      : [];
 
     let score = 0;
 
-    if (
-      context.productId &&
-      (directRelatedProducts.includes(context.productId) ||
-        targetingProducts.includes(context.productId))
-    ) {
+    if (context.productId && directRelatedProducts.includes(context.productId)) {
       score += 100;
-    }
-
-    if (context.categoryId && targetingCategories.includes(context.categoryId)) {
-      score += 60;
-    }
-
-    if (context.brandId && targetingBrands.includes(context.brandId)) {
-      score += 45;
-    }
-
-    if (context.deviceId && targetingDevices.includes(context.deviceId)) {
-      score += 40;
-    }
-
-    if (context.tags?.length) {
-      const matches = context.tags.filter((tag) =>
-        targetingIntentTags.includes(tag.toLowerCase()),
-      );
-      score += matches.length * 20;
     }
 
     if (content.isFeatured) {
@@ -208,9 +154,9 @@ export class EducationalService {
     data: Partial<EducationalContent>,
     createdBy?: string,
   ): Promise<EducationalContentDocument> {
-    const normalizedTargeting = this.normalizeTargeting(data.targeting);
+    const normalizedTargeting = this.normalizeTargeting();
     const scope = data.scope || ContentScope.GENERAL;
-    this.validateScopeAndTargeting(scope, normalizedTargeting, data.relatedProducts);
+    this.validateScopeAndTargeting(scope, data.relatedProducts);
 
     const content = await this.contentModel.create({
       ...data,
@@ -260,10 +206,7 @@ export class EducationalService {
     if (search) query.$text = { $search: search };
     if (productId && Types.ObjectId.isValid(productId)) {
       const productObjectId = new Types.ObjectId(productId);
-      query.$or = [
-        { relatedProducts: productObjectId },
-        { 'targeting.products': productObjectId },
-      ];
+      query.$or = [{ relatedProducts: productObjectId }];
     }
 
     const [data, total] = await Promise.all([
@@ -350,65 +293,18 @@ export class EducationalService {
     const page = Math.max(1, context.page || 1);
     const limit = Math.max(1, Math.min(context.limit || 20, 50));
 
-    let resolvedCategoryId = context.categoryId;
-    let resolvedBrandId = context.brandId;
-    let resolvedDeviceId = context.deviceId;
-
-    if (context.productId && Types.ObjectId.isValid(context.productId)) {
-      const product = await this.productModel
-        .findById(context.productId)
-        .select('categoryId brandId compatibleDevices')
-        .lean();
-
-      if (product) {
-        resolvedCategoryId ||= product.categoryId?.toString?.();
-        resolvedBrandId ||= product.brandId?.toString?.();
-        if (!resolvedDeviceId && Array.isArray(product.compatibleDevices)) {
-          resolvedDeviceId = product.compatibleDevices[0]?.toString?.();
-        }
-      }
-    }
-
-    const contextTagSet = new Set(
-      (context.tags || [])
-        .map((tag) => tag.trim().toLowerCase())
-        .filter(Boolean),
-    );
-
     const contextQuery: any = {
       status: 'published',
-      $or: [{ scope: ContentScope.GENERAL }, { scope: ContentScope.HYBRID }],
+      $or: [],
     };
 
-    const contextualOrConditions: any[] = [];
     if (context.productId && Types.ObjectId.isValid(context.productId)) {
       const productObjectId = new Types.ObjectId(context.productId);
-      contextualOrConditions.push({ relatedProducts: productObjectId });
-      contextualOrConditions.push({ 'targeting.products': productObjectId });
-    }
-    if (resolvedCategoryId && Types.ObjectId.isValid(resolvedCategoryId)) {
-      contextualOrConditions.push({
-        'targeting.categories': new Types.ObjectId(resolvedCategoryId),
-      });
-    }
-    if (resolvedBrandId && Types.ObjectId.isValid(resolvedBrandId)) {
-      contextualOrConditions.push({
-        'targeting.brands': new Types.ObjectId(resolvedBrandId),
-      });
-    }
-    if (resolvedDeviceId && Types.ObjectId.isValid(resolvedDeviceId)) {
-      contextualOrConditions.push({
-        'targeting.devices': new Types.ObjectId(resolvedDeviceId),
-      });
-    }
-    if (contextTagSet.size > 0) {
-      contextualOrConditions.push({
-        'targeting.intentTags': { $in: Array.from(contextTagSet) },
-      });
+      contextQuery.$or.push({ relatedProducts: productObjectId });
     }
 
-    if (contextualOrConditions.length > 0) {
-      contextQuery.$or.push(...contextualOrConditions);
+    if (contextQuery.$or.length === 0) {
+      return { data: [], total: 0 };
     }
 
     const rawContent = await this.contentModel
@@ -423,10 +319,6 @@ export class EducationalService {
         item,
         score: this.calculateContextScore(item, {
           productId: context.productId,
-          categoryId: resolvedCategoryId,
-          brandId: resolvedBrandId,
-          deviceId: resolvedDeviceId,
-          tags: Array.from(contextTagSet),
         }),
       }))
       .sort((a, b) => {
@@ -456,20 +348,13 @@ export class EducationalService {
     if (!existing) throw new NotFoundException('Content not found');
 
     const mergedScope = data.scope || existing.scope || ContentScope.GENERAL;
-    const mergedTargeting = this.normalizeTargeting({
-      ...(existing.targeting || {}),
-      ...(data.targeting || {}),
-    });
+    const mergedTargeting = this.normalizeTargeting();
     const mergedRelatedProducts =
       data.relatedProducts !== undefined
         ? data.relatedProducts
         : (existing.relatedProducts as Types.ObjectId[]);
 
-    this.validateScopeAndTargeting(
-      mergedScope,
-      mergedTargeting,
-      mergedRelatedProducts,
-    );
+    this.validateScopeAndTargeting(mergedScope, mergedRelatedProducts);
 
     const updateData: any = {
       ...data,
