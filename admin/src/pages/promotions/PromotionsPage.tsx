@@ -39,13 +39,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from '@/components/ui/tabs';
-import {
-    Plus,
     Search,
     Tags,
     MoreHorizontal,
@@ -56,7 +49,6 @@ import {
     Gift,
     Loader2,
     AlertCircle,
-    CheckCircle2,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
@@ -126,7 +118,7 @@ export function PromotionsPage() {
     const { t, i18n } = useTranslation();
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState<'promotions' | 'coupons'>('coupons');
+    const activeTab: 'coupons' = 'coupons';
     const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
     const [promotionForm, setPromotionForm] = useState<PromotionFormData>(initialPromotionForm);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -260,16 +252,10 @@ export function PromotionsPage() {
     };
 
     const stats = {
-        total: activeTab === 'coupons' ? (coupons?.length || 0) : (promotions?.length || 0),
-        active: activeTab === 'coupons' 
-            ? (coupons?.filter((c) => c.isActive).length || 0)
-            : (promotions?.filter((p) => p.isActive).length || 0),
-        totalUsage: activeTab === 'coupons'
-            ? (coupons?.reduce((sum, c) => sum + (c.usageCount || 0), 0) || 0)
-            : (promotions?.reduce((sum, p) => sum + (p.usedCount || 0), 0) || 0),
-        percentage: activeTab === 'coupons'
-            ? (coupons?.filter((c) => c.type === 'percentage').length || 0)
-            : (promotions?.filter((p) => p.discountType === 'percentage').length || 0),
+        total: coupons?.length || 0,
+        active: coupons?.filter((c) => c.isActive).length || 0,
+        totalUsage: coupons?.reduce((sum, c) => sum + (c.usageCount || 0), 0) || 0,
+        percentage: coupons?.filter((c) => c.type === 'percentage').length || 0,
     };
 
     return (
@@ -277,13 +263,9 @@ export function PromotionsPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('sidebar.promotions')}</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">إدارة القسائم والعروض الترويجية</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('sidebar.coupons')}</h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">إدارة القسائم</p>
                 </div>
-                <Button onClick={activeTab === 'promotions' ? handleOpenPromotionDialog : handleOpenPromotionDialog}>
-                    <Plus className="h-4 w-4" />
-                    {activeTab === 'promotions' ? 'إضافة عرض' : 'إضافة قسيمة'}
-                </Button>
             </div>
 
             {/* Stats */}
@@ -332,7 +314,7 @@ export function PromotionsPage() {
                     <div className="relative max-w-md">
                         <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
-                            placeholder={activeTab === 'promotions' ? 'البحث بالكود أو الاسم...' : 'البحث بكود القسيمة...'}
+                            placeholder="البحث بكود القسيمة..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="ps-10"
@@ -341,283 +323,123 @@ export function PromotionsPage() {
                 </CardContent>
             </Card>
 
-            {/* Tabs */}
-            <Tabs
-                value={activeTab}
-                onValueChange={(v) => setActiveTab(v as 'promotions' | 'coupons')}
-                dir={direction}
-            >
-                <TabsList className="flex w-full max-w-md">
-                    {direction === 'rtl' ? (
-                        <>
-                            <TabsTrigger value="promotions" className="flex-1 gap-2 cursor-pointer">
-                                {activeTab === 'promotions' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                                العروض
-                            </TabsTrigger>
-                            <TabsTrigger value="coupons" className="flex-1 gap-2 cursor-pointer">
-                                {activeTab === 'coupons' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                                القسائم
-                            </TabsTrigger>
-                        </>
-                    ) : (
-                        <>
-                            <TabsTrigger value="coupons" className="flex-1 gap-2 cursor-pointer">
-                                {activeTab === 'coupons' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                                القسائم
-                            </TabsTrigger>
-                            <TabsTrigger value="promotions" className="flex-1 gap-2 cursor-pointer">
-                                {activeTab === 'promotions' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                                العروض
-                            </TabsTrigger>
-                        </>
-                    )}
-                </TabsList>
-
-                {/* Coupons Tab */}
-                <TabsContent value="coupons" className="space-y-4">
-                    <Card>
-                        <CardHeader className="pb-4 text-start">
-                            <CardTitle className="text-lg">قائمة القسائم</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {isLoadingCoupons ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
-                                </div>
-                            ) : error ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                                    <AlertCircle className="h-12 w-12 mb-4 text-red-400" />
-                                    <p>حدث خطأ في تحميل البيانات</p>
-                                </div>
-                            ) : (
-                                <Table dir={direction}>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>الكود</TableHead>
-                                            <TableHead>الوصف</TableHead>
-                                            <TableHead>الخصم</TableHead>
-                                            <TableHead>الاستخدام</TableHead>
-                                            <TableHead>الفترة</TableHead>
-                                            <TableHead>الحالة</TableHead>
-                                            <TableHead className="w-[50px]"></TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredCoupons.map((coupon) => (
-                                            <TableRow key={coupon._id}>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <code className="bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-gray-100 px-2 py-1 rounded text-sm font-mono">
-                                                            {coupon.code}
-                                                        </code>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-6 w-6"
-                                                            onClick={() => copyCode(coupon.code)}
-                                                        >
-                                                            <Copy className="h-3 w-3" />
+            <div className="space-y-4">
+                <Card>
+                    <CardHeader className="pb-4 text-start">
+                        <CardTitle className="text-lg">قائمة القسائم</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {isLoadingCoupons ? (
+                            <div className="flex items-center justify-center py-12">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+                            </div>
+                        ) : error ? (
+                            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                                <AlertCircle className="h-12 w-12 mb-4 text-red-400" />
+                                <p>حدث خطأ في تحميل البيانات</p>
+                            </div>
+                        ) : (
+                            <Table dir={direction}>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>الكود</TableHead>
+                                        <TableHead>الوصف</TableHead>
+                                        <TableHead>الخصم</TableHead>
+                                        <TableHead>الاستخدام</TableHead>
+                                        <TableHead>الفترة</TableHead>
+                                        <TableHead>الحالة</TableHead>
+                                        <TableHead className="w-[50px]"></TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredCoupons.map((coupon) => (
+                                        <TableRow key={coupon._id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <code className="bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-gray-100 px-2 py-1 rounded text-sm font-mono">
+                                                        {coupon.code}
+                                                    </code>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-6 w-6"
+                                                        onClick={() => copyCode(coupon.code)}
+                                                    >
+                                                        <Copy className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-gray-600">{coupon.description || '-'}</TableCell>
+                                            <TableCell className="font-medium">
+                                                {coupon.type === 'percentage'
+                                                    ? `${coupon.value}%`
+                                                    : formatCurrency(coupon.value, 'SAR', locale)}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-gray-900">{coupon.usageCount}</span>
+                                                    {coupon.usageLimit && (
+                                                        <>
+                                                            <span className="text-gray-400">/</span>
+                                                            <span className="text-gray-500">{coupon.usageLimit}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-sm text-gray-500">
+                                                <div>
+                                                    {formatDate(coupon.startDate, locale)}
+                                                    <span className="mx-1">-</span>
+                                                    {formatDate(coupon.endDate, locale)}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={coupon.isActive ? 'success' : 'default'}>
+                                                    {coupon.isActive ? 'نشط' : 'غير نشط'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon">
+                                                            <MoreHorizontal className="h-4 w-4" />
                                                         </Button>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-gray-600">{coupon.description || '-'}</TableCell>
-                                                <TableCell className="font-medium">
-                                                    {coupon.type === 'percentage'
-                                                        ? `${coupon.value}%`
-                                                        : formatCurrency(coupon.value, 'SAR', locale)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-gray-900">{coupon.usageCount}</span>
-                                                        {coupon.usageLimit && (
-                                                            <>
-                                                                <span className="text-gray-400">/</span>
-                                                                <span className="text-gray-500">{coupon.usageLimit}</span>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-sm text-gray-500">
-                                                    <div>
-                                                        {formatDate(coupon.startDate, locale)}
-                                                        <span className="mx-1">-</span>
-                                                        {formatDate(coupon.endDate, locale)}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant={coupon.isActive ? 'success' : 'default'}>
-                                                        {coupon.isActive ? 'نشط' : 'غير نشط'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon">
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem>
-                                                                <Pencil className="h-4 w-4" />
-                                                                تعديل
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => copyCode(coupon.code)}>
-                                                                <Copy className="h-4 w-4" />
-                                                                نسخ
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem
-                                                                className="text-red-600"
-                                                                onClick={() => deleteCouponMutation.mutate(coupon._id)}
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                                حذف
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                        {filteredCoupons.length === 0 && (
-                                            <TableRow>
-                                                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                                                    لا توجد قسائم
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Promotions Tab */}
-                <TabsContent value="promotions" className="space-y-4">
-                    <Card>
-                        <CardHeader className="pb-4 text-start">
-                            <CardTitle className="text-lg">قائمة العروض</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {isLoadingPromotions ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
-                                </div>
-                            ) : (
-                                <Table dir={direction}>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>الكود</TableHead>
-                                            <TableHead>الاسم</TableHead>
-                                            <TableHead>نوع الخصم</TableHead>
-                                            <TableHead>الاستخدام</TableHead>
-                                            <TableHead>الفترة</TableHead>
-                                            <TableHead>الحالة</TableHead>
-                                            <TableHead className="w-[50px]"></TableHead>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem>
+                                                            <Pencil className="h-4 w-4" />
+                                                            تعديل
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => copyCode(coupon.code)}>
+                                                            <Copy className="h-4 w-4" />
+                                                            نسخ
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            className="text-red-600"
+                                                            onClick={() => deleteCouponMutation.mutate(coupon._id)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                            حذف
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredPromotions.map((promotion) => (
-                                            <TableRow key={promotion._id}>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <code className="bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-gray-100 px-2 py-1 rounded text-sm font-mono">
-                                                            {promotion.code || '-'}
-                                                        </code>
-                                                        {promotion.code && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-6 w-6"
-                                                                onClick={() => copyCode(promotion.code)}
-                                                            >
-                                                                <Copy className="h-3 w-3" />
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-gray-600">
-                                                    {promotion.nameAr || promotion.name || '-'}
-                                                </TableCell>
-                                                <TableCell className="font-medium">
-                                                    {promotion.discountType === 'percentage' && promotion.discountValue
-                                                        ? `${promotion.discountValue}%`
-                                                        : promotion.discountType === 'fixed_amount' && promotion.discountValue
-                                                        ? formatCurrency(promotion.discountValue, 'SAR', locale)
-                                                        : promotion.discountType === 'buy_x_get_y'
-                                                        ? `اشتر ${promotion.buyQuantity} احصل على ${promotion.getQuantity}`
-                                                        : promotion.discountType === 'free_shipping'
-                                                        ? 'شحن مجاني'
-                                                        : '-'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-gray-900">{promotion.usedCount || 0}</span>
-                                                        {promotion.usageLimit && (
-                                                            <>
-                                                                <span className="text-gray-400">/</span>
-                                                                <span className="text-gray-500">{promotion.usageLimit}</span>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-sm text-gray-500">
-                                                    <div>
-                                                        {promotion.startDate ? formatDate(promotion.startDate, locale) : '-'}
-                                                        <span className="mx-1">-</span>
-                                                        {promotion.endDate ? formatDate(promotion.endDate, locale) : '-'}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant={promotion.isActive ? 'success' : 'default'}>
-                                                        {promotion.isActive ? 'نشط' : 'غير نشط'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon">
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem onClick={() => handleEditPromotion(promotion)}>
-                                                                <Pencil className="h-4 w-4" />
-                                                                تعديل
-                                                            </DropdownMenuItem>
-                                                            {promotion.code && (
-                                                                <DropdownMenuItem onClick={() => copyCode(promotion.code)}>
-                                                                    <Copy className="h-4 w-4" />
-                                                                    نسخ الكود
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem
-                                                                className="text-red-600"
-                                                                onClick={() => deletePromotionMutation.mutate(promotion._id)}
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                                حذف
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                        {filteredPromotions.length === 0 && (
-                                            <TableRow>
-                                                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                                                    لا توجد عروض
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                                    ))}
+                                    {filteredCoupons.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                                لا توجد قسائم
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Create/Edit Promotion Dialog */}
             <Dialog open={isPromotionDialogOpen} onOpenChange={setIsPromotionDialogOpen}>

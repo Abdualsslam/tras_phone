@@ -72,7 +72,7 @@ export const sidebarSections: SidebarSectionConfig[] = [
             { id: 'priceLevels', icon: Layers, path: '/price-levels', labelKey: 'sidebar.priceLevels', access: anyOf('pricing.view', 'pricing.manage_levels') },
             { id: 'categories', icon: FolderTree, path: '/categories', labelKey: 'sidebar.categories', access: anyOf('categories.view') },
             { id: 'catalogPage', icon: Smartphone, path: '/catalog', labelKey: 'sidebar.catalog', access: anyOf('products.view', 'categories.view', 'brands.view') },
-            { id: 'promotions', icon: Tags, path: '/promotions', labelKey: 'sidebar.promotions', access: anyOf('promotions.view') },
+            { id: 'promotions', icon: Tags, path: '/promotions', labelKey: 'sidebar.coupons', access: anyOf('promotions.view') },
             { id: 'content', icon: Layers, path: '/content', labelKey: 'sidebar.content', access: anyOf('content.view') },
             { id: 'educationalContent', icon: BookOpen, path: '/educational-content', labelKey: 'sidebar.educationalContent', access: anyOf('content.view') },
         ],
