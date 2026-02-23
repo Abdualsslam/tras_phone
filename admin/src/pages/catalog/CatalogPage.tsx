@@ -525,6 +525,13 @@ function DevicesTab() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  const getDeviceBrand = (device: Device) => {
+    if (device.brandId && typeof device.brandId === "object") {
+      return device.brandId;
+    }
+    return device.brand;
+  };
+
   const { data: brands } = useQuery({
     queryKey: ["brands"],
     queryFn: () => catalogApi.getBrands(),
@@ -597,7 +604,8 @@ function DevicesTab() {
       name: device.name,
       nameAr: device.nameAr || "",
       slug: device.slug,
-      brandId: device.brandId,
+      brandId:
+        typeof device.brandId === "string" ? device.brandId : device.brandId?._id || "",
       image: device.image || "",
       releaseYear: device.releaseYear || new Date().getFullYear(),
       isPopular: device.isPopular,
@@ -703,7 +711,7 @@ function DevicesTab() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {device.brand?.name || "-"}
+                        {getDeviceBrand(device)?.nameAr || getDeviceBrand(device)?.name || "-"}
                       </Badge>
                     </TableCell>
                     <TableCell>{device.releaseYear || "-"}</TableCell>

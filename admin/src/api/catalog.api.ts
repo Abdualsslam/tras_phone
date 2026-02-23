@@ -46,7 +46,7 @@ export interface Device {
     name: string;
     nameAr?: string;
     slug: string;
-    brandId: string;
+    brandId: string | Brand;
     brand?: Brand;
     image?: string;
     releaseYear?: number;
