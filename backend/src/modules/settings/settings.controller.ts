@@ -382,7 +382,7 @@ export class SettingsController {
   @ApiOperation({ summary: 'Create payment method' })
   async createPaymentMethod(@Body() data: any) {
     const method = await this.settingsService.createPaymentMethod(data);
-    return ResponseBuilder.success(method, 'Payment method created');
+    return ResponseBuilder.success(method, 'Payment method created or updated');
   }
 
   @Put('admin/payment-methods/:id')

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
 import {
@@ -12,6 +12,7 @@ import {
   type AppVersion,
   type StoreSettings,
 } from "@/api/settings.api";
+import { uploadsApi, isValidImageType, isValidFileSize } from "@/api/uploads.api";
 
 // ══════════════════════════════════════════════════════════════
 // Form Types
@@ -65,7 +66,6 @@ type PaymentMethodFormData = {
   type: string;
   descriptionAr: string;
   descriptionEn: string;
-  icon: string;
   logo: string;
   gateway: 'hyperpay' | 'moyasar' | 'tap' | 'payfort' | 'internal' | 'none';
   fixedFee: number;
@@ -535,7 +535,6 @@ const paymentMethodForm = useForm<PaymentMethodFormData>({
       type: "cash_on_delivery",
       descriptionAr: "",
       descriptionEn: "",
-      icon: "",
       logo: "",
       gateway: "none",
       fixedFee: 0,
@@ -715,7 +714,6 @@ const handleAddPaymentMethod = () => {
       type: "cash_on_delivery",
       descriptionAr: "",
       descriptionEn: "",
-      icon: "",
       logo: "",
       gateway: "none",
       fixedFee: 0,
@@ -748,8 +746,7 @@ const handleAddPaymentMethod = () => {
       type: method.type,
       descriptionAr: method.descriptionAr || "",
       descriptionEn: method.descriptionEn || "",
-      icon: method.icon || "",
-      logo: method.logo || "",
+      logo: method.logo || method.icon || "",
       gateway: method.gateway || "none",
       fixedFee: method.fixedFee || 0,
       percentageFee: method.percentageFee || 0,
@@ -775,6 +772,39 @@ const handleAddPaymentMethod = () => {
   const handleDeletePaymentMethod = (method: PaymentMethod) => {
     if (confirm(`هل أنت متأكد من حذف "${method.name}"؟`)) {
       deletePaymentMethodMutation.mutate(method._id);
+    }
+  };
+
+  const [isUploadingPaymentImage, setIsUploadingPaymentImage] = useState(false);
+
+  const handlePaymentMethodImageUpload = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!isValidImageType(file)) {
+      toast.error("صيغة الصورة غير مدعومة");
+      event.target.value = "";
+      return;
+    }
+
+    if (!isValidFileSize(file, 2)) {
+      toast.error("حجم الصورة يجب أن يكون أقل من 2MB");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      setIsUploadingPaymentImage(true);
+      const uploaded = await uploadsApi.uploadSingle(file, "payment-methods");
+      paymentMethodForm.setValue("logo", uploaded.url, { shouldDirty: true });
+      toast.success("تم رفع الصورة بنجاح");
+    } catch {
+      toast.error("فشل رفع الصورة");
+    } finally {
+      setIsUploadingPaymentImage(false);
+      event.target.value = "";
     }
   };
 
@@ -861,7 +891,10 @@ const handleAddPaymentMethod = () => {
   };
 
 const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
-    const submitData = data as unknown as Omit<PaymentMethod, '_id'>;
+    const submitData = {
+      ...data,
+      icon: data.logo,
+    } as unknown as Omit<PaymentMethod, '_id'>;
     if (isEditing && selectedItem && "_id" in selectedItem) {
       updatePaymentMethodMutation.mutate({ id: selectedItem._id, data: submitData });
     } else {
@@ -1455,9 +1488,9 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                     {paymentMethods.map((method) => (
                       <TableRow key={method._id}>
                         <TableCell>
-                          {method.logo ? (
+                          {(method.logo || method.icon) ? (
                             <img
-                              src={method.logo}
+                              src={method.logo || method.icon}
                               alt={method.name}
                               className="h-10 w-10 object-contain rounded"
                             />
@@ -2262,29 +2295,35 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
             </div>
 
             <div className="space-y-4">
-              <h4 className="font-medium text-sm text-muted-foreground">الصور والأيقونات</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>رابط الشعار (Logo)</Label>
-                  <Input
-                    {...paymentMethodForm.register("logo")}
-                    placeholder="https://example.com/logo.png"
-                  />
-                  {paymentMethodForm.watch("logo") && (
+              <h4 className="font-medium text-sm text-muted-foreground">صورة طريقة الدفع</h4>
+              <div className="space-y-2">
+                <Label>الصورة (حقل واحد فقط)</Label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePaymentMethodImageUpload}
+                  disabled={isUploadingPaymentImage}
+                  className="block w-full text-sm file:me-3 file:rounded-md file:border file:border-input file:bg-background file:px-3 file:py-2 file:text-sm"
+                />
+                {isUploadingPaymentImage && (
+                  <p className="text-sm text-muted-foreground">جاري رفع الصورة...</p>
+                )}
+                {paymentMethodForm.watch("logo") && (
+                  <div className="flex items-center gap-3">
                     <img
                       src={paymentMethodForm.watch("logo")}
-                      alt="Logo preview"
-                      className="h-10 object-contain mt-2"
+                      alt="Payment method preview"
+                      className="h-12 w-12 object-contain rounded border"
                     />
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>رابط الأيقونة (Icon)</Label>
-                  <Input
-                    {...paymentMethodForm.register("icon")}
-                    placeholder="https://example.com/icon.png"
-                  />
-                </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => paymentMethodForm.setValue("logo", "", { shouldDirty: true })}
+                    >
+                      إزالة الصورة
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 

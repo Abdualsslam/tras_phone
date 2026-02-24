@@ -139,7 +139,10 @@ export class SettingsService {
 
   async getNotificationSettings(): Promise<Record<string, any>> {
     const settings = await this.settingModel.find({
-      group: SettingGroup.NOTIFICATION,
+      $or: [
+        { group: SettingGroup.NOTIFICATION },
+        { key: { $regex: '^notification_' } },
+      ],
     });
 
     const result: Record<string, any> = {
@@ -151,9 +154,28 @@ export class SettingsService {
       pushEnabled: false,
     };
 
+    const keyMap: Record<string, keyof typeof result> = {
+      neworder: 'newOrder',
+      new_order: 'newOrder',
+      newcustomer: 'newCustomer',
+      new_customer: 'newCustomer',
+      lowstock: 'lowStock',
+      low_stock: 'lowStock',
+      supportticket: 'supportTicket',
+      support_ticket: 'supportTicket',
+      emailenabled: 'emailEnabled',
+      email_enabled: 'emailEnabled',
+      pushenabled: 'pushEnabled',
+      push_enabled: 'pushEnabled',
+    };
+
     settings.forEach((setting) => {
-      const key = setting.key.replace('notification_', '').replace(/_/g, '');
-      result[key] = setting.value ?? setting.defaultValue ?? false;
+      const rawKey = setting.key.replace('notification_', '').toLowerCase();
+      const mappedKey = keyMap[rawKey] ?? keyMap[rawKey.replace(/_/g, '')];
+
+      if (mappedKey) {
+        result[mappedKey] = setting.value ?? setting.defaultValue ?? false;
+      }
     });
 
     return result;
@@ -162,11 +184,43 @@ export class SettingsService {
   async updateNotificationSettings(
     data: Record<string, any>,
   ): Promise<Record<string, any>> {
+    const allowedKeys = new Set([
+      'newOrder',
+      'newCustomer',
+      'lowStock',
+      'supportTicket',
+      'emailEnabled',
+      'pushEnabled',
+    ]);
+
+    const settingKeyMap: Record<string, string> = {
+      newOrder: 'notification_neworder',
+      newCustomer: 'notification_newcustomer',
+      lowStock: 'notification_lowstock',
+      supportTicket: 'notification_supportticket',
+      emailEnabled: 'notification_emailenabled',
+      pushEnabled: 'notification_pushenabled',
+    };
+
     for (const [key, value] of Object.entries(data)) {
-      const settingKey = `notification_${key}`;
+      if (!allowedKeys.has(key)) {
+        continue;
+      }
+
+      const settingKey = settingKeyMap[key] || `notification_${key.toLowerCase()}`;
       await this.settingModel.findOneAndUpdate(
         { key: settingKey },
-        { value },
+        {
+          $set: { value },
+          $setOnInsert: {
+            key: settingKey,
+            group: SettingGroup.NOTIFICATION,
+            type: SettingType.BOOLEAN,
+            isPublic: false,
+            isEditable: true,
+            sortOrder: 999,
+          },
+        },
         { upsert: true, new: true },
       );
     }
@@ -867,7 +921,36 @@ export class SettingsService {
       createData.nameEn = createData.name;
       delete createData.name;
     }
-    const method = await this.paymentMethodModel.create(createData);
+
+    // Keep single image source for admin UI compatibility
+    if (createData.logo && !createData.icon) {
+      createData.icon = createData.logo;
+    } else if (createData.icon && !createData.logo) {
+      createData.logo = createData.icon;
+    } else if (createData.logo && createData.icon && createData.logo !== createData.icon) {
+      createData.icon = createData.logo;
+    }
+
+    let method = null;
+
+    // Keep type unique: if the same type exists, update it instead of creating a duplicate
+    if (createData.type) {
+      const existingMethod = await this.paymentMethodModel.findOne({
+        type: createData.type,
+      });
+
+      if (existingMethod) {
+        method = await this.paymentMethodModel.findByIdAndUpdate(
+          existingMethod._id,
+          createData,
+          { new: true },
+        );
+      }
+    }
+
+    if (!method) {
+      method = await this.paymentMethodModel.create(createData);
+    }
 
     // Transform to match frontend expectations
     return {
@@ -877,8 +960,8 @@ export class SettingsService {
       type: method.type,
       descriptionAr: method.descriptionAr,
       descriptionEn: method.descriptionEn,
-      icon: method.icon,
-      logo: method.logo,
+      icon: method.logo || method.icon,
+      logo: method.logo || method.icon,
       gateway: method.gateway,
       gatewayConfig: method.gatewayConfig,
       fixedFee: method.fixedFee,
@@ -925,8 +1008,8 @@ export class SettingsService {
       type: method.type,
       descriptionAr: method.descriptionAr,
       descriptionEn: method.descriptionEn,
-      icon: method.icon,
-      logo: method.logo,
+      icon: method.logo || method.icon,
+      logo: method.logo || method.icon,
       gateway: method.gateway,
       gatewayConfig: method.gatewayConfig,
       fixedFee: method.fixedFee,
@@ -962,6 +1045,15 @@ export class SettingsService {
       updateData.nameEn = updateData.name;
       delete updateData.name;
     }
+
+    if (updateData.logo && !updateData.icon) {
+      updateData.icon = updateData.logo;
+    } else if (updateData.icon && !updateData.logo) {
+      updateData.logo = updateData.icon;
+    } else if (updateData.logo && updateData.icon && updateData.logo !== updateData.icon) {
+      updateData.icon = updateData.logo;
+    }
+
     const method = await this.paymentMethodModel.findByIdAndUpdate(
       id,
       {
@@ -980,8 +1072,8 @@ export class SettingsService {
       type: method.type,
       descriptionAr: method.descriptionAr,
       descriptionEn: method.descriptionEn,
-      icon: method.icon,
-      logo: method.logo,
+      icon: method.logo || method.icon,
+      logo: method.logo || method.icon,
       gateway: method.gateway,
       gatewayConfig: method.gatewayConfig,
       fixedFee: method.fixedFee,

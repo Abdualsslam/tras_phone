@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Use class-based dark mode for Tailwind v4 variants */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Tailwind v4 Theme - Custom colors must be defined in @theme */
 @theme {
   /* Primary Colors - TRAS Brand Colors */
