@@ -931,7 +931,7 @@ export class SettingsService {
       createData.icon = createData.logo;
     }
 
-    let method = null;
+    let method: any = null;
 
     // Keep type unique: if the same type exists, update it instead of creating a duplicate
     if (createData.type) {
