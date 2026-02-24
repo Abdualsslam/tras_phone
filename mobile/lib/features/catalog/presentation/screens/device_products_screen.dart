@@ -32,6 +32,7 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
   List<ProductEntity> _products = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
+  bool _hasLoadedOnce = false;
   bool _hasMore = true;
   int _currentPage = 1;
   final int _limit = 20;
@@ -63,7 +64,9 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
     setState(() {
       _isLoading = true;
       _currentPage = 1;
-      _products.clear();
+      if (!_hasLoadedOnce) {
+        _products.clear();
+      }
       _hasMore = true;
     });
 
@@ -91,6 +94,7 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
             _products = products;
             _pagination = pagination;
             _hasMore = _currentPage < (pagination?['pages'] ?? 1);
+            _hasLoadedOnce = true;
             _isLoading = false;
           });
         },
@@ -170,7 +174,7 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
         child: Column(
           children: [
             // Products count
-            if (!_isLoading && _products.isNotEmpty)
+            if (_products.isNotEmpty)
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                 decoration: BoxDecoration(
@@ -204,7 +208,7 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
 
             // Products Grid
             Expanded(
-              child: _isLoading
+              child: (_isLoading && !_hasLoadedOnce)
                   ? const ProductsGridShimmer()
                   : _products.isEmpty
                   ? _buildEmptyState(isDark)

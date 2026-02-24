@@ -257,6 +257,62 @@ class ProductModel {
     return null;
   }
 
+  static List<String> _readStringList(dynamic value) {
+    if (value is! List) return const [];
+
+    final result = <String>[];
+    for (final item in value) {
+      if (item is String) {
+        final trimmed = item.trim();
+        if (trimmed.isNotEmpty) result.add(trimmed);
+        continue;
+      }
+
+      if (item is Map) {
+        final map = Map<String, dynamic>.from(item);
+        final nested =
+            map['url'] ??
+            map['secureUrl'] ??
+            map['secure_url'] ??
+            map['path'] ??
+            map['src'] ??
+            map['_id'] ??
+            map['id'] ??
+            map['\$oid'];
+        final value = nested?.toString().trim();
+        if (value != null && value.isNotEmpty) result.add(value);
+        continue;
+      }
+
+      final fallback = item.toString().trim();
+      if (fallback.isNotEmpty) result.add(fallback);
+    }
+
+    return result;
+  }
+
+  static List<String> _readIdList(dynamic value) {
+    if (value is! List) return const [];
+
+    final result = <String>[];
+    for (final item in value) {
+      if (item is String) {
+        final trimmed = item.trim();
+        if (trimmed.isNotEmpty) result.add(trimmed);
+        continue;
+      }
+
+      if (item is Map) {
+        final map = Map<String, dynamic>.from(item);
+        final id = map['_id'] ?? map['id'] ?? map['\$oid'];
+        final value = id?.toString().trim();
+        if (value != null && value.isNotEmpty) result.add(value);
+      }
+    }
+
+    return result;
+  }
+
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     final nowIso = DateTime.now().toIso8601String();
     final normalized = Map<String, dynamic>.from(json);
@@ -291,6 +347,14 @@ class ProductModel {
         _readRelationId(json, 'categoryId')?.toString() ?? '';
     normalized['qualityTypeId'] =
         _readRelationId(json, 'qualityTypeId')?.toString() ?? '';
+
+    // Normalize list fields that can come as objects from populated APIs.
+    normalized['compatibleDevices'] = _readIdList(json['compatibleDevices']);
+    normalized['additionalCategories'] = _readIdList(
+      json['additionalCategories'],
+    );
+    normalized['images'] = _readStringList(json['images']);
+    normalized['tags'] = _readStringList(json['tags']);
 
     // Extract populated relation data
     String? brandName, brandNameAr;

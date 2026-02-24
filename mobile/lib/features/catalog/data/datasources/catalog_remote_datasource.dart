@@ -705,8 +705,9 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       return ProductModel.fromJson(data).toEntity();
     } catch (e) {
       developer.log(
-        'Product not found: $identifier',
+        'Failed to parse/fetch product $identifier: $e',
         name: 'CatalogDataSource',
+        error: e,
       );
       return null;
     }
@@ -721,7 +722,11 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
       final data = response.data['data'] ?? response.data;
       return ProductModel.fromJson(data).toEntity();
     } catch (e) {
-      developer.log('Product not found: $id', name: 'CatalogDataSource');
+      developer.log(
+        'Failed to parse/fetch product $id: $e',
+        name: 'CatalogDataSource',
+        error: e,
+      );
       return null;
     }
   }

@@ -51,6 +51,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   List<ProductEntity> _products = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
+  bool _hasLoadedOnce = false;
   bool _hasMore = true;
   int _currentPage = 1;
   final int _limit = 20;
@@ -195,7 +196,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     setState(() {
       _isLoading = true;
       _currentPage = 1;
-      _products.clear();
+      if (!_hasLoadedOnce) {
+        _products.clear();
+      }
       _hasMore = true;
     });
 
@@ -207,6 +210,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           _products = strictResult.products;
           _currentPage = strictResult.resolvedPage;
           _hasMore = _currentPage < strictResult.totalPages;
+          _hasLoadedOnce = true;
           _isLoading = false;
         });
         return;
@@ -233,6 +237,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       setState(() {
         _products = response.toEntities();
         _hasMore = _currentPage < response.pages;
+        _hasLoadedOnce = true;
         _isLoading = false;
       });
     } catch (e) {
@@ -354,7 +359,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
             // Products Grid/List
             Expanded(
-              child: _isLoading
+              child: (_isLoading && !_hasLoadedOnce)
                   ? const ProductsGridShimmer()
                   : _products.isEmpty
                   ? _buildEmptyState(isDark)

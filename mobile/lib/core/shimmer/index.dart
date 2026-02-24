@@ -3,11 +3,15 @@ library;
 
 export 'address_shimmer.dart';
 export 'brand_shimmer.dart';
+export 'brands_list_shimmer.dart';
 export 'cart_shimmer.dart';
+export 'categories_list_shimmer.dart';
+export 'devices_list_shimmer.dart';
 export 'education_shimmer.dart';
 export 'home_shimmer.dart';
 export 'notifications_shimmer.dart';
 export 'orders_shimmer.dart';
+export 'profile_shimmer.dart';
 export 'products_shimmer.dart';
 export 'returns_shimmer.dart';
 export 'search_shimmer.dart';
