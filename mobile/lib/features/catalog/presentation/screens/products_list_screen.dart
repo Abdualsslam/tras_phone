@@ -59,6 +59,53 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   bool _isGridView = true;
   final Set<String> _favoriteProductIds = {};
 
+  bool get _isStrictCategoryDeviceFlow =>
+      (widget.categoryId?.isNotEmpty ?? false) &&
+      (widget.deviceId?.isNotEmpty ?? false);
+
+  Future<({List<ProductEntity> products, int resolvedPage, int totalPages})>
+  _loadStrictCategoryDevicePage({required int startPage}) async {
+    final categoryId = widget.categoryId!;
+    final deviceId = widget.deviceId!;
+    final sortByEnum = _getSortByEnum();
+    final sortOrderEnum = _sortOrder == 'asc' ? SortOrder.asc : SortOrder.desc;
+
+    var page = startPage;
+    var totalPages = startPage;
+    var matchedProducts = <ProductEntity>[];
+
+    while (true) {
+      final response = await _dataSource.getProductsWithFilter(
+        ProductFilterQuery(
+          deviceId: deviceId,
+          sortBy: sortByEnum,
+          sortOrder: sortOrderEnum,
+          page: page,
+          limit: _limit,
+        ),
+      );
+
+      final pageProducts = response.toEntities();
+      totalPages = response.pages < 1 ? 1 : response.pages;
+
+      matchedProducts = pageProducts
+          .where((p) => p.categoryId == categoryId)
+          .toList();
+
+      if (matchedProducts.isNotEmpty || page >= totalPages) {
+        break;
+      }
+
+      page++;
+    }
+
+    return (
+      products: matchedProducts,
+      resolvedPage: page,
+      totalPages: totalPages,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -145,6 +192,18 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     });
 
     try {
+      if (_isStrictCategoryDeviceFlow) {
+        final strictResult = await _loadStrictCategoryDevicePage(startPage: 1);
+
+        setState(() {
+          _products = strictResult.products;
+          _currentPage = strictResult.resolvedPage;
+          _hasMore = _currentPage < strictResult.totalPages;
+          _isLoading = false;
+        });
+        return;
+      }
+
       final sortByEnum = _getSortByEnum();
       final sortOrderEnum = _sortOrder == 'asc'
           ? SortOrder.asc
@@ -197,9 +256,23 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     if (_isLoadingMore || !_hasMore) return;
 
     setState(() => _isLoadingMore = true);
-    _currentPage++;
+    final nextPage = _currentPage + 1;
 
     try {
+      if (_isStrictCategoryDeviceFlow) {
+        final strictResult = await _loadStrictCategoryDevicePage(
+          startPage: nextPage,
+        );
+
+        setState(() {
+          _products.addAll(strictResult.products);
+          _currentPage = strictResult.resolvedPage;
+          _hasMore = _currentPage < strictResult.totalPages;
+          _isLoadingMore = false;
+        });
+        return;
+      }
+
       final sortByEnum = _getSortByEnum();
       final sortOrderEnum = _sortOrder == 'asc'
           ? SortOrder.asc
@@ -212,7 +285,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         isFeatured: widget.isFeatured,
         sortBy: sortByEnum,
         sortOrder: sortOrderEnum,
-        page: _currentPage,
+        page: nextPage,
         limit: _limit,
       );
 
@@ -220,13 +293,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
       setState(() {
         _products.addAll(response.toEntities());
+        _currentPage = nextPage;
         _hasMore = _currentPage < response.pages;
         _isLoadingMore = false;
       });
     } catch (e) {
       setState(() {
         _isLoadingMore = false;
-        _currentPage--; // Revert page on error
       });
     }
   }
@@ -511,6 +584,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   }
 
   Widget _buildEmptyState(bool isDark) {
+    final strictCategoryMessage = _isStrictCategoryDeviceFlow;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -535,13 +610,16 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            'لا توجد منتجات حالياً',
+            strictCategoryMessage
+                ? 'لا توجد منتجات لهذا الجهاز ضمن الفئة المختارة'
+                : 'لا توجد منتجات حالياً',
             style: TextStyle(
               fontSize: 14.sp,
               color: isDark
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondaryLight,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

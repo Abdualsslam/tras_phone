@@ -32,9 +32,12 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    final hasQuery = options.queryParameters.isNotEmpty;
+    final requestTarget = hasQuery ? options.uri.toString() : options.path;
+
     // Add logging at the very start
     developer.log(
-      'onRequest: ${options.method} ${options.path}',
+      'onRequest: ${options.method} $requestTarget',
       name: 'AuthInterceptor',
     );
 
