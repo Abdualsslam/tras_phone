@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
 import '../../../../core/di/injection.dart';
@@ -340,20 +341,7 @@ class _DevicesListViewState extends State<_DevicesListView> {
         ),
         child: Row(
           children: [
-            // Device Icon
-            Container(
-              width: 48.w,
-              height: 48.w,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Icon(
-                Iconsax.mobile,
-                size: 24.sp,
-                color: AppColors.primary,
-              ),
-            ),
+            _buildDeviceThumbnail(device),
             SizedBox(width: 12.w),
 
             // Device Name
@@ -416,6 +404,56 @@ class _DevicesListViewState extends State<_DevicesListView> {
         ),
       ),
     );
+  }
+
+  Widget _buildDeviceThumbnail(DeviceEntity device) {
+    final imageUrl = _resolveDeviceImageUrl(device.image);
+
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return _buildDeviceIconPlaceholder();
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12.r),
+      child: Image.network(
+        imageUrl,
+        width: 48.w,
+        height: 48.w,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildDeviceIconPlaceholder(),
+      ),
+    );
+  }
+
+  Widget _buildDeviceIconPlaceholder() {
+    return Container(
+      width: 48.w,
+      height: 48.w,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Icon(Iconsax.mobile, size: 24.sp, color: AppColors.primary),
+    );
+  }
+
+  String? _resolveDeviceImageUrl(String? rawImage) {
+    if (rawImage == null || rawImage.trim().isEmpty) return null;
+
+    final value = rawImage.trim();
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return value;
+    }
+
+    final base = Uri.parse(AppConfig.baseUrl);
+    final host =
+        '${base.scheme}://${base.host}${base.hasPort ? ':${base.port}' : ''}';
+    if (value.startsWith('/')) {
+      return '$host$value';
+    }
+
+    return '$host/$value';
   }
 
   Widget _buildEmptyState(bool isDark) {

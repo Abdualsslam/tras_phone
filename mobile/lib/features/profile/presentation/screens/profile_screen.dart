@@ -7,16 +7,25 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../../auth/domain/entities/customer_entity.dart';
 import '../../domain/entities/address_entity.dart';
 import '../../presentation/cubit/profile_cubit.dart';
 import '../../presentation/cubit/profile_state.dart';
 import '../../../../l10n/app_localizations.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  CustomerEntity? _cachedCustomer;
 
   @override
   Widget build(BuildContext context) {

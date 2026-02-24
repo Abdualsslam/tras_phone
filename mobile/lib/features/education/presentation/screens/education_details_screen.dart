@@ -103,14 +103,7 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
 
         if (state is EducationDetailsLoaded) {
           final content = state.content;
-          if (_favoriteLoadedForContentId != content.id) {
-            _favoriteLoadedForContentId = content.id;
-            unawaited(_checkFavoriteStatus(content.id));
-          }
-          if (_relatedProductsLoadedForContentId != content.id) {
-            _relatedProductsLoadedForContentId = content.id;
-            unawaited(_loadRelatedProducts(content.relatedProducts));
-          }
+          _scheduleContentSideEffects(content);
 
           final locale = 'ar'; // TODO: Get from localization
 
@@ -432,6 +425,24 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
         ),
       ],
     );
+  }
+
+  void _scheduleContentSideEffects(EducationalContentEntity content) {
+    if (_favoriteLoadedForContentId != content.id) {
+      _favoriteLoadedForContentId = content.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(_checkFavoriteStatus(content.id));
+      });
+    }
+
+    if (_relatedProductsLoadedForContentId != content.id) {
+      _relatedProductsLoadedForContentId = content.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(_loadRelatedProducts(content.relatedProducts));
+      });
+    }
   }
 
   Future<void> _loadRelatedProducts(List<String> productIds) async {

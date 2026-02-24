@@ -18,8 +18,8 @@ class EducationContentCubit extends Cubit<EducationContentState> {
   final int _limit = 20;
 
   EducationContentCubit({required EducationRepository repository})
-      : _repository = repository,
-        super(const EducationContentInitial());
+    : _repository = repository,
+      super(const EducationContentInitial());
 
   Future<void> loadContent({
     String? categoryId,
@@ -30,7 +30,15 @@ class EducationContentCubit extends Cubit<EducationContentState> {
   }) async {
     emit(const EducationContentLoading());
 
-    _currentCategoryId = categoryId;
+    String? resolvedCategoryId = categoryId;
+    if (categoryId != null &&
+        categoryId.isNotEmpty &&
+        !_isObjectId(categoryId)) {
+      final category = await _repository.getCategoryBySlug(categoryId);
+      resolvedCategoryId = category?.id;
+    }
+
+    _currentCategoryId = resolvedCategoryId;
     _currentType = type;
     _currentStatus = status;
     _currentFeatured = featured;
@@ -39,7 +47,7 @@ class EducationContentCubit extends Cubit<EducationContentState> {
 
     try {
       final result = await _repository.getContent(
-        categoryId: categoryId,
+        categoryId: resolvedCategoryId,
         type: type,
         status: status,
         featured: featured,
@@ -54,15 +62,22 @@ class EducationContentCubit extends Cubit<EducationContentState> {
       final pages = pagination['pages'] as int? ?? (total / _limit).ceil();
       final hasMore = _currentPage < pages;
 
-      emit(EducationContentLoaded(
-        content: content,
-        hasMore: hasMore,
-        currentPage: _currentPage,
-        total: total,
-      ));
+      emit(
+        EducationContentLoaded(
+          content: content,
+          hasMore: hasMore,
+          currentPage: _currentPage,
+          total: total,
+        ),
+      );
     } catch (e) {
       emit(EducationContentError(e.toString()));
     }
+  }
+
+  bool _isObjectId(String value) {
+    final objectIdRegex = RegExp(r'^[a-fA-F0-9]{24}$');
+    return objectIdRegex.hasMatch(value);
   }
 
   Future<void> loadMore() async {
@@ -90,12 +105,14 @@ class EducationContentCubit extends Cubit<EducationContentState> {
       final pages = pagination['pages'] as int? ?? (total / _limit).ceil();
       final hasMore = _currentPage < pages;
 
-      emit(EducationContentLoaded(
-        content: [...currentState.content, ...newContent],
-        hasMore: hasMore,
-        currentPage: _currentPage,
-        total: total,
-      ));
+      emit(
+        EducationContentLoaded(
+          content: [...currentState.content, ...newContent],
+          hasMore: hasMore,
+          currentPage: _currentPage,
+          total: total,
+        ),
+      );
     } catch (e) {
       emit(EducationContentError(e.toString()));
     }
@@ -147,12 +164,14 @@ class EducationContentCubit extends Cubit<EducationContentState> {
 
     try {
       final content = await _repository.getFeaturedContent(limit: limit);
-      emit(EducationContentLoaded(
-        content: content,
-        hasMore: false,
-        currentPage: 1,
-        total: content.length,
-      ));
+      emit(
+        EducationContentLoaded(
+          content: content,
+          hasMore: false,
+          currentPage: 1,
+          total: content.length,
+        ),
+      );
     } catch (e) {
       emit(EducationContentError(e.toString()));
     }

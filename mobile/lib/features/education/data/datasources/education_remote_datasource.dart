@@ -132,20 +132,33 @@ class EducationRemoteDataSourceImpl implements EducationRemoteDataSource {
             .map((json) => EducationalContentModel.fromJson(json).toEntity())
             .toList();
 
-        // Extract pagination info
-        final pagination = responseData['pagination'] as Map<String, dynamic>?;
+        // Extract pagination info (supports both `pagination` and `meta.pagination`)
+        final rootPagination = responseData['pagination'];
+        final rootMeta = responseData['meta'];
+        final metaPagination = rootMeta is Map ? rootMeta['pagination'] : null;
+        final pagination = rootPagination is Map
+            ? Map<String, dynamic>.from(rootPagination)
+            : metaPagination is Map
+            ? Map<String, dynamic>.from(metaPagination)
+            : <String, dynamic>{};
+
+        final total =
+            (pagination['total'] as num?)?.toInt() ??
+            (responseData['total'] as num?)?.toInt() ??
+            contentList.length;
+        final pages =
+            (pagination['pages'] as num?)?.toInt() ??
+            (pagination['totalPages'] as num?)?.toInt() ??
+            (total / limit).ceil().clamp(1, 1000000);
 
         return {
           'content': contentList,
-          'pagination':
-              pagination ??
-              {
-                'page': page,
-                'limit': limit,
-                'total': responseData['total'] ?? contentList.length,
-                'pages': (responseData['total'] ?? contentList.length / limit)
-                    .ceil(),
-              },
+          'pagination': {
+            'page': (pagination['page'] as num?)?.toInt() ?? page,
+            'limit': (pagination['limit'] as num?)?.toInt() ?? limit,
+            'total': total,
+            'pages': pages,
+          },
         };
       } else {
         // Handle simple list response
@@ -242,8 +255,14 @@ class EducationRemoteDataSourceImpl implements EducationRemoteDataSource {
           .toList();
 
       final rawPagination = normalized['pagination'];
+      final rawMeta = normalized['meta'];
+      final rawMetaPagination = rawMeta is Map<String, dynamic>
+          ? rawMeta['pagination']
+          : null;
       final pagination = rawPagination is Map<String, dynamic>
           ? rawPagination
+          : rawMetaPagination is Map<String, dynamic>
+          ? rawMetaPagination
           : <String, dynamic>{};
 
       final total =
@@ -252,6 +271,7 @@ class EducationRemoteDataSourceImpl implements EducationRemoteDataSource {
           contentList.length;
       final pages =
           (pagination['pages'] as num?)?.toInt() ??
+          (pagination['totalPages'] as num?)?.toInt() ??
           (total / limit).ceil().clamp(1, 1000000);
 
       return {

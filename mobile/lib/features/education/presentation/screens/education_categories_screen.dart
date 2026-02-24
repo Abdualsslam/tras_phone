@@ -18,7 +18,8 @@ class EducationCategoriesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => getIt<EducationCategoriesCubit>()..loadCategories(activeOnly: true),
+      create: (context) =>
+          getIt<EducationCategoriesCubit>()..loadCategories(activeOnly: true),
       child: const _EducationCategoriesView(),
     );
   }
@@ -48,17 +49,25 @@ class _EducationCategoriesView extends StatelessWidget {
                   SizedBox(height: 16.h),
                   Text(
                     'حدث خطأ في تحميل البيانات',
-                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   SizedBox(height: 8.h),
                   Text(
                     state.message,
-                    style: TextStyle(fontSize: 14.sp, color: AppColors.textSecondaryLight),
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: AppColors.textSecondaryLight,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 24.h),
                   ElevatedButton.icon(
-                    onPressed: () => context.read<EducationCategoriesCubit>().loadCategories(activeOnly: true),
+                    onPressed: () => context
+                        .read<EducationCategoriesCubit>()
+                        .loadCategories(activeOnly: true),
                     icon: const Icon(Iconsax.refresh),
                     label: const Text('إعادة المحاولة'),
                   ),
@@ -75,11 +84,18 @@ class _EducationCategoriesView extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Iconsax.book, size: 64.sp, color: AppColors.textSecondaryLight),
+                    Icon(
+                      Iconsax.book,
+                      size: 64.sp,
+                      color: AppColors.textSecondaryLight,
+                    ),
                     SizedBox(height: 16.h),
                     Text(
                       'لا توجد فئات متاحة حالياً',
-                      style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -87,7 +103,9 @@ class _EducationCategoriesView extends StatelessWidget {
             }
 
             return RefreshIndicator(
-              onRefresh: () => context.read<EducationCategoriesCubit>().refreshCategories(activeOnly: true),
+              onRefresh: () => context
+                  .read<EducationCategoriesCubit>()
+                  .refreshCategories(activeOnly: true),
               child: ListView(
                 padding: EdgeInsets.all(16.w),
                 children: [
@@ -162,7 +180,10 @@ class _EducationCategoriesView extends StatelessWidget {
                   // Categories Grid
                   Text(
                     'التصنيفات',
-                    style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   SizedBox(height: 12.h),
                   GridView.builder(
@@ -217,7 +238,7 @@ class _EducationCategoriesView extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: () => context.push('/education/list/${category.slug}'),
+      onTap: () => context.push('/education/list/${category.id}'),
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(

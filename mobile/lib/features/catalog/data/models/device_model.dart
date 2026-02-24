@@ -92,6 +92,8 @@ class DeviceModel {
 
   factory DeviceModel.fromJson(Map<String, dynamic> json) {
     final model = _$DeviceModelFromJson(json);
+    final resolvedImage = _resolveImage(json, model.image);
+
     // Check if brandId is a populated object
     final brandData = json['brandId'];
     if (brandData is Map) {
@@ -103,7 +105,7 @@ class DeviceModel {
         nameAr: model.nameAr,
         slug: model.slug,
         modelNumber: model.modelNumber,
-        image: model.image,
+        image: resolvedImage,
         screenSize: model.screenSize,
         releaseYear: model.releaseYear,
         colors: model.colors,
@@ -117,7 +119,57 @@ class DeviceModel {
         brand: _parseEmbeddedBrand(brandJson),
       );
     }
-    return model;
+
+    if (resolvedImage == model.image) {
+      return model;
+    }
+
+    return DeviceModel(
+      id: model.id,
+      brandId: model.brandId,
+      name: model.name,
+      nameAr: model.nameAr,
+      slug: model.slug,
+      modelNumber: model.modelNumber,
+      image: resolvedImage,
+      screenSize: model.screenSize,
+      releaseYear: model.releaseYear,
+      colors: model.colors,
+      storageOptions: model.storageOptions,
+      isActive: model.isActive,
+      isPopular: model.isPopular,
+      displayOrder: model.displayOrder,
+      productsCount: model.productsCount,
+      createdAt: model.createdAt,
+      updatedAt: model.updatedAt,
+      brand: model.brand,
+    );
+  }
+
+  static String? _resolveImage(Map<String, dynamic> json, String? fallback) {
+    String? readString(dynamic value) {
+      if (value == null) return null;
+      if (value is String) {
+        final trimmed = value.trim();
+        return trimmed.isEmpty ? null : trimmed;
+      }
+      if (value is Map) {
+        final nested =
+            value['url'] ??
+            value['secureUrl'] ??
+            value['secure_url'] ??
+            value['path'] ??
+            value['src'];
+        return readString(nested);
+      }
+      return null;
+    }
+
+    return readString(json['image']) ??
+        readString(json['imageUrl']) ??
+        readString(json['deviceImage']) ??
+        readString(json['thumbnail']) ??
+        fallback;
   }
 
   static BrandModel _parseEmbeddedBrand(Map<String, dynamic> json) {
