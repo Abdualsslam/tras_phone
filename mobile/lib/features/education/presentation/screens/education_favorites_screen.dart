@@ -26,6 +26,7 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
 
   List<EducationalContentEntity> _favoriteContent = [];
   bool _isLoading = true;
+  bool _hasLoadedOnce = false;
   String? _error;
 
   @override
@@ -59,6 +60,7 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
 
       setState(() {
         _favoriteContent = content;
+        _hasLoadedOnce = true;
         _isLoading = false;
       });
     } catch (e) {
@@ -139,7 +141,7 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
   }
 
   Widget _buildBody(bool isDark) {
-    if (_isLoading) {
+    if (_isLoading && !_hasLoadedOnce) {
       return const EducationListShimmer();
     }
 
@@ -217,7 +219,7 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
       child: ListView.separated(
         padding: EdgeInsets.all(16.w),
         itemCount: _favoriteContent.length,
-        separatorBuilder: (_, __) => SizedBox(height: 12.h),
+        separatorBuilder: (context, index) => SizedBox(height: 12.h),
         itemBuilder: (context, index) {
           final content = _favoriteContent[index];
           return _buildFavoriteCard(content, isDark);

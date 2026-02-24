@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/educational_content_entity.dart';
 import '../cubit/education_content_cubit.dart';
 import '../cubit/education_content_state.dart';
@@ -38,6 +39,8 @@ class _EducationListView extends StatefulWidget {
 
 class _EducationListViewState extends State<_EducationListView> {
   final ScrollController _scrollController = ScrollController();
+  List<EducationalContentEntity> _cachedContent = const [];
+  bool _cachedHasMore = false;
 
   @override
   void initState() {
@@ -102,11 +105,25 @@ class _EducationListViewState extends State<_EducationListView> {
       ),
       body: BlocBuilder<EducationContentCubit, EducationContentState>(
         builder: (context, state) {
+          if (state is EducationContentLoaded) {
+            _cachedContent = state.content;
+            _cachedHasMore = state.hasMore;
+            return _buildContentList(state.content, state.hasMore, isDark);
+          }
+
           if (state is EducationContentLoading) {
-            return const Center(child: CircularProgressIndicator());
+            if (_cachedContent.isEmpty) {
+              return const EducationListShimmer();
+            }
+
+            return _buildContentList(_cachedContent, _cachedHasMore, isDark);
           }
 
           if (state is EducationContentError) {
+            if (_cachedContent.isNotEmpty) {
+              return _buildContentList(_cachedContent, _cachedHasMore, isDark);
+            }
+
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -134,48 +151,49 @@ class _EducationListViewState extends State<_EducationListView> {
             );
           }
 
-          if (state is EducationContentLoaded) {
-            final content = state.content;
+          return const EducationListShimmer();
+        },
+      ),
+    );
+  }
 
-            if (content.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Iconsax.document_text, size: 64.sp, color: AppColors.textSecondaryLight),
-                    SizedBox(height: 16.h),
-                    Text(
-                      'لا يوجد محتوى متاح',
-                      style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              );
-            }
+  Widget _buildContentList(
+    List<EducationalContentEntity> content,
+    bool hasMore,
+    bool isDark,
+  ) {
+    if (content.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Iconsax.document_text,
+              size: 64.sp,
+              color: AppColors.textSecondaryLight,
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'لا يوجد محتوى متاح',
+              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      );
+    }
 
-            return RefreshIndicator(
-              onRefresh: () => context.read<EducationContentCubit>().refresh(),
-              child: ListView.separated(
-                controller: _scrollController,
-                padding: EdgeInsets.all(16.w),
-                itemCount: content.length + (state.hasMore ? 1 : 0),
-                separatorBuilder: (_, __) => SizedBox(height: 12.h),
-                itemBuilder: (context, index) {
-                  if (index >= content.length) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-                  return _buildArticleCard(content[index], isDark, context);
-                },
-              ),
-            );
+    return RefreshIndicator(
+      onRefresh: () => context.read<EducationContentCubit>().refresh(),
+      child: ListView.separated(
+        controller: _scrollController,
+        padding: EdgeInsets.all(16.w),
+        itemCount: content.length + (hasMore ? 1 : 0),
+        separatorBuilder: (context, index) => SizedBox(height: 12.h),
+        itemBuilder: (context, index) {
+          if (index >= content.length) {
+            return const EducationListItemShimmer();
           }
-
-          return const SizedBox.shrink();
+          return _buildArticleCard(content[index], isDark, context);
         },
       ),
     );

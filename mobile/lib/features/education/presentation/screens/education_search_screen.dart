@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/educational_content_entity.dart';
 import '../cubit/education_categories_cubit.dart';
 import '../cubit/education_categories_state.dart';
@@ -248,7 +249,7 @@ class _EducationSearchViewState extends State<_EducationSearchView> {
                 }
 
                 if (state is EducationContentLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const EducationListShimmer();
                 }
 
                 if (state is EducationContentError) {
@@ -272,7 +273,7 @@ class _EducationSearchViewState extends State<_EducationSearchView> {
                   return ListView.separated(
                     padding: EdgeInsets.all(16.w),
                     itemCount: state.content.length,
-                    separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                    separatorBuilder: (context, index) => SizedBox(height: 12.h),
                     itemBuilder: (context, index) {
                       final content = state.content[index];
                       return _buildSearchResultCard(content, isDark, context);

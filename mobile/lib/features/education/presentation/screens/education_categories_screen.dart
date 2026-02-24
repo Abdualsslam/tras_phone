@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/educational_category_entity.dart';
 import '../cubit/education_categories_cubit.dart';
 import '../cubit/education_categories_state.dart';
@@ -25,8 +26,15 @@ class EducationCategoriesScreen extends StatelessWidget {
   }
 }
 
-class _EducationCategoriesView extends StatelessWidget {
+class _EducationCategoriesView extends StatefulWidget {
   const _EducationCategoriesView();
+
+  @override
+  State<_EducationCategoriesView> createState() => _EducationCategoriesViewState();
+}
+
+class _EducationCategoriesViewState extends State<_EducationCategoriesView> {
+  List<EducationalCategoryEntity> _cachedCategories = const [];
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +44,16 @@ class _EducationCategoriesView extends StatelessWidget {
       appBar: AppBar(title: const Text('المحتوى التعليمي')),
       body: BlocBuilder<EducationCategoriesCubit, EducationCategoriesState>(
         builder: (context, state) {
+          if (state is EducationCategoriesLoaded) {
+            _cachedCategories = state.categories;
+            return _buildLoadedBody(state.categories, isDark);
+          }
+
           if (state is EducationCategoriesLoading) {
-            return const Center(child: CircularProgressIndicator());
+            if (_cachedCategories.isEmpty) {
+              return const EducationCategoriesShimmer();
+            }
+            return _buildLoadedBody(_cachedCategories, isDark);
           }
 
           if (state is EducationCategoriesError) {
@@ -76,138 +92,135 @@ class _EducationCategoriesView extends StatelessWidget {
             );
           }
 
-          if (state is EducationCategoriesLoaded) {
-            final categories = state.categories;
-
-            if (categories.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Iconsax.book,
-                      size: 64.sp,
-                      color: AppColors.textSecondaryLight,
-                    ),
-                    SizedBox(height: 16.h),
-                    Text(
-                      'لا توجد فئات متاحة حالياً',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            return RefreshIndicator(
-              onRefresh: () => context
-                  .read<EducationCategoriesCubit>()
-                  .refreshCategories(activeOnly: true),
-              child: ListView(
-                padding: EdgeInsets.all(16.w),
-                children: [
-                  // Featured Banner
-                  Container(
-                    height: 150.h,
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(16.r),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          left: 16.w,
-                          bottom: 16.h,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'تعلم صيانة الهواتف',
-                                style: TextStyle(
-                                  fontSize: 22.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                'دورات ومقالات مجانية',
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                              SizedBox(height: 12.h),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16.w,
-                                  vertical: 8.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20.r),
-                                ),
-                                child: Text(
-                                  'ابدأ الآن',
-                                  style: TextStyle(
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Positioned(
-                          left: 16.w,
-                          top: 16.h,
-                          child: Icon(
-                            Iconsax.book,
-                            size: 80.sp,
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 24.h),
-
-                  // Categories Grid
-                  Text(
-                    'التصنيفات',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 12.h,
-                      crossAxisSpacing: 12.w,
-                      childAspectRatio: 1.3,
-                    ),
-                    itemCount: categories.length,
-                    itemBuilder: (context, index) {
-                      final category = categories[index];
-                      return _buildCategoryCard(category, isDark, context);
-                    },
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return const SizedBox.shrink();
+          return const EducationCategoriesShimmer();
         },
+      ),
+    );
+  }
+
+  Widget _buildLoadedBody(List<EducationalCategoryEntity> categories, bool isDark) {
+    if (categories.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Iconsax.book,
+              size: 64.sp,
+              color: AppColors.textSecondaryLight,
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'لا توجد فئات متاحة حالياً',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () =>
+          context.read<EducationCategoriesCubit>().refreshCategories(activeOnly: true),
+      child: ListView(
+        padding: EdgeInsets.all(16.w),
+        children: [
+          // Featured Banner
+          Container(
+            height: 150.h,
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 16.w,
+                  bottom: 16.h,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'تعلم صيانة الهواتف',
+                        style: TextStyle(
+                          fontSize: 22.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'دورات ومقالات مجانية',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 8.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Text(
+                          'ابدأ الآن',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: 16.w,
+                  top: 16.h,
+                  child: Icon(
+                    Iconsax.book,
+                    size: 80.sp,
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 24.h),
+
+          // Categories Grid
+          Text(
+            'التصنيفات',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12.h,
+              crossAxisSpacing: 12.w,
+              childAspectRatio: 1.3,
+            ),
+            itemCount: categories.length,
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              return _buildCategoryCard(category, isDark, context);
+            },
+          ),
+        ],
       ),
     );
   }
