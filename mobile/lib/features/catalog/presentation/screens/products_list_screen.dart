@@ -63,6 +63,14 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       (widget.categoryId?.isNotEmpty ?? false) &&
       (widget.deviceId?.isNotEmpty ?? false);
 
+  bool get _hasCategoryFilter => widget.categoryId?.isNotEmpty ?? false;
+
+  String get _activeCategoryName {
+    final value = widget.categoryName?.trim();
+    if (value != null && value.isNotEmpty) return value;
+    return 'الفئة المختارة';
+  }
+
   Future<({List<ProductEntity> products, int resolvedPage, int totalPages})>
   _loadStrictCategoryDevicePage({required int startPage}) async {
     final categoryId = widget.categoryId!;
@@ -342,6 +350,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           children: [
             // Sort & View Options
             _buildSortBar(isDark),
+            if (_hasCategoryFilter) _buildCategoryFilterBar(isDark),
 
             // Products Grid/List
             Expanded(
@@ -420,6 +429,68 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 _isGridView ? Iconsax.menu_1 : Iconsax.element_3,
                 size: 18.sp,
                 color: AppColors.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryFilterBar(bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 10.h),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Iconsax.filter, size: 14.sp, color: AppColors.primary),
+          SizedBox(width: 8.w),
+          Text(
+            'فلتر الفئة:',
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999.r),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Iconsax.category,
+                      size: 12.sp,
+                      color: AppColors.primary,
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      _activeCategoryName,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -759,6 +830,58 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                 ],
               ),
               SizedBox(height: 20.h),
+              if (_hasCategoryFilter) ...[
+                Text(
+                  'الفئة المطبقة',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 10.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Iconsax.category,
+                        size: 16.sp,
+                        color: AppColors.primary,
+                      ),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          _activeCategoryName,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        _isStrictCategoryDeviceFlow ? 'فلتر ثابت' : 'مطبق',
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20.h),
+              ],
               Text(
                 'نطاق السعر',
                 style: TextStyle(
