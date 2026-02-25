@@ -81,8 +81,64 @@ class CategoryModel {
     return value;
   }
 
-  factory CategoryModel.fromJson(Map<String, dynamic> json) =>
-      _$CategoryModelFromJson(json);
+  factory CategoryModel.fromJson(Map<String, dynamic> json) {
+    final model = _$CategoryModelFromJson(json);
+    final resolvedImage = _resolveImage(json, model.image);
+
+    if (resolvedImage == model.image) {
+      return model;
+    }
+
+    return CategoryModel(
+      id: model.id,
+      name: model.name,
+      nameAr: model.nameAr,
+      slug: model.slug,
+      description: model.description,
+      descriptionAr: model.descriptionAr,
+      image: resolvedImage,
+      icon: model.icon,
+      parentId: model.parentId,
+      ancestors: model.ancestors,
+      level: model.level,
+      path: model.path,
+      isActive: model.isActive,
+      isFeatured: model.isFeatured,
+      displayOrder: model.displayOrder,
+      productsCount: model.productsCount,
+      childrenCount: model.childrenCount,
+      createdAt: model.createdAt,
+      updatedAt: model.updatedAt,
+      children: model.children,
+    );
+  }
+
+  static String? _resolveImage(Map<String, dynamic> json, String? fallback) {
+    String? readString(dynamic value) {
+      if (value == null) return null;
+      if (value is String) {
+        final trimmed = value.trim();
+        return trimmed.isEmpty ? null : trimmed;
+      }
+      if (value is Map) {
+        final nested =
+            value['url'] ??
+            value['secureUrl'] ??
+            value['secure_url'] ??
+            value['path'] ??
+            value['src'];
+        return readString(nested);
+      }
+      return null;
+    }
+
+    return readString(json['image']) ??
+        readString(json['imageUrl']) ??
+        readString(json['icon']) ??
+        readString(json['thumbnail']) ??
+        fallback;
+  }
+
   Map<String, dynamic> toJson() => _$CategoryModelToJson(this);
 
   CategoryEntity toEntity() {

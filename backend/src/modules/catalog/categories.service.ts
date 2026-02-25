@@ -20,63 +20,122 @@ export class CategoriesService {
         private productsService: ProductsService,
     ) { }
 
+    private readMediaUrl(value: unknown): string | undefined {
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            return trimmed.length > 0 ? trimmed : undefined;
+        }
+
+        if (value && typeof value === 'object') {
+            const candidate =
+                (value as any).url ??
+                (value as any).secureUrl ??
+                (value as any).secure_url ??
+                (value as any).path ??
+                (value as any).src;
+
+            return this.readMediaUrl(candidate);
+        }
+
+        return undefined;
+    }
+
+    private normalizeCategory(category: any): any {
+        const image =
+            this.readMediaUrl(category?.image) ??
+            this.readMediaUrl(category?.imageUrl) ??
+            this.readMediaUrl(category?.icon);
+
+        return {
+            ...category,
+            image: image ?? null,
+            imageUrl: image ?? null,
+        };
+    }
+
+    private normalizeCategoryInput(data: any): any {
+        if (!data || typeof data !== 'object') {
+            return data;
+        }
+
+        const normalized = { ...data };
+        const image =
+            this.readMediaUrl(normalized.image) ??
+            this.readMediaUrl(normalized.imageUrl) ??
+            this.readMediaUrl(normalized.icon);
+
+        if (image) {
+            normalized.image = image;
+        }
+
+        return normalized;
+    }
+
     /**
      * Create category
      */
     async create(data: any): Promise<CategoryDocument> {
+        const normalizedData = this.normalizeCategoryInput(data);
+
         // Check slug uniqueness
-        const existing = await this.categoryModel.findOne({ slug: data.slug });
+        const existing = await this.categoryModel.findOne({ slug: normalizedData.slug });
         if (existing) {
             throw new ConflictException('Category with this slug already exists');
         }
 
         let ancestors: any[] = [];
         let level = 0;
-        let path = data.slug;
+        let path = normalizedData.slug;
 
         // If has parent, build hierarchy
-        if (data.parentId) {
-            const parent = await this.categoryModel.findById(data.parentId);
+        if (normalizedData.parentId) {
+            const parent = await this.categoryModel.findById(normalizedData.parentId);
             if (!parent) {
                 throw new NotFoundException('Parent category not found');
             }
 
             ancestors = [...parent.ancestors, parent._id];
             level = parent.level + 1;
-            path = `${parent.path}/${data.slug}`;
+            path = `${parent.path}/${normalizedData.slug}`;
 
             // Update parent's children count
-            await this.categoryModel.findByIdAndUpdate(data.parentId, {
+            await this.categoryModel.findByIdAndUpdate(normalizedData.parentId, {
                 $inc: { childrenCount: 1 },
             });
         }
 
         const category = await this.categoryModel.create({
-            ...data,
+            ...normalizedData,
             ancestors,
             level,
             path,
         });
 
-        return category;
+        return this.normalizeCategory(category.toObject()) as any;
     }
 
     /**
      * Get all root categories
      */
-    async findRoots(): Promise<CategoryDocument[]> {
-        return this.categoryModel
+    async findRoots(): Promise<any[]> {
+        const categories = await this.categoryModel
             .find({ parentId: null, isActive: true })
-            .sort({ displayOrder: 1, name: 1 });
+            .sort({ displayOrder: 1, name: 1 })
+            .lean();
+
+        return categories.map((category) => this.normalizeCategory(category));
     }
 
     /**
      * Get children of a category
      */
-    async findChildren(parentId: string): Promise<CategoryDocument[]> {
-        return this.categoryModel
+    async findChildren(parentId: string): Promise<any[]> {
+        const categories = await this.categoryModel
             .find({ parentId, isActive: true })
-            .sort({ displayOrder: 1, name: 1 });
+            .sort({ displayOrder: 1, name: 1 })
+            .lean();
+
+        return categories.map((category) => this.normalizeCategory(category));
     }
 
     /**
@@ -103,10 +162,12 @@ export class CategoriesService {
         });
 
         // Add product count to each category
-        const categoriesWithCount = categories.map((cat: any) => ({
-            ...cat,
-            productsCount: countMap.get(cat._id.toString()) || 0,
-        }));
+        const categoriesWithCount = categories.map((cat: any) =>
+            this.normalizeCategory({
+                ...cat,
+                productsCount: countMap.get(cat._id.toString()) || 0,
+            }),
+        );
 
         return this.buildTree(categoriesWithCount);
     }
@@ -181,19 +242,23 @@ export class CategoriesService {
      * Get category with ancestors (breadcrumb)
      */
     async findWithBreadcrumb(id: string): Promise<{
-        category: CategoryDocument;
-        breadcrumb: CategoryDocument[];
+        category: any;
+        breadcrumb: any[];
     }> {
-        const category = await this.categoryModel.findById(id);
+        const category = await this.categoryModel.findById(id).lean();
         if (!category) {
             throw new NotFoundException('Category not found');
         }
 
         const breadcrumb = await this.categoryModel
             .find({ _id: { $in: category.ancestors } })
-            .sort({ level: 1 });
+            .sort({ level: 1 })
+            .lean();
 
-        return { category, breadcrumb };
+        return {
+            category: this.normalizeCategory(category),
+            breadcrumb: breadcrumb.map((item) => this.normalizeCategory(item)),
+        };
     }
 
     /**
@@ -295,9 +360,11 @@ export class CategoriesService {
      * Update category
      */
     async update(id: string, data: any): Promise<CategoryDocument> {
+        const normalizedData = this.normalizeCategoryInput(data);
+
         const category = await this.categoryModel.findByIdAndUpdate(
             id,
-            { $set: data },
+            { $set: normalizedData },
             { new: true },
         );
 
@@ -305,7 +372,7 @@ export class CategoriesService {
             throw new NotFoundException('Category not found');
         }
 
-        return category;
+        return this.normalizeCategory(category.toObject()) as any;
     }
 
     /**
