@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../cubit/support_cubit.dart';
 import '../widgets/ticket_card.dart';
@@ -118,33 +119,10 @@ class _SupportTicketsScreenState extends State<SupportTicketsScreen> {
   }
 
   Widget _buildErrorState(ThemeData theme, String? error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Iconsax.warning_2, size: 80.sp, color: AppColors.error),
-          SizedBox(height: 24.h),
-          Text(
-            'حدث خطأ',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            error ?? 'فشل في تحميل التذاكر',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.textTertiaryLight,
-            ),
-          ),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: () =>
-                context.read<SupportCubit>().loadMyTickets(refresh: true),
-            child: Text(AppLocalizations.of(context)!.retryAction),
-          ),
-        ],
-      ),
+    return AppError(
+      title: 'حدث خطأ',
+      message: error ?? 'فشل في تحميل التذاكر',
+      onRetry: () => context.read<SupportCubit>().loadMyTickets(refresh: true),
     );
   }
 }

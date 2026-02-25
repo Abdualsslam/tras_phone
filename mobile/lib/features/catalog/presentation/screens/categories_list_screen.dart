@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../../../core/cache/image_cache_config.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/shimmer/index.dart';
@@ -16,6 +17,7 @@ import '../../domain/repositories/catalog_repository.dart';
 import '../cubit/categories_cubit.dart';
 import '../cubit/categories_state.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../home/presentation/widgets/home_helpers.dart';
 
 class CategoriesListScreen extends StatelessWidget {
   const CategoriesListScreen({super.key});
@@ -212,23 +214,25 @@ class _CategoryCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: category.image != null
+                  child: category.image != null && category.image!.isNotEmpty
                       ? ClipOval(
                           child: CachedNetworkImage(
                             imageUrl: category.image!,
+                            cacheKey: imageCacheKey(category.image!),
+                            cacheManager: imageCacheManager,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => Center(
                               child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                             errorWidget: (context, url, error) => Icon(
-                              Iconsax.category,
+                              HomeHelpers.getCategoryIcon(category.slug),
                               size: 36.sp,
                               color: AppColors.primary,
                             ),
                           ),
                         )
                       : Icon(
-                          Iconsax.category,
+                          HomeHelpers.getCategoryIcon(category.slug),
                           size: 36.sp,
                           color: AppColors.primary,
                         ),

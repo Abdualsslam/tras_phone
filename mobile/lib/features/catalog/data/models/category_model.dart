@@ -125,6 +125,8 @@ class CategoryModel {
             value['url'] ??
             value['secureUrl'] ??
             value['secure_url'] ??
+            value['imageUrl'] ??
+            value['image_url'] ??
             value['path'] ??
             value['src'];
         return readString(nested);
@@ -132,8 +134,9 @@ class CategoryModel {
       return null;
     }
 
-    return readString(json['image']) ??
-        readString(json['imageUrl']) ??
+    return readString(json['imageUrl']) ??
+        readString(json['image']) ??
+        readString(json['image_url']) ??
         readString(json['icon']) ??
         readString(json['thumbnail']) ??
         fallback;

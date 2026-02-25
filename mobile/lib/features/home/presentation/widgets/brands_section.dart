@@ -27,15 +27,15 @@ class BrandsSection extends StatelessWidget {
         ),
         SizedBox(height: 14.h),
         SizedBox(
-          height: 100.h,
+          height: 115.h,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             itemCount: brands.length,
-            separatorBuilder: (_, _) => SizedBox(width: 14.w),
+            separatorBuilder: (_, _) => SizedBox(width: 12.w),
             itemBuilder: (context, index) {
               final brand = brands[index];
-              return _BrandChip(brand: brand, isDark: isDark);
+              return _BrandCard(brand: brand, isDark: isDark);
             },
           ),
         ),
@@ -44,11 +44,11 @@ class BrandsSection extends StatelessWidget {
   }
 }
 
-class _BrandChip extends StatelessWidget {
+class _BrandCard extends StatelessWidget {
   final BrandEntity brand;
   final bool isDark;
 
-  const _BrandChip({required this.brand, required this.isDark});
+  const _BrandCard({required this.brand, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -65,16 +65,16 @@ class _BrandChip extends StatelessWidget {
         context.push(route);
       },
       child: SizedBox(
-        width: 74.w,
+        width: 100.w,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 56.w,
-              height: 56.w,
+              width: 100.w,
+              height: 64.h,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
                 color: isDark ? AppColors.cardDark : Colors.white,
+                borderRadius: BorderRadius.circular(16.r),
                 border: Border.all(
                   color: AppColors.primary.withValues(alpha: 0.12),
                   width: 1.5,
@@ -82,25 +82,27 @@ class _BrandChip extends StatelessWidget {
                 boxShadow: [
                   if (!isDark)
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      blurRadius: 12,
+                      color: AppColors.primary.withValues(alpha: 0.06),
+                      blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
                 ],
               ),
-              child: ClipOval(
-                child: brand.logo != null && brand.logo!.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: brand.logo!,
-                        cacheKey: imageCacheKey(brand.logo!),
-                        cacheManager: imageCacheManager,
-                        fit: BoxFit.contain,
-                        width: 56.w,
-                        height: 56.w,
-                        placeholder: (_, _) => _buildFallback(),
-                        errorWidget: (_, _, _) => _buildFallback(),
-                      )
-                    : _buildFallback(),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16.r),
+                child: Padding(
+                  padding: EdgeInsets.all(8.w),
+                  child: brand.logo != null && brand.logo!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: brand.logo!,
+                          cacheKey: imageCacheKey(brand.logo!),
+                          cacheManager: imageCacheManager,
+                          fit: BoxFit.contain,
+                          placeholder: (_, _) => _buildFallback(),
+                          errorWidget: (_, _, _) => _buildFallback(),
+                        )
+                      : _buildFallback(),
+                ),
               ),
             ),
             SizedBox(height: 8.h),
@@ -108,7 +110,7 @@ class _BrandChip extends StatelessWidget {
               brand.nameAr,
               style: TextStyle(
                 fontSize: 11.sp,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color: isDark
                     ? AppColors.textPrimaryDark
                     : AppColors.textPrimaryLight,
@@ -124,11 +126,13 @@ class _BrandChip extends StatelessWidget {
   }
 
   Widget _buildFallback() {
-    return Container(
-      color: AppColors.primary.withValues(alpha: 0.06),
-      child: Center(
-        child: Icon(Iconsax.tag, size: 24.sp, color: AppColors.primary),
+    return Center(
+      child: Icon(
+        Iconsax.tag,
+        size: 24.sp,
+        color: AppColors.primary.withValues(alpha: 0.5),
       ),
     );
   }
 }
+
