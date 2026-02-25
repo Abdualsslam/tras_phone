@@ -40,6 +40,13 @@ export class UnauthorizedErrorDto {
     @ApiProperty({ example: 'غير مصرح بالوصول', description: 'Arabic message' })
     messageAr: string;
 
+    @ApiProperty({
+        example: 'AUTH_INVALID_CREDENTIALS',
+        description: 'Machine-readable error code',
+        required: false,
+    })
+    errorCode?: string;
+
     @ApiProperty({ example: '2024-01-01T00:00:00.000Z', description: 'Error timestamp' })
     timestamp: string;
 }
@@ -93,6 +100,13 @@ export class ValidationErrorDto {
 
     @ApiProperty({ type: [ErrorDetailDto], description: 'Validation error details' })
     errors: ErrorDetailDto[];
+
+    @ApiProperty({
+        example: 'VALIDATION_ERROR',
+        description: 'Machine-readable error code',
+        required: false,
+    })
+    errorCode?: string;
 
     @ApiProperty({ example: '2024-01-01T00:00:00.000Z', description: 'Error timestamp' })
     timestamp: string;

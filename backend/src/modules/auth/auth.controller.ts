@@ -11,7 +11,6 @@ import {
   Param,
   Query,
   Req,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import {
@@ -42,6 +41,10 @@ import {
 } from '@common/decorators/api-error-responses.decorator';
 import { ApiParam, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
+import {
+  AUTH_ERROR_CODES,
+  buildAuthUnauthorizedException,
+} from './auth-errors';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -250,7 +253,9 @@ export class AuthController {
   async logout(@CurrentUser() user: any, @Req() req: Request) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      throw new UnauthorizedException('Authorization header not found');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.AUTH_HEADER_MISSING,
+      });
     }
     const [, token] = authHeader.split(' ');
 

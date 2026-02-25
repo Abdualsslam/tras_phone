@@ -57,11 +57,24 @@ export class LoggingInterceptor implements NestInterceptor {
                 },
                 error: (error) => {
                     const responseTime = Date.now() - startTime;
-                    this.logger.error(
-                        `✗ ${method} ${url} - ${responseTime}ms - Error: ${error.message}`,
-                        error.stack,
-                        'Response',
-                    );
+                    const statusCode =
+                        typeof error?.status === 'number'
+                            ? error.status
+                            : typeof error?.statusCode === 'number'
+                                ? error.statusCode
+                                : 500;
+                    const errorMessage =
+                        typeof error?.message === 'string'
+                            ? error.message
+                            : 'Unexpected error';
+
+                    const line = `✗ ${method} ${url} - ${responseTime}ms - ${statusCode} - ${errorMessage}`;
+
+                    if (statusCode >= 500) {
+                        this.logger.error(line, error?.stack, 'Response');
+                    } else {
+                        this.logger.warn(line, 'Response');
+                    }
                 },
             }),
         );

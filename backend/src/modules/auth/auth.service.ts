@@ -54,6 +54,10 @@ import { AuditService } from '../audit/audit.service';
 import {
   LoginStatus,
 } from '../audit/schemas/login-history.schema';
+import {
+  AUTH_ERROR_CODES,
+  buildAuthUnauthorizedException,
+} from './auth-errors';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -514,7 +518,9 @@ export class AuthService {
         status: 'failed',
         failureReason: 'User not found',
       });
-      throw new UnauthorizedException('Invalid credentials');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.INVALID_CREDENTIALS,
+      });
     }
 
     // Check if customer is rejected (for customers only) - must check before other status checks
@@ -540,7 +546,9 @@ export class AuthService {
           failureReason: 'Account rejected',
           failedAttempts: user.failedLoginAttempts,
         });
-        throw new UnauthorizedException('Your account has been rejected');
+        throw buildAuthUnauthorizedException({
+          code: AUTH_ERROR_CODES.ACCOUNT_REJECTED,
+        });
       }
     }
 
@@ -565,7 +573,9 @@ export class AuthService {
         failureReason: 'Account suspended',
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException('Your account has been suspended');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_SUSPENDED,
+      });
     }
 
     if (user.status === 'deleted') {
@@ -588,7 +598,9 @@ export class AuthService {
         failureReason: 'Account deleted',
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException('Your account has been deleted');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_DELETED,
+      });
     }
 
     // Check if account is pending (under review)
@@ -612,9 +624,9 @@ export class AuthService {
         failureReason: 'Account pending review',
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException(
-        'Your account is under review. Please wait for activation',
-      );
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_PENDING,
+      });
     }
 
     // Check if account is active (must be active to login)
@@ -638,9 +650,9 @@ export class AuthService {
         failureReason: `Account status is ${user.status}`,
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException(
-        'Your account is not active. Please verify your account or contact support',
-      );
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_NOT_ACTIVE,
+      });
     }
 
     // Check if account is locked
@@ -667,9 +679,11 @@ export class AuthService {
         failureReason: 'Account locked',
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException(
-        `Account is locked. Try again in ${minutesLeft} minutes`,
-      );
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_LOCKED,
+        message: `Account is locked. Try again in ${minutesLeft} minutes`,
+        messageAr: `الحساب مقفل. يرجى المحاولة مرة أخرى بعد ${minutesLeft} دقيقة`,
+      });
     }
 
     // Verify password
@@ -698,7 +712,9 @@ export class AuthService {
         failureReason: 'Invalid password',
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException('Invalid credentials');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.INVALID_CREDENTIALS,
+      });
     }
 
     // Reset failed login attempts
@@ -777,7 +793,9 @@ export class AuthService {
         status: 'failed',
         failureReason: 'User not found',
       });
-      throw new UnauthorizedException('Invalid credentials');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.INVALID_CREDENTIALS,
+      });
     }
 
     // Check if account is suspended or deleted
@@ -801,7 +819,9 @@ export class AuthService {
         failureReason: 'Account suspended',
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException('Your account has been suspended');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_SUSPENDED,
+      });
     }
 
     if (user.status === 'deleted') {
@@ -824,7 +844,9 @@ export class AuthService {
         failureReason: 'Account deleted',
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException('Your account has been deleted');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_DELETED,
+      });
     }
 
     // Check if account is pending (under review)
@@ -848,9 +870,9 @@ export class AuthService {
         failureReason: 'Account pending review',
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException(
-        'Your account is under review. Please wait for activation',
-      );
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_PENDING,
+      });
     }
 
     // Check if account is active (must be active to login)
@@ -874,9 +896,9 @@ export class AuthService {
         failureReason: `Account status is ${user.status}`,
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException(
-        'Your account is not active. Please verify your account or contact support',
-      );
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_NOT_ACTIVE,
+      });
     }
 
     // Check if account is locked
@@ -903,9 +925,11 @@ export class AuthService {
         failureReason: 'Account locked',
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException(
-        `Account is locked. Try again in ${minutesLeft} minutes`,
-      );
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_LOCKED,
+        message: `Account is locked. Try again in ${minutesLeft} minutes`,
+        messageAr: `الحساب مقفل. يرجى المحاولة مرة أخرى بعد ${minutesLeft} دقيقة`,
+      });
     }
 
     // Verify password
@@ -933,7 +957,9 @@ export class AuthService {
         failureReason: 'Invalid password',
         failedAttempts: user.failedLoginAttempts,
       });
-      throw new UnauthorizedException('Invalid credentials');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.INVALID_CREDENTIALS,
+      });
     }
 
     // Reset failed login attempts
@@ -982,12 +1008,18 @@ export class AuthService {
       const user = await this.userModel.findById(payload.sub);
 
       if (!user) {
-        throw new UnauthorizedException('User not found');
+        throw buildAuthUnauthorizedException({
+          code: AUTH_ERROR_CODES.USER_NOT_FOUND,
+        });
       }
 
       // Check if account is active before refreshing token
       if (user.status !== 'active') {
-        throw new UnauthorizedException('Your account is not active');
+        throw buildAuthUnauthorizedException({
+          code: AUTH_ERROR_CODES.ACCOUNT_NOT_ACTIVE,
+          message: 'Your account is not active',
+          messageAr: 'حسابك غير مفعل',
+        });
       }
 
       const tokens = await this.generateTokens(user);
@@ -999,7 +1031,9 @@ export class AuthService {
         throw error;
       }
       // Otherwise, it's an invalid token format/verification error
-      throw new UnauthorizedException('Invalid refresh token');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.REFRESH_TOKEN_INVALID,
+      });
     }
   }
 
@@ -1010,11 +1044,17 @@ export class AuthService {
     const user = await this.userModel.findById(userId);
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.USER_NOT_FOUND,
+      });
     }
 
     if (user.status !== 'active') {
-      throw new UnauthorizedException('User  account is not active');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_NOT_ACTIVE,
+        message: 'User account is not active',
+        messageAr: 'حساب المستخدم غير مفعل',
+      });
     }
 
     return user;
@@ -1148,11 +1188,17 @@ export class AuthService {
     const user = await this.userModel.findById(userId);
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.USER_NOT_FOUND,
+      });
     }
 
     if (user.status !== 'active') {
-      throw new UnauthorizedException('User account is not active');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCOUNT_NOT_ACTIVE,
+        message: 'User account is not active',
+        messageAr: 'حساب المستخدم غير مفعل',
+      });
     }
 
     // Build base user object
@@ -1272,7 +1318,9 @@ export class AuthService {
   async updateFcmToken(userId: string, updateFcmTokenDto: UpdateFcmTokenDto) {
     const user = await this.userModel.findById(userId);
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.USER_NOT_FOUND,
+      });
     }
 
     user.fcmToken = updateFcmTokenDto.fcmToken;
@@ -1387,7 +1435,9 @@ export class AuthService {
     const user = await this.userModel.findById(userId).select('+password');
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.USER_NOT_FOUND,
+      });
     }
 
     // Verify old password
@@ -1431,7 +1481,9 @@ export class AuthService {
     const user = await this.userModel.findById(userId);
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.USER_NOT_FOUND,
+      });
     }
 
     // Hash new password
