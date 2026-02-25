@@ -26,7 +26,10 @@ export interface CategoryTree {
     name: string;
     nameAr: string;
     slug: string;
+    parentId?: string;
     image?: string;
+    imageUrl?: string;
+    icon?: string;
     isActive: boolean;
     productsCount: number;
     children?: CategoryTree[];

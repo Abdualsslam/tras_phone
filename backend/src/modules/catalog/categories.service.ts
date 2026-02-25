@@ -59,6 +59,11 @@ export class CategoriesService {
         }
 
         const normalized = { ...data };
+        const hasImageField =
+            Object.prototype.hasOwnProperty.call(normalized, 'image') ||
+            Object.prototype.hasOwnProperty.call(normalized, 'imageUrl') ||
+            Object.prototype.hasOwnProperty.call(normalized, 'icon');
+
         const image =
             this.readMediaUrl(normalized.image) ??
             this.readMediaUrl(normalized.imageUrl) ??
@@ -66,6 +71,8 @@ export class CategoriesService {
 
         if (image) {
             normalized.image = image;
+        } else if (hasImageField) {
+            normalized.image = null;
         }
 
         return normalized;
