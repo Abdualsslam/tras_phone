@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/order_entity.dart';
 import '../../domain/entities/order_stats_entity.dart';
@@ -125,20 +126,9 @@ class _OrdersListScreenState extends State<OrdersListScreen>
           }
 
           if (state is OrdersError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Iconsax.warning_2, size: 60.sp, color: AppColors.error),
-                  SizedBox(height: 16.h),
-                  Text(state.message, style: theme.textTheme.bodyLarge),
-                  SizedBox(height: 16.h),
-                  ElevatedButton(
-                    onPressed: () => context.read<OrdersCubit>().loadOrders(),
-                    child: Text(AppLocalizations.of(context)!.tryAgain),
-                  ),
-                ],
-              ),
+            return AppError(
+              message: state.message,
+              onRetry: () => context.read<OrdersCubit>().loadOrders(),
             );
           }
 

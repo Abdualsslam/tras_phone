@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../promotions/presentation/widgets/coupon_input.dart';
 import '../../../promotions/data/models/coupon_validation_model.dart';
@@ -91,12 +92,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             _appliedCoupon = state.session.coupon?.toCouponValidation();
           }
         } else if (state is CheckoutSessionCouponError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          AppSnackbar.showError(context, state.message);
         }
       },
       builder: (context, state) {
@@ -123,33 +119,10 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 onPressed: () => context.pop(),
               ),
             ),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
-                  SizedBox(height: 16.h),
-                  Text(
-                    'حدث خطأ أثناء تحميل البيانات',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    state.message,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondaryLight,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 24.h),
-                  ElevatedButton.icon(
-                    onPressed: () =>
-                        context.read<CheckoutSessionCubit>().loadSession(),
-                    icon: const Icon(Iconsax.refresh),
-                    label: const Text('إعادة المحاولة'),
-                  ),
-                ],
-              ),
+            body: AppError(
+              title: 'حدث خطأ أثناء تحميل البيانات',
+              message: state.message,
+              onRetry: () => context.read<CheckoutSessionCubit>().loadSession(),
             ),
           );
         }
@@ -1606,9 +1579,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   Future<void> _handlePlaceOrder(CheckoutSessionEntity session) async {
     // التحقق من أن السلة ليست فارغة
     if (session.cart.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('السلة فارغة')));
+      AppSnackbar.showError(context, 'السلة فارغة');
       return;
     }
 
@@ -1655,17 +1626,13 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
       if (selectedAddress == null) {
         Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('يرجى اختيار عنوان التوصيل')),
-        );
+        AppSnackbar.showError(context, 'يرجى اختيار عنوان التوصيل');
         return;
       }
 
       if (selectedPaymentMethod == null) {
         Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('يرجى اختيار طريقة الدفع')),
-        );
+        AppSnackbar.showError(context, 'يرجى اختيار طريقة الدفع');
         return;
       }
 
@@ -1689,13 +1656,9 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       if (selectedPaymentMethod.type == 'wallet' &&
           walletBalance < orderTotal) {
         Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'رصيد المحفظة غير كافٍ. المتاح ${walletBalance.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        AppSnackbar.showError(
+          context,
+          'رصيد المحفظة غير كافٍ. المتاح ${walletBalance.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
         );
         return;
       }
@@ -1704,23 +1667,13 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         final enteredAmount = _parseWalletAmountInput();
         if (enteredAmount <= 0) {
           Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('يرجى إدخال مبلغ صحيح من المحفظة'),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          AppSnackbar.showError(context, 'يرجى إدخال مبلغ صحيح من المحفظة');
           return;
         }
 
         if (enteredAmount > walletBalance || enteredAmount > orderTotal) {
           Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('المبلغ المدخل من المحفظة أكبر من الحد المسموح'),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          AppSnackbar.showError(context, 'المبلغ المدخل من المحفظة أكبر من الحد المسموح');
           return;
         }
       }
@@ -1767,22 +1720,12 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           context.go('/order-details/${order.id}');
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('فشل إنشاء الطلب. حاول مرة أخرى.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppSnackbar.showError(context, 'فشل إنشاء الطلب. حاول مرة أخرى.');
       }
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('خطأ: ${e.toString()}'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      AppSnackbar.showError(context, 'خطأ: ${e.toString()}');
     }
   }
 

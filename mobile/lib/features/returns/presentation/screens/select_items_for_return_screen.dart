@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../../core/di/injection.dart';
 import '../../../orders/domain/entities/order_entity.dart';
 import '../../../orders/presentation/cubit/orders_cubit.dart';
@@ -57,25 +58,10 @@ class _SelectItemsForReturnViewState extends State<_SelectItemsForReturnView> {
           }
 
           if (state is OrdersError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
-                  SizedBox(height: 16.h),
-                  Text(
-                    state.message,
-                    style: theme.textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 16.h),
-                  ElevatedButton(
-                    onPressed: () => context.read<OrdersCubit>().loadOrders(
-                      status: OrderStatus.delivered,
-                    ),
-                    child: const Text('إعادة المحاولة'),
-                  ),
-                ],
+            return AppError(
+              message: state.message,
+              onRetry: () => context.read<OrdersCubit>().loadOrders(
+                status: OrderStatus.delivered,
               ),
             );
           }
