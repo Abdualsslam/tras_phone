@@ -2,7 +2,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:tras_phone/features/orders/data/datasources/orders_remote_datasource.dart';
-import 'package:tras_phone/features/orders/data/models/payment_method_model.dart';
 import 'package:tras_phone/features/orders/presentation/cubit/payment_methods_cubit.dart';
 import 'package:tras_phone/features/orders/presentation/cubit/payment_methods_state.dart';
 
@@ -59,8 +58,9 @@ void main() {
     blocTest<PaymentMethodsCubit, PaymentMethodsState>(
       'emits [PaymentMethodsLoading, PaymentMethodsLoaded] on success',
       build: () {
-        when(() => mockDataSource.getPaymentMethods())
-            .thenAnswer((_) async => [activeMethodJson]);
+        when(
+          () => mockDataSource.getPaymentMethods(),
+        ).thenAnswer((_) async => [activeMethodJson]);
         return createCubit();
       },
       act: (cubit) => cubit.loadPaymentMethods(),
@@ -78,9 +78,9 @@ void main() {
     blocTest<PaymentMethodsCubit, PaymentMethodsState>(
       'filters out inactive payment methods',
       build: () {
-        when(() => mockDataSource.getPaymentMethods()).thenAnswer(
-          (_) async => [activeMethodJson, inactiveMethodJson],
-        );
+        when(
+          () => mockDataSource.getPaymentMethods(),
+        ).thenAnswer((_) async => [activeMethodJson, inactiveMethodJson]);
         return createCubit();
       },
       act: (cubit) => cubit.loadPaymentMethods(),
@@ -98,9 +98,9 @@ void main() {
     blocTest<PaymentMethodsCubit, PaymentMethodsState>(
       'sorts active methods by sortOrder',
       build: () {
-        when(() => mockDataSource.getPaymentMethods()).thenAnswer(
-          (_) async => [anotherActiveMethodJson, activeMethodJson],
-        );
+        when(
+          () => mockDataSource.getPaymentMethods(),
+        ).thenAnswer((_) async => [anotherActiveMethodJson, activeMethodJson]);
         return createCubit();
       },
       act: (cubit) => cubit.loadPaymentMethods(),
@@ -119,22 +119,21 @@ void main() {
     blocTest<PaymentMethodsCubit, PaymentMethodsState>(
       'emits [PaymentMethodsLoading, PaymentMethodsError] on failure',
       build: () {
-        when(() => mockDataSource.getPaymentMethods())
-            .thenThrow(Exception('Network error'));
+        when(
+          () => mockDataSource.getPaymentMethods(),
+        ).thenThrow(Exception('Network error'));
         return createCubit();
       },
       act: (cubit) => cubit.loadPaymentMethods(),
-      expect: () => [
-        const PaymentMethodsLoading(),
-        isA<PaymentMethodsError>(),
-      ],
+      expect: () => [const PaymentMethodsLoading(), isA<PaymentMethodsError>()],
     );
 
     blocTest<PaymentMethodsCubit, PaymentMethodsState>(
       'emits empty list when all methods are inactive',
       build: () {
-        when(() => mockDataSource.getPaymentMethods())
-            .thenAnswer((_) async => [inactiveMethodJson]);
+        when(
+          () => mockDataSource.getPaymentMethods(),
+        ).thenAnswer((_) async => [inactiveMethodJson]);
         return createCubit();
       },
       act: (cubit) => cubit.loadPaymentMethods(),

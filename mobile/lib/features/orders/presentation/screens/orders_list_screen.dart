@@ -14,8 +14,6 @@ import '../cubit/orders_cubit.dart';
 import '../cubit/orders_state.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../widgets/orders_list/order_tab.dart';
-import '../widgets/orders_list/order_stats_card.dart';
-import '../widgets/orders_list/order_card.dart';
 
 class OrdersListScreen extends StatefulWidget {
   const OrdersListScreen({super.key});
@@ -223,7 +221,7 @@ class OrderStatsCard extends StatelessWidget {
   final OrderStatsEntity stats;
   final bool isDark;
 
-  const OrderStatsCard({required this.stats, required this.isDark});
+  const OrderStatsCard({super.key, required this.stats, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -366,6 +364,7 @@ class OrderCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const OrderCard({
+    super.key,
     required this.order,
     required this.isDark,
     required this.onTap,

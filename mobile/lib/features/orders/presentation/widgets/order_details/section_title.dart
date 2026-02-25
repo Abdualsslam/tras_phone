@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:iconsax/iconsax.dart';
 import '../../../../../core/config/theme/app_colors.dart';
 
 class SectionTitle extends StatelessWidget {

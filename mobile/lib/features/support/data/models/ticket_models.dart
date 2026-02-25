@@ -20,14 +20,6 @@ TicketCategoryModel? _categoryFromJson(dynamic value) {
 Object? _readId(Map<dynamic, dynamic> json, String key) =>
     json['_id'] ?? json['id'];
 
-/// قراءة ticket ID
-Object? _readTicketId(Map<dynamic, dynamic> json, String key) {
-  final ticket = json['ticket'];
-  if (ticket is String) return ticket;
-  if (ticket is Map) return ticket['_id'] ?? ticket['id'] ?? '';
-  return '';
-}
-
 /// معلومات العميل في التذكرة
 @JsonSerializable()
 class TicketCustomerInfo {

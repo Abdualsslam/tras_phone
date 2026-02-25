@@ -3,13 +3,11 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/checkout_session_entity.dart';
 import 'checkout_cart_item_row.dart';
-import 'checkout_cart_summary.dart';
 
 class CheckoutCartItems extends StatefulWidget {
   final List<CheckoutCartItemEntity> items;
