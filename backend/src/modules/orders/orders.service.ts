@@ -261,10 +261,7 @@ export class OrdersService {
     const paymentMethod = this.normalizePaymentMethod(data.paymentMethod);
 
     let walletAmountUsed = Math.max(0, Number(data.walletAmountUsed || 0));
-
-    if (paymentMethod === 'wallet') {
-      walletAmountUsed = total;
-    }
+    let creditAmount = 0;
 
     if (walletAmountUsed > total) {
       throw new BadRequestException(
@@ -272,7 +269,10 @@ export class OrdersService {
       );
     }
 
-    if (walletAmountUsed > 0) {
+    if (paymentMethod === 'wallet') {
+      const walletBalance = await this.walletService.getBalance(customerId);
+      walletAmountUsed = Math.min(total, Math.max(0, walletBalance));
+    } else if (walletAmountUsed > 0) {
       const walletBalance = await this.walletService.getBalance(customerId);
       if (walletBalance < walletAmountUsed) {
         throw new BadRequestException(
@@ -294,6 +294,24 @@ export class OrdersService {
           `حد الائتمان غير كافٍ. المتاح: ${availableCredit.toFixed(2)} ر.س، المطلوب: ${remainingAfterWallet.toFixed(2)} ر.س`,
         );
       }
+
+      creditAmount = remainingAfterWallet;
+    }
+
+    // Wallet-first payment fallback to credit for remaining amount
+    if (paymentMethod === 'wallet' && remainingAfterWallet > 0) {
+      const customer = await this.customersService.findById(customerId);
+      const creditLimit = customer?.creditLimit ?? 0;
+      const creditUsed = customer?.creditUsed ?? 0;
+      const availableCredit = creditLimit - creditUsed;
+
+      if (remainingAfterWallet > availableCredit) {
+        throw new BadRequestException(
+          'رصيد المحفظة + حد الائتمان غير كافٍ لإتمام الطلب',
+        );
+      }
+
+      creditAmount = remainingAfterWallet;
     }
 
     // Get customer's price level for order record
@@ -312,8 +330,6 @@ export class OrdersService {
       paymentMethod === 'bank_transfer' && remainingAfterWallet > 0
         ? 'awaiting_receipt'
         : 'not_required';
-
-    const creditAmount = paymentMethod === 'credit' ? remainingAfterWallet : 0;
 
     // Create order (currency default SAR)
     const order = await this.orderModel.create({
@@ -472,14 +488,14 @@ export class OrdersService {
       });
     }
 
-    // Increment credit used when order is placed on credit
-    if (paymentMethod === 'credit' && remainingAfterWallet > 0) {
+    // Increment credit used when any credit amount is consumed
+    if (creditAmount > 0) {
       this.logger.debug(
-        `createOrder: incrementing creditUsed for customerId=${customerId}, amount=${remainingAfterWallet}`,
+        `createOrder: incrementing creditUsed for customerId=${customerId}, amount=${creditAmount}`,
       );
       const updatedCustomer = await this.customersService.incrementCreditUsed(
         customerId,
-        remainingAfterWallet,
+        creditAmount,
       );
       this.logger.debug(
         `createOrder: creditUsed updated. New creditUsed=${updatedCustomer.creditUsed}, creditLimit=${updatedCustomer.creditLimit}`,
@@ -1053,11 +1069,8 @@ export class OrdersService {
       case 'cancelled':
         updateData.cancelledAt = new Date();
         updateData.cancellationReason = notes;
-        if (order.paymentMethod === 'credit') {
-          const creditAmount = Math.max(
-            0,
-            (order.total || 0) - (order.walletAmountUsed || 0),
-          );
+        {
+          const creditAmount = Math.max(0, order.creditAmount || 0);
 
           if (creditAmount > 0) {
             await this.customersService.decrementCreditUsed(
@@ -1350,6 +1363,18 @@ export class OrdersService {
     const newPaidAmount = order.paidAmount + data.amount;
     const paymentStatus = newPaidAmount >= order.total ? 'paid' : 'partial';
     const orderUpdate: any = { paidAmount: newPaidAmount, paymentStatus };
+    const currentCreditAmount = Math.max(0, order.creditAmount || 0);
+    const creditSettlementAmount = Math.min(
+      currentCreditAmount,
+      Math.max(0, Number(data.amount || 0)),
+    );
+
+    if (creditSettlementAmount > 0) {
+      orderUpdate.creditAmount = Math.max(
+        0,
+        currentCreditAmount - creditSettlementAmount,
+      );
+    }
 
     if (order.paymentMethod === 'bank_transfer' && newPaidAmount >= order.total) {
       orderUpdate.transferStatus = 'verified';
@@ -1371,11 +1396,11 @@ export class OrdersService {
       },
     );
 
-    // Decrement credit used when customer pays off a credit order
-    if (order.paymentMethod === 'credit') {
+    if (creditSettlementAmount > 0) {
+      // Decrement credit used when customer settles credit debt
       await this.customersService.decrementCreditUsed(
         order.customerId.toString(),
-        data.amount,
+        creditSettlementAmount,
       );
     }
 
@@ -2000,7 +2025,7 @@ export class OrdersService {
       }
 
       // Handle credit payment - reduce creditUsed
-      if (order.paymentMethod === 'credit') {
+      if ((order.creditAmount || 0) > 0 || order.paymentMethod === 'credit') {
         const creditRefund = Math.min(refundAmount, order.creditAmount || 0);
         if (creditRefund > 0) {
           await this.customersService.decrementCreditUsed(
@@ -2016,7 +2041,7 @@ export class OrdersService {
       additionalAmount = Math.abs(difference);
 
       // Handle credit payment - increase creditUsed
-      if (order.paymentMethod === 'credit') {
+      if ((order.creditAmount || 0) > 0 || order.paymentMethod === 'credit') {
         // Check if customer has enough credit limit
         const customer = await this.customersService.findById(order.customerId.toString());
         const creditLimit = customer?.creditLimit ?? 0;

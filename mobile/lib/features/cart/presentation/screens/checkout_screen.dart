@@ -446,6 +446,32 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                               (_appliedCoupon?.discountAmount ?? 0) +
                               session.cart.shippingCost +
                               session.cart.taxAmount;
+                          PaymentMethodEntity? creditMethod;
+                          for (final method in session.paymentMethods) {
+                            if (method.type == 'credit') {
+                              creditMethod = method;
+                              break;
+                            }
+                          }
+                          final availableCredit =
+                              (creditMethod?.availableCredit ?? 0).toDouble();
+                          final walletAutoUse =
+                              (walletBalance < orderTotal
+                                      ? walletBalance
+                                      : orderTotal)
+                                  .toDouble();
+                          final creditAutoUse =
+                              isWalletMethodSelected && orderTotal > walletAutoUse
+                              ? ((orderTotal - walletAutoUse) > availableCredit
+                                    ? availableCredit
+                                    : (orderTotal - walletAutoUse))
+                              : 0.0;
+                          final remainingAfterWalletAndCredit =
+                              isWalletMethodSelected
+                              ? (orderTotal - walletAutoUse - creditAutoUse)
+                                    .clamp(0, orderTotal)
+                                    .toDouble()
+                              : 0.0;
 
                           if (isWalletMethodSelected && _useWalletBalance) {
                             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -500,11 +526,37 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                 ),
                                 SizedBox(height: 10.h),
                                 if (isWalletMethodSelected)
-                                  Text(
-                                    'تم اختيار الدفع بالمحفظة، سيتم استخدام كامل المبلغ تلقائياً.',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondaryLight,
-                                    ),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'تم اختيار الدفع بالمحفظة، سيتم الخصم من المحفظة أولاً ثم من حد الائتمان تلقائياً.',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color:
+                                                  AppColors.textSecondaryLight,
+                                            ),
+                                      ),
+                                      SizedBox(height: 8.h),
+                                      Text(
+                                        'من المحفظة: ${walletAutoUse.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                      Text(
+                                        'من الائتمان: ${creditAutoUse.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                      if (remainingAfterWalletAndCredit > 0)
+                                        Text(
+                                          'المتبقي بعد المحفظة والائتمان: ${remainingAfterWalletAndCredit.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: AppColors.error,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                    ],
                                   )
                                 else ...[
                                   SwitchListTile.adaptive(
@@ -1685,20 +1737,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         selectedPaymentMethod: selectedPaymentMethod,
         walletBalance: walletBalance,
       );
-
-      if (selectedPaymentMethod.type == 'wallet' &&
-          walletBalance < orderTotal) {
-        Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'رصيد المحفظة غير كافٍ. المتاح ${walletBalance.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
-            ),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        return;
-      }
 
       if (_useWalletBalance && selectedPaymentMethod.type != 'wallet') {
         final enteredAmount = _parseWalletAmountInput();
