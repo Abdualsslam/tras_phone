@@ -46,6 +46,10 @@ class AuthErrorHelper {
           : ConflictException.userAlreadyExistsEn;
     }
 
+    if (_isInvalidCredentials(message)) {
+      return isArabic ? 'بيانات الدخول غير صحيحة' : 'Invalid credentials';
+    }
+
     return clean;
   }
 
@@ -67,6 +71,12 @@ class AuthErrorHelper {
       message.contains('موجود بالفعل') ||
       message.contains('CONFLICT') ||
       message.contains('ConflictException');
+
+  static bool _isInvalidCredentials(String message) =>
+      message.contains('Invalid credentials') ||
+      message.contains('invalid credentials') ||
+      message.contains('بيانات الدخول غير صحيحة') ||
+      message.contains('رقم الجوال أو كلمة المرور غير صحيحة');
 
   /// Get background color for error snackbar
   static Color getBackgroundColor(String message) =>
