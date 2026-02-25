@@ -63,6 +63,13 @@ export class ApiResponseDto<T = any> {
     @ApiProperty({ type: [ErrorDetailDto], required: false, description: 'Error details (only for error responses)' })
     errors?: ErrorDetailDto[];
 
+    @ApiProperty({
+        example: 'AUTH_INVALID_CREDENTIALS',
+        required: false,
+        description: 'Machine-readable error code',
+    })
+    errorCode?: string;
+
     @ApiProperty({ type: ResponseMetaDto, required: false, description: 'Response metadata' })
     meta?: ResponseMetaDto;
 

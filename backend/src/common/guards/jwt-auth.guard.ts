@@ -13,6 +13,10 @@ import { Model, Types } from 'mongoose';
 import { IS_PUBLIC_KEY } from '@decorators/public.decorator';
 import { AuthService } from '@modules/auth/auth.service';
 import { Customer } from '@modules/customers/schemas/customer.schema';
+import {
+  AUTH_ERROR_CODES,
+  buildAuthUnauthorizedException,
+} from '@modules/auth/auth-errors';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -45,7 +49,9 @@ export class JwtAuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new UnauthorizedException('Access token not found');
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.ACCESS_TOKEN_MISSING,
+      });
     }
 
     try {
@@ -60,7 +66,9 @@ export class JwtAuthGuard implements CanActivate {
           secret: jwtSecret,
         });
       } catch {
-        throw new UnauthorizedException('Invalid or expired token');
+        throw buildAuthUnauthorizedException({
+          code: AUTH_ERROR_CODES.ACCESS_TOKEN_INVALID,
+        });
       }
 
       // Validate user exists and is active
@@ -68,7 +76,9 @@ export class JwtAuthGuard implements CanActivate {
 
       if (!user) {
         console.error(`[JwtAuthGuard] User not found: ${payload.sub}`);
-        throw new UnauthorizedException('User not found');
+        throw buildAuthUnauthorizedException({
+          code: AUTH_ERROR_CODES.USER_NOT_FOUND,
+        });
       }
 
       // Build base user object
@@ -148,7 +158,11 @@ export class JwtAuthGuard implements CanActivate {
 
       // Preserve error context for unexpected failures
       throw new UnauthorizedException(
-        `Authentication failed: ${errorMessage}`,
+        {
+          errorCode: AUTH_ERROR_CODES.AUTHENTICATION_FAILED,
+          message: `Authentication failed: ${errorMessage}`,
+          messageAr: 'فشلت المصادقة. يرجى تسجيل الدخول مرة أخرى',
+        },
       );
     }
   }
