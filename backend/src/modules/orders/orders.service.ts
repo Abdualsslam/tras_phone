@@ -39,6 +39,7 @@ import { NotificationsService } from '@modules/notifications/notifications.servi
 import * as PDFDocument from 'pdfkit';
 import { StorageService } from '@modules/integrations/storage.service';
 import { ConfigService } from '@nestjs/config';
+import { SettingsService } from '@modules/settings/settings.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -73,6 +74,7 @@ export class OrdersService {
     private walletService: WalletService,
     private storageService: StorageService,
     private configService: ConfigService,
+    private settingsService: SettingsService,
     @Inject(forwardRef(() => ReturnsService))
     private returnsService: ReturnsService,
     @Inject(forwardRef(() => NotificationsService))
@@ -96,6 +98,20 @@ export class OrdersService {
     };
 
     return paymentMethodMap[normalized] || 'bank_transfer';
+  }
+
+  private async calculateOrderTaxForCustomer(
+    customerId: string,
+    amountBeforeTax: number,
+  ): Promise<number> {
+    const taxableBase = Math.max(0, Number(amountBeforeTax || 0));
+    if (taxableBase <= 0) return 0;
+
+    const customer = await this.customersService.findById(customerId);
+    const isTaxable = customer?.isTaxable ?? true;
+    if (!isTaxable) return 0;
+
+    return this.settingsService.calculateTax(taxableBase);
   }
 
   /**
@@ -253,9 +269,13 @@ export class OrdersService {
     }
 
     // Calculate totals
-    const taxAmount = cart.taxAmount;
     const shippingCost = cart.shippingCost;
     const discount = cart.discount; // Other discounts (promotions)
+    const amountBeforeTax = subtotal - discount - couponDiscount;
+    const taxAmount = await this.calculateOrderTaxForCustomer(
+      customerId,
+      amountBeforeTax,
+    );
     const total =
       subtotal - discount - couponDiscount + taxAmount + shippingCost;
     const paymentMethod = this.normalizePaymentMethod(data.paymentMethod);
@@ -918,8 +938,11 @@ export class OrdersService {
       }
 
       const totalsY = Math.max(y + 14, 590);
+      const invoiceTaxAmount = Number(invoice.taxAmount || 0);
+      const showTaxLine = invoiceTaxAmount > 0;
+      const totalsBoxHeight = showTaxLine ? 104 : 86;
       doc.save();
-      doc.roundedRect(330, totalsY, 225, 104, 8).fill('#F4F8FC');
+      doc.roundedRect(330, totalsY, 225, totalsBoxHeight, 8).fill('#F4F8FC');
       doc.restore();
 
       const drawTotalLine = (label: string, value: number, offset: number, bold = false) => {
@@ -933,9 +956,13 @@ export class OrdersService {
 
       drawTotalLine('Subtotal', Number(invoice.subtotal || 0), 14);
       drawTotalLine('Discount', Number(invoice.discount || 0), 32);
-      drawTotalLine('Tax', Number(invoice.taxAmount || 0), 50);
-      drawTotalLine('Shipping', Number(invoice.shippingCost || 0), 68);
-      drawTotalLine('Grand Total', Number(invoice.total || 0), 86, true);
+      if (showTaxLine) {
+        drawTotalLine('Tax', invoiceTaxAmount, 50);
+      }
+      const shippingOffset = showTaxLine ? 68 : 50;
+      const totalOffset = showTaxLine ? 86 : 68;
+      drawTotalLine('Shipping', Number(invoice.shippingCost || 0), shippingOffset);
+      drawTotalLine('Grand Total', Number(invoice.total || 0), totalOffset, true);
 
       doc.fillColor('#666666').font('Helvetica').fontSize(9);
       doc.text('Thank you for your business | شكرا لتعاملكم معنا', 40, 790, {
@@ -1951,10 +1978,13 @@ export class OrdersService {
 
     // Calculate new totals
     const newSubtotal = newItemsData.reduce((sum, item) => sum + item.totalPrice, 0);
-    const taxAmount = order.taxAmount;
     const shippingCost = order.shippingCost;
     const discount = order.discount;
     const couponDiscount = order.couponDiscount;
+    const taxAmount = await this.calculateOrderTaxForCustomer(
+      order.customerId.toString(),
+      newSubtotal - discount - couponDiscount,
+    );
     const walletAmountUsed = order.walletAmountUsed;
 
     const newTotal = newSubtotal - discount - couponDiscount + taxAmount + shippingCost;
@@ -1998,6 +2028,7 @@ export class OrdersService {
 
     order.items = orderItemsForDoc;
     order.subtotal = newSubtotal;
+    order.taxAmount = taxAmount;
     order.total = newTotal;
     order.paymentStatus = newPaymentStatus;
 
@@ -2071,6 +2102,7 @@ export class OrdersService {
     const invoice = await this.invoiceModel.findOne({ orderId: order._id });
     if (invoice) {
       invoice.subtotal = newSubtotal;
+      invoice.taxAmount = taxAmount;
       invoice.total = newTotal;
       invoice.discount = discount + couponDiscount;
       invoice.status = newPaymentStatus;

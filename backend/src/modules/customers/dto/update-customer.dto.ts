@@ -208,4 +208,9 @@ export class UpdateCustomerDto {
     @IsBoolean()
     @IsOptional()
     canCashOnDelivery?: boolean;
+
+    @ApiProperty({ required: false, description: 'Apply tax for this customer', default: true })
+    @IsBoolean()
+    @IsOptional()
+    isTaxable?: boolean;
 }
