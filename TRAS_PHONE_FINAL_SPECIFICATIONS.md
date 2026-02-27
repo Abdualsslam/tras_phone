@@ -425,7 +425,6 @@ CREATE TABLE customers (
     twitter_handle VARCHAR(100) NULL,
     
     -- Risk Assessment
-    risk_score TINYINT UNSIGNED DEFAULT 50,
     is_flagged BOOLEAN DEFAULT FALSE,
     flag_reason TEXT NULL,
     

@@ -119,7 +119,6 @@ interface FormData {
   loyaltyPoints: string;
   loyaltyTier: string;
   assignedSalesRepId: string;
-  riskScore: string;
   isFlagged: boolean;
   flagReason: string;
   // Payment & Refund Permissions
@@ -151,7 +150,6 @@ const initialFormData: FormData = {
   loyaltyPoints: "",
   loyaltyTier: "bronze",
   assignedSalesRepId: "",
-  riskScore: "50",
   isFlagged: false,
   flagReason: "",
   canCashRefund: false,
@@ -326,7 +324,6 @@ export function CustomersPage() {
           typeof customerData.assignedSalesRepId === "object"
             ? customerData.assignedSalesRepId._id
             : customerData.assignedSalesRepId || "",
-        riskScore: customerData.riskScore?.toString() || "50",
         isFlagged: customerData.isFlagged || false,
         flagReason: customerData.flagReason || "",
         canCashRefund: customerData.canCashRefund ?? false,
@@ -463,15 +460,11 @@ export function CustomersPage() {
       preferredContactMethod: formData.preferredContactMethod,
       internalNotes: formData.internalNotes || undefined,
       // Additional Customer fields
-      walletBalance: formData.walletBalance
-        ? Number(formData.walletBalance)
-        : undefined,
       loyaltyPoints: formData.loyaltyPoints
         ? Number(formData.loyaltyPoints)
         : undefined,
       loyaltyTier: formData.loyaltyTier || undefined,
       assignedSalesRepId: formData.assignedSalesRepId || undefined,
-      riskScore: formData.riskScore ? Number(formData.riskScore) : undefined,
       isFlagged: formData.isFlagged,
       flagReason: formData.flagReason || undefined,
       // Payment & Refund Permissions
@@ -1806,11 +1799,13 @@ export function CustomersPage() {
                     type="number"
                     dir="ltr"
                     placeholder="0"
+                    readOnly
+                    disabled
                     value={formData.walletBalance}
-                    onChange={(e) =>
-                      handleFormChange("walletBalance", e.target.value)
-                    }
                   />
+                  <p className="text-xs text-muted-foreground">
+                    يتم تعديل الرصيد من صفحة المحفظة فقط لضمان تسجيل المعاملة.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label>نقاط الولاء</Label>
@@ -1991,21 +1986,7 @@ export function CustomersPage() {
               <h3 className="font-semibold text-gray-900 border-b pb-2">
                 التقييم والتحذيرات
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>درجة المخاطرة (0-100)</Label>
-                  <Input
-                    type="number"
-                    dir="ltr"
-                    min="0"
-                    max="100"
-                    placeholder="50"
-                    value={formData.riskScore}
-                    onChange={(e) =>
-                      handleFormChange("riskScore", e.target.value)
-                    }
-                  />
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 flex items-end">
                   <div className="flex items-center space-x-2 space-x-reverse">
                     <input

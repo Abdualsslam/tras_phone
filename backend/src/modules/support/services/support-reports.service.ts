@@ -5,7 +5,7 @@ import { Ticket, TicketDocument, TicketStatus } from '../schemas/ticket.schema';
 import { TicketMessage, TicketMessageDocument } from '../schemas/ticket-message.schema';
 import { ChatSession, ChatSessionDocument } from '../schemas/chat-session.schema';
 import * as ExcelJS from 'exceljs';
-import * as PDFDocument from 'pdfkit';
+import PDFDocument from 'pdfkit';
 
 /**
  * ═══════════════════════════════════════════════════════════════

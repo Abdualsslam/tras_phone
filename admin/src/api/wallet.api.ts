@@ -14,14 +14,18 @@ export interface WalletBalance {
 
 export interface WalletTransaction {
     _id: string;
+    transactionNumber?: string;
     customerId: string;
     customerName?: string;
     type: 'credit' | 'debit';
+    direction?: 'credit' | 'debit';
+    transactionType?: string;
     amount: number;
     balanceBefore: number;
     balanceAfter: number;
     description: string;
     reference?: string;
+    referenceNumber?: string;
     createdAt: string;
 }
 
@@ -81,14 +85,18 @@ export const walletApi = {
         const response = await apiClient.get<ApiResponse<any[]>>(`/wallet/transactions/${customerId}`);
         return (response.data.data || []).map((tx: any) => ({
             _id: tx._id,
+            transactionNumber: tx.transactionNumber,
             customerId: tx.customerId,
             customerName: tx.customerName,
             type: tx.type || tx.direction,
+            direction: tx.direction,
+            transactionType: tx.transactionType,
             amount: tx.amount,
             balanceBefore: tx.balanceBefore,
             balanceAfter: tx.balanceAfter,
             description: tx.description || tx.transactionType || '-',
             reference: tx.reference || tx.referenceNumber,
+            referenceNumber: tx.referenceNumber,
             createdAt: tx.createdAt,
         }));
     },
@@ -140,14 +148,18 @@ export const walletApi = {
         const response = await apiClient.get<ApiResponse<any[]>>('/wallet/admin/transactions', { params });
         return (response.data.data || []).map((tx: any) => ({
             _id: tx._id,
+            transactionNumber: tx.transactionNumber,
             customerId: tx.customerId,
             customerName: tx.customerName,
             type: tx.type || tx.direction,
+            direction: tx.direction,
+            transactionType: tx.transactionType,
             amount: tx.amount,
             balanceBefore: tx.balanceBefore,
             balanceAfter: tx.balanceAfter,
             description: tx.description || tx.transactionType || '-',
             reference: tx.reference || tx.referenceNumber,
+            referenceNumber: tx.referenceNumber,
             createdAt: tx.createdAt,
         }));
     },

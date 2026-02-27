@@ -17,13 +17,19 @@ import { ApiCommonErrorResponses, ApiAuthErrorResponses, ApiPublicErrorResponses
 import { WalletService } from './wallet.service';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 import { RolesGuard } from '@guards/roles.guard';
+import { PermissionsGuard } from '@guards/permissions.guard';
 import { Roles } from '@decorators/roles.decorator';
+import { RequirePermissions } from '@decorators/permissions.decorator';
 import { UserRole } from '@common/enums/user-role.enum';
 import { CurrentUser } from '@decorators/current-user.decorator';
 import { Public } from '@decorators/public.decorator';
 import { ResponseBuilder } from '@common/interfaces/response.interface';
+import { PERMISSIONS } from '@modules/admins/constants/permissions.constant';
 import { CreateTierDto } from './dto/create-tier.dto';
 import { UpdateTierDto } from './dto/update-tier.dto';
+import { AdminCreditWalletDto } from './dto/admin-credit-wallet.dto';
+import { AdminDebitWalletDto } from './dto/admin-debit-wallet.dto';
+import { AdminGrantPointsDto } from './dto/admin-grant-points.dto';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -65,8 +71,9 @@ export class WalletController {
         return ResponseBuilder.success(transactions, 'Transactions retrieved', 'تم استرجاع المعاملات');
     }
 
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, PermissionsGuard)
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @RequirePermissions(PERMISSIONS.WALLET.VIEW)
     @Get('balance/:customerId')
     @ApiOperation({
         summary: 'Get customer wallet balance (admin)',
@@ -80,8 +87,9 @@ export class WalletController {
         return ResponseBuilder.success(data, 'Balance retrieved', 'تم استرجاع الرصيد');
     }
 
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, PermissionsGuard)
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @RequirePermissions(PERMISSIONS.WALLET.VIEW_TRANSACTIONS)
     @Get('transactions/:customerId')
     @ApiOperation({
         summary: 'Get customer wallet transactions (admin)',
@@ -146,8 +154,9 @@ export class WalletController {
         return ResponseBuilder.success(tiers, 'Tiers retrieved', 'تم استرجاع المستويات');
     }
 
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, PermissionsGuard)
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @RequirePermissions(PERMISSIONS.LOYALTY.MANAGE_TIERS)
     @Get('admin/tiers')
     @ApiOperation({
         summary: 'Get all loyalty tiers (admin)',
@@ -164,8 +173,9 @@ export class WalletController {
     // Admin Operations
     // ═════════════════════════════════════
 
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, PermissionsGuard)
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @RequirePermissions(PERMISSIONS.WALLET.ADD_CREDIT)
     @Post('credit')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({
@@ -174,17 +184,23 @@ export class WalletController {
     })
     @ApiResponse({ status: 201, description: 'Wallet credited successfully', type: ApiResponseDto })
     @ApiCommonErrorResponses()
-    async creditWallet(@Body() data: any, @CurrentUser() user: any) {
+    async creditWallet(@Body() data: AdminCreditWalletDto, @CurrentUser() user: any) {
+        const createdBy = user.adminUserId || user.id;
         const transaction = await this.walletService.credit({
-            ...data,
+            customerId: data.customerId,
+            amount: data.amount,
             transactionType: 'admin_credit',
-            createdBy: user.id,
+            description: data.description,
+            descriptionAr: data.description,
+            referenceNumber: data.reference,
+            createdBy,
         });
         return ResponseBuilder.created(transaction, 'Wallet credited', 'تم إضافة الرصيد');
     }
 
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, PermissionsGuard)
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @RequirePermissions(PERMISSIONS.WALLET.DEDUCT)
     @Post('debit')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({
@@ -193,17 +209,23 @@ export class WalletController {
     })
     @ApiResponse({ status: 201, description: 'Wallet debited successfully', type: ApiResponseDto })
     @ApiCommonErrorResponses()
-    async debitWallet(@Body() data: any, @CurrentUser() user: any) {
+    async debitWallet(@Body() data: AdminDebitWalletDto, @CurrentUser() user: any) {
+        const createdBy = user.adminUserId || user.id;
         const transaction = await this.walletService.debit({
-            ...data,
+            customerId: data.customerId,
+            amount: data.amount,
             transactionType: 'admin_debit',
-            createdBy: user.id,
+            description: data.description,
+            descriptionAr: data.description,
+            referenceNumber: data.reference,
+            createdBy,
         });
         return ResponseBuilder.created(transaction, 'Wallet debited', 'تم خصم الرصيد');
     }
 
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, PermissionsGuard)
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @RequirePermissions(PERMISSIONS.LOYALTY.ADJUST_POINTS)
     @Post('points/grant')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({
@@ -212,17 +234,21 @@ export class WalletController {
     })
     @ApiResponse({ status: 201, description: 'Points granted successfully', type: ApiResponseDto })
     @ApiCommonErrorResponses()
-    async grantPoints(@Body() data: any, @CurrentUser() user: any) {
+    async grantPoints(@Body() data: AdminGrantPointsDto, @CurrentUser() user: any) {
+        const createdBy = user.adminUserId || user.id;
         const transaction = await this.walletService.earnPoints({
-            ...data,
+            customerId: data.customerId,
+            points: data.points,
             transactionType: 'admin_grant',
-            createdBy: user.id,
+            description: data.reason,
+            createdBy,
         });
         return ResponseBuilder.created(transaction, 'Points granted', 'تم إضافة النقاط');
     }
 
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, PermissionsGuard)
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @RequirePermissions(PERMISSIONS.WALLET.VIEW_TRANSACTIONS)
     @Get('admin/transactions')
     @ApiOperation({
         summary: 'Get wallet transactions across customers (admin)',
@@ -235,8 +261,9 @@ export class WalletController {
         return ResponseBuilder.success(data, 'Transactions retrieved', 'تم استرجاع المعاملات');
     }
 
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, PermissionsGuard)
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @RequirePermissions(PERMISSIONS.WALLET.VIEW)
     @Get('admin/stats')
     @ApiOperation({
         summary: 'Get wallet stats (admin)',
@@ -253,8 +280,9 @@ export class WalletController {
     // Admin: Loyalty Tiers Management
     // ═════════════════════════════════════
 
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, PermissionsGuard)
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @RequirePermissions(PERMISSIONS.LOYALTY.MANAGE_TIERS)
     @Post('admin/tiers')
     @HttpCode(HttpStatus.CREATED)
     @ApiOperation({
@@ -268,8 +296,9 @@ export class WalletController {
         return ResponseBuilder.created(tier, 'Tier created', 'تم إنشاء المستوى');
     }
 
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, PermissionsGuard)
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @RequirePermissions(PERMISSIONS.LOYALTY.MANAGE_TIERS)
     @Put('admin/tiers/:id')
     @ApiOperation({
         summary: 'Update loyalty tier (admin)',
@@ -283,8 +312,9 @@ export class WalletController {
         return ResponseBuilder.success(tier, 'Tier updated', 'تم تحديث المستوى');
     }
 
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, PermissionsGuard)
     @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @RequirePermissions(PERMISSIONS.LOYALTY.MANAGE_TIERS)
     @Delete('admin/tiers/:id')
     @HttpCode(HttpStatus.OK)
     @ApiOperation({

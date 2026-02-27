@@ -142,11 +142,8 @@ export class Customer {
     twitterHandle?: string;
 
     // ═════════════════════════════════════
-    // Risk Assessment
+    // Flags
     // ═════════════════════════════════════
-    @Prop({ type: Number, default: 50, min: 0, max: 100 })
-    riskScore: number;
-
     @Prop({ default: false })
     isFlagged: boolean;
 

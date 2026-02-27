@@ -69,6 +69,10 @@ export class WalletService {
         createdBy?: string;
         idempotencyKey?: string;
     }): Promise<WalletTransactionDocument> {
+        if (!Number.isFinite(data.amount) || data.amount <= 0) {
+            throw new BadRequestException('Credit amount must be greater than 0');
+        }
+
         if (data.idempotencyKey) {
             const existingTx = await this.walletTxModel.findOne({
                 customerId: data.customerId,
@@ -134,6 +138,10 @@ export class WalletService {
         createdBy?: string;
         idempotencyKey?: string;
     }): Promise<WalletTransactionDocument> {
+        if (!Number.isFinite(data.amount) || data.amount <= 0) {
+            throw new BadRequestException('Debit amount must be greater than 0');
+        }
+
         if (data.idempotencyKey) {
             const existingTx = await this.walletTxModel.findOne({
                 customerId: data.customerId,
@@ -234,6 +242,7 @@ export class WalletService {
         const transactions = await this.getWalletTransactions(customerId, filters);
         return transactions.map((tx: any) => ({
             _id: tx._id,
+            transactionNumber: tx.transactionNumber,
             customerId: tx.customerId,
             type: tx.direction,
             direction: tx.direction,
@@ -304,6 +313,7 @@ export class WalletService {
             const customerId = tx.customerId?.toString();
             return {
                 _id: tx._id,
+                transactionNumber: tx.transactionNumber,
                 customerId,
                 customerName: customerId ? customerNameById.get(customerId) : undefined,
                 type: tx.direction,
@@ -423,6 +433,10 @@ export class WalletService {
         expiresAt?: Date;
         createdBy?: string;
     }): Promise<LoyaltyTransactionDocument> {
+        if (!Number.isFinite(data.points) || data.points <= 0) {
+            throw new BadRequestException('Points to grant must be greater than 0');
+        }
+
         const balance = await this.getPointsBalance(data.customerId);
         const transactionNumber = await this.generateLoyaltyTxNumber();
 
@@ -469,6 +483,10 @@ export class WalletService {
         referenceId?: string;
         referenceNumber?: string;
     }): Promise<LoyaltyTransactionDocument> {
+        if (!Number.isFinite(data.points) || data.points <= 0) {
+            throw new BadRequestException('Points to redeem must be greater than 0');
+        }
+
         const balance = await this.getPointsBalance(data.customerId);
 
         if (balance < data.points) {

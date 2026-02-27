@@ -8,16 +8,35 @@
 - ✅ السلة المحلية (Local Cart) - عمليات فورية بدون انتظار السيرفر
 - ✅ مزامنة السلة (Cart Sync) - التحقق من المخزون والأسعار قبل الدفع
 - ✅ **قواعد التسعير** - السيرفر يحسب السعر حسب مستوى العميل، والطلبات تحتوي `priceLevelId` (انظر [16-pricing-rules.md](./16-pricing-rules.md))
-- ✅ الكوبونات (Coupons) - يتم التحقق منها في مرحلة الدفع فقط
+- ✅ الكوبونات (Coupons) - يمكن تطبيقها على السلة (`/cart/coupon`) أو مباشرة عند إنشاء الطلب (`/orders`)
 - ✅ إنشاء الطلبات (Create Orders)
 - ✅ طلباتي (My Orders)
 - ✅ تفاصيل الطلب (Order Details)
 
 > **ملاحظة مهمة**: النظام يستخدم **السلة المحلية** للعمليات اليومية (إضافة، تعديل، حذف) مما يوفر تجربة مستخدم فورية. يتم المزامنة مع السيرفر فقط عند الحاجة (قبل الدفع).
 
-> **ملاحظة**: جميع الـ endpoints تحتاج **Token** 🔒
+> **ملاحظة**: جميع الـ endpoints تحتاج **Token** 🔒 ما عدا `GET /bank-accounts` (Public)
 
 > 📚 **للمزيد من التفاصيل عن السلة المحلية والمزامنة**: راجع [Local Cart Module](./local-cart.md)
+
+### شكل الاستجابة من الباك-إند
+
+كل endpoints في النظام ترجع الهيكل الموحد التالي:
+
+```json
+{
+  "status": "success",
+  "statusCode": 200,
+  "message": "...",
+  "messageAr": "...",
+  "data": {},
+  "meta": {}
+}
+```
+
+> **ملاحظة ضريبية:** `taxAmount` في Cart/Order قيمة راجعة من السيرفر. لا تعِد حسابها في التطبيق.
+
+> **مهم**: لا تعتمد على `success: true` في Flutter. اعتمد على `status == 'success'` أو مباشرة على `response.data['data']` مع معالجة الأخطاء من Dio.
 
 ---
 
@@ -176,6 +195,13 @@ class Order {
   final PaymentStatus paymentStatus;
   final OrderPaymentMethod? paymentMethod;
 
+  // التحويل البنكي
+  final String? transferStatus; // not_required, awaiting_receipt, receipt_uploaded, verified, rejected
+  final String? transferReceiptImage;
+  final String? transferReference;
+  final DateTime? transferDate;
+  final String? rejectionReason;
+
   // الشحن
   final String? shippingAddressId;
   final ShippingAddress? shippingAddress;
@@ -231,6 +257,11 @@ class Order {
     required this.paidAmount,
     required this.paymentStatus,
     this.paymentMethod,
+    this.transferStatus,
+    this.transferReceiptImage,
+    this.transferReference,
+    this.transferDate,
+    this.rejectionReason,
     this.shippingAddressId,
     this.shippingAddress,
     this.estimatedDeliveryDate,
@@ -276,6 +307,13 @@ class Order {
       paymentMethod: json['paymentMethod'] != null
           ? OrderPaymentMethod.fromString(json['paymentMethod'])
           : null,
+      transferStatus: json['transferStatus']?.toString(),
+      transferReceiptImage: json['transferReceiptImage'],
+      transferReference: json['transferReference'],
+      transferDate: json['transferDate'] != null
+          ? DateTime.parse(json['transferDate'])
+          : null,
+      rejectionReason: json['rejectionReason'],
       shippingAddressId: json['shippingAddressId'],
       shippingAddress: json['shippingAddress'] != null
           ? ShippingAddress.fromJson(json['shippingAddress'])
@@ -457,27 +495,44 @@ enum PaymentStatus {
 }
 
 enum OrderPaymentMethod {
-  cash,
-  card,
+  cashOnDelivery,
+  creditCard,
+  mada,
+  applePay,
+  stcPay,
   bankTransfer,
   wallet,
   credit;
 
   static OrderPaymentMethod fromString(String value) {
     switch (value) {
-      case 'cash': return OrderPaymentMethod.cash;
-      case 'card': return OrderPaymentMethod.card;
+      case 'cash_on_delivery':
+      case 'cash':
+      case 'cod':
+        return OrderPaymentMethod.cashOnDelivery;
+      case 'credit_card':
+      case 'card':
+        return OrderPaymentMethod.creditCard;
+      case 'mada':
+        return OrderPaymentMethod.mada;
+      case 'apple_pay':
+        return OrderPaymentMethod.applePay;
+      case 'stc_pay':
+        return OrderPaymentMethod.stcPay;
       case 'bank_transfer': return OrderPaymentMethod.bankTransfer;
       case 'wallet': return OrderPaymentMethod.wallet;
       case 'credit': return OrderPaymentMethod.credit;
-      default: return OrderPaymentMethod.cash;
+      default: return OrderPaymentMethod.bankTransfer;
     }
   }
 
   String get value {
     switch (this) {
-      case OrderPaymentMethod.cash: return 'cash';
-      case OrderPaymentMethod.card: return 'card';
+      case OrderPaymentMethod.cashOnDelivery: return 'cash_on_delivery';
+      case OrderPaymentMethod.creditCard: return 'credit_card';
+      case OrderPaymentMethod.mada: return 'mada';
+      case OrderPaymentMethod.applePay: return 'apple_pay';
+      case OrderPaymentMethod.stcPay: return 'stc_pay';
       case OrderPaymentMethod.bankTransfer: return 'bank_transfer';
       case OrderPaymentMethod.wallet: return 'wallet';
       case OrderPaymentMethod.credit: return 'credit';
@@ -486,8 +541,11 @@ enum OrderPaymentMethod {
 
   String get displayNameAr {
     switch (this) {
-      case OrderPaymentMethod.cash: return 'كاش';
-      case OrderPaymentMethod.card: return 'بطاقة';
+      case OrderPaymentMethod.cashOnDelivery: return 'الدفع عند الاستلام';
+      case OrderPaymentMethod.creditCard: return 'بطاقة ائتمانية';
+      case OrderPaymentMethod.mada: return 'مدى';
+      case OrderPaymentMethod.applePay: return 'Apple Pay';
+      case OrderPaymentMethod.stcPay: return 'STC Pay';
       case OrderPaymentMethod.bankTransfer: return 'تحويل بنكي';
       case OrderPaymentMethod.wallet: return 'المحفظة';
       case OrderPaymentMethod.credit: return 'آجل';
@@ -618,7 +676,7 @@ class ShippingAddress {
 
 ```dart
 {
-  "success": true,
+  "status": "success",
   "data": {
     "_id": "...",
     "customerId": "...",
@@ -647,6 +705,8 @@ class ShippingAddress {
 }
 ```
 
+> **ملاحظة خصومات:** في سلة الباك-إند الحالية، الحقل `discount` يعكس قيمة الكوبون نفسها (`couponDiscount`) داخل cart totals. في الطلب (`Order`) ستجد `discount` و `couponDiscount` كحقول منفصلة.
+
 **Flutter Code:**
 
 ```dart
@@ -659,7 +719,7 @@ class CartService {
   Future<Cart> getCart() async {
     final response = await _dio.get('/cart');
 
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return Cart.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
@@ -691,7 +751,7 @@ class CartService {
 
 ```dart
 {
-  "success": true,
+  "status": "success",
   "data": { /* Cart object محدث */ },
   "message": "Item added",
   "messageAr": "تم إضافة العنصر"
@@ -705,15 +765,15 @@ class CartService {
 Future<Cart> addItem({
   required String productId,
   required int quantity,
-  required double unitPrice,
+  double? unitPrice,
 }) async {
   final response = await _dio.post('/cart/items', data: {
     'productId': productId,
     'quantity': quantity,
-    'unitPrice': unitPrice,
+    if (unitPrice != null) 'unitPrice': unitPrice,
   });
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     return Cart.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
@@ -748,7 +808,7 @@ Future<Cart> updateItemQuantity({
     'quantity': quantity,
   });
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     return Cart.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
@@ -770,7 +830,7 @@ Future<Cart> updateItemQuantity({
 Future<Cart> removeItem(String productId) async {
   final response = await _dio.delete('/cart/items/$productId');
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     return Cart.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
@@ -792,7 +852,7 @@ Future<Cart> removeItem(String productId) async {
 Future<Cart> clearCart() async {
   final response = await _dio.delete('/cart');
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     return Cart.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
@@ -823,7 +883,7 @@ Future<Cart> clearCart() async {
 
 ```dart
 {
-  "success": true,
+  "status": "success",
   "data": { /* Cart object محدث */ },
   "message": "Coupon applied",
   "messageAr": "تم تطبيق الكوبون"
@@ -845,7 +905,7 @@ Future<Cart> applyCoupon({
     'discountAmount': discountAmount,
   });
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     return Cart.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
@@ -867,7 +927,7 @@ Future<Cart> applyCoupon({
 Future<Cart> removeCoupon() async {
   final response = await _dio.delete('/cart/coupon');
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     return Cart.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
@@ -911,7 +971,7 @@ Future<Cart> removeCoupon() async {
 
 ```dart
 {
-  "success": true,
+  "status": "success",
   "data": {
     "cart": { /* Cart object محدث */ },
     "removedItems": [
@@ -960,7 +1020,7 @@ Future<CartSyncResult> syncCart(List<CartSyncItem> items) async {
     }).toList(),
   });
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     final data = response.data['data'];
     return CartSyncResult(
       cart: Cart.fromJson(data['cart']),
@@ -1106,15 +1166,14 @@ class QuantityAdjustedCartItem {
 | `limit` | number | ❌ | عدد النتائج (default: 20) |
 | `status` | string | ❌ | فلترة بالحالة (`pending`, `confirmed`, `processing`, `ready_for_pickup`, `shipped`, `out_for_delivery`, `delivered`, `completed`, `cancelled`, `refunded`) |
 | `paymentStatus` | string | ❌ | فلترة بحالة الدفع (`unpaid`, `partial`, `paid`, `refunded`) |
-| `orderNumber` | string | ❌ | البحث برقم الطلب |
-| `sortBy` | string | ❌ | ترتيب النتائج (`createdAt`, `orderNumber`, `total`, `status`) |
-| `sortOrder` | string | ❌ | اتجاه الترتيب (`asc`, `desc`) |
+
+> **ملاحظة مهمة:** في الباك-إند الحالي، الفلاتر الفعالة في `GET /orders/my` هي `page`, `limit`, `status`, `paymentStatus`.
 
 **Response:**
 
 ```dart
 {
-  "success": true,
+  "status": "success",
   "data": [
     {
       "_id": "...",
@@ -1148,21 +1207,15 @@ class OrdersService {
     int limit = 20,
     OrderStatus? status,
     PaymentStatus? paymentStatus,
-    String? orderNumber,
-    String? sortBy,
-    String? sortOrder,
   }) async {
     final response = await _dio.get('/orders/my', queryParameters: {
       'page': page,
       'limit': limit,
       if (status != null) 'status': status.value,
       if (paymentStatus != null) 'paymentStatus': paymentStatus.name,
-      if (orderNumber != null) 'orderNumber': orderNumber,
-      if (sortBy != null) 'sortBy': sortBy,
-      if (sortOrder != null) 'sortOrder': sortOrder,
     });
 
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return OrdersResponse(
         orders: (response.data['data'] as List)
             .map((o) => Order.fromJson(o))
@@ -1204,20 +1257,23 @@ class OrdersResponse {
     "postalCode": "12345",                 // اختياري
     "notes": "بجانب البنك"                 // اختياري
   },
-  "paymentMethod": "credit",               // اختياري (`cash`, `card`, `bank_transfer`, `wallet`, `credit`)
+  "paymentMethod": "credit",               // اختياري (`cash_on_delivery`, `credit_card`, `mada`, `apple_pay`, `stc_pay`, `bank_transfer`, `wallet`, `credit`)
   "customerNotes": "يرجى التوصيل صباحاً",  // اختياري
   "couponCode": "SUMMER2024",              // اختياري - يتم التحقق منه وتطبيقه مباشرة على الطلب
+  "walletAmountUsed": 100.0,                 // اختياري - خصم من المحفظة
   "source": "mobile"                       // اختياري (`web`, `mobile`, `admin`) - default: `mobile`
 }
 ```
 
-> **📌 ملاحظة:** `couponCode` يتم التحقق منه وتطبيقه مباشرة عند إنشاء الطلب. الكوبونات **لا تُحفظ في السلة**، بل تُطبق فقط في مرحلة الدفع.
+> **📌 ملاحظة:** `couponCode` يتم التحقق منه وتطبيقه مباشرة عند إنشاء الطلب. ويمكن أيضاً تطبيق كوبون على السلة عبر `/cart/coupon` قبل إنشاء الطلب.
+>
+> **📌 ملاحظة إضافية:** إذا لم ترسل `paymentMethod` فالقيمة الافتراضية في الباك-إند حالياً هي `bank_transfer`.
 
 **Response (201 Created):**
 
 ```dart
 {
-  "success": true,
+  "status": "success",
   "data": {
     "_id": "...",
     "orderNumber": "ORD-2024-001235",
@@ -1241,6 +1297,7 @@ Future<Order> createOrder({
   OrderPaymentMethod? paymentMethod,
   String? customerNotes,
   String? couponCode,
+  double? walletAmountUsed,
   OrderSource? source,
 }) async {
   final response = await _dio.post('/orders', data: {
@@ -1249,21 +1306,35 @@ Future<Order> createOrder({
     if (paymentMethod != null) 'paymentMethod': paymentMethod.value,
     if (customerNotes != null) 'customerNotes': customerNotes,
     if (couponCode != null) 'couponCode': couponCode,
+    if (walletAmountUsed != null && walletAmountUsed > 0)
+      'walletAmountUsed': walletAmountUsed,
     if (source != null) 'source': source.value,
   });
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     return Order.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
 }
 ```
 
+### 🧮 قواعد الحساب (الضرائب والخصومات) في الباك-إند
+
+- المعادلة المستخدمة عند إنشاء الطلب:
+
+```text
+total = subtotal - discount - couponDiscount + taxAmount + shippingCost
+```
+
+- `taxAmount` و `shippingCost` تأتي من السلة على السيرفر (`cart`) ولا يتم احتسابها من جديد داخل `createOrder`.
+- لا تعتمد على حساب الضريبة داخل Flutter؛ اعرض القيم الراجعة من API كما هي.
+- إذا احتجت حساب ضريبة مسبقاً (مثلاً شاشة معاينة)، يوجد endpoint مستقل: `POST /settings/calculate-tax`.
+
 ---
 
 #### 1️⃣1️⃣ جلب تفاصيل طلب
 
-**Endpoint:** `GET /orders/:orderId`
+**Endpoint:** `GET /orders/:id`
 
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
@@ -1271,41 +1342,39 @@ Future<Order> createOrder({
 
 ```dart
 {
-  "success": true,
+  "status": "success",
   "data": {
-    "order": {
-      "_id": "...",
-      "orderNumber": "ORD-2024-001234",
-      "status": "shipped",
-      "items": [
-        {
-          "productId": "...",
-          "name": "شاشة iPhone 15 Pro",
-          "quantity": 2,
-          "unitPrice": 450,
-          "total": 900
-        }
-      ],
-      "subtotal": 900,
-      "shippingCost": 25,
-      "total": 925,
-      "shippingAddress": {
-        "fullName": "أحمد محمد",
-        "phone": "+966501234567",
-        "address": "شارع الملك فهد",
-        "city": "الرياض"
-      },
-      "confirmedAt": "2024-01-15T10:30:00Z",
-      "shippedAt": "2024-01-16T14:00:00Z",
-      ...
-    }
+    "_id": "...",
+    "orderNumber": "ORD-2024-001234",
+    "status": "shipped",
+    "items": [
+      {
+        "productId": "...",
+        "name": "شاشة iPhone 15 Pro",
+        "quantity": 2,
+        "unitPrice": 450,
+        "total": 900
+      }
+    ],
+    "subtotal": 900,
+    "shippingCost": 25,
+    "total": 925,
+    "shippingAddress": {
+      "fullName": "أحمد محمد",
+      "phone": "+966501234567",
+      "address": "شارع الملك فهد",
+      "city": "الرياض"
+    },
+    "confirmedAt": "2024-01-15T10:30:00Z",
+    "shippedAt": "2024-01-16T14:00:00Z",
+    ...
   },
   "message": "Order retrieved",
   "messageAr": "تم استرجاع الطلب"
 }
 ```
 
-> **ملاحظة:** الاستجابة تحتوي على `order` ككائن داخل `data`. استخدم `response.data['data']['order']` للحصول على بيانات الطلب.
+> **ملاحظة:** في الباك-إند الحالي، بيانات الطلب ترجع مباشرة داخل `data` وليست داخل `data.order`.
 
 **Flutter Code:**
 
@@ -1314,9 +1383,8 @@ Future<Order> createOrder({
 Future<Order> getOrderDetails(String orderId) async {
   final response = await _dio.get('/orders/$orderId');
 
-  if (response.data['success']) {
-    // الاستجابة تحتوي على order داخل data
-    return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
+  if (response.data['status'] == 'success') {
+    return Order.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
 }
@@ -1326,7 +1394,7 @@ Future<Order> getOrderDetails(String orderId) async {
 
 #### 1️⃣2️⃣ إلغاء الطلب (Cancel Order)
 
-**Endpoint:** `POST /orders/:orderId/cancel`
+**Endpoint:** `POST /orders/:id/cancel`
 
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
@@ -1344,7 +1412,7 @@ Future<Order> getOrderDetails(String orderId) async {
 
 ```json
 {
-  "success": true,
+  "status": "success",
   "data": {
     "_id": "...",
     "orderNumber": "ORD-2024-001234",
@@ -1374,7 +1442,7 @@ Future<Order> cancelOrder(String orderId, {required String reason}) async {
     data: {'reason': reason},
   );
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     return Order.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
@@ -1395,7 +1463,7 @@ Future<Order> cancelOrder(String orderId, {required String reason}) async {
 
 ```dart
 {
-  "success": true,
+  "status": "success",
   "data": {
     "total": 45,
     "byStatus": {
@@ -1430,7 +1498,7 @@ Future<Order> cancelOrder(String orderId, {required String reason}) async {
 Future<OrderStats> getMyStats() async {
   final response = await _dio.get('/orders/my/stats');
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     return OrderStats.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
@@ -1480,11 +1548,17 @@ class OrderStats {
 
 ---
 
-#### 1️⃣3️⃣ رفع إيصال الدفع
+#### 1️⃣4️⃣ رفع إيصال الدفع
 
-**Endpoint:** `POST /orders/:orderId/upload-receipt`
+**Endpoint:** `POST /orders/:id/upload-receipt`
 
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
+
+**الشروط من الباك-إند:**
+
+- مسموح فقط إذا كانت طريقة الدفع `bank_transfer`
+- غير مسموح إذا `transferStatus = verified`
+- غير مسموح إذا الطلب مدفوع بالكامل
 
 **Request Body:**
 
@@ -1501,10 +1575,8 @@ class OrderStats {
 
 ```dart
 {
-  "success": true,
-  "data": {
-    "order": { /* Order object محدث */ }
-  },
+  "status": "success",
+  "data": { /* Order object محدث */ },
   "message": "Receipt uploaded successfully",
   "messageAr": "تم رفع الإيصال بنجاح"
 }
@@ -1528,18 +1600,22 @@ Future<Order> uploadReceipt({
     if (notes != null) 'notes': notes,
   });
 
-  if (response.data['success']) {
-    return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
+  if (response.data['status'] == 'success') {
+    return Order.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
 }
 ```
 
+> **ملاحظة:** `receiptImage` في هذا endpoint يُرسل كنص (Base64 أو URL) وليس `multipart/form-data`.
+>
+> بعد الرفع، الحالة تصبح غالباً `transferStatus = receipt_uploaded`، ثم يقوم الأدمن بالتحقق عبر endpoint إداري (`POST /admin/orders/:id/verify-payment`) لتتحول إلى `verified` أو `rejected`.
+
 ---
 
-#### 1️⃣4️⃣ تقييم الطلب
+#### 1️⃣5️⃣ تقييم الطلب
 
-**Endpoint:** `POST /orders/:orderId/rate`
+**Endpoint:** `POST /orders/:id/rate`
 
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
@@ -1556,10 +1632,8 @@ Future<Order> uploadReceipt({
 
 ```dart
 {
-  "success": true,
-  "data": {
-    "order": { /* Order object محدث */ }
-  },
+  "status": "success",
+  "data": { /* Order object محدث */ },
   "message": "Order rated successfully",
   "messageAr": "تم تقييم الطلب بنجاح"
 }
@@ -1579,8 +1653,8 @@ Future<Order> rateOrder({
     if (comment != null) 'comment': comment,
   });
 
-  if (response.data['success']) {
-    return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
+  if (response.data['status'] == 'success') {
+    return Order.fromJson(response.data['data']);
   }
   throw Exception(response.data['messageAr']);
 }
@@ -1588,17 +1662,19 @@ Future<Order> rateOrder({
 
 ---
 
-#### 1️⃣5️⃣ جلب الطلبات بانتظار الدفع
+#### 1️⃣6️⃣ جلب الطلبات بانتظار الدفع
 
 **Endpoint:** `GET /orders/pending-payment`
 
 **Headers:** `Authorization: Bearer <accessToken>` 🔒
 
+**الوصف:** يعيد الطلبات ذات `paymentMethod = bank_transfer` و `paymentStatus` يساوي `unpaid` أو `partial`.
+
 **Response:**
 
 ```dart
 {
-  "success": true,
+  "status": "success",
   "data": [
     {
       "_id": "...",
@@ -1622,7 +1698,7 @@ Future<Order> rateOrder({
 Future<List<Order>> getPendingPaymentOrders() async {
   final response = await _dio.get('/orders/pending-payment');
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     return (response.data['data'] as List)
         .map((o) => Order.fromJson(o))
         .toList();
@@ -1633,7 +1709,7 @@ Future<List<Order>> getPendingPaymentOrders() async {
 
 ---
 
-#### 1️⃣6️⃣ جلب الحسابات البنكية (Public)
+#### 1️⃣7️⃣ جلب الحسابات البنكية (Public)
 
 **Endpoint:** `GET /bank-accounts`
 
@@ -1643,7 +1719,7 @@ Future<List<Order>> getPendingPaymentOrders() async {
 
 ```dart
 {
-  "success": true,
+  "status": "success",
   "data": [
     {
       "_id": "...",
@@ -1680,7 +1756,7 @@ Future<List<Order>> getPendingPaymentOrders() async {
 Future<List<BankAccount>> getBankAccounts() async {
   final response = await _dio.get('/bank-accounts');
 
-  if (response.data['success']) {
+  if (response.data['status'] == 'success') {
     return (response.data['data'] as List)
         .map((a) => BankAccount.fromJson(a))
         .toList();
@@ -1854,7 +1930,7 @@ class CartService {
 
   Future<Cart> getCart() async {
     final response = await _dio.get('/cart');
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return Cart.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
@@ -1863,14 +1939,14 @@ class CartService {
   Future<Cart> addItem({
     required String productId,
     required int quantity,
-    required double unitPrice,
+    double? unitPrice,
   }) async {
     final response = await _dio.post('/cart/items', data: {
       'productId': productId,
       'quantity': quantity,
-      'unitPrice': unitPrice,
+      if (unitPrice != null) 'unitPrice': unitPrice,
     });
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return Cart.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
@@ -1883,7 +1959,7 @@ class CartService {
     final response = await _dio.put('/cart/items/$productId', data: {
       'quantity': quantity,
     });
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return Cart.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
@@ -1891,7 +1967,7 @@ class CartService {
 
   Future<Cart> removeItem(String productId) async {
     final response = await _dio.delete('/cart/items/$productId');
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return Cart.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
@@ -1899,7 +1975,7 @@ class CartService {
 
   Future<Cart> clearCart() async {
     final response = await _dio.delete('/cart');
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return Cart.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
@@ -1915,7 +1991,7 @@ class CartService {
       }).toList(),
     });
 
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       final data = response.data['data'];
       return CartSyncResult(
         cart: Cart.fromJson(data['cart']),
@@ -1950,21 +2026,15 @@ class OrdersService {
     int limit = 20,
     OrderStatus? status,
     PaymentStatus? paymentStatus,
-    String? orderNumber,
-    String? sortBy,
-    String? sortOrder,
   }) async {
     final response = await _dio.get('/orders/my', queryParameters: {
       'page': page,
       'limit': limit,
       if (status != null) 'status': status.value,
       if (paymentStatus != null) 'paymentStatus': paymentStatus.name,
-      if (orderNumber != null) 'orderNumber': orderNumber,
-      if (sortBy != null) 'sortBy': sortBy,
-      if (sortOrder != null) 'sortOrder': sortOrder,
     });
 
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return OrdersResponse(
         orders: (response.data['data'] as List)
             .map((o) => Order.fromJson(o))
@@ -1981,6 +2051,7 @@ class OrdersService {
     OrderPaymentMethod? paymentMethod,
     String? customerNotes,
     String? couponCode,
+    double? walletAmountUsed,
     OrderSource? source,
   }) async {
     final response = await _dio.post('/orders', data: {
@@ -1989,10 +2060,12 @@ class OrdersService {
       if (paymentMethod != null) 'paymentMethod': paymentMethod.value,
       if (customerNotes != null) 'customerNotes': customerNotes,
       if (couponCode != null) 'couponCode': couponCode,
+      if (walletAmountUsed != null && walletAmountUsed > 0)
+        'walletAmountUsed': walletAmountUsed,
       if (source != null) 'source': source.value,
     });
 
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return Order.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
@@ -2001,9 +2074,8 @@ class OrdersService {
   Future<Order> getOrderDetails(String orderId) async {
     final response = await _dio.get('/orders/$orderId');
 
-    if (response.data['success']) {
-      // الاستجابة تحتوي على order داخل data
-      return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
+    if (response.data['status'] == 'success') {
+      return Order.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
   }
@@ -2011,7 +2083,7 @@ class OrdersService {
   Future<OrderStats> getMyStats() async {
     final response = await _dio.get('/orders/my/stats');
 
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return OrderStats.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
@@ -2031,8 +2103,8 @@ class OrdersService {
       if (notes != null) 'notes': notes,
     });
 
-    if (response.data['success']) {
-      return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
+    if (response.data['status'] == 'success') {
+      return Order.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
   }
@@ -2047,8 +2119,8 @@ class OrdersService {
       if (comment != null) 'comment': comment,
     });
 
-    if (response.data['success']) {
-      return Order.fromJson(response.data['data']['order'] ?? response.data['data']);
+    if (response.data['status'] == 'success') {
+      return Order.fromJson(response.data['data']);
     }
     throw Exception(response.data['messageAr']);
   }
@@ -2056,7 +2128,7 @@ class OrdersService {
   Future<List<Order>> getPendingPaymentOrders() async {
     final response = await _dio.get('/orders/pending-payment');
 
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return (response.data['data'] as List)
           .map((o) => Order.fromJson(o))
           .toList();
@@ -2067,7 +2139,7 @@ class OrdersService {
   Future<List<BankAccount>> getBankAccounts() async {
     final response = await _dio.get('/bank-accounts');
 
-    if (response.data['success']) {
+    if (response.data['status'] == 'success') {
       return (response.data['data'] as List)
           .map((a) => BankAccount.fromJson(a))
           .toList();
@@ -2298,6 +2370,7 @@ class OrderTimelineWidget extends StatelessWidget {
 | GET    | `/orders/my/stats`           | إحصائيات طلباتي           |
 | POST   | `/orders`                    | إنشاء طلب                 |
 | GET    | `/orders/:id`                | تفاصيل الطلب              |
+| POST   | `/orders/:id/cancel`         | إلغاء الطلب               |
 | POST   | `/orders/:id/upload-receipt` | رفع إيصال الدفع           |
 | POST   | `/orders/:id/rate`           | تقييم الطلب               |
 | GET    | `/orders/pending-payment`    | الطلبات بانتظار الدفع     |
@@ -2311,7 +2384,7 @@ class OrderTimelineWidget extends StatelessWidget {
 
 - **العمليات اليومية**: استخدم `addToCartLocal`, `updateQuantityLocal`, `removeFromCartLocal` (فورية)
 - **المزامنة**: استخدم `syncCart()` فقط قبل الدفع أو عند تسجيل الدخول
-- **الكوبونات**: يتم التحقق منها فقط في مرحلة الدفع، لا يتم حفظها محلياً
+- **الكوبونات**: في تدفق `Local Cart` لا يتم حفظ الكوبون محلياً؛ يتم إرساله عادة عند الدفع (`couponCode`) أو تطبيقه على سلة السيرفر عبر `/cart/coupon`
 
 ### 2. تدفق العمل الموصى به
 

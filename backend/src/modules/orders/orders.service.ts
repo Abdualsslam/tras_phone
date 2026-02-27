@@ -36,7 +36,7 @@ import {
 import { ReturnsService } from '@modules/returns/returns.service';
 import { WalletService } from '@modules/wallet/wallet.service';
 import { NotificationsService } from '@modules/notifications/notifications.service';
-import * as PDFDocument from 'pdfkit';
+import PDFDocument from 'pdfkit';
 import { StorageService } from '@modules/integrations/storage.service';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
