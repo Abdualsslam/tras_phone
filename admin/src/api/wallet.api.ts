@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { ApiResponse } from '@/types';
+import type { ApiResponse, PaginatedResponse, PaginationMeta } from '@/types';
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -67,6 +67,57 @@ export interface GrantPointsDto {
     reason: string;
 }
 
+export interface LoyaltyPointsTransaction {
+    _id: string;
+    transactionNumber?: string;
+    points: number;
+    pointsBefore?: number;
+    pointsAfter?: number;
+    description?: string;
+    createdAt?: string;
+}
+
+export interface AdminTransactionsParams {
+    customerId?: string;
+    type?: 'credit' | 'debit';
+    transactionType?: string;
+    search?: string;
+    reference?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+}
+
+const fallbackPagination = (page: number, limit: number, total: number): PaginationMeta => {
+    const totalPages = Math.max(1, Math.ceil(total / Math.max(1, limit)));
+    return {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+    };
+};
+
+const mapWalletTransaction = (tx: any): WalletTransaction => ({
+    _id: tx._id,
+    transactionNumber: tx.transactionNumber,
+    customerId: tx.customerId,
+    customerName: tx.customerName,
+    type: tx.type || tx.direction,
+    direction: tx.direction,
+    transactionType: tx.transactionType,
+    amount: tx.amount,
+    balanceBefore: tx.balanceBefore,
+    balanceAfter: tx.balanceAfter,
+    description: tx.description || tx.transactionType || '-',
+    reference: tx.reference || tx.referenceNumber,
+    referenceNumber: tx.referenceNumber,
+    createdAt: tx.createdAt,
+});
+
 // ══════════════════════════════════════════════════════════════
 // Wallet API
 // ══════════════════════════════════════════════════════════════
@@ -83,22 +134,7 @@ export const walletApi = {
 
     getCustomerTransactions: async (customerId: string): Promise<WalletTransaction[]> => {
         const response = await apiClient.get<ApiResponse<any[]>>(`/wallet/transactions/${customerId}`);
-        return (response.data.data || []).map((tx: any) => ({
-            _id: tx._id,
-            transactionNumber: tx.transactionNumber,
-            customerId: tx.customerId,
-            customerName: tx.customerName,
-            type: tx.type || tx.direction,
-            direction: tx.direction,
-            transactionType: tx.transactionType,
-            amount: tx.amount,
-            balanceBefore: tx.balanceBefore,
-            balanceAfter: tx.balanceAfter,
-            description: tx.description || tx.transactionType || '-',
-            reference: tx.reference || tx.referenceNumber,
-            referenceNumber: tx.referenceNumber,
-            createdAt: tx.createdAt,
-        }));
+        return (response.data.data || []).map(mapWalletTransaction);
     },
 
     // ─────────────────────────────────────────
@@ -106,17 +142,18 @@ export const walletApi = {
     // ─────────────────────────────────────────
 
     creditWallet: async (data: CreditDebitDto): Promise<WalletTransaction> => {
-        const response = await apiClient.post<ApiResponse<WalletTransaction>>('/wallet/credit', data);
-        return response.data.data;
+        const response = await apiClient.post<ApiResponse<any>>('/wallet/credit', data);
+        return mapWalletTransaction(response.data.data);
     },
 
     debitWallet: async (data: CreditDebitDto): Promise<WalletTransaction> => {
-        const response = await apiClient.post<ApiResponse<WalletTransaction>>('/wallet/debit', data);
-        return response.data.data;
+        const response = await apiClient.post<ApiResponse<any>>('/wallet/debit', data);
+        return mapWalletTransaction(response.data.data);
     },
 
-    grantPoints: async (data: GrantPointsDto): Promise<void> => {
-        await apiClient.post('/wallet/points/grant', data);
+    grantPoints: async (data: GrantPointsDto): Promise<LoyaltyPointsTransaction> => {
+        const response = await apiClient.post<ApiResponse<LoyaltyPointsTransaction>>('/wallet/points/grant', data);
+        return response.data.data;
     },
 
     // ─────────────────────────────────────────
@@ -137,31 +174,18 @@ export const walletApi = {
     // Admin: All Transactions
     // ─────────────────────────────────────────
 
-    getAllTransactions: async (params?: {
-        customerId?: string;
-        type?: 'credit' | 'debit';
-        startDate?: string;
-        endDate?: string;
-        page?: number;
-        limit?: number;
-    }): Promise<WalletTransaction[]> => {
+    getAllTransactions: async (
+        params?: AdminTransactionsParams,
+    ): Promise<PaginatedResponse<WalletTransaction>> => {
         const response = await apiClient.get<ApiResponse<any[]>>('/wallet/admin/transactions', { params });
-        return (response.data.data || []).map((tx: any) => ({
-            _id: tx._id,
-            transactionNumber: tx.transactionNumber,
-            customerId: tx.customerId,
-            customerName: tx.customerName,
-            type: tx.type || tx.direction,
-            direction: tx.direction,
-            transactionType: tx.transactionType,
-            amount: tx.amount,
-            balanceBefore: tx.balanceBefore,
-            balanceAfter: tx.balanceAfter,
-            description: tx.description || tx.transactionType || '-',
-            reference: tx.reference || tx.referenceNumber,
-            referenceNumber: tx.referenceNumber,
-            createdAt: tx.createdAt,
-        }));
+        const items = (response.data.data || []).map(mapWalletTransaction);
+        const pagination = response.data.meta?.pagination ||
+            fallbackPagination(params?.page || 1, params?.limit || items.length || 1, items.length);
+
+        return {
+            items,
+            pagination,
+        };
     },
 
     getWalletStats: async (): Promise<WalletStats> => {

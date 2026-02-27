@@ -258,7 +258,12 @@ export class WalletController {
     @ApiCommonErrorResponses()
     async getAdminTransactions(@Query() query: any) {
         const data = await this.walletService.getAdminTransactions(query);
-        return ResponseBuilder.success(data, 'Transactions retrieved', 'تم استرجاع المعاملات');
+        return ResponseBuilder.success(
+            data.items,
+            'Transactions retrieved',
+            'تم استرجاع المعاملات',
+            { pagination: data.pagination },
+        );
     }
 
     @UseGuards(RolesGuard, PermissionsGuard)
