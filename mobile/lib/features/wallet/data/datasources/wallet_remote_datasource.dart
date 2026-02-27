@@ -6,12 +6,13 @@ import '../../domain/enums/wallet_enums.dart';
 import '../models/loyalty_points_model.dart';
 import '../models/loyalty_tier_model.dart';
 import '../models/loyalty_transaction_model.dart';
+import '../models/wallet_summary_model.dart';
 import '../models/wallet_transaction_model.dart';
 
 /// Abstract interface for wallet data source
 abstract class WalletRemoteDataSource {
   /// Get wallet balance
-  Future<double> getBalance();
+  Future<WalletSummary> getBalance();
 
   /// Get wallet transactions
   Future<List<WalletTransaction>> getTransactions({
@@ -70,14 +71,14 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
   }
 
   @override
-  Future<double> getBalance() async {
+  Future<WalletSummary> getBalance() async {
     try {
       final response = await _apiClient.get('/wallet/balance');
       final body = _asMap(response.data);
 
       if (_isSuccessResponse(body)) {
         final payload = _asMap(body['data']);
-        return (payload['balance'] ?? 0).toDouble();
+        return WalletSummary.fromJson(payload);
       }
       throw Exception(_extractMessage(body, 'فشل في جلب رصيد المحفظة'));
     } catch (e) {

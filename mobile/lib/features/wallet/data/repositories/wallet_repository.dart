@@ -6,11 +6,12 @@ import '../datasources/wallet_remote_datasource.dart';
 import '../models/loyalty_points_model.dart';
 import '../models/loyalty_tier_model.dart';
 import '../models/loyalty_transaction_model.dart';
+import '../models/wallet_summary_model.dart';
 import '../models/wallet_transaction_model.dart';
 
 /// Abstract interface for wallet repository
 abstract class WalletRepository {
-  Future<double> getBalance();
+  Future<WalletSummary> getBalance();
   Future<List<WalletTransaction>> getTransactions({
     int page = 1,
     int limit = 20,
@@ -28,7 +29,7 @@ class WalletRepositoryImpl implements WalletRepository {
   WalletRepositoryImpl(this._remoteDataSource);
 
   @override
-  Future<double> getBalance() => _remoteDataSource.getBalance();
+  Future<WalletSummary> getBalance() => _remoteDataSource.getBalance();
 
   @override
   Future<List<WalletTransaction>> getTransactions({

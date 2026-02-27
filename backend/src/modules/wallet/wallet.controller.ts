@@ -55,8 +55,8 @@ export class WalletController {
     @ApiResponse({ status: 200, description: 'Wallet balance retrieved successfully', type: ApiResponseDto })
     @ApiAuthErrorResponses()
     async getBalance(@CurrentUser() user: any) {
-        const balance = await this.walletService.getBalance(user.customerId);
-        return ResponseBuilder.success({ balance }, 'Balance retrieved', 'تم استرجاع الرصيد');
+        const summary = await this.walletService.getCustomerWalletSummary(user.customerId);
+        return ResponseBuilder.success(summary, 'Balance retrieved', 'تم استرجاع الرصيد');
     }
 
     @Get('transactions')

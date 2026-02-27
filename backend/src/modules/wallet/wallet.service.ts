@@ -54,6 +54,29 @@ export class WalletService {
     }
 
     /**
+     * Get customer wallet + credit summary
+     */
+    async getCustomerWalletSummary(customerId: string): Promise<{
+        balance: number;
+        creditLimit: number;
+        creditUsed: number;
+        availableCredit: number;
+    }> {
+        const balance = await this.getBalance(customerId);
+        const customer = await this.customerModel.findById(customerId).lean();
+
+        const creditLimit = Number(customer?.creditLimit ?? 0);
+        const creditUsed = Number(customer?.creditUsed ?? 0);
+
+        return {
+            balance,
+            creditLimit,
+            creditUsed,
+            availableCredit: Math.max(0, creditLimit - creditUsed),
+        };
+    }
+
+    /**
      * Credit wallet (add money)
      */
     async credit(data: {
