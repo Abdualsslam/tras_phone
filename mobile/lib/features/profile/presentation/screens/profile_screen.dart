@@ -982,6 +982,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       : AppColors.textSecondaryLight,
                 ),
               ),
+              SizedBox(height: 14.h),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => context.push('/wallet'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  icon: Icon(Iconsax.wallet_3, size: 18.sp),
+                  label: Text(AppLocalizations.of(context)!.wallet),
+                ),
+              ),
             ],
           ),
         ),

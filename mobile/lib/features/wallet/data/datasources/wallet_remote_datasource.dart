@@ -36,16 +36,50 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
 
   WalletRemoteDataSourceImpl(this._apiClient);
 
+  Map<String, dynamic> _asMap(dynamic raw) {
+    if (raw is Map<String, dynamic>) return raw;
+    if (raw is Map) return Map<String, dynamic>.from(raw);
+    return const <String, dynamic>{};
+  }
+
+  bool _isSuccessResponse(Map<String, dynamic> body) {
+    final success = body['success'];
+    if (success is bool) return success;
+
+    final status = body['status']?.toString().toLowerCase();
+    if (status != null && status.isNotEmpty) {
+      return status == 'success' || status == 'ok';
+    }
+
+    final statusCode = body['statusCode'];
+    if (statusCode is num) {
+      return statusCode >= 200 && statusCode < 300;
+    }
+
+    return false;
+  }
+
+  String _extractMessage(Map<String, dynamic> body, String fallback) {
+    final messageAr = body['messageAr'];
+    if (messageAr is String && messageAr.trim().isNotEmpty) return messageAr;
+
+    final message = body['message'];
+    if (message is String && message.trim().isNotEmpty) return message;
+
+    return fallback;
+  }
+
   @override
   Future<double> getBalance() async {
     try {
       final response = await _apiClient.get('/wallet/balance');
-      final data = response.data;
+      final body = _asMap(response.data);
 
-      if (data['success'] == true) {
-        return (data['data']['balance'] ?? 0).toDouble();
+      if (_isSuccessResponse(body)) {
+        final payload = _asMap(body['data']);
+        return (payload['balance'] ?? 0).toDouble();
       }
-      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل في جلب رصيد المحفظة');
+      throw Exception(_extractMessage(body, 'فشل في جلب رصيد المحفظة'));
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('فشل في جلب رصيد المحفظة: ${e.toString()}');
@@ -59,11 +93,8 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
     WalletTransactionType? transactionType,
   }) async {
     try {
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'limit': limit,
-      };
-      
+      final queryParams = <String, dynamic>{'page': page, 'limit': limit};
+
       // Use 'type' parameter as per API documentation
       if (transactionType != null) {
         queryParams['type'] = transactionType.apiValue;
@@ -73,15 +104,15 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
         '/wallet/transactions',
         queryParameters: queryParams,
       );
-      final data = response.data;
+      final body = _asMap(response.data);
 
-      if (data['success'] == true) {
-        final transactionsList = data['data'] as List? ?? [];
+      if (_isSuccessResponse(body)) {
+        final transactionsList = body['data'] as List? ?? [];
         return transactionsList
             .map((t) => WalletTransaction.fromJson(t))
             .toList();
       }
-      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل في جلب معاملات المحفظة');
+      throw Exception(_extractMessage(body, 'فشل في جلب معاملات المحفظة'));
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('فشل في جلب معاملات المحفظة: ${e.toString()}');
@@ -92,12 +123,12 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
   Future<LoyaltyPoints> getPoints() async {
     try {
       final response = await _apiClient.get('/wallet/points');
-      final data = response.data;
+      final body = _asMap(response.data);
 
-      if (data['success'] == true) {
-        return LoyaltyPoints.fromJson(data['data'] ?? {});
+      if (_isSuccessResponse(body)) {
+        return LoyaltyPoints.fromJson(_asMap(body['data']));
       }
-      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل في جلب نقاط الولاء');
+      throw Exception(_extractMessage(body, 'فشل في جلب نقاط الولاء'));
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('فشل في جلب نقاط الولاء: ${e.toString()}');
@@ -108,15 +139,15 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
   Future<List<LoyaltyTransaction>> getPointsTransactions() async {
     try {
       final response = await _apiClient.get('/wallet/points/transactions');
-      final data = response.data;
+      final body = _asMap(response.data);
 
-      if (data['success'] == true) {
-        final transactionsList = data['data'] as List? ?? [];
+      if (_isSuccessResponse(body)) {
+        final transactionsList = body['data'] as List? ?? [];
         return transactionsList
             .map((t) => LoyaltyTransaction.fromJson(t))
             .toList();
       }
-      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل في جلب معاملات النقاط');
+      throw Exception(_extractMessage(body, 'فشل في جلب معاملات النقاط'));
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('فشل في جلب معاملات النقاط: ${e.toString()}');
@@ -127,15 +158,13 @@ class WalletRemoteDataSourceImpl implements WalletRemoteDataSource {
   Future<List<LoyaltyTier>> getTiers() async {
     try {
       final response = await _apiClient.get('/wallet/tiers');
-      final data = response.data;
+      final body = _asMap(response.data);
 
-      if (data['success'] == true) {
-        final tiersList = data['data'] as List? ?? [];
-        return tiersList
-            .map((t) => LoyaltyTier.fromJson(t))
-            .toList();
+      if (_isSuccessResponse(body)) {
+        final tiersList = body['data'] as List? ?? [];
+        return tiersList.map((t) => LoyaltyTier.fromJson(t)).toList();
       }
-      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل في جلب مستويات الولاء');
+      throw Exception(_extractMessage(body, 'فشل في جلب مستويات الولاء'));
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('فشل في جلب مستويات الولاء: ${e.toString()}');
