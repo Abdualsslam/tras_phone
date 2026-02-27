@@ -1288,14 +1288,17 @@ export class SettingsService {
       return this.mapBankAccountToPaymentMethod(updatedAccount, bankTransferBase);
     }
 
+    if (existingMethod.type === PaymentMethodType.BANK_TRANSFER) {
+      throw new BadRequestException(
+        'Base bank transfer method is protected and cannot be modified',
+      );
+    }
+
     const method = await this.paymentMethodModel.findByIdAndUpdate(
       id,
       {
         ...updateData,
-        bankDetails:
-          existingMethod.type === PaymentMethodType.BANK_TRANSFER
-            ? undefined
-            : updateData.bankDetails,
+        bankDetails: updateData.bankDetails,
         lastUpdatedBy: updatedBy ? new Types.ObjectId(updatedBy) : undefined,
       },
       { new: true },
@@ -1307,6 +1310,11 @@ export class SettingsService {
   async deletePaymentMethod(id: string): Promise<void> {
     const method = await this.paymentMethodModel.findById(id);
     if (method) {
+      if (method.type === PaymentMethodType.BANK_TRANSFER) {
+        throw new BadRequestException(
+          'Base bank transfer method is protected and cannot be deleted',
+        );
+      }
       await this.paymentMethodModel.findByIdAndDelete(id);
       return;
     }
