@@ -450,7 +450,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                               sessionState.session,
                             );
                             final isBankTransferSelected =
-                                selectedMethod?.type == 'bank_transfer';
+                                _isBankTransferMethod(selectedMethod);
 
                             if (!isBankTransferSelected) {
                               return const SizedBox.shrink();
@@ -747,7 +747,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   }
 
   Future<void> _fetchBankAccountsIfNeeded(PaymentMethodEntity method) async {
-    if (method.type != 'bank_transfer') {
+    if (!_isBankTransferMethod(method)) {
       return;
     }
     if (_hasRequestedBankAccounts) {
@@ -769,6 +769,10 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     if (state is OrdersError && _bankAccounts.isEmpty) {
       AppSnackbar.showError(context, 'تعذر تحميل الحسابات البنكية');
     }
+  }
+
+  bool _isBankTransferMethod(PaymentMethodEntity? method) {
+    return method?.orderPaymentMethodValue == 'bank_transfer';
   }
 
   Widget _buildBankTransferSection(ThemeData theme, bool isDark) {
@@ -2029,7 +2033,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
               .toDouble()
         : (total - walletAmountToUse).clamp(0, total).toDouble();
     final requiresTransferData =
-        selectedPaymentMethod?.type == 'bank_transfer' && payableNow > 0;
+        _isBankTransferMethod(selectedPaymentMethod) && payableNow > 0;
 
     // تفعيل الزر عند توفر: سلة غير فارغة + عنوان + طريقة دفع
     // التحقق من المخزون والمنتجات غير النشطة يبقى داخل _handlePlaceOrder مع رسالة للمستخدم
