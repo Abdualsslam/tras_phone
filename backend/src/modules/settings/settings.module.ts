@@ -16,6 +16,10 @@ import {
   PaymentMethodSchema,
 } from './schemas/payment-method.schema';
 import { AppVersion, AppVersionSchema } from './schemas/app-version.schema';
+import {
+  BankAccount,
+  BankAccountSchema,
+} from '@modules/orders/schemas/bank-account.schema';
 import { SettingsService } from './settings.service';
 import { AppVersionService } from './app-version.service';
 import { SettingsController } from './settings.controller';
@@ -32,6 +36,7 @@ import { AuthModule } from '@modules/auth/auth.module';
       { name: ShippingZone.name, schema: ShippingZoneSchema },
       { name: PaymentMethod.name, schema: PaymentMethodSchema },
       { name: AppVersion.name, schema: AppVersionSchema },
+      { name: BankAccount.name, schema: BankAccountSchema },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -55,5 +60,6 @@ export class SettingsModule implements OnModuleInit {
   async onModuleInit() {
     await this.settingsService.seedDefaultSettings();
     await this.settingsService.seedDefaultData();
+    await this.settingsService.migrateLegacyBankTransferAccounts();
   }
 }

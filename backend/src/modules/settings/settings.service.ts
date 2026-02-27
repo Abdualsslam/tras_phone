@@ -24,6 +24,10 @@ import {
   PaymentMethodDocument,
   PaymentMethodType,
 } from './schemas/payment-method.schema';
+import {
+  BankAccount,
+  BankAccountDocument,
+} from '@modules/orders/schemas/bank-account.schema';
 
 @Injectable()
 export class SettingsService {
@@ -37,6 +41,8 @@ export class SettingsService {
     private shippingZoneModel: Model<ShippingZoneDocument>,
     @InjectModel(PaymentMethod.name)
     private paymentMethodModel: Model<PaymentMethodDocument>,
+    @InjectModel(BankAccount.name)
+    private bankAccountModel: Model<BankAccountDocument>,
   ) {}
 
   // ==================== Settings ====================
@@ -910,49 +916,22 @@ export class SettingsService {
     };
   }
 
-  // ==================== Payment Methods ====================
+  private hasBankDetails(details?: Record<string, any>): boolean {
+    if (!details) return false;
 
-  async createPaymentMethod(
-    data: Partial<PaymentMethod> & { name?: string },
-  ): Promise<any> {
-    // Convert name to nameEn if provided (for frontend compatibility)
-    const createData: any = { ...data };
-    if (createData.name && !createData.nameEn) {
-      createData.nameEn = createData.name;
-      delete createData.name;
-    }
+    const fields = [
+      details.bankNameAr,
+      details.bankNameEn,
+      details.accountName,
+      details.accountNumber,
+      details.iban,
+      details.swiftCode,
+    ];
 
-    // Keep single image source for admin UI compatibility
-    if (createData.logo && !createData.icon) {
-      createData.icon = createData.logo;
-    } else if (createData.icon && !createData.logo) {
-      createData.logo = createData.icon;
-    } else if (createData.logo && createData.icon && createData.logo !== createData.icon) {
-      createData.icon = createData.logo;
-    }
+    return fields.some((value) => typeof value === 'string' && value.trim());
+  }
 
-    let method: any = null;
-
-    // Keep type unique: if the same type exists, update it instead of creating a duplicate
-    if (createData.type) {
-      const existingMethod = await this.paymentMethodModel.findOne({
-        type: createData.type,
-      });
-
-      if (existingMethod) {
-        method = await this.paymentMethodModel.findByIdAndUpdate(
-          existingMethod._id,
-          createData,
-          { new: true },
-        );
-      }
-    }
-
-    if (!method) {
-      method = await this.paymentMethodModel.create(createData);
-    }
-
-    // Transform to match frontend expectations
+  private mapPaymentMethodResponse(method: any): any {
     return {
       _id: method._id,
       name: method.nameEn,
@@ -976,6 +955,207 @@ export class SettingsService {
       instructionsEn: method.instructionsEn,
       bankDetails: method.bankDetails,
     };
+  }
+
+  private mapBankAccountToPaymentMethod(
+    account: BankAccountDocument,
+    bankTransferBase?: PaymentMethodDocument | null,
+  ): any {
+    return {
+      _id: account._id,
+      name: account.displayName || account.bankName,
+      nameAr:
+        account.displayNameAr ||
+        account.bankNameAr ||
+        account.displayName ||
+        account.bankName,
+      type: PaymentMethodType.BANK_TRANSFER,
+      descriptionAr: bankTransferBase?.descriptionAr || '',
+      descriptionEn: bankTransferBase?.descriptionEn || '',
+      icon: account.logo || bankTransferBase?.logo || bankTransferBase?.icon,
+      logo: account.logo || bankTransferBase?.logo || bankTransferBase?.icon,
+      gateway: bankTransferBase?.gateway || 'none',
+      gatewayConfig: bankTransferBase?.gatewayConfig,
+      fixedFee: bankTransferBase?.fixedFee ?? 0,
+      percentageFee: bankTransferBase?.percentageFee ?? 0,
+      minAmount: bankTransferBase?.minAmount ?? 0,
+      maxAmount: bankTransferBase?.maxAmount,
+      isActive: account.isActive,
+      countries: bankTransferBase?.countries || [],
+      platforms: bankTransferBase?.platforms || ['web', 'mobile'],
+      sortOrder: account.sortOrder ?? bankTransferBase?.sortOrder ?? 0,
+      instructionsAr: account.instructionsAr || bankTransferBase?.instructionsAr || '',
+      instructionsEn: account.instructions || bankTransferBase?.instructionsEn || '',
+      bankDetails: {
+        bankNameAr: account.bankNameAr || '',
+        bankNameEn: account.bankName || '',
+        accountName: account.accountName || '',
+        accountNumber: account.accountNumber || '',
+        iban: account.iban || '',
+        swiftCode: account.bankCode || '',
+      },
+      isBankAccount: true,
+      bankAccountId: account._id,
+    };
+  }
+
+  private buildBankAccountPayloadFromPaymentMethod(data: any): any {
+    const bankDetails = data.bankDetails || {};
+    const bankName =
+      bankDetails.bankNameEn ||
+      bankDetails.bankNameAr ||
+      data.nameEn ||
+      data.nameAr ||
+      'Bank Transfer';
+
+    const accountNumber = bankDetails.accountNumber?.trim();
+    if (!accountNumber) {
+      throw new BadRequestException(
+        'Account number is required when creating bank transfer account',
+      );
+    }
+
+    return {
+      bankName,
+      bankNameAr: bankDetails.bankNameAr || undefined,
+      bankCode: bankDetails.swiftCode || undefined,
+      accountName: bankDetails.accountName || 'Bank Account',
+      accountNameAr: bankDetails.accountName || undefined,
+      accountNumber,
+      iban: bankDetails.iban || undefined,
+      displayName: data.nameEn || bankName,
+      displayNameAr: data.nameAr || bankDetails.bankNameAr || bankName,
+      logo: data.logo || data.icon || undefined,
+      instructions: data.instructionsEn || undefined,
+      instructionsAr: data.instructionsAr || undefined,
+      isActive: typeof data.isActive === 'boolean' ? data.isActive : true,
+      sortOrder: Number.isFinite(data.sortOrder) ? data.sortOrder : 0,
+    };
+  }
+
+  private async ensureBankTransferBaseMethod(data?: any): Promise<PaymentMethodDocument> {
+    const existing = await this.paymentMethodModel.findOne({
+      type: PaymentMethodType.BANK_TRANSFER,
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    return this.paymentMethodModel.create({
+      nameAr: data?.nameAr || 'تحويل بنكي',
+      nameEn: data?.nameEn || 'Bank Transfer',
+      type: PaymentMethodType.BANK_TRANSFER,
+      icon: data?.icon || data?.logo || 'bank',
+      logo: data?.logo || data?.icon || 'bank',
+      gateway: data?.gateway || 'none',
+      fixedFee: data?.fixedFee ?? 0,
+      percentageFee: data?.percentageFee ?? 0,
+      minAmount: data?.minAmount ?? 0,
+      maxAmount: data?.maxAmount,
+      isActive: typeof data?.isActive === 'boolean' ? data.isActive : true,
+      countries: data?.countries || [],
+      platforms: data?.platforms || ['web', 'mobile'],
+      sortOrder: Number.isFinite(data?.sortOrder) ? data.sortOrder : 6,
+      instructionsAr: data?.instructionsAr || '',
+      instructionsEn: data?.instructionsEn || '',
+      bankDetails: undefined,
+    });
+  }
+
+  async migrateLegacyBankTransferAccounts(): Promise<void> {
+    const bankTransferBase = await this.ensureBankTransferBaseMethod();
+
+    if (this.hasBankDetails((bankTransferBase as any).bankDetails)) {
+      const accountNumber = (bankTransferBase as any).bankDetails?.accountNumber?.trim();
+
+      if (accountNumber) {
+        const payload = this.buildBankAccountPayloadFromPaymentMethod(bankTransferBase);
+        const exists = await this.bankAccountModel.findOne({
+          accountNumber: payload.accountNumber,
+        });
+
+        if (!exists) {
+          await this.bankAccountModel.create(payload);
+        }
+      }
+
+      await this.paymentMethodModel.findByIdAndUpdate(bankTransferBase._id, {
+        nameAr: 'تحويل بنكي',
+        nameEn: 'Bank Transfer',
+        $unset: { bankDetails: 1 },
+      });
+    }
+  }
+
+  // ==================== Payment Methods ====================
+
+  async createPaymentMethod(
+    data: Partial<PaymentMethod> & { name?: string },
+  ): Promise<any> {
+    await this.migrateLegacyBankTransferAccounts();
+
+    // Convert name to nameEn if provided (for frontend compatibility)
+    const createData: any = { ...data };
+    if (createData.name && !createData.nameEn) {
+      createData.nameEn = createData.name;
+      delete createData.name;
+    }
+
+    // Keep single image source for admin UI compatibility
+    if (createData.logo && !createData.icon) {
+      createData.icon = createData.logo;
+    } else if (createData.icon && !createData.logo) {
+      createData.logo = createData.icon;
+    } else if (createData.logo && createData.icon && createData.logo !== createData.icon) {
+      createData.icon = createData.logo;
+    }
+
+    if (
+      createData.type === PaymentMethodType.BANK_TRANSFER &&
+      this.hasBankDetails(createData.bankDetails)
+    ) {
+      const bankTransferBase = await this.ensureBankTransferBaseMethod(createData);
+      const accountPayload = this.buildBankAccountPayloadFromPaymentMethod(createData);
+      const account = await this.bankAccountModel.create(accountPayload);
+
+      return this.mapBankAccountToPaymentMethod(account, bankTransferBase);
+    }
+
+    let method: any = null;
+
+    // Keep type unique: for payment methods, update same type instead of duplicate
+    if (createData.type) {
+      const existingMethod = await this.paymentMethodModel.findOne({
+        type: createData.type,
+      });
+
+      if (existingMethod) {
+        method = await this.paymentMethodModel.findByIdAndUpdate(
+          existingMethod._id,
+          {
+            ...createData,
+            bankDetails:
+              createData.type === PaymentMethodType.BANK_TRANSFER
+                ? undefined
+                : createData.bankDetails,
+          },
+          { new: true },
+        );
+      }
+    }
+
+    if (!method) {
+      method = await this.paymentMethodModel.create({
+        ...createData,
+        bankDetails:
+          createData.type === PaymentMethodType.BANK_TRANSFER
+            ? undefined
+            : createData.bankDetails,
+      });
+    }
+
+    return this.mapPaymentMethodResponse(method);
   }
 
   async findActivePaymentMethods(platform?: string): Promise<PaymentMethod[]> {
@@ -995,35 +1175,30 @@ export class SettingsService {
   }
 
   async findAllPaymentMethods(): Promise<any[]> {
+    await this.migrateLegacyBankTransferAccounts();
+
     const methods = await this.paymentMethodModel
       .find()
       .sort({ sortOrder: 1 })
       .exec();
 
-    // Transform to match frontend expectations
-    return methods.map((method) => ({
-      _id: method._id,
-      name: method.nameEn,
-      nameAr: method.nameAr,
-      type: method.type,
-      descriptionAr: method.descriptionAr,
-      descriptionEn: method.descriptionEn,
-      icon: method.logo || method.icon,
-      logo: method.logo || method.icon,
-      gateway: method.gateway,
-      gatewayConfig: method.gatewayConfig,
-      fixedFee: method.fixedFee,
-      percentageFee: method.percentageFee,
-      minAmount: method.minAmount,
-      maxAmount: method.maxAmount,
-      isActive: method.isActive,
-      countries: method.countries,
-      platforms: method.platforms,
-      sortOrder: method.sortOrder,
-      instructionsAr: method.instructionsAr,
-      instructionsEn: method.instructionsEn,
-      bankDetails: method.bankDetails,
-    }));
+    const bankTransferBase = methods.find(
+      (method) => method.type === PaymentMethodType.BANK_TRANSFER,
+    );
+
+    const bankAccounts = await this.bankAccountModel
+      .find()
+      .sort({ sortOrder: 1, createdAt: 1 })
+      .exec();
+
+    const methodResponses = methods.map((method) =>
+      this.mapPaymentMethodResponse(method),
+    );
+    const bankAccountResponses = bankAccounts.map((account) =>
+      this.mapBankAccountToPaymentMethod(account, bankTransferBase),
+    );
+
+    return [...methodResponses, ...bankAccountResponses];
   }
 
   async getPaymentMethodConfig(
@@ -1039,6 +1214,8 @@ export class SettingsService {
     data: Partial<PaymentMethod> & { name?: string },
     updatedBy?: string,
   ): Promise<any> {
+    await this.migrateLegacyBankTransferAccounts();
+
     // Convert name to nameEn if provided (for frontend compatibility)
     const updateData: any = { ...data };
     if (updateData.name && !updateData.nameEn) {
@@ -1054,45 +1231,93 @@ export class SettingsService {
       updateData.icon = updateData.logo;
     }
 
+    const existingMethod = await this.paymentMethodModel.findById(id);
+
+    if (!existingMethod) {
+      const bankAccount = await this.bankAccountModel.findById(id);
+      if (!bankAccount) {
+        throw new NotFoundException('Payment method not found');
+      }
+
+      const bankDetails = updateData.bankDetails || {};
+      const bankUpdatePayload: any = {
+        bankName:
+          bankDetails.bankNameEn ||
+          bankDetails.bankNameAr ||
+          updateData.nameEn ||
+          updateData.nameAr ||
+          bankAccount.bankName,
+        bankNameAr: bankDetails.bankNameAr || updateData.nameAr || bankAccount.bankNameAr,
+        bankCode: bankDetails.swiftCode || bankAccount.bankCode,
+        accountName: bankDetails.accountName || bankAccount.accountName,
+        accountNameAr: bankDetails.accountName || bankAccount.accountNameAr,
+        accountNumber: bankDetails.accountNumber || bankAccount.accountNumber,
+        iban: bankDetails.iban || bankAccount.iban,
+        displayName: updateData.nameEn || bankAccount.displayName,
+        displayNameAr:
+          updateData.nameAr ||
+          bankDetails.bankNameAr ||
+          bankAccount.displayNameAr ||
+          bankAccount.bankNameAr,
+        logo: updateData.logo || updateData.icon || bankAccount.logo,
+        instructions: updateData.instructionsEn || bankAccount.instructions,
+        instructionsAr: updateData.instructionsAr || bankAccount.instructionsAr,
+      };
+
+      if (typeof updateData.isActive === 'boolean') {
+        bankUpdatePayload.isActive = updateData.isActive;
+      }
+
+      if (Number.isFinite(updateData.sortOrder)) {
+        bankUpdatePayload.sortOrder = updateData.sortOrder;
+      }
+
+      const updatedAccount = await this.bankAccountModel.findByIdAndUpdate(
+        id,
+        bankUpdatePayload,
+        { new: true },
+      );
+      if (!updatedAccount) {
+        throw new NotFoundException('Payment method not found');
+      }
+
+      const bankTransferBase = await this.paymentMethodModel.findOne({
+        type: PaymentMethodType.BANK_TRANSFER,
+      });
+
+      return this.mapBankAccountToPaymentMethod(updatedAccount, bankTransferBase);
+    }
+
     const method = await this.paymentMethodModel.findByIdAndUpdate(
       id,
       {
         ...updateData,
+        bankDetails:
+          existingMethod.type === PaymentMethodType.BANK_TRANSFER
+            ? undefined
+            : updateData.bankDetails,
         lastUpdatedBy: updatedBy ? new Types.ObjectId(updatedBy) : undefined,
       },
       { new: true },
     );
-    if (!method) throw new NotFoundException('Payment method not found');
 
-    // Transform to match frontend expectations
-    return {
-      _id: method._id,
-      name: method.nameEn,
-      nameAr: method.nameAr,
-      type: method.type,
-      descriptionAr: method.descriptionAr,
-      descriptionEn: method.descriptionEn,
-      icon: method.logo || method.icon,
-      logo: method.logo || method.icon,
-      gateway: method.gateway,
-      gatewayConfig: method.gatewayConfig,
-      fixedFee: method.fixedFee,
-      percentageFee: method.percentageFee,
-      minAmount: method.minAmount,
-      maxAmount: method.maxAmount,
-      isActive: method.isActive,
-      countries: method.countries,
-      platforms: method.platforms,
-      sortOrder: method.sortOrder,
-      instructionsAr: method.instructionsAr,
-      instructionsEn: method.instructionsEn,
-      bankDetails: method.bankDetails,
-    };
+    return this.mapPaymentMethodResponse(method);
   }
 
   async deletePaymentMethod(id: string): Promise<void> {
-    const method = await this.paymentMethodModel.findByIdAndDelete(id);
-    if (!method) throw new NotFoundException('Payment method not found');
+    const method = await this.paymentMethodModel.findById(id);
+    if (method) {
+      await this.paymentMethodModel.findByIdAndDelete(id);
+      return;
+    }
+
+    const bankAccount = await this.bankAccountModel.findById(id);
+    if (bankAccount) {
+      await this.bankAccountModel.findByIdAndDelete(id);
+      return;
+    }
+
+    throw new NotFoundException('Payment method not found');
   }
 
   // ==================== Seeding ====================
