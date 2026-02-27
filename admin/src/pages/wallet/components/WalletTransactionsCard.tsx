@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { Loader2, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ interface WalletTransactionsCardProps {
   loading: boolean;
   errorMessage?: string;
   showCustomer?: boolean;
+  footer?: ReactNode;
 }
 
 export function WalletTransactionsCard({
@@ -28,6 +30,7 @@ export function WalletTransactionsCard({
   loading,
   errorMessage,
   showCustomer = false,
+  footer,
 }: WalletTransactionsCardProps) {
   return (
     <Card>
@@ -54,11 +57,13 @@ export function WalletTransactionsCard({
               <TableRow>
                 {showCustomer && <TableHead>العميل</TableHead>}
                 <TableHead>النوع</TableHead>
+                <TableHead>رقم المعاملة</TableHead>
                 <TableHead>تصنيف العملية</TableHead>
                 <TableHead>المبلغ</TableHead>
                 <TableHead>قبل</TableHead>
                 <TableHead>بعد</TableHead>
                 <TableHead>المرجع</TableHead>
+                <TableHead>الوصف</TableHead>
                 <TableHead>التاريخ</TableHead>
               </TableRow>
             </TableHeader>
@@ -71,6 +76,7 @@ export function WalletTransactionsCard({
                       {tx.type === "credit" ? "إضافة" : "خصم"}
                     </Badge>
                   </TableCell>
+                  <TableCell className="font-mono text-xs">{tx.transactionNumber || "-"}</TableCell>
                   <TableCell className="font-mono text-xs">{tx.transactionType || "-"}</TableCell>
                   <TableCell className={tx.type === "credit" ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
                     {tx.type === "credit" ? "+" : "-"}
@@ -79,12 +85,15 @@ export function WalletTransactionsCard({
                   <TableCell className="text-muted-foreground">{formatCurrency(tx.balanceBefore)}</TableCell>
                   <TableCell className="font-medium">{formatCurrency(tx.balanceAfter)}</TableCell>
                   <TableCell className="font-mono text-xs">{tx.referenceNumber || tx.reference || "-"}</TableCell>
+                  <TableCell className="text-sm">{tx.description || "-"}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{formatDate(tx.createdAt)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
+
+        {footer && <div className="mt-4">{footer}</div>}
       </CardContent>
     </Card>
   );
