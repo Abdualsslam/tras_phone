@@ -44,6 +44,7 @@ abstract class OrdersRemoteDataSource {
     String? customerNotes,
     String? couponCode,
     double? walletAmountUsed,
+    String? bankAccountId,
     String? receiptImage,
     String? transferReference,
     String? transferDate,
@@ -219,6 +220,7 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     String? customerNotes,
     String? couponCode,
     double? walletAmountUsed,
+    String? bankAccountId,
     String? receiptImage,
     String? transferReference,
     String? transferDate,
@@ -237,6 +239,7 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
         if (couponCode != null) 'couponCode': couponCode,
         if (walletAmountUsed != null && walletAmountUsed > 0)
           'walletAmountUsed': walletAmountUsed,
+        if (bankAccountId != null) 'bankAccountId': bankAccountId,
         if (receiptImage != null) 'receiptImage': receiptImage,
         if (transferReference != null) 'transferReference': transferReference,
         if (transferDate != null) 'transferDate': transferDate,

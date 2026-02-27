@@ -53,6 +53,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
   DateTime? _transferDate;
   String? _receiptImagePath;
+  String? _selectedBankAccountId;
   bool _isLoadingBankAccounts = false;
   bool _hasRequestedBankAccounts = false;
   List<BankAccountEntity> _bankAccounts = const [];
@@ -91,8 +92,26 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     return BlocListener<OrdersCubit, OrdersState>(
       listener: (context, ordersState) {
         if (ordersState is BankAccountsLoaded) {
+          String? nextSelectedBankId = _selectedBankAccountId;
+          final hasCurrent = ordersState.accounts.any(
+            (account) => account.id == _selectedBankAccountId,
+          );
+          if (!hasCurrent) {
+            final defaultAccount = ordersState.accounts.where(
+              (a) => a.isDefault,
+            );
+            if (defaultAccount.isNotEmpty) {
+              nextSelectedBankId = defaultAccount.first.id;
+            } else if (ordersState.accounts.isNotEmpty) {
+              nextSelectedBankId = ordersState.accounts.first.id;
+            } else {
+              nextSelectedBankId = null;
+            }
+          }
+
           setState(() {
             _bankAccounts = ordersState.accounts;
+            _selectedBankAccountId = nextSelectedBankId;
             _isLoadingBankAccounts = false;
           });
         }
@@ -742,7 +761,12 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   }
 
   void _onSelectPaymentMethod(PaymentMethodEntity method) {
-    setState(() => _selectedPaymentMethodId = method.id);
+    setState(() {
+      _selectedPaymentMethodId = method.id;
+      if (!_isBankTransferMethod(method)) {
+        _selectedBankAccountId = null;
+      }
+    });
     _fetchBankAccountsIfNeeded(method);
   }
 
@@ -751,6 +775,14 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       return;
     }
     if (_hasRequestedBankAccounts) {
+      if (_selectedBankAccountId == null && _bankAccounts.isNotEmpty) {
+        final defaultAccount = _bankAccounts.where((a) => a.isDefault);
+        setState(() {
+          _selectedBankAccountId = defaultAccount.isNotEmpty
+              ? defaultAccount.first.id
+              : _bankAccounts.first.id;
+        });
+      }
       return;
     }
 
@@ -776,8 +808,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   }
 
   Widget _buildBankTransferSection(ThemeData theme, bool isDark) {
-    final locale = Localizations.localeOf(context).languageCode;
-
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
@@ -949,76 +979,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           ),
           SizedBox(height: 14.h),
           Text(
-            'الحسابات البنكية',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
+            'ستجد البنوك المدعومة تحت خيار "تحويل بنكي" بالأعلى.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondaryLight,
             ),
           ),
-          SizedBox(height: 8.h),
-          if (_isLoadingBankAccounts)
-            const Center(child: CircularProgressIndicator())
-          else if (_bankAccounts.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(12.w),
-              decoration: BoxDecoration(
-                color: AppColors.info.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(
-                  color: AppColors.info.withValues(alpha: 0.25),
-                ),
-              ),
-              child: Text(
-                'يرجى التحويل إلى أحد الحسابات البنكية المعتمدة ثم رفع الإيصال.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.info,
-                ),
-              ),
-            )
-          else
-            ..._bankAccounts.map((account) {
-              return Padding(
-                padding: EdgeInsets.only(bottom: 8.h),
-                child: Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(12.w),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.cardDark : AppColors.cardLight,
-                    borderRadius: BorderRadius.circular(10.r),
-                    border: Border.all(
-                      color: isDark
-                          ? AppColors.dividerDark
-                          : AppColors.dividerLight,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        account.getDisplayName(locale),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        'رقم الحساب: ${account.accountNumber}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondaryLight,
-                        ),
-                      ),
-                      if (account.iban != null && account.iban!.isNotEmpty)
-                        Text(
-                          'IBAN: ${account.iban}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondaryLight,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            }),
         ],
       ),
     );
@@ -1354,6 +1319,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 mergedCreditMethod != null &&
                 isSelected)
               _buildCreditInfoPanel(theme, isDark, mergedCreditMethod),
+            if (_isBankTransferMethod(method) && isSelected)
+              _buildSupportedBanksPanel(theme, isDark),
             // Wallet balance details panel
             if (method.type == 'wallet' && isSelected)
               _buildWalletInfoPanel(theme, isDark),
@@ -1501,6 +1468,186 @@ class _CheckoutScreenState extends State<CheckoutScreen>
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSupportedBanksPanel(ThemeData theme, bool isDark) {
+    final locale = Localizations.localeOf(context).languageCode;
+
+    return Container(
+      margin: EdgeInsets.only(top: 8.h),
+      padding: EdgeInsets.all(10.w),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.surfaceDark.withValues(alpha: 0.5)
+            : AppColors.primary.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(
+          color: isDark
+              ? AppColors.dividerDark
+              : AppColors.primary.withValues(alpha: 0.1),
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'البنوك المدعومة',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'اختر البنك الذي قمت بالتحويل إليه',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondaryLight,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          if (_isLoadingBankAccounts)
+            const Center(child: CircularProgressIndicator())
+          else if (_bankAccounts.isEmpty)
+            Text(
+              'لا توجد حسابات بنكية متاحة حالياً',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondaryLight,
+              ),
+            )
+          else
+            ..._bankAccounts.map((account) {
+              final isSelected = _selectedBankAccountId == account.id;
+              return GestureDetector(
+                onTap: () =>
+                    setState(() => _selectedBankAccountId = account.id),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  margin: EdgeInsets.only(bottom: 8.h),
+                  padding: EdgeInsets.all(10.w),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.cardDark
+                        : (isSelected
+                              ? AppColors.primary.withValues(alpha: 0.05)
+                              : AppColors.cardLight),
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primary
+                          : (isDark
+                                ? AppColors.dividerDark
+                                : AppColors.dividerLight),
+                      width: isSelected ? 1.4 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 34.w,
+                        height: 34.w,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: account.logo != null && account.logo!.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8.r),
+                                child: Image.network(
+                                  account.logo!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, error, stackTrace) => Icon(
+                                    Iconsax.bank,
+                                    size: 16.sp,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              )
+                            : Icon(
+                                Iconsax.bank,
+                                size: 16.sp,
+                                color: AppColors.primary,
+                              ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    account.getDisplayName(locale),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                if (account.isDefault)
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 6.w,
+                                      vertical: 2.h,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.success.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4.r),
+                                    ),
+                                    child: Text(
+                                      'افتراضي',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            fontSize: 10.sp,
+                                            color: AppColors.success,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              'اسم الحساب: ${account.getAccountName(locale)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.textSecondaryLight,
+                              ),
+                            ),
+                            Text(
+                              'رقم الحساب: ${account.accountNumber}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.textSecondaryLight,
+                              ),
+                            ),
+                            if (account.iban != null &&
+                                account.iban!.isNotEmpty)
+                              Text(
+                                'IBAN: ${account.iban}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.textSecondaryLight,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Icon(
+                        isSelected ? Iconsax.tick_circle5 : Iconsax.tick_circle,
+                        size: 22.sp,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.textTertiaryLight,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
         ],
       ),
     );
@@ -2043,7 +2190,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         session.addresses.isNotEmpty &&
         _selectedPaymentMethodId != null &&
         session.paymentMethods.isNotEmpty &&
-        (!requiresTransferData || _receiptImagePath != null);
+        (!requiresTransferData ||
+            (_receiptImagePath != null && _selectedBankAccountId != null));
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -2188,17 +2336,28 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       );
 
       String? receiptImage;
+      String? bankAccountId;
       String? transferReference;
       String? transferDate;
       String? transferNotes;
 
       if (paymentMethod == OrderPaymentMethod.bankTransfer && payableNow > 0) {
+        if (_selectedBankAccountId == null) {
+          Navigator.of(context).pop();
+          AppSnackbar.showError(
+            context,
+            'يرجى اختيار البنك الذي تم التحويل إليه',
+          );
+          return;
+        }
+
         if (_receiptImagePath == null) {
           Navigator.of(context).pop();
           AppSnackbar.showError(context, 'يرجى رفع إيصال التحويل البنكي');
           return;
         }
 
+        bankAccountId = _selectedBankAccountId;
         final file = File(_receiptImagePath!);
         final bytes = await file.readAsBytes();
         receiptImage = base64Encode(bytes);
@@ -2220,6 +2379,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         paymentMethod: paymentMethod,
         couponCode: couponCode,
         walletAmountUsed: walletAmountToUse > 0 ? walletAmountToUse : null,
+        bankAccountId: bankAccountId,
         receiptImage: receiptImage,
         transferReference: transferReference,
         transferDate: transferDate,

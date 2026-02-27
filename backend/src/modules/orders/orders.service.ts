@@ -314,6 +314,26 @@ export class OrdersService {
       );
     }
 
+    let selectedBankAccountId: Types.ObjectId | undefined;
+    if (requiresBankTransferReceipt) {
+      const bankAccountId = data.bankAccountId?.trim();
+      if (!bankAccountId) {
+        throw new BadRequestException(
+          'Bank account selection is required for bank transfer orders',
+        );
+      }
+
+      const bankAccount = await this.bankAccountModel
+        .findOne({ _id: bankAccountId, isActive: true })
+        .select('_id')
+        .lean();
+      if (!bankAccount) {
+        throw new BadRequestException('Selected bank account is invalid');
+      }
+
+      selectedBankAccountId = new Types.ObjectId(bankAccountId);
+    }
+
     const transferReference =
       requiresBankTransferReceipt && data.transferReference?.trim()
         ? data.transferReference.trim()
@@ -400,6 +420,7 @@ export class OrdersService {
       paidAmount,
       paymentStatus,
       transferStatus,
+      bankAccountId: selectedBankAccountId,
       transferReceiptImage,
       transferReference,
       transferDate,
@@ -1580,6 +1601,17 @@ export class OrdersService {
     const remainingAmount = Math.max(0, (order.total || 0) - (order.paidAmount || 0));
     if (remainingAmount <= 0) {
       throw new BadRequestException('Order is already fully paid');
+    }
+
+    if (data.bankAccountId) {
+      const bankAccount = await this.bankAccountModel
+        .findOne({ _id: data.bankAccountId, isActive: true })
+        .select('_id')
+        .lean();
+      if (!bankAccount) {
+        throw new BadRequestException('Selected bank account is invalid');
+      }
+      order.bankAccountId = new Types.ObjectId(data.bankAccountId);
     }
 
     // Update order with receipt info

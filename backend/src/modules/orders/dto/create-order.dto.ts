@@ -169,4 +169,13 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiProperty({
+    description: 'Selected bank account ID for bank transfer',
+    example: '507f1f77bcf86cd799439011',
+    required: false,
+  })
+  @IsOptional()
+  @IsMongoId()
+  bankAccountId?: string;
 }
