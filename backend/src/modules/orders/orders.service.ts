@@ -302,6 +302,38 @@ export class OrdersService {
     }
 
     const remainingAfterWallet = total - walletAmountUsed;
+    const requiresBankTransferReceipt =
+      paymentMethod === 'bank_transfer' && remainingAfterWallet > 0;
+
+    const transferReceiptImage = requiresBankTransferReceipt
+      ? data.receiptImage?.trim()
+      : undefined;
+    if (requiresBankTransferReceipt && !transferReceiptImage) {
+      throw new BadRequestException(
+        'Bank transfer receipt image is required for this order',
+      );
+    }
+
+    const transferReference =
+      requiresBankTransferReceipt && data.transferReference?.trim()
+        ? data.transferReference.trim()
+        : undefined;
+
+    let transferDate: Date | undefined;
+    if (requiresBankTransferReceipt && data.transferDate) {
+      const parsedDate = new Date(data.transferDate);
+      if (Number.isNaN(parsedDate.getTime())) {
+        throw new BadRequestException(
+          'Invalid transferDate format. Use YYYY-MM-DD',
+        );
+      }
+      transferDate = parsedDate;
+    }
+
+    const transferNotes =
+      requiresBankTransferReceipt && data.notes?.trim()
+        ? data.notes.trim()
+        : undefined;
 
     // Validate credit limit when paying with credit
     if (paymentMethod === 'credit') {
@@ -347,8 +379,8 @@ export class OrdersService {
     const paymentStatus =
       paidAmount <= 0 ? 'unpaid' : paidAmount >= total ? 'paid' : 'partial';
     const transferStatus =
-      paymentMethod === 'bank_transfer' && remainingAfterWallet > 0
-        ? 'awaiting_receipt'
+      requiresBankTransferReceipt
+        ? 'receipt_uploaded'
         : 'not_required';
 
     // Create order (currency default SAR)
@@ -368,6 +400,9 @@ export class OrdersService {
       paidAmount,
       paymentStatus,
       transferStatus,
+      transferReceiptImage,
+      transferReference,
+      transferDate,
       currencyCode: 'SAR',
       couponId,
       couponCode,
@@ -378,6 +413,14 @@ export class OrdersService {
       customerNotes: data.customerNotes,
       source: data.source || 'mobile',
     });
+
+    if (transferNotes) {
+      await this.addNote(
+        order._id.toString(),
+        transferNotes,
+        'payment_receipt',
+      );
+    }
 
     // Create order items with product details
     this.logger.debug(

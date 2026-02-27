@@ -72,9 +72,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
     if (_error != null || _order == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('الفاتورة')),
-        body: AppError(
-          message: _error ?? 'لم يتم العثور على الطلب',
-        ),
+        body: AppError(message: _error ?? 'لم يتم العثور على الطلب'),
       );
     }
 
@@ -118,7 +116,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'فاتورة ضريبية',
+                        'تفاصيل الطلب',
                         style: TextStyle(
                           fontSize: 24.sp,
                           fontWeight: FontWeight.w700,
@@ -476,8 +474,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
   }) {
     final effective = effectiveQuantity ?? (qty - returnedQuantity);
     final displayQty = returnedQuantity > 0 ? effective : qty;
-    final displayTotal =
-        returnedQuantity > 0 ? (effective * price) : total;
+    final displayTotal = returnedQuantity > 0 ? (effective * price) : total;
 
     return Container(
       padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
@@ -498,7 +495,9 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
               children: [
                 Row(
                   children: [
-                    Flexible(child: Text(name, style: TextStyle(fontSize: 12.sp))),
+                    Flexible(
+                      child: Text(name, style: TextStyle(fontSize: 12.sp)),
+                    ),
                     if (returnedQuantity > 0) ...[
                       SizedBox(width: 6.w),
                       Chip(
@@ -511,7 +510,9 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
                           horizontal: 6.w,
                           vertical: 2.h,
                         ),
-                        backgroundColor: AppColors.warning.withValues(alpha: 0.15),
+                        backgroundColor: AppColors.warning.withValues(
+                          alpha: 0.15,
+                        ),
                       ),
                     ],
                   ],

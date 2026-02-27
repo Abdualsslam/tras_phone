@@ -44,6 +44,10 @@ abstract class OrdersRemoteDataSource {
     String? customerNotes,
     String? couponCode,
     double? walletAmountUsed,
+    String? receiptImage,
+    String? transferReference,
+    String? transferDate,
+    String? transferNotes,
   });
 
   /// Cancel order (reason is required by API)
@@ -161,7 +165,8 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     final isEffectivelyFullyReturned =
         apiItem['isEffectivelyFullyReturned'] as bool? ?? false;
     return {
-      if (orderItemIdStr != null && orderItemIdStr.isNotEmpty) '_id': orderItemIdStr,
+      if (orderItemIdStr != null && orderItemIdStr.isNotEmpty)
+        '_id': orderItemIdStr,
       'productId': productIdStr ?? '',
       'sku': apiItem['productSku'] ?? apiItem['sku'] ?? '',
       'name': apiItem['productName'] ?? apiItem['name'] ?? '',
@@ -214,6 +219,10 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     String? customerNotes,
     String? couponCode,
     double? walletAmountUsed,
+    String? receiptImage,
+    String? transferReference,
+    String? transferDate,
+    String? transferNotes,
   }) async {
     developer.log('Creating order', name: 'OrdersDataSource');
 
@@ -228,6 +237,10 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
         if (couponCode != null) 'couponCode': couponCode,
         if (walletAmountUsed != null && walletAmountUsed > 0)
           'walletAmountUsed': walletAmountUsed,
+        if (receiptImage != null) 'receiptImage': receiptImage,
+        if (transferReference != null) 'transferReference': transferReference,
+        if (transferDate != null) 'transferDate': transferDate,
+        if (transferNotes != null) 'notes': transferNotes,
       },
     );
 

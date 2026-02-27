@@ -69,6 +69,10 @@ class OrdersCubit extends Cubit<OrdersState> {
     String? customerNotes,
     String? couponCode,
     double? walletAmountUsed,
+    String? receiptImage,
+    String? transferReference,
+    String? transferDate,
+    String? transferNotes,
   }) async {
     try {
       return await _dataSource.createOrder(
@@ -78,6 +82,10 @@ class OrdersCubit extends Cubit<OrdersState> {
         customerNotes: customerNotes,
         couponCode: couponCode,
         walletAmountUsed: walletAmountUsed,
+        receiptImage: receiptImage,
+        transferReference: transferReference,
+        transferDate: transferDate,
+        transferNotes: transferNotes,
       );
     } catch (e) {
       emit(OrdersError(e.toString()));
