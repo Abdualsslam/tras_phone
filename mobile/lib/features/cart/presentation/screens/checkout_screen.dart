@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../promotions/presentation/widgets/coupon_input.dart';
 import '../../../promotions/data/models/coupon_validation_model.dart';
@@ -79,11 +80,14 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             }
           }
           // Auto-select first payment method if not selected
+          final displayPaymentMethods = _buildDisplayPaymentMethods(
+            state.session.paymentMethods,
+          );
           if (_selectedPaymentMethodId == null &&
-              state.session.paymentMethods.isNotEmpty) {
+              displayPaymentMethods.isNotEmpty) {
             setState(
               () => _selectedPaymentMethodId =
-                  state.session.paymentMethods.first.id,
+                  displayPaymentMethods.first.id,
             );
           }
           // Set coupon if applied from session
@@ -91,12 +95,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             _appliedCoupon = state.session.coupon?.toCouponValidation();
           }
         } else if (state is CheckoutSessionCouponError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          AppSnackbar.showError(context, state.message);
         }
       },
       builder: (context, state) {
@@ -123,33 +122,10 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 onPressed: () => context.pop(),
               ),
             ),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
-                  SizedBox(height: 16.h),
-                  Text(
-                    'حدث خطأ أثناء تحميل البيانات',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    state.message,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondaryLight,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 24.h),
-                  ElevatedButton.icon(
-                    onPressed: () =>
-                        context.read<CheckoutSessionCubit>().loadSession(),
-                    icon: const Icon(Iconsax.refresh),
-                    label: const Text('إعادة المحاولة'),
-                  ),
-                ],
-              ),
+            body: AppError(
+              title: 'حدث خطأ أثناء تحميل البيانات',
+              message: state.message,
+              onRetry: () => context.read<CheckoutSessionCubit>().loadSession(),
             ),
           );
         }
@@ -338,11 +314,28 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                           if (sessionState is! CheckoutSessionLoaded) {
                             return const SizedBox.shrink();
                           }
-                          final paymentMethods =
-                              sessionState.session.paymentMethods;
+                          final paymentMethods = _buildDisplayPaymentMethods(
+                            sessionState.session.paymentMethods,
+                          );
+                          PaymentMethodEntity? mergedCreditMethod;
+                          if (_isWalletCreditMerged(
+                            sessionState.session.paymentMethods,
+                          )) {
+                            for (final method
+                                in sessionState.session.paymentMethods) {
+                              if (method.type == 'credit') {
+                                mergedCreditMethod = method;
+                                break;
+                              }
+                            }
+                          }
 
                           // Set default payment method if not selected
-                          if (_selectedPaymentMethodId == null &&
+                          final selectedIdExists = paymentMethods.any(
+                            (m) => m.id == _selectedPaymentMethodId,
+                          );
+                          if ((_selectedPaymentMethodId == null ||
+                                  !selectedIdExists) &&
                               paymentMethods.isNotEmpty) {
                             WidgetsBinding.instance.addPostFrameCallback((_) {
                               setState(
@@ -401,6 +394,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                   theme,
                                   isDark,
                                   method,
+                                  isWalletCreditMerged:
+                                      _isWalletCreditMerged(
+                                        sessionState.session.paymentMethods,
+                                      ),
+                                  mergedCreditMethod: mergedCreditMethod,
                                   isSelected:
                                       _selectedPaymentMethodId == method.id,
                                 );
@@ -446,6 +444,32 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                               (_appliedCoupon?.discountAmount ?? 0) +
                               session.cart.shippingCost +
                               session.cart.taxAmount;
+                          PaymentMethodEntity? creditMethod;
+                          for (final method in session.paymentMethods) {
+                            if (method.type == 'credit') {
+                              creditMethod = method;
+                              break;
+                            }
+                          }
+                          final availableCredit =
+                              (creditMethod?.availableCredit ?? 0).toDouble();
+                          final walletAutoUse =
+                              (walletBalance < orderTotal
+                                      ? walletBalance
+                                      : orderTotal)
+                                  .toDouble();
+                          final creditAutoUse =
+                              isWalletMethodSelected && orderTotal > walletAutoUse
+                              ? ((orderTotal - walletAutoUse) > availableCredit
+                                    ? availableCredit
+                                    : (orderTotal - walletAutoUse))
+                              : 0.0;
+                          final remainingAfterWalletAndCredit =
+                              isWalletMethodSelected
+                              ? (orderTotal - walletAutoUse - creditAutoUse)
+                                    .clamp(0, orderTotal)
+                                    .toDouble()
+                              : 0.0;
 
                           if (isWalletMethodSelected && _useWalletBalance) {
                             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -500,11 +524,37 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                 ),
                                 SizedBox(height: 10.h),
                                 if (isWalletMethodSelected)
-                                  Text(
-                                    'تم اختيار الدفع بالمحفظة، سيتم استخدام كامل المبلغ تلقائياً.',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondaryLight,
-                                    ),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'تم اختيار الدفع بالمحفظة، سيتم الخصم من المحفظة أولاً ثم من حد الائتمان تلقائياً.',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color:
+                                                  AppColors.textSecondaryLight,
+                                            ),
+                                      ),
+                                      SizedBox(height: 8.h),
+                                      Text(
+                                        'من المحفظة: ${walletAutoUse.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                      Text(
+                                        'من الائتمان: ${creditAutoUse.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                      if (remainingAfterWalletAndCredit > 0)
+                                        Text(
+                                          'المتبقي بعد المحفظة والائتمان: ${remainingAfterWalletAndCredit.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: AppColors.error,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                    ],
                                   )
                                 else ...[
                                   SwitchListTile.adaptive(
@@ -775,10 +825,20 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     ThemeData theme,
     bool isDark,
     PaymentMethodEntity method, {
+    bool isWalletCreditMerged = false,
+    PaymentMethodEntity? mergedCreditMethod,
     required bool isSelected,
   }) {
     final locale = Localizations.localeOf(context).languageCode;
     final iconData = _getPaymentMethodIcon(method.type);
+    final displayName =
+        isWalletCreditMerged && method.type == 'wallet'
+        ? 'المحفظة + الآجل'
+        : method.getName(locale);
+    final displayDescription =
+        isWalletCreditMerged && method.type == 'wallet'
+        ? 'خصم تلقائي من المحفظة ثم من حد الائتمان'
+        : method.getDescription(locale);
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPaymentMethodId = method.id),
@@ -831,7 +891,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        method.getName(locale),
+                        displayName,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                           fontSize: 14.sp,
@@ -839,10 +899,10 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (method.getDescription(locale) != null) ...[
+                      if (displayDescription != null) ...[
                         SizedBox(height: 2.h),
                         Text(
-                          method.getDescription(locale)!,
+                          displayDescription,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.textTertiaryLight,
                             fontSize: 12.sp,
@@ -887,6 +947,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             // Credit limit details panel
             if (method.isCreditMethod && method.creditLimit != null)
               _buildCreditInfoPanel(theme, isDark, method),
+            if (isWalletCreditMerged &&
+                method.type == 'wallet' &&
+                mergedCreditMethod != null &&
+                isSelected)
+              _buildCreditInfoPanel(theme, isDark, mergedCreditMethod),
             // Wallet balance details panel
             if (method.type == 'wallet' && isSelected)
               _buildWalletInfoPanel(theme, isDark),
@@ -1529,7 +1594,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     required double walletBalance,
   }) {
     if (selectedPaymentMethod?.type == 'wallet') {
-      return orderTotal;
+      return walletBalance < orderTotal ? walletBalance : orderTotal;
     }
 
     if (!_useWalletBalance) return 0;
@@ -1559,7 +1624,12 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       selectedPaymentMethod: selectedPaymentMethod,
       walletBalance: _resolveWalletBalance(),
     );
-    final payableNow = (total - walletAmountToUse).clamp(0, total).toDouble();
+    final availableCredit = _resolveAvailableCredit(session);
+    final payableNow = selectedPaymentMethod?.type == 'wallet'
+        ? (total - walletAmountToUse - availableCredit)
+              .clamp(0, total)
+              .toDouble()
+        : (total - walletAmountToUse).clamp(0, total).toDouble();
 
     // تفعيل الزر عند توفر: سلة غير فارغة + عنوان + طريقة دفع
     // التحقق من المخزون والمنتجات غير النشطة يبقى داخل _handlePlaceOrder مع رسالة للمستخدم
@@ -1606,9 +1676,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   Future<void> _handlePlaceOrder(CheckoutSessionEntity session) async {
     // التحقق من أن السلة ليست فارغة
     if (session.cart.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('السلة فارغة')));
+      AppSnackbar.showError(context, 'السلة فارغة');
       return;
     }
 
@@ -1655,17 +1723,13 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
       if (selectedAddress == null) {
         Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('يرجى اختيار عنوان التوصيل')),
-        );
+        AppSnackbar.showError(context, 'يرجى اختيار عنوان التوصيل');
         return;
       }
 
       if (selectedPaymentMethod == null) {
         Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('يرجى اختيار طريقة الدفع')),
-        );
+        AppSnackbar.showError(context, 'يرجى اختيار طريقة الدفع');
         return;
       }
 
@@ -1686,41 +1750,17 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         walletBalance: walletBalance,
       );
 
-      if (selectedPaymentMethod.type == 'wallet' &&
-          walletBalance < orderTotal) {
-        Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'رصيد المحفظة غير كافٍ. المتاح ${walletBalance.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
-            ),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        return;
-      }
-
       if (_useWalletBalance && selectedPaymentMethod.type != 'wallet') {
         final enteredAmount = _parseWalletAmountInput();
         if (enteredAmount <= 0) {
           Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('يرجى إدخال مبلغ صحيح من المحفظة'),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          AppSnackbar.showError(context, 'يرجى إدخال مبلغ صحيح من المحفظة');
           return;
         }
 
         if (enteredAmount > walletBalance || enteredAmount > orderTotal) {
           Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('المبلغ المدخل من المحفظة أكبر من الحد المسموح'),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          AppSnackbar.showError(context, 'المبلغ المدخل من المحفظة أكبر من الحد المسموح');
           return;
         }
       }
@@ -1767,22 +1807,12 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           context.go('/order-details/${order.id}');
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('فشل إنشاء الطلب. حاول مرة أخرى.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppSnackbar.showError(context, 'فشل إنشاء الطلب. حاول مرة أخرى.');
       }
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('خطأ: ${e.toString()}'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      AppSnackbar.showError(context, 'خطأ: ${e.toString()}');
     }
   }
 
@@ -1805,6 +1835,38 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       default:
         return Iconsax.money;
     }
+  }
+
+  List<PaymentMethodEntity> _buildDisplayPaymentMethods(
+    List<PaymentMethodEntity> methods,
+  ) {
+    if (!_isWalletCreditMerged(methods)) {
+      return methods;
+    }
+
+    return methods.where((method) => method.type != 'credit').toList();
+  }
+
+  bool _isWalletCreditMerged(List<PaymentMethodEntity> methods) {
+    bool hasWallet = false;
+    bool hasCredit = false;
+
+    for (final method in methods) {
+      if (method.type == 'wallet') hasWallet = true;
+      if (method.type == 'credit') hasCredit = true;
+    }
+
+    return hasWallet && hasCredit;
+  }
+
+  double _resolveAvailableCredit(CheckoutSessionEntity session) {
+    for (final method in session.paymentMethods) {
+      if (method.type == 'credit') {
+        return (method.availableCredit ?? 0).toDouble();
+      }
+    }
+
+    return 0;
   }
 }
 

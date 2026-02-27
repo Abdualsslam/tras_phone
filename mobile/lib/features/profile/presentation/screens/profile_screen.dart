@@ -7,16 +7,25 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../../auth/domain/entities/customer_entity.dart';
 import '../../domain/entities/address_entity.dart';
 import '../../presentation/cubit/profile_cubit.dart';
 import '../../presentation/cubit/profile_state.dart';
 import '../../../../l10n/app_localizations.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  CustomerEntity? _cachedCustomer;
 
   @override
   Widget build(BuildContext context) {
@@ -39,9 +48,26 @@ class ProfileScreen extends StatelessWidget {
           if (authState is AuthAuthenticated) {
             return BlocBuilder<ProfileCubit, ProfileState>(
               builder: (context, profileState) {
+                final customer = _extractCustomer(profileState);
+                if (customer != null) {
+                  _cachedCustomer = customer;
+                  return _buildProfileContent(context, theme, isDark, customer);
+                }
+
                 if (profileState is ProfileLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (profileState is ProfileError) {
+                  if (_cachedCustomer == null) {
+                    return const ProfileShimmer();
+                  }
+
+                  return _buildProfileContent(
+                    context,
+                    theme,
+                    isDark,
+                    _cachedCustomer!,
+                  );
+                }
+
+                if (profileState is ProfileError) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -68,113 +94,118 @@ class ProfileScreen extends StatelessWidget {
                       ],
                     ),
                   );
-                } else if (profileState is ProfileLoaded ||
-                    profileState is ProfileUpdated) {
-                  final customer = (profileState is ProfileLoaded
-                      ? profileState.customer
-                      : (profileState as ProfileUpdated).customer);
-
-                  return RefreshIndicator(
-                    onRefresh: () => context.read<ProfileCubit>().loadProfile(),
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.all(16.w),
-                      child: Column(
-                        children: [
-                          // Profile Header
-                          _buildProfileHeader(context, theme, isDark, customer),
-                          SizedBox(height: 24.h),
-
-                          // Statistics Grid
-                          _buildSectionTitle(
-                            theme,
-                            isDark,
-                            AppLocalizations.of(context)!.statistics,
-                          ),
-                          SizedBox(height: 12.h),
-                          _buildStatsGrid(context, theme, isDark, customer),
-                          SizedBox(height: 12.h),
-
-                          // Business Info
-                          _buildSectionTitle(
-                            theme,
-                            isDark,
-                            AppLocalizations.of(context)!.businessInfo,
-                          ),
-                          SizedBox(height: 12.h),
-                          _buildBusinessInfoCard(
-                            context,
-                            theme,
-                            isDark,
-                            customer,
-                          ),
-                          SizedBox(height: 12.h),
-
-                          // Location Info - Default Address
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              _buildSectionTitle(
-                                theme,
-                                isDark,
-                                AppLocalizations.of(context)!.deliveryAddresses,
-                              ),
-                              SizedBox(height: 12.h),
-                              _buildLocationInfoCard(context, theme, isDark),
-                              SizedBox(height: 24.h),
-                            ],
-                          ),
-
-                          // Wallet & Credit
-                          _buildSectionTitle(
-                            theme,
-                            isDark,
-                            AppLocalizations.of(context)!.walletAndCredit,
-                          ),
-                          SizedBox(height: 12.h),
-                          _buildWalletCard(context, theme, isDark, customer),
-                          SizedBox(height: 12.h),
-                          _buildReturnsCard(context, theme, isDark),
-                          SizedBox(height: 12.h),
-                          _buildSupportCard(context, theme, isDark),
-                          SizedBox(height: 12.h),
-                          _buildEducationCenterCard(context, theme, isDark),
-                          SizedBox(height: 24.h),
-
-                          // Logout Button
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: () => _showLogoutDialog(context),
-                              icon: const Icon(
-                                Iconsax.logout,
-                                color: AppColors.error,
-                              ),
-                              label: Text(
-                                AppLocalizations.of(context)!.logout,
-                                style: const TextStyle(color: AppColors.error),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: AppColors.error),
-                                padding: EdgeInsets.symmetric(vertical: 16.h),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14.r),
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 88.h), // Extra space for nav bar
-                        ],
-                      ),
-                    ),
-                  );
                 }
-                return const SizedBox();
+
+                return const ProfileShimmer();
               },
             );
           }
           return _buildUnauthenticatedContent(context, theme);
         },
+      ),
+    );
+  }
+
+  CustomerEntity? _extractCustomer(ProfileState state) {
+    if (state is ProfileLoaded) {
+      return state.customer;
+    }
+    if (state is ProfileUpdated) {
+      return state.customer;
+    }
+    return null;
+  }
+
+  Widget _buildProfileContent(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    CustomerEntity customer,
+  ) {
+    return RefreshIndicator(
+      onRefresh: () => context.read<ProfileCubit>().loadProfile(),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          children: [
+            // Profile Header
+            _buildProfileHeader(context, theme, isDark, customer),
+            SizedBox(height: 24.h),
+
+            // Statistics Grid
+            _buildSectionTitle(
+              theme,
+              isDark,
+              AppLocalizations.of(context)!.statistics,
+            ),
+            SizedBox(height: 12.h),
+            _buildStatsGrid(context, theme, isDark, customer),
+            SizedBox(height: 12.h),
+
+            // Business Info
+            _buildSectionTitle(
+              theme,
+              isDark,
+              AppLocalizations.of(context)!.businessInfo,
+            ),
+            SizedBox(height: 12.h),
+            _buildBusinessInfoCard(context, theme, isDark, customer),
+            SizedBox(height: 12.h),
+
+            // Location Info - Default Address
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _buildSectionTitle(
+                  theme,
+                  isDark,
+                  AppLocalizations.of(context)!.deliveryAddresses,
+                ),
+                SizedBox(height: 12.h),
+                _buildLocationInfoCard(context, theme, isDark),
+                SizedBox(height: 24.h),
+              ],
+            ),
+
+            // Wallet & Credit
+            _buildSectionTitle(
+              theme,
+              isDark,
+              AppLocalizations.of(context)!.walletAndCredit,
+            ),
+            SizedBox(height: 12.h),
+            _buildWalletCard(context, theme, isDark, customer),
+            SizedBox(height: 12.h),
+            _buildReturnsCard(context, theme, isDark),
+            SizedBox(height: 12.h),
+            _buildSupportCard(context, theme, isDark),
+            SizedBox(height: 12.h),
+            _buildEducationCenterCard(context, theme, isDark),
+            SizedBox(height: 24.h),
+
+            // Logout Button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _showLogoutDialog(context),
+                icon: const Icon(Iconsax.logout, color: AppColors.error),
+                label: Text(
+                  AppLocalizations.of(context)!.logout,
+                  style: const TextStyle(color: AppColors.error),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.error),
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 88.h), // Extra space for nav bar
+          ],
+        ),
       ),
     );
   }

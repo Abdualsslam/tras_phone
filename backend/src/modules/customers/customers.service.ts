@@ -167,6 +167,7 @@ export class CustomersService {
             loyaltyPoints: 0,
             loyaltyTier: 'bronze',
             preferredContactMethod: 'whatsapp',
+            isTaxable: true,
           },
         },
         {

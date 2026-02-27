@@ -28,6 +28,24 @@ class AppError extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final isNetwork = message.toLowerCase().contains('network') || 
+                      message.contains('اتصال') || 
+                      message.toLowerCase().contains('internet') ||
+                      message.toLowerCase().contains('socketexception') ||
+                      message.toLowerCase().contains('no connection');
+
+    final displayIcon = isNetwork ? Icons.wifi_off_rounded : (icon ?? Iconsax.warning_2);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final displayTitle = isNetwork ? (isArabic ? 'لا يوجد اتصال' : 'No Connection') : title;
+    final displayMessage = isNetwork 
+        ? (isArabic ? 'تحقق من اتصالك بالإنترنت وحاول مرة أخرى' : 'Please check your internet connection and try again') 
+        : _cleanMessage(message);
+    final displayButtonText = isNetwork 
+        ? (isArabic ? 'إعادة المحاولة' : 'Try Again') 
+        : (buttonText ?? (isArabic ? 'إعادة المحاولة' : 'Try Again'));
+    final containerColor = isNetwork ? AppColors.warning.withValues(alpha: 0.1) : AppColors.error.withValues(alpha: 0.1);
+    final iconColor = isNetwork ? AppColors.warning : AppColors.error;
+
     return Center(
       child: Padding(
         padding: EdgeInsets.all(24.w),
@@ -38,19 +56,19 @@ class AppError extends StatelessWidget {
               width: 80.w,
               height: 80.w,
               decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.1),
+                color: containerColor,
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                icon ?? Iconsax.warning_2,
+                displayIcon,
                 size: 40.sp,
-                color: AppColors.error,
+                color: iconColor,
               ),
             ),
             SizedBox(height: 24.h),
-            if (title != null) ...[
+            if (displayTitle != null) ...[
               Text(
-                title!,
+                displayTitle,
                 style: TextStyle(
                   fontSize: 20.sp,
                   fontWeight: FontWeight.w600,
@@ -63,7 +81,7 @@ class AppError extends StatelessWidget {
               SizedBox(height: 8.h),
             ],
             Text(
-              message,
+              displayMessage,
               style: TextStyle(
                 fontSize: 15.sp,
                 color: isDark
@@ -75,7 +93,7 @@ class AppError extends StatelessWidget {
             if (onRetry != null) ...[
               SizedBox(height: 32.h),
               AppButton(
-                text: buttonText ?? 'إعادة المحاولة',
+                text: displayButtonText,
                 onPressed: onRetry,
                 isFullWidth: false,
                 size: AppButtonSize.medium,
@@ -87,6 +105,32 @@ class AppError extends StatelessWidget {
       ),
     );
   }
+
+  static String _cleanMessage(String message) {
+    String clean = message;
+    
+    final prefixes = [
+      'AppException:', 'ServerException:', 'NetworkException:', 
+      'CacheException:', 'AuthException:', 'UnauthorizedException:', 
+      'ConflictException:', 'ValidationException:', 'Exception:', 'Failure:'
+    ];
+    for (final prefix in prefixes) {
+      if (clean.contains(prefix)) {
+        clean = clean.split(prefix).last.trim();
+        break;
+      }
+    }
+
+    if (clean.contains('(code:')) {
+      clean = clean.split('(code:').first.trim();
+    }
+
+    if (clean.startsWith('Exception: ')) {
+      clean = clean.substring(11).trim();
+    }
+
+    return clean;
+  }
 }
 
 /// Network error state
@@ -97,10 +141,13 @@ class NetworkError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     return AppError(
-      icon: Iconsax.wifi_square,
-      title: 'لا يوجد اتصال',
-      message: 'تحقق من اتصالك بالإنترنت وحاول مرة أخرى',
+      icon: Icons.wifi_off_rounded,
+      title: isArabic ? 'لا يوجد اتصال' : 'No Connection',
+      message: isArabic 
+          ? 'تحقق من اتصالك بالإنترنت وحاول مرة أخرى' 
+          : 'Please check your internet connection and try again',
       onRetry: onRetry,
     );
   }

@@ -14,6 +14,11 @@ import '../../../../core/shimmer/index.dart';
 
 import '../../domain/entities/order_entity.dart';
 import '../cubit/orders_cubit.dart';
+import '../widgets/order_details/order_rate_section.dart';
+import '../widgets/order_details/quick_action.dart';
+import '../widgets/order_details/section_card.dart';
+import '../widgets/order_details/section_title.dart';
+import '../widgets/order_details/timeline_step_data.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   final String orderId;
@@ -39,10 +44,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _fadeAnim = CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeOut,
-    );
+    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _loadOrder();
   }
 
@@ -118,7 +120,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
 
     if (_order == null) {
       return Center(
-        child: Text('لم يتم العثور على الطلب', style: theme.textTheme.bodyLarge),
+        child: Text(
+          'لم يتم العثور على الطلب',
+          style: theme.textTheme.bodyLarge,
+        ),
       );
     }
 
@@ -198,7 +203,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                 color: AppColors.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Iconsax.warning_2, size: 40.sp, color: AppColors.error),
+              child: Icon(
+                Iconsax.warning_2,
+                size: 40.sp,
+                color: AppColors.error,
+              ),
             ),
             SizedBox(height: 20.h),
             Text(
@@ -245,7 +254,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
         icon: Container(
           padding: EdgeInsets.all(6.w),
           decoration: BoxDecoration(
-            color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.3),
+            color: (isDark ? Colors.black : Colors.white).withValues(
+              alpha: 0.3,
+            ),
             shape: BoxShape.circle,
           ),
           child: const Icon(Iconsax.arrow_right_3),
@@ -258,7 +269,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
             icon: Container(
               padding: EdgeInsets.all(6.w),
               decoration: BoxDecoration(
-                color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.3),
+                color: (isDark ? Colors.black : Colors.white).withValues(
+                  alpha: 0.3,
+                ),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Iconsax.document_download, size: 20),
@@ -342,9 +355,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
           ],
         ),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: AppColors.info.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppColors.info.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -439,12 +450,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
     final steps = _buildTimelineSteps(order);
     final currentIndex = _getCurrentStepIndex(order);
 
-    return _SectionCard(
+    return SectionCard(
       isDark: isDark,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(title: 'تتبع الطلب', icon: Iconsax.location),
+          SectionTitle(title: 'تتبع الطلب', icon: Iconsax.location),
           SizedBox(height: 20.h),
           ...steps.asMap().entries.map((entry) {
             final idx = entry.key;
@@ -468,34 +479,34 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
     );
   }
 
-  List<_TimelineStepData> _buildTimelineSteps(OrderEntity order) {
+  List<TimelineStepData> _buildTimelineSteps(OrderEntity order) {
     final dateFormat = DateFormat('dd/MM - hh:mm a', 'ar');
     String? fmt(DateTime? d) => d != null ? dateFormat.format(d) : null;
 
     return [
-      _TimelineStepData(
+      TimelineStepData(
         label: 'تم الطلب',
         subtitle: fmt(order.createdAt),
         icon: Iconsax.receipt_item,
       ),
-      _TimelineStepData(
+      TimelineStepData(
         label: 'تم التأكيد',
         subtitle: fmt(order.confirmedAt),
         icon: Iconsax.tick_square,
       ),
-      _TimelineStepData(
+      TimelineStepData(
         label: 'قيد التجهيز',
         subtitle: fmt(order.confirmedAt),
         icon: Iconsax.box,
       ),
-      _TimelineStepData(
+      TimelineStepData(
         label: 'تم الشحن',
         subtitle: fmt(order.shippedAt),
         icon: Iconsax.truck,
         actionLabel: order.shippingLabelUrl != null ? 'عرض البوليصة' : null,
         actionUrl: order.shippingLabelUrl,
       ),
-      _TimelineStepData(
+      TimelineStepData(
         label: 'تم التوصيل',
         subtitle: fmt(order.deliveredAt),
         icon: Iconsax.tick_circle,
@@ -520,7 +531,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
   Widget _buildTimelineRow(
     ThemeData theme,
     bool isDark, {
-    required _TimelineStepData step,
+    required TimelineStepData step,
     required bool isCompleted,
     required bool isCurrent,
     required bool isPending,
@@ -530,8 +541,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
     final Color dotColor = isCompleted
         ? AppColors.success
         : isCurrent
-            ? AppColors.primary
-            : (isDark ? AppColors.dividerDark : AppColors.dividerLight);
+        ? AppColors.primary
+        : (isDark ? AppColors.dividerDark : AppColors.dividerLight);
 
     final Color lineColor = isCompleted
         ? AppColors.success
@@ -567,14 +578,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                             ),
                           ]
                         : isCompleted
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.success.withValues(alpha: 0.25),
-                                  blurRadius: 6,
-                                  spreadRadius: 1,
-                                ),
-                              ]
-                            : null,
+                        ? [
+                            BoxShadow(
+                              color: AppColors.success.withValues(alpha: 0.25),
+                              blurRadius: 6,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
                     border: isPending
                         ? Border.all(
                             color: isDark
@@ -638,8 +649,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                                 : FontWeight.w400,
                             color: isPending
                                 ? (isDark
-                                    ? AppColors.textTertiaryDark
-                                    : AppColors.textTertiaryLight)
+                                      ? AppColors.textTertiaryDark
+                                      : AppColors.textTertiaryLight)
                                 : null,
                           ),
                         ),
@@ -692,12 +703,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                       ),
                     ),
                   ],
-                  if (step.actionLabel != null && step.actionUrl != null && isCompleted) ...[
+                  if (step.actionLabel != null &&
+                      step.actionUrl != null &&
+                      isCompleted) ...[
                     SizedBox(height: 6.h),
                     GestureDetector(
                       onTap: () => _openShippingLabel(step.actionUrl!),
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 4.h,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6.r),
@@ -708,7 +724,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Iconsax.document, size: 12.sp, color: AppColors.primary),
+                            Icon(
+                              Iconsax.document,
+                              size: 12.sp,
+                              color: AppColors.primary,
+                            ),
                             SizedBox(width: 4.w),
                             Text(
                               step.actionLabel!,
@@ -732,7 +752,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
     );
   }
 
-  Widget _buildCancelledBanner(ThemeData theme, bool isDark, OrderEntity order) {
+  Widget _buildCancelledBanner(
+    ThemeData theme,
+    bool isDark,
+    OrderEntity order,
+  ) {
     final isCancelled = order.isCancelled;
     final color = isCancelled ? AppColors.error : Colors.grey;
     final label = isCancelled ? 'تم إلغاء الطلب' : 'تم استرجاع الطلب';
@@ -776,7 +800,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                     ),
                     if (order.cancelledAt != null)
                       Text(
-                        DateFormat('dd/MM/yyyy - hh:mm a', 'ar').format(order.cancelledAt!),
+                        DateFormat(
+                          'dd/MM/yyyy - hh:mm a',
+                          'ar',
+                        ).format(order.cancelledAt!),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.textTertiaryLight,
                         ),
@@ -821,12 +848,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
   Widget _buildProductsSection(ThemeData theme, bool isDark) {
     final order = _order!;
 
-    return _SectionCard(
+    return SectionCard(
       isDark: isDark,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(
+          SectionTitle(
             title: 'المنتجات',
             icon: Iconsax.shopping_bag,
             trailing: Text(
@@ -847,7 +874,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                     padding: EdgeInsets.symmetric(vertical: 8.h),
                     child: Divider(
                       height: 1,
-                      color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+                      color: isDark
+                          ? AppColors.dividerDark
+                          : AppColors.dividerLight,
                     ),
                   ),
               ],
@@ -861,11 +890,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
   Widget _buildProductItem(ThemeData theme, bool isDark, OrderItemEntity item) {
     final hasReturn = item.returnedQuantity > 0;
     final displayQty = hasReturn ? item.effectiveQuantity : item.quantity;
-    final displayTotal =
-        hasReturn ? (item.effectiveQuantity * item.unitPrice) : item.total;
+    final displayTotal = hasReturn
+        ? (item.effectiveQuantity * item.unitPrice)
+        : item.total;
 
     return Container(
-      padding: hasReturn ? EdgeInsets.all(10.w) : EdgeInsets.symmetric(vertical: 4.h),
+      padding: hasReturn
+          ? EdgeInsets.all(10.w)
+          : EdgeInsets.symmetric(vertical: 4.h),
       decoration: hasReturn
           ? BoxDecoration(
               color: AppColors.warning.withValues(alpha: 0.05),
@@ -882,9 +914,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
             width: 56.w,
             height: 56.w,
             decoration: BoxDecoration(
-              color: isDark
-                  ? AppColors.surfaceDark
-                  : AppColors.backgroundLight,
+              color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: item.image != null
@@ -980,12 +1010,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
   Widget _buildShippingAddress(ThemeData theme, bool isDark) {
     final address = _order!.shippingAddress!;
 
-    return _SectionCard(
+    return SectionCard(
       isDark: isDark,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(title: 'عنوان التوصيل', icon: Iconsax.location),
+          SectionTitle(title: 'عنوان التوصيل', icon: Iconsax.location),
           SizedBox(height: 12.h),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1028,14 +1058,21 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                     if (address.notes != null && address.notes!.isNotEmpty) ...[
                       SizedBox(height: 6.h),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 4.h,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.info.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(6.r),
                         ),
                         child: Row(
                           children: [
-                            Icon(Iconsax.note_1, size: 12.sp, color: AppColors.info),
+                            Icon(
+                              Iconsax.note_1,
+                              size: 12.sp,
+                              color: AppColors.info,
+                            ),
                             SizedBox(width: 6.w),
                             Expanded(
                               child: Text(
@@ -1064,12 +1101,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
   Widget _buildPaymentSummary(ThemeData theme, bool isDark) {
     final order = _order!;
 
-    return _SectionCard(
+    return SectionCard(
       isDark: isDark,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(title: 'ملخص الدفع', icon: Iconsax.receipt_item),
+          SectionTitle(title: 'ملخص الدفع', icon: Iconsax.receipt_item),
           SizedBox(height: 12.h),
           _buildSummaryRow(
             theme,
@@ -1184,9 +1221,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                 Text('طريقة الدفع', style: theme.textTheme.bodySmall),
                 const Spacer(),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 4.h,
+                  ),
                   decoration: BoxDecoration(
-                    color: (isDark ? AppColors.surfaceDark : AppColors.backgroundLight),
+                    color: (isDark
+                        ? AppColors.surfaceDark
+                        : AppColors.backgroundLight),
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Text(
@@ -1211,7 +1253,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                 Text('حالة الدفع', style: theme.textTheme.bodySmall),
                 const Spacer(),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 4.h,
+                  ),
                   decoration: BoxDecoration(
                     color: order.paymentStatus.color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8.r),
@@ -1272,7 +1317,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
         Row(
           children: [
             if (valueIcon != null) ...[
-              Icon(valueIcon, size: 14.sp, color: valueColor ?? AppColors.textSecondaryLight),
+              Icon(
+                valueIcon,
+                size: 14.sp,
+                color: valueColor ?? AppColors.textSecondaryLight,
+              ),
               SizedBox(width: 6.w),
             ],
             Text(label, style: theme.textTheme.bodyMedium),
@@ -1289,21 +1338,26 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
     );
   }
 
-  Widget _buildQuickActions(BuildContext context, ThemeData theme, bool isDark) {
+  Widget _buildQuickActions(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
     final order = _order!;
     final canUploadReceipt = order.canUploadTransferReceipt;
-    final canReturn = order.status == OrderStatus.delivered ||
+    final canReturn =
+        order.status == OrderStatus.delivered ||
         order.status == OrderStatus.completed;
 
-    final actions = <_QuickAction>[
-      _QuickAction(
+    final actions = <OrderQuickAction>[
+      OrderQuickAction(
         icon: Iconsax.document_text,
         label: 'الفاتورة',
         color: AppColors.info,
         onTap: () => context.push('/order/${order.id}/invoice'),
       ),
       if (canUploadReceipt)
-        _QuickAction(
+        OrderQuickAction(
           icon: Iconsax.document_upload,
           label: 'رفع إيصال',
           color: AppColors.accent,
@@ -1313,14 +1367,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
           ),
         ),
       if (order.shippingLabelUrl != null)
-        _QuickAction(
+        OrderQuickAction(
           icon: Iconsax.document,
           label: 'بوليصة الشحن',
           color: AppColors.primary,
           onTap: () => _openShippingLabel(order.shippingLabelUrl!),
         ),
       if (canReturn)
-        _QuickAction(
+        OrderQuickAction(
           icon: Iconsax.rotate_left,
           label: 'طلب إرجاع',
           color: AppColors.warning,
@@ -1354,7 +1408,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
   Widget _buildQuickActionCard(
     ThemeData theme,
     bool isDark,
-    _QuickAction action,
+    OrderQuickAction action,
   ) {
     return Material(
       color: isDark ? AppColors.cardDark : AppColors.cardLight,
@@ -1366,9 +1420,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
           padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 12.w),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(
-              color: action.color.withValues(alpha: 0.15),
-            ),
+            border: Border.all(color: action.color.withValues(alpha: 0.15)),
           ),
           child: Column(
             children: [
@@ -1387,7 +1439,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                 style: TextStyle(
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1397,15 +1451,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
       ),
     );
   }
-  Widget _buildRateSection(
-    BuildContext context,
-    ThemeData theme,
-    bool isDark,
-  ) {
-    return _OrderRateSection(
-      orderId: widget.orderId,
-      onRated: _loadOrder,
-    );
+
+  Widget _buildRateSection(BuildContext context, ThemeData theme, bool isDark) {
+    return OrderRateSection(orderId: widget.orderId, onRated: _loadOrder);
   }
 
   // ─── Download Invoice ───
@@ -1449,13 +1497,19 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
               height: 48.h,
               child: OutlinedButton.icon(
                 onPressed: () => _showCancelDialog(context),
-                icon: Icon(Iconsax.close_circle, color: AppColors.error, size: 18.sp),
+                icon: Icon(
+                  Iconsax.close_circle,
+                  color: AppColors.error,
+                  size: 18.sp,
+                ),
                 label: Text(
                   'إلغاء الطلب',
                   style: TextStyle(color: AppColors.error, fontSize: 14.sp),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.error.withValues(alpha: 0.4)),
+                  side: BorderSide(
+                    color: AppColors.error.withValues(alpha: 0.4),
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.r),
                   ),
@@ -1536,9 +1590,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
                         final reason = reasonController.text.trim();
                         Navigator.of(dialogContext).pop();
                         await context.read<OrdersCubit>().cancelOrder(
-                              widget.orderId,
-                              reason: reason,
-                            );
+                          widget.orderId,
+                          reason: reason,
+                        );
                         if (mounted) {
                           await _loadOrder();
                         }
@@ -1554,259 +1608,5 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
         },
       ),
     );
-  }
-}
-
-// ─── Timeline Step Data Model ───
-class _TimelineStepData {
-  final String label;
-  final String? subtitle;
-  final IconData icon;
-  final String? actionLabel;
-  final String? actionUrl;
-
-  _TimelineStepData({
-    required this.label,
-    this.subtitle,
-    required this.icon,
-    this.actionLabel,
-    this.actionUrl,
-  });
-}
-
-// ─── Reusable Section Card ───
-class _SectionCard extends StatelessWidget {
-  final bool isDark;
-  final Widget child;
-
-  const _SectionCard({required this.isDark, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-      ),
-      child: child,
-    );
-  }
-}
-
-// ─── Reusable Section Title ───
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Widget? trailing;
-
-  const _SectionTitle({
-    required this.title,
-    required this.icon,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, size: 18.sp, color: AppColors.primary),
-        SizedBox(width: 8.w),
-        Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        if (trailing != null) ...[
-          const Spacer(),
-          trailing!,
-        ],
-      ],
-    );
-  }
-}
-
-// ─── Quick Action Model ───
-class _QuickAction {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-}
-
-// ─── Order Rate Section ───
-class _OrderRateSection extends StatefulWidget {
-  final String orderId;
-  final Future<void> Function() onRated;
-
-  const _OrderRateSection({
-    required this.orderId,
-    required this.onRated,
-  });
-
-  @override
-  State<_OrderRateSection> createState() => _OrderRateSectionState();
-}
-
-class _OrderRateSectionState extends State<_OrderRateSection> {
-  int _rating = 0;
-  final _commentController = TextEditingController();
-  bool _isSubmitting = false;
-
-  @override
-  void dispose() {
-    _commentController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return _SectionCard(
-      isDark: isDark,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionTitle(title: 'قيّم طلبك', icon: Iconsax.star_1),
-          SizedBox(height: 16.h),
-          // Star rating row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (index) {
-              final starValue = index + 1;
-              return GestureDetector(
-                onTap: _isSubmitting
-                    ? null
-                    : () => setState(() => _rating = starValue),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: EdgeInsets.symmetric(horizontal: 6.w),
-                  child: Icon(
-                    starValue <= _rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                    size: 36.sp,
-                    color: starValue <= _rating
-                        ? AppColors.accent
-                        : AppColors.textTertiaryLight,
-                  ),
-                ),
-              );
-            }),
-          ),
-          if (_rating > 0) ...[
-            SizedBox(height: 4.h),
-            Center(
-              child: Text(
-                _getRatingLabel(_rating),
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-          SizedBox(height: 14.h),
-          TextField(
-            controller: _commentController,
-            enabled: !_isSubmitting,
-            maxLines: 2,
-            decoration: InputDecoration(
-              hintText: 'أضف تعليقاً (اختياري)',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 14.w,
-                vertical: 12.h,
-              ),
-            ),
-          ),
-          SizedBox(height: 14.h),
-          SizedBox(
-            width: double.infinity,
-            height: 46.h,
-            child: ElevatedButton.icon(
-              onPressed: _rating > 0 && !_isSubmitting ? _submitRating : null,
-              icon: _isSubmitting
-                  ? SizedBox(
-                      width: 18.w,
-                      height: 18.w,
-                      child: const CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Icon(Iconsax.send_1, size: 18.sp),
-              label: Text(
-                _isSubmitting ? 'جاري الإرسال...' : 'إرسال التقييم',
-                style: TextStyle(fontSize: 14.sp),
-              ),
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getRatingLabel(int rating) {
-    return switch (rating) {
-      1 => 'سيء',
-      2 => 'مقبول',
-      3 => 'جيد',
-      4 => 'جيد جداً',
-      5 => 'ممتاز',
-      _ => '',
-    };
-  }
-
-  Future<void> _submitRating() async {
-    setState(() => _isSubmitting = true);
-    try {
-      await context.read<OrdersCubit>().rateOrder(
-            orderId: widget.orderId,
-            rating: _rating,
-            comment: _commentController.text.trim().isNotEmpty
-                ? _commentController.text.trim()
-                : null,
-          );
-      if (mounted) {
-        await widget.onRated();
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فشل إرسال التقييم')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
   }
 }

@@ -7,6 +7,7 @@ import {
     IsMongoId,
     IsNumber,
     IsDateString,
+    IsBoolean,
     Min,
     Max,
 } from 'class-validator';
@@ -149,4 +150,13 @@ export class CreateCustomerDto {
     @IsString()
     @IsOptional()
     internalNotes?: string;
+
+    @ApiProperty({
+        required: false,
+        default: true,
+        description: 'Whether tax should be applied to this customer',
+    })
+    @IsBoolean()
+    @IsOptional()
+    isTaxable?: boolean;
 }

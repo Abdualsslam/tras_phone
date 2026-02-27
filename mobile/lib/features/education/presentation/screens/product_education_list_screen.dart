@@ -35,6 +35,7 @@ class _ProductEducationListScreenState
   int _currentPage = 1;
   bool _isLoading = true;
   bool _isLoadingMore = false;
+  bool _hasLoadedOnce = false;
   bool _hasMore = false;
   String? _error;
   List<EducationalContentEntity> _content = [];
@@ -68,7 +69,9 @@ class _ProductEducationListScreenState
       _isLoading = true;
       _error = null;
       _currentPage = 1;
-      _content = [];
+      if (!_hasLoadedOnce) {
+        _content = [];
+      }
       _hasMore = false;
     });
 
@@ -94,6 +97,7 @@ class _ProductEducationListScreenState
         _content = content;
         _currentPage = currentPage;
         _hasMore = currentPage < pages;
+        _hasLoadedOnce = true;
         _isLoading = false;
       });
     } catch (e) {
@@ -162,7 +166,7 @@ class _ProductEducationListScreenState
   }
 
   Widget _buildBody(bool isDark) {
-    if (_isLoading) {
+    if (_isLoading && !_hasLoadedOnce) {
       return const EducationListShimmer();
     }
 
@@ -227,10 +231,7 @@ class _ProductEducationListScreenState
         separatorBuilder: (context, index) => SizedBox(height: 10.h),
         itemBuilder: (context, index) {
           if (index >= _content.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-            );
+            return const EducationListItemShimmer();
           }
 
           final content = _content[index];

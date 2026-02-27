@@ -126,6 +126,7 @@ export interface Customer {
     internalNotes?: string;
     canCashRefund?: boolean;
     canCashOnDelivery?: boolean;
+    isTaxable?: boolean;
     createdAt: string;
     updatedAt: string;
 }

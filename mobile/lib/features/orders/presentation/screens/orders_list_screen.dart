@@ -7,12 +7,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/order_entity.dart';
 import '../../domain/entities/order_stats_entity.dart';
 import '../cubit/orders_cubit.dart';
 import '../cubit/orders_state.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../widgets/orders_list/order_tab.dart';
 
 class OrdersListScreen extends StatefulWidget {
   const OrdersListScreen({super.key});
@@ -24,13 +26,33 @@ class OrdersListScreen extends StatefulWidget {
 class _OrdersListScreenState extends State<OrdersListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final _tabs = <_OrderTab>[
-    const _OrderTab(label: 'الكل', status: null, isPendingPayment: false),
-    const _OrderTab(label: 'بانتظار الدفع', status: null, isPendingPayment: true),
-    const _OrderTab(label: 'جارية', status: OrderStatus.processing, isPendingPayment: false),
-    const _OrderTab(label: 'تم الشحن', status: OrderStatus.shipped, isPendingPayment: false),
-    const _OrderTab(label: 'مكتملة', status: OrderStatus.delivered, isPendingPayment: false),
-    const _OrderTab(label: 'ملغاة', status: OrderStatus.cancelled, isPendingPayment: false),
+  final _tabs = <OrderTab>[
+    const OrderTab(label: 'الكل', status: null, isPendingPayment: false),
+    const OrderTab(
+      label: 'بانتظار الدفع',
+      status: null,
+      isPendingPayment: true,
+    ),
+    const OrderTab(
+      label: 'جارية',
+      status: OrderStatus.processing,
+      isPendingPayment: false,
+    ),
+    const OrderTab(
+      label: 'تم الشحن',
+      status: OrderStatus.shipped,
+      isPendingPayment: false,
+    ),
+    const OrderTab(
+      label: 'مكتملة',
+      status: OrderStatus.delivered,
+      isPendingPayment: false,
+    ),
+    const OrderTab(
+      label: 'ملغاة',
+      status: OrderStatus.cancelled,
+      isPendingPayment: false,
+    ),
   ];
 
   @override
@@ -104,28 +126,17 @@ class _OrdersListScreenState extends State<OrdersListScreen>
           }
 
           if (state is OrdersError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Iconsax.warning_2, size: 60.sp, color: AppColors.error),
-                  SizedBox(height: 16.h),
-                  Text(state.message, style: theme.textTheme.bodyLarge),
-                  SizedBox(height: 16.h),
-                  ElevatedButton(
-                    onPressed: () => context.read<OrdersCubit>().loadOrders(),
-                    child: Text(AppLocalizations.of(context)!.tryAgain),
-                  ),
-                ],
-              ),
+            return AppError(
+              message: state.message,
+              onRetry: () => context.read<OrdersCubit>().loadOrders(),
             );
           }
 
           final orders = state is OrdersLoaded
               ? state.orders
               : state is OrdersPendingPaymentLoaded
-                  ? state.orders
-                  : <OrderEntity>[];
+              ? state.orders
+              : <OrderEntity>[];
 
           if (orders.isEmpty) {
             return _buildEmptyState(theme);
@@ -133,27 +144,26 @@ class _OrdersListScreenState extends State<OrdersListScreen>
 
           final tab = _tabs[_tabController.index];
           final stats = state is OrdersLoaded ? state.stats : null;
-          final showStats = stats != null &&
-              tab.status == null &&
-              !tab.isPendingPayment;
+          final showStats =
+              stats != null && tab.status == null && !tab.isPendingPayment;
           return RefreshIndicator(
             onRefresh: tab.isPendingPayment
                 ? () => context.read<OrdersCubit>().loadPendingPaymentOrders()
                 : () => context.read<OrdersCubit>().loadOrders(
-                      status: tab.status,
-                    ),
+                    status: tab.status,
+                  ),
             child: ListView(
               padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 100.h),
               children: [
                 if (showStats) ...[
-                  _OrderStatsCard(stats: stats, isDark: isDark),
+                  OrderStatsCard(stats: stats, isDark: isDark),
                   SizedBox(height: 16.h),
                 ],
                 ...List.generate(orders.length, (index) {
                   final order = orders[index];
                   return Padding(
                     padding: EdgeInsets.only(bottom: 16.h),
-                    child: _OrderCard(
+                    child: OrderCard(
                       order: order,
                       isDark: isDark,
                       onTap: () {
@@ -166,8 +176,7 @@ class _OrdersListScreenState extends State<OrdersListScreen>
             ),
           );
         },
-        buildWhen: (previous, current) =>
-            current is! BankAccountsLoaded,
+        buildWhen: (previous, current) => current is! BankAccountsLoaded,
       ),
     );
   }
@@ -198,23 +207,11 @@ class _OrdersListScreenState extends State<OrdersListScreen>
   }
 }
 
-class _OrderTab {
-  final String label;
-  final OrderStatus? status;
-  final bool isPendingPayment;
-
-  const _OrderTab({
-    required this.label,
-    this.status,
-    this.isPendingPayment = false,
-  });
-}
-
-class _OrderStatsCard extends StatelessWidget {
+class OrderStatsCard extends StatelessWidget {
   final OrderStatsEntity stats;
   final bool isDark;
 
-  const _OrderStatsCard({required this.stats, required this.isDark});
+  const OrderStatsCard({super.key, required this.stats, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -351,12 +348,13 @@ class _StatItem extends StatelessWidget {
   }
 }
 
-class _OrderCard extends StatelessWidget {
+class OrderCard extends StatelessWidget {
   final OrderEntity order;
   final bool isDark;
   final VoidCallback onTap;
 
-  const _OrderCard({
+  const OrderCard({
+    super.key,
     required this.order,
     required this.isDark,
     required this.onTap,
@@ -461,7 +459,9 @@ class _OrderCard extends StatelessWidget {
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
                               physics: const NeverScrollableScrollPhysics(),
-                              itemCount: order.items.length > 3 ? 3 : order.items.length,
+                              itemCount: order.items.length > 3
+                                  ? 3
+                                  : order.items.length,
                               separatorBuilder: (_, __) => SizedBox(width: 8.w),
                               itemBuilder: (context, index) {
                                 final item = order.items[index];
@@ -477,12 +477,12 @@ class _OrderCard extends StatelessWidget {
                                         ? Image.network(
                                             item.image!,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
-                                                Icon(
-                                                  Iconsax.box,
-                                                  color: AppColors.textTertiaryLight,
-                                                  size: 24.sp,
-                                                ),
+                                            errorBuilder: (_, __, ___) => Icon(
+                                              Iconsax.box,
+                                              color:
+                                                  AppColors.textTertiaryLight,
+                                              size: 24.sp,
+                                            ),
                                           )
                                         : Icon(
                                             Iconsax.box,
@@ -510,7 +510,8 @@ class _OrderCard extends StatelessWidget {
                               SizedBox(height: 4.h),
                               if (order.items.isNotEmpty)
                                 Text(
-                                  order.items.first.nameAr ?? order.items.first.name,
+                                  order.items.first.nameAr ??
+                                      order.items.first.name,
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -535,7 +536,10 @@ class _OrderCard extends StatelessWidget {
 
                     // Total row
                     Container(
-                      padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 14.w),
+                      padding: EdgeInsets.symmetric(
+                        vertical: 12.h,
+                        horizontal: 14.w,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12.r),

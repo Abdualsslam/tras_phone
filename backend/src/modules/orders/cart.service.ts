@@ -5,6 +5,7 @@ import { Cart, CartDocument } from './schemas/cart.schema';
 import { ProductsService } from '@modules/products/products.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 import { CustomersService } from '@modules/customers/customers.service';
+import { SettingsService } from '@modules/settings/settings.service';
 import { SyncCartItemDto } from './dto/sync-cart.dto';
 import { CheckoutCartDto, CheckoutCartItemDto, CartItemProductDto } from './dto/checkout-session.dto';
 
@@ -26,6 +27,7 @@ export class CartService {
         private inventoryService: InventoryService,
         @Inject(forwardRef(() => CustomersService))
         private customersService: CustomersService,
+        private settingsService: SettingsService,
     ) { }
 
     /**
@@ -331,6 +333,22 @@ export class CartService {
         const subtotal = itemsWithDetails.reduce((sum, item) => sum + item.totalPrice, 0);
         const itemsCount = itemsWithDetails.reduce((sum, item) => sum + item.quantity, 0);
 
+        const discount = cart.discount || 0;
+        const couponDiscount = cart.couponDiscount || 0;
+        const shippingCost = cart.shippingCost || 0;
+        const amountBeforeTax = Math.max(0, subtotal - discount - couponDiscount);
+
+        let taxAmount = 0;
+        try {
+            const customer = await this.customersService.findById(customerId);
+            const isTaxable = customer?.isTaxable ?? true;
+            taxAmount = isTaxable
+                ? await this.settingsService.calculateTax(amountBeforeTax)
+                : 0;
+        } catch {
+            taxAmount = cart.taxAmount || 0;
+        }
+
         return {
             id: cart._id.toString(),
             customerId: cart.customerId.toString(),
@@ -338,12 +356,12 @@ export class CartService {
             items: itemsWithDetails,
             itemsCount,
             subtotal,
-            discount: cart.discount || 0,
-            taxAmount: cart.taxAmount || 0,
-            shippingCost: cart.shippingCost || 0,
-            total: subtotal - (cart.couponDiscount || 0) + (cart.taxAmount || 0) + (cart.shippingCost || 0),
+            discount,
+            taxAmount,
+            shippingCost,
+            total: subtotal - couponDiscount + taxAmount + shippingCost,
             couponCode: cart.couponCode,
-            couponDiscount: cart.couponDiscount || 0,
+            couponDiscount,
         };
     }
 

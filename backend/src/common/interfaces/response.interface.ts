@@ -37,6 +37,11 @@ export interface ApiResponse<T = any> {
   errors?: ErrorDetail[];
 
   /**
+   * Machine-readable error code for client handling
+   */
+  errorCode?: string;
+
+  /**
    * Metadata (pagination, timestamps, etc.)
    */
   meta?: ResponseMeta;
@@ -280,16 +285,15 @@ export class ResponseBuilder {
       'Data retrieved successfully': 'تم استرجاع البيانات بنجاح',
 
       // Authentication error messages
-      'Invalid credentials':
-        'بيانات الدخول غير صحيحة. الحالة: غير مفعل أو بيانات خاطئة',
+      'Invalid credentials': 'بيانات الدخول غير صحيحة',
       'Your account is under review. Please wait for activation':
-        'حسابك قيد المراجعة. الحالة: قيد المراجعة - يرجى انتظار التفعيل',
+        'حسابك قيد المراجعة. يرجى انتظار التفعيل',
       'Your account is not active. Please verify your account or contact support':
-        'حسابك غير مفعل. الحالة: غير مفعل - يرجى التحقق من حسابك أو الاتصال بالدعم',
-      'Your account has been suspended': 'تم تعليق حسابك. الحالة: معطل',
-      'Your account has been rejected': 'حسابك مرفوض. الحالة: مرفوض',
-      'Your account has been deleted': 'تم حذف حسابك. الحالة: محذوف',
-      'Your account is not active': 'حسابك غير مفعل. الحالة: غير مفعل',
+        'حسابك غير مفعل. يرجى التحقق من حسابك أو الاتصال بالدعم',
+      'Your account has been suspended': 'تم تعليق حسابك',
+      'Your account has been rejected': 'حسابك مرفوض',
+      'Your account has been deleted': 'تم حذف حسابك',
+      'Your account is not active': 'حسابك غير مفعل',
       'User not found': 'المستخدم غير موجود',
       'Account is locked': 'الحساب مقفل',
     };

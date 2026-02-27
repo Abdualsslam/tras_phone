@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/cart_entity.dart';
 import '../../domain/entities/cart_item_entity.dart';
@@ -45,20 +46,9 @@ class _CartScreenState extends State<CartScreen> {
           }
 
           if (state is CartError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Iconsax.warning_2, size: 60.sp, color: AppColors.error),
-                  SizedBox(height: 16.h),
-                  Text(state.message, style: theme.textTheme.bodyLarge),
-                  SizedBox(height: 16.h),
-                  ElevatedButton(
-                    onPressed: () => context.read<CartCubit>().loadLocalCart(),
-                    child: Text(AppLocalizations.of(context)!.tryAgain),
-                  ),
-                ],
-              ),
+            return AppError(
+              message: state.message,
+              onRetry: () => context.read<CartCubit>().loadLocalCart(),
             );
           }
 

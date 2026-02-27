@@ -124,6 +124,7 @@ interface FormData {
   // Payment & Refund Permissions
   canCashRefund: boolean;
   canCashOnDelivery: boolean;
+  isTaxable: boolean;
 }
 
 const initialFormData: FormData = {
@@ -154,6 +155,7 @@ const initialFormData: FormData = {
   flagReason: "",
   canCashRefund: false,
   canCashOnDelivery: true,
+  isTaxable: true,
 };
 
 export function CustomersPage() {
@@ -328,6 +330,7 @@ export function CustomersPage() {
         flagReason: customerData.flagReason || "",
         canCashRefund: customerData.canCashRefund ?? false,
         canCashOnDelivery: customerData.canCashOnDelivery ?? true,
+        isTaxable: customerData.isTaxable ?? true,
       });
       setIsEditDialogOpen(true);
     } catch (error) {
@@ -407,6 +410,7 @@ export function CustomersPage() {
         preferredContactMethod:
           formData.preferredContactMethod as CreateCustomerDto["preferredContactMethod"],
         internalNotes: formData.internalNotes || undefined,
+        isTaxable: formData.isTaxable,
       };
 
       await customersApi.create(customerData);
@@ -470,6 +474,7 @@ export function CustomersPage() {
       // Payment & Refund Permissions
       canCashRefund: formData.canCashRefund,
       canCashOnDelivery: formData.canCashOnDelivery,
+      isTaxable: formData.isTaxable,
     };
 
     // Remove undefined and empty string values (but keep false for isFlagged)
@@ -1564,6 +1569,34 @@ export function CustomersPage() {
                 </div>
               </div>
 
+              {/* Tax Setting */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-900 border-b pb-2">
+                  إعدادات الضريبة
+                </h3>
+                <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="cursor-pointer font-medium">
+                        تطبيق الضريبة على هذا العميل
+                      </Label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        عند تعطيل الخيار، لن يتم احتساب الضريبة على طلبات هذا العميل ولن تظهر في الفاتورة.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      id="isTaxableAdd"
+                      checked={formData.isTaxable}
+                      onChange={(e) =>
+                        handleFormChange("isTaxable", e.target.checked)
+                      }
+                      className="h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Internal Notes */}
               <div className="space-y-2">
                 <Label>
@@ -1928,7 +1961,7 @@ export function CustomersPage() {
               <h3 className="font-semibold text-gray-900 border-b pb-2">
                 صلاحيات الدفع والاسترداد
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
@@ -1971,11 +2004,35 @@ export function CustomersPage() {
                     />
                   </div>
                 </div>
+                <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="cursor-pointer font-medium">
+                        تطبيق الضريبة على العميل
+                      </Label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        عند التعطيل، لن تُحسب الضريبة على الطلبات ولن تظهر في الفاتورة.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      id="isTaxable"
+                      checked={formData.isTaxable}
+                      onChange={(e) =>
+                        handleFormChange("isTaxable", e.target.checked)
+                      }
+                      className="h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
               </div>
-              {!formData.canCashRefund && (
+              {(!formData.canCashRefund || !formData.isTaxable) && (
                 <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
                   <p className="text-sm text-amber-700 dark:text-amber-300">
-                    <strong>ملاحظة:</strong> عند تعطيل الاسترداد النقدي، سيتم إضافة مبالغ المرتجعات تلقائياً إلى محفظة العميل.
+                    <strong>ملاحظة:</strong>{' '}
+                    {!formData.canCashRefund
+                      ? 'عند تعطيل الاسترداد النقدي، سيتم إضافة مبالغ المرتجعات تلقائياً إلى محفظة العميل.'
+                      : 'تم تعطيل الضريبة لهذا العميل، لذلك ستكون قيمة الضريبة دائماً صفر في الطلبات والفواتير.'}
                   </p>
                 </div>
               )}

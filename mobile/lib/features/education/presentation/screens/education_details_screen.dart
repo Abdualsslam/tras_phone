@@ -10,6 +10,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../../catalog/domain/entities/product_entity.dart';
 import '../../../catalog/domain/repositories/catalog_repository.dart';
 import '../../data/services/favorites_service.dart';
@@ -60,7 +61,7 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
         if (state is EducationDetailsLoading) {
           return Scaffold(
             appBar: AppBar(),
-            body: const Center(child: CircularProgressIndicator()),
+            body: const EducationDetailsShimmer(),
           );
         }
 
@@ -103,14 +104,7 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
 
         if (state is EducationDetailsLoaded) {
           final content = state.content;
-          if (_favoriteLoadedForContentId != content.id) {
-            _favoriteLoadedForContentId = content.id;
-            unawaited(_checkFavoriteStatus(content.id));
-          }
-          if (_relatedProductsLoadedForContentId != content.id) {
-            _relatedProductsLoadedForContentId = content.id;
-            unawaited(_loadRelatedProducts(content.relatedProducts));
-          }
+          _scheduleContentSideEffects(content);
 
           final locale = 'ar'; // TODO: Get from localization
 
@@ -253,9 +247,7 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
                           ),
                           SizedBox(height: 12.h),
                           if (_relatedProductsLoading)
-                            const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
+                            const EducationRelatedProductsShimmer()
                           else if (_relatedProductsError != null)
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -432,6 +424,24 @@ class _EducationDetailsViewState extends State<_EducationDetailsView> {
         ),
       ],
     );
+  }
+
+  void _scheduleContentSideEffects(EducationalContentEntity content) {
+    if (_favoriteLoadedForContentId != content.id) {
+      _favoriteLoadedForContentId = content.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(_checkFavoriteStatus(content.id));
+      });
+    }
+
+    if (_relatedProductsLoadedForContentId != content.id) {
+      _relatedProductsLoadedForContentId = content.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(_loadRelatedProducts(content.relatedProducts));
+      });
+    }
   }
 
   Future<void> _loadRelatedProducts(List<String> productIds) async {

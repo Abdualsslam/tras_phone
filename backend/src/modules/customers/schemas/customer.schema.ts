@@ -132,6 +132,9 @@ export class Customer {
     @Prop({ default: true })
     canCashOnDelivery: boolean;
 
+    @Prop({ default: true })
+    isTaxable: boolean;
+
     // ═════════════════════════════════════
     // Social Media
     // ═════════════════════════════════════

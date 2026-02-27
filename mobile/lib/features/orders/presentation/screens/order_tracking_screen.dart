@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/order_entity.dart';
 import '../cubit/orders_cubit.dart';
 
@@ -171,15 +172,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     if (_error != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('تتبع الشحنة')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
-              SizedBox(height: 16.h),
-              Text(_error!, textAlign: TextAlign.center),
-            ],
-          ),
+        body: AppError(
+          message: _error!,
         ),
       );
     }

@@ -88,12 +88,22 @@ class EducationalContentModel {
     // Extract category ID
     String categoryId;
     EducationalCategoryModel? categoryModel;
-    
+
     if (category is String) {
       categoryId = category as String;
     } else if (category is Map<String, dynamic>) {
-      categoryModel = EducationalCategoryModel.fromJson(category);
-      categoryId = categoryModel.id;
+      final categoryMap = category as Map<String, dynamic>;
+      final rawId = categoryMap['_id'] ?? categoryMap['id'];
+      categoryId = rawId?.toString() ?? '';
+
+      // Some content APIs return lightweight category object
+      // without full fields (contentCount/sortOrder/...).
+      // In that case, keep categoryId and ignore populated category object.
+      try {
+        categoryModel = EducationalCategoryModel.fromJson(categoryMap);
+      } catch (_) {
+        categoryModel = null;
+      }
     } else {
       categoryId = '';
     }

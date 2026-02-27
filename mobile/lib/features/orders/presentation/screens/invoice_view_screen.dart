@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/order_entity.dart';
 import '../cubit/orders_cubit.dart';
 
@@ -71,15 +72,8 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
     if (_error != null || _order == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('الفاتورة')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
-              SizedBox(height: 16.h),
-              Text(_error ?? 'لم يتم العثور على الطلب'),
-            ],
-          ),
+        body: AppError(
+          message: _error ?? 'لم يتم العثور على الطلب',
         ),
       );
     }

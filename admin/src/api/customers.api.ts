@@ -27,6 +27,7 @@ export interface CreateCustomerDto {
     twitterHandle?: string;
     birthDate?: string;
     internalNotes?: string;
+    isTaxable?: boolean;
 }
 
 export interface UpdateCustomerDto extends Partial<CreateCustomerDto> {
@@ -49,6 +50,7 @@ export interface UpdateCustomerDto extends Partial<CreateCustomerDto> {
     // Payment & Refund Permissions
     canCashRefund?: boolean;
     canCashOnDelivery?: boolean;
+    isTaxable?: boolean;
 }
 
 export interface CustomersQueryParams {
@@ -120,6 +122,7 @@ const transformCustomer = (customer: any): Customer => {
         internalNotes: customer.internalNotes,
         canCashRefund: customer.canCashRefund ?? false,
         canCashOnDelivery: customer.canCashOnDelivery ?? true,
+        isTaxable: customer.isTaxable ?? true,
         createdAt: customer.createdAt,
         updatedAt: customer.updatedAt,
     };

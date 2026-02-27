@@ -32,9 +32,12 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    final hasQuery = options.queryParameters.isNotEmpty;
+    final requestTarget = hasQuery ? options.uri.toString() : options.path;
+
     // Add logging at the very start
     developer.log(
-      'onRequest: ${options.method} ${options.path}',
+      'onRequest: ${options.method} $requestTarget',
       name: 'AuthInterceptor',
     );
 
@@ -59,6 +62,14 @@ class AuthInterceptor extends Interceptor {
     // Public endpoints: skip token refresh, but add token when available
     // (e.g. products API returns 'price' per customer tier when token is sent)
     if (_isPublicEndpoint(options.path)) {
+      if (_isAuthEntryEndpoint(options.path)) {
+        developer.log(
+          'Public auth entry endpoint - skipping token attachment',
+          name: 'AuthInterceptor',
+        );
+        return handler.next(options);
+      }
+
       developer.log(
         'Public endpoint - adding token if available (for optional auth e.g. pricing)',
         name: 'AuthInterceptor',
@@ -224,6 +235,16 @@ class AuthInterceptor extends Interceptor {
         return handler.next(err);
       }
 
+      // Login/register/password-reset endpoints should return their original
+      // 401 message (e.g. invalid credentials) without token refresh/retry.
+      if (_isAuthEntryEndpoint(requestOptions.path)) {
+        developer.log(
+          '401 on auth entry endpoint - skipping token refresh/retry',
+          name: 'AuthInterceptor',
+        );
+        return handler.next(err);
+      }
+
       // Don't retry if this is already a retry request (prevent infinite loop)
       if (requestOptions.headers['X-Retry-Request'] == 'true') {
         // Don't logout here - just pass the error
@@ -301,6 +322,24 @@ class AuthInterceptor extends Interceptor {
     }
 
     return handler.next(err);
+  }
+
+  /// Endpoints used before authentication.
+  /// A 401 from these endpoints should be returned directly to the UI.
+  bool _isAuthEntryEndpoint(String path) {
+    final basePath = path.split('?').first;
+    const authEntryEndpoints = [
+      ApiEndpoints.login,
+      ApiEndpoints.register,
+      ApiEndpoints.sendOtp,
+      ApiEndpoints.verifyOtp,
+      ApiEndpoints.forgotPassword,
+      ApiEndpoints.requestPasswordReset,
+      ApiEndpoints.verifyResetOtp,
+      ApiEndpoints.resetPassword,
+    ];
+
+    return authEntryEndpoints.contains(basePath);
   }
 
   /// Check if endpoint is public (no auth required)
@@ -571,10 +610,18 @@ class LoggingInterceptor extends Interceptor {
       if (_isListEndpoint(path)) {
         final list = data is Map ? data['data'] ?? data : data;
         final count = list is List ? list.length : 0;
-        developer.log(
-          'Response: list of $count items (body not printed)',
-          name: 'API',
-        );
+        try {
+          final pretty = _prettyJson(data);
+          developer.log(
+            'Response: list of $count items:\n$pretty',
+            name: 'API',
+          );
+        } catch (_) {
+          developer.log(
+            'Response: list of $count items (body not printed)',
+            name: 'API',
+          );
+        }
       } else {
         try {
           final toPrint = data is Map

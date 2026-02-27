@@ -6,9 +6,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/device_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
@@ -81,6 +83,8 @@ class _DevicesListViewState extends State<_DevicesListView> {
   String? _selectedBrandId;
   String? _selectedBrandName;
   final _searchController = TextEditingController();
+  List<BrandEntity> _cachedBrands = const [];
+  List<DeviceEntity> _cachedDevices = const [];
 
   @override
   void initState() {
@@ -137,8 +141,17 @@ class _DevicesListViewState extends State<_DevicesListView> {
           }
         },
         builder: (context, brandsState) {
+          if (brandsState is BrandsLoaded) {
+            _cachedBrands = brandsState.brands;
+            return _buildLoadedContent(brandsState.brands, isDark);
+          }
+
           if (brandsState is BrandsLoading) {
-            return const Center(child: CircularProgressIndicator());
+            if (_cachedBrands.isEmpty) {
+              return const DevicesListShimmer();
+            }
+
+            return _buildLoadedContent(_cachedBrands, isDark);
           }
 
           if (brandsState is BrandsError) {
@@ -157,64 +170,76 @@ class _DevicesListViewState extends State<_DevicesListView> {
             );
           }
 
-          if (brandsState is BrandsLoaded) {
-            return Column(
-              children: [
-                // Search Bar
-                Padding(
-                  padding: EdgeInsets.all(16.w),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) => setState(() {}),
-                    decoration: InputDecoration(
-                      hintText: 'ابحث عن جهاز...',
-                      prefixIcon: Icon(Iconsax.search_normal, size: 20.sp),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: isDark
-                          ? AppColors.cardDark
-                          : AppColors.backgroundLight,
-                    ),
-                  ),
-                ),
-
-                // Brands Filter
-                _buildBrandsFilter(brandsState.brands, isDark),
-
-                // Devices List
-                Expanded(
-                  child: BlocBuilder<DevicesCubit, DevicesState>(
-                    builder: (context, devicesState) {
-                      if (devicesState is DevicesLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      if (devicesState is DevicesError) {
-                        return Center(child: Text(devicesState.message));
-                      }
-
-                      if (devicesState is DevicesLoaded) {
-                        if (devicesState.devices.isEmpty) {
-                          return _buildEmptyState(isDark);
-                        }
-                        return _buildDevicesList(devicesState.devices, isDark);
-                      }
-
-                      return _buildEmptyState(isDark);
-                    },
-                  ),
-                ),
-              ],
-            );
-          }
-
-          return const SizedBox.shrink();
+          return const DevicesListShimmer();
         },
       ),
     );
+  }
+
+  Widget _buildLoadedContent(List<BrandEntity> brands, bool isDark) {
+    return Column(
+      children: [
+        // Search Bar
+        Padding(
+          padding: EdgeInsets.all(16.w),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: 'ابحث عن جهاز...',
+              prefixIcon: Icon(Iconsax.search_normal, size: 20.sp),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              fillColor: isDark ? AppColors.cardDark : AppColors.backgroundLight,
+            ),
+          ),
+        ),
+
+        // Brands Filter
+        _buildBrandsFilter(brands, isDark),
+
+        // Devices List
+        Expanded(
+          child: BlocBuilder<DevicesCubit, DevicesState>(
+            builder: (context, devicesState) =>
+                _buildDevicesContent(devicesState, isDark),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDevicesContent(DevicesState devicesState, bool isDark) {
+    if (devicesState is DevicesLoaded) {
+      _cachedDevices = devicesState.devices;
+      if (devicesState.devices.isEmpty) {
+        return _buildEmptyState(isDark);
+      }
+      return _buildDevicesList(devicesState.devices, isDark);
+    }
+
+    if (devicesState is DevicesLoading) {
+      if (_cachedDevices.isEmpty) {
+        return const DeviceItemsShimmer();
+      }
+      return _buildDevicesList(_cachedDevices, isDark);
+    }
+
+    if (devicesState is DevicesError) {
+      if (_cachedDevices.isNotEmpty) {
+        return _buildDevicesList(_cachedDevices, isDark);
+      }
+      return Center(child: Text(devicesState.message));
+    }
+
+    if (_cachedDevices.isNotEmpty) {
+      return _buildDevicesList(_cachedDevices, isDark);
+    }
+
+    return _buildEmptyState(isDark);
   }
 
   Widget _buildBrandsFilter(List<BrandEntity> brands, bool isDark) {
@@ -340,20 +365,7 @@ class _DevicesListViewState extends State<_DevicesListView> {
         ),
         child: Row(
           children: [
-            // Device Icon
-            Container(
-              width: 48.w,
-              height: 48.w,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Icon(
-                Iconsax.mobile,
-                size: 24.sp,
-                color: AppColors.primary,
-              ),
-            ),
+            _buildDeviceThumbnail(device),
             SizedBox(width: 12.w),
 
             // Device Name
@@ -416,6 +428,56 @@ class _DevicesListViewState extends State<_DevicesListView> {
         ),
       ),
     );
+  }
+
+  Widget _buildDeviceThumbnail(DeviceEntity device) {
+    final imageUrl = _resolveDeviceImageUrl(device.image);
+
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return _buildDeviceIconPlaceholder();
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12.r),
+      child: Image.network(
+        imageUrl,
+        width: 48.w,
+        height: 48.w,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildDeviceIconPlaceholder(),
+      ),
+    );
+  }
+
+  Widget _buildDeviceIconPlaceholder() {
+    return Container(
+      width: 48.w,
+      height: 48.w,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Icon(Iconsax.mobile, size: 24.sp, color: AppColors.primary),
+    );
+  }
+
+  String? _resolveDeviceImageUrl(String? rawImage) {
+    if (rawImage == null || rawImage.trim().isEmpty) return null;
+
+    final value = rawImage.trim();
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return value;
+    }
+
+    final base = Uri.parse(AppConfig.baseUrl);
+    final host =
+        '${base.scheme}://${base.host}${base.hasPort ? ':${base.port}' : ''}';
+    if (value.startsWith('/')) {
+      return '$host$value';
+    }
+
+    return '$host/$value';
   }
 
   Widget _buildEmptyState(bool isDark) {

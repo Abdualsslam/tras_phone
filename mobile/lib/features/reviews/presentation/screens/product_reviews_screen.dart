@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/di/injection.dart';
 import '../../../catalog/domain/repositories/catalog_repository.dart';
@@ -151,27 +152,9 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
   }
 
   Widget _buildError(ThemeData theme, bool isDark) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Iconsax.warning_2, size: 64.sp, color: AppColors.error),
-            SizedBox(height: 16.h),
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge,
-            ),
-            SizedBox(height: 24.h),
-            FilledButton(
-              onPressed: _loadReviews,
-              child: Text(AppLocalizations.of(context)!.retryAction),
-            ),
-          ],
-        ),
-      ),
+    return AppError(
+      message: _error!,
+      onRetry: _loadReviews,
     );
   }
 

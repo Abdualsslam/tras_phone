@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../cubit/brands_cubit.dart';
@@ -44,7 +45,7 @@ class BrandsListScreen extends StatelessWidget {
   }
 }
 
-class _BrandsListView extends StatelessWidget {
+class _BrandsListView extends StatefulWidget {
   final bool flowMode;
   final String? categoryId;
   final String? categoryName;
@@ -56,6 +57,13 @@ class _BrandsListView extends StatelessWidget {
   });
 
   @override
+  State<_BrandsListView> createState() => _BrandsListViewState();
+}
+
+class _BrandsListViewState extends State<_BrandsListView> {
+  List<BrandEntity> _cachedBrands = const [];
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -64,7 +72,9 @@ class _BrandsListView extends StatelessWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
-          flowMode ? 'اختر الماركة' : AppLocalizations.of(context)!.brands,
+          widget.flowMode
+              ? 'اختر الماركة'
+              : AppLocalizations.of(context)!.brands,
         ),
         leading: IconButton(
           icon: const Icon(Iconsax.arrow_right_3),
@@ -73,8 +83,17 @@ class _BrandsListView extends StatelessWidget {
       ),
       body: BlocBuilder<BrandsCubit, BrandsState>(
         builder: (context, state) {
+          if (state is BrandsLoaded) {
+            _cachedBrands = state.brands;
+            return _buildBrandsGrid(context, isDark, state.brands);
+          }
+
           if (state is BrandsLoading) {
-            return const Center(child: CircularProgressIndicator());
+            if (_cachedBrands.isEmpty) {
+              return const BrandsListShimmer();
+            }
+
+            return _buildBrandsGrid(context, isDark, _cachedBrands);
           }
 
           if (state is BrandsError) {
@@ -93,50 +112,55 @@ class _BrandsListView extends StatelessWidget {
             );
           }
 
-          if (state is BrandsLoaded) {
-            return RefreshIndicator(
-              onRefresh: () => context.read<BrandsCubit>().loadBrands(),
-              child: GridView.builder(
-                padding: EdgeInsets.all(16.w),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  childAspectRatio: 0.8,
-                  crossAxisSpacing: 12.w,
-                  mainAxisSpacing: 12.h,
-                ),
-                itemCount: state.brands.length,
-                itemBuilder: (context, index) {
-                  final brand = state.brands[index];
-                  return _BrandCard(
-                    brand: brand,
-                    isDark: isDark,
-                    onTap: () {
-                      if (flowMode) {
-                        final route = Uri(
-                          path: '/devices',
-                          queryParameters: {
-                            'flow': '1',
-                            'brandId': brand.id,
-                            'brandName': brand.nameAr,
-                            if (categoryId != null && categoryId!.isNotEmpty)
-                              'categoryId': categoryId!,
-                            if (categoryName != null &&
-                                categoryName!.isNotEmpty)
-                              'categoryName': categoryName!,
-                          },
-                        ).toString();
-                        context.push(route);
-                      } else {
-                        context.push('/brand/${brand.slug}');
-                      }
-                    },
-                  );
-                },
-              ),
-            );
-          }
+          return const BrandsListShimmer();
+        },
+      ),
+    );
+  }
 
-          return const SizedBox.shrink();
+  Widget _buildBrandsGrid(
+    BuildContext context,
+    bool isDark,
+    List<BrandEntity> brands,
+  ) {
+    return RefreshIndicator(
+      onRefresh: () => context.read<BrandsCubit>().loadBrands(),
+      child: GridView.builder(
+        padding: EdgeInsets.all(16.w),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 1.4,
+          crossAxisSpacing: 12.w,
+          mainAxisSpacing: 12.h,
+        ),
+        itemCount: brands.length,
+        itemBuilder: (context, index) {
+          final brand = brands[index];
+          return _BrandCard(
+            brand: brand,
+            isDark: isDark,
+            onTap: () {
+              if (widget.flowMode) {
+                final route = Uri(
+                  path: '/devices',
+                  queryParameters: {
+                    'flow': '1',
+                    'brandId': brand.id,
+                    'brandName': brand.nameAr,
+                    if (widget.categoryId != null &&
+                        widget.categoryId!.isNotEmpty)
+                      'categoryId': widget.categoryId!,
+                    if (widget.categoryName != null &&
+                        widget.categoryName!.isNotEmpty)
+                      'categoryName': widget.categoryName!,
+                  },
+                ).toString();
+                context.push(route);
+              } else {
+                context.push('/brand/${brand.slug}');
+              }
+            },
+          );
         },
       ),
     );
@@ -160,106 +184,86 @@ class _BrandCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18.r),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [
-                        Colors.white.withValues(alpha: 0.1),
-                        Colors.white.withValues(alpha: 0.05),
-                      ]
-                    : [
-                        Colors.white.withValues(alpha: 0.9),
-                        Colors.white.withValues(alpha: 0.7),
-                      ],
-              ),
-              borderRadius: BorderRadius.circular(18.r),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : AppColors.primary.withValues(alpha: 0.12),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : AppColors.primary.withValues(alpha: 0.1),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Brand Logo with glassmorphism container
-                Container(
-                  width: 58.w,
-                  height: 58.w,
-                  padding: EdgeInsets.all(10.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16.r),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: brand.logo != null
-                      ? CachedNetworkImage(
-                          imageUrl: brand.logo!,
-                          cacheKey: imageCacheKey(brand.logo!),
-                          cacheManager: imageCacheManager,
-                          fit: BoxFit.contain,
-                          placeholder: (context, url) => Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          errorWidget: (context, url, error) => Icon(
-                            Iconsax.tag,
-                            size: 28.sp,
-                            color: AppColors.primary,
-                          ),
-                        )
-                      : Icon(
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Brand Logo container
+            Expanded(
+              flex: 3,
+              child: Padding(
+                padding: EdgeInsets.all(12.w),
+                child: brand.logo != null
+                    ? CachedNetworkImage(
+                        imageUrl: brand.logo!,
+                        cacheKey: imageCacheKey(brand.logo!),
+                        cacheManager: imageCacheManager,
+                        fit: BoxFit.contain,
+                        placeholder: (context, url) => Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) => Icon(
                           Iconsax.tag,
                           size: 28.sp,
-                          color: AppColors.primary,
+                          color: AppColors.primary.withValues(alpha: 0.5),
                         ),
-                ),
-                SizedBox(height: 10.h),
+                      )
+                    : Icon(
+                        Iconsax.tag,
+                        size: 28.sp,
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                      ),
+              ),
+            ),
 
-                // Brand Name
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6.w),
-                  child: Text(
-                    brand.nameAr,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimaryLight,
-                      fontSize: 12.sp,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+            // Brand Name
+            Expanded(
+              flex: 1,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : AppColors.primary.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(18.r),
+                    bottomRight: Radius.circular(18.r),
                   ),
                 ),
-              ],
+                alignment: Alignment.center,
+                child: Text(
+                  brand.nameAr,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
+                    fontSize: 12.sp,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

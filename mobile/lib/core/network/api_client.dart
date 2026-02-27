@@ -1,7 +1,6 @@
 /// API Client wrapper using Dio
 library;
 
-import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import '../config/app_config.dart';
 import '../errors/exceptions.dart';
@@ -214,12 +213,21 @@ class ApiClient {
   String _getCurrentLocale() {
     if (_localStorage != null) {
       final savedLocale = _localStorage.getString(StorageKeys.locale);
-      if (savedLocale != null) {
-        return savedLocale;
+      if (savedLocale != null && savedLocale.isNotEmpty) {
+        return _normalizeLocaleCode(savedLocale);
       }
     }
-    // Fallback to system locale
-    return ui.PlatformDispatcher.instance.locale.languageCode;
+
+    // Keep network error language aligned with app default locale (Arabic).
+    // LocaleCubit also defaults to Arabic when nothing is saved.
+    return 'ar';
+  }
+
+  String _normalizeLocaleCode(String locale) {
+    final normalized = locale.trim().toLowerCase();
+    if (normalized.startsWith('ar')) return 'ar';
+    if (normalized.startsWith('en')) return 'en';
+    return normalized.split(RegExp(r'[-_]')).first;
   }
 
   /// Translate common error messages based on locale

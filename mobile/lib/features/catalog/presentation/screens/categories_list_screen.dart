@@ -8,13 +8,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import '../../../../core/cache/image_cache_config.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../cubit/categories_cubit.dart';
 import '../cubit/categories_state.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../home/presentation/widgets/home_helpers.dart';
 
 class CategoriesListScreen extends StatelessWidget {
   const CategoriesListScreen({super.key});
@@ -30,8 +33,15 @@ class CategoriesListScreen extends StatelessWidget {
   }
 }
 
-class _CategoriesListView extends StatelessWidget {
+class _CategoriesListView extends StatefulWidget {
   const _CategoriesListView();
+
+  @override
+  State<_CategoriesListView> createState() => _CategoriesListViewState();
+}
+
+class _CategoriesListViewState extends State<_CategoriesListView> {
+  List<CategoryEntity> _cachedCategories = const [];
 
   @override
   Widget build(BuildContext context) {
@@ -49,8 +59,17 @@ class _CategoriesListView extends StatelessWidget {
       ),
       body: BlocBuilder<CategoriesCubit, CategoriesState>(
         builder: (context, state) {
+          if (state is CategoriesLoaded) {
+            _cachedCategories = state.categories;
+            return _buildCategoriesGrid(context, isDark, state.categories);
+          }
+
           if (state is CategoriesLoading) {
-            return const Center(child: CircularProgressIndicator());
+            if (_cachedCategories.isEmpty) {
+              return const CategoriesListShimmer();
+            }
+
+            return _buildCategoriesGrid(context, isDark, _cachedCategories);
           }
 
           if (state is CategoriesError) {
@@ -70,41 +89,45 @@ class _CategoriesListView extends StatelessWidget {
             );
           }
 
-          if (state is CategoriesLoaded) {
-            return RefreshIndicator(
-              onRefresh: () => context.read<CategoriesCubit>().loadCategories(),
-              child: GridView.builder(
-                padding: EdgeInsets.all(16.w),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.85,
-                  crossAxisSpacing: 14.w,
-                  mainAxisSpacing: 14.h,
-                ),
-                itemCount: state.categories.length,
-                itemBuilder: (context, index) {
-                  final category = state.categories[index];
-                  return _CategoryCard(
-                    category: category,
-                    isDark: isDark,
-                    onTap: () {
-                      final route = Uri(
-                        path: '/brands',
-                        queryParameters: {
-                          'flow': '1',
-                          'categoryId': category.id,
-                          'categoryName': category.nameAr,
-                        },
-                      ).toString();
-                      context.push(route);
-                    },
-                  );
-                },
-              ),
-            );
-          }
+          return const CategoriesListShimmer();
+        },
+      ),
+    );
+  }
 
-          return const SizedBox.shrink();
+  Widget _buildCategoriesGrid(
+    BuildContext context,
+    bool isDark,
+    List<CategoryEntity> categories,
+  ) {
+    return RefreshIndicator(
+      onRefresh: () => context.read<CategoriesCubit>().loadCategories(),
+      child: GridView.builder(
+        padding: EdgeInsets.all(16.w),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.85,
+          crossAxisSpacing: 14.w,
+          mainAxisSpacing: 14.h,
+        ),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          return _CategoryCard(
+            category: category,
+            isDark: isDark,
+            onTap: () {
+              final route = Uri(
+                path: '/brands',
+                queryParameters: {
+                  'flow': '1',
+                  'categoryId': category.id,
+                  'categoryName': category.nameAr,
+                },
+              ).toString();
+              context.push(route);
+            },
+          );
         },
       ),
     );
@@ -191,23 +214,25 @@ class _CategoryCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: category.image != null
+                  child: category.image != null && category.image!.isNotEmpty
                       ? ClipOval(
                           child: CachedNetworkImage(
                             imageUrl: category.image!,
+                            cacheKey: imageCacheKey(category.image!),
+                            cacheManager: imageCacheManager,
                             fit: BoxFit.cover,
                             placeholder: (context, url) => Center(
                               child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                             errorWidget: (context, url, error) => Icon(
-                              Iconsax.category,
+                              HomeHelpers.getCategoryIcon(category.slug),
                               size: 36.sp,
                               color: AppColors.primary,
                             ),
                           ),
                         )
                       : Icon(
-                          Iconsax.category,
+                          HomeHelpers.getCategoryIcon(category.slug),
                           size: 36.sp,
                           color: AppColors.primary,
                         ),
