@@ -280,26 +280,13 @@ export class OrdersService {
       subtotal - discount - couponDiscount + taxAmount + shippingCost;
     const paymentMethod = this.normalizePaymentMethod(data.paymentMethod);
 
-    let walletAmountUsed = Math.max(0, Number(data.walletAmountUsed || 0));
+    const walletBalanceBefore = Math.max(
+      0,
+      await this.walletService.getBalance(customerId),
+    );
+    const walletAmountUsed = Math.min(total, walletBalanceBefore);
+    const walletBalanceAfter = Math.max(0, walletBalanceBefore - walletAmountUsed);
     let creditAmount = 0;
-
-    if (walletAmountUsed > total) {
-      throw new BadRequestException(
-        'Wallet amount cannot be greater than order total',
-      );
-    }
-
-    if (paymentMethod === 'wallet') {
-      const walletBalance = await this.walletService.getBalance(customerId);
-      walletAmountUsed = Math.min(total, Math.max(0, walletBalance));
-    } else if (walletAmountUsed > 0) {
-      const walletBalance = await this.walletService.getBalance(customerId);
-      if (walletBalance < walletAmountUsed) {
-        throw new BadRequestException(
-          `Insufficient wallet balance. Available: ${walletBalance.toFixed(2)} SAR, required: ${walletAmountUsed.toFixed(2)} SAR`,
-        );
-      }
-    }
 
     const remainingAfterWallet = total - walletAmountUsed;
     const requiresBankTransferReceipt =
@@ -414,7 +401,9 @@ export class OrdersService {
       shippingCost,
       discount,
       couponDiscount,
+      walletBalanceBefore,
       walletAmountUsed,
+      walletBalanceAfter,
       creditAmount,
       total,
       paidAmount,

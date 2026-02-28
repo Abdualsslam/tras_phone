@@ -107,7 +107,8 @@ export class CreateOrderDto {
   source?: string;
 
   @ApiProperty({
-    description: 'Amount to use from wallet',
+    description:
+      'Deprecated: wallet amount is auto-applied by backend using available balance up to order total.',
     example: 50,
     required: false,
   })
