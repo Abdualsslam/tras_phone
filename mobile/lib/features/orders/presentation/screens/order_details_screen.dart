@@ -1145,9 +1145,22 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen>
           if (order.walletAmountUsed > 0) ...[
             _buildSummaryRow(
               theme,
+              'رصيد المحفظة قبل الخصم',
+              '${order.walletBalanceBefore.toStringAsFixed(2)} ر.س',
+            ),
+            SizedBox(height: 8.h),
+            _buildSummaryRow(
+              theme,
               'المحفظة',
               '-${order.walletAmountUsed.toStringAsFixed(2)} ر.س',
               valueColor: AppColors.success,
+            ),
+            SizedBox(height: 8.h),
+            _buildSummaryRow(
+              theme,
+              'رصيد المحفظة بعد الخصم',
+              '${order.walletBalanceAfter.toStringAsFixed(2)} ر.س',
+              valueColor: AppColors.textSecondaryLight,
             ),
             SizedBox(height: 8.h),
           ],

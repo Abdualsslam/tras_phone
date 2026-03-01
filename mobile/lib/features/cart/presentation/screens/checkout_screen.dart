@@ -43,8 +43,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   String? _selectedAddressId;
   String? _selectedPaymentMethodId;
   CouponValidation? _appliedCoupon;
-  bool _useWalletBalance = false;
-  final TextEditingController _walletAmountController = TextEditingController();
   final TextEditingController _transferReferenceController =
       TextEditingController();
   final TextEditingController _transferNotesController =
@@ -70,7 +68,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _walletAmountController.dispose();
     _transferReferenceController.dispose();
     _transferNotesController.dispose();
     super.dispose();
@@ -563,13 +560,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                       .toDouble()
                                 : 0.0;
 
-                            if (isWalletMethodSelected && _useWalletBalance) {
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                if (!mounted) return;
-                                setState(() => _useWalletBalance = false);
-                              });
-                            }
-
                             return Container(
                               padding: EdgeInsets.all(12.w),
                               decoration: BoxDecoration(
@@ -650,41 +640,21 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                       ],
                                     )
                                   else ...[
-                                    SwitchListTile.adaptive(
-                                      contentPadding: EdgeInsets.zero,
-                                      title: Text(
-                                        'خصم جزء من المحفظة قبل إتمام الدفع',
-                                        style: theme.textTheme.bodyMedium,
+                                    Text(
+                                      'سيتم الخصم تلقائياً من المحفظة أولاً في جميع الطلبات.',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: AppColors.textSecondaryLight,
                                       ),
-                                      value: _useWalletBalance,
-                                      onChanged: walletBalance > 0
-                                          ? (value) {
-                                              setState(() {
-                                                _useWalletBalance = value;
-                                                if (!value) {
-                                                  _walletAmountController
-                                                      .clear();
-                                                }
-                                              });
-                                            }
-                                          : null,
                                     ),
-                                    if (_useWalletBalance) ...[
-                                      SizedBox(height: 8.h),
-                                      TextField(
-                                        controller: _walletAmountController,
-                                        keyboardType:
-                                            const TextInputType.numberWithOptions(
-                                              decimal: true,
-                                            ),
-                                        decoration: InputDecoration(
-                                          labelText:
-                                              'المبلغ المستخدم من المحفظة',
-                                          hintText:
-                                              'حتى ${walletBalance < orderTotal ? walletBalance.toStringAsFixed(2) : orderTotal.toStringAsFixed(2)}',
-                                        ),
-                                      ),
-                                    ],
+                                    SizedBox(height: 8.h),
+                                    Text(
+                                      'المخصوم تلقائياً: ${walletAutoUse.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                    Text(
+                                      'المتبقي بعد المحفظة: ${(orderTotal - walletAutoUse).clamp(0, orderTotal).toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                      style: theme.textTheme.bodySmall,
+                                    ),
                                   ],
                                 ],
                               ),
@@ -1907,10 +1877,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     final shippingCost = cart.shippingCost;
     final taxAmount = cart.taxAmount;
     final total = subtotal - couponDiscount + shippingCost + taxAmount;
-    final selectedPaymentMethod = _getSelectedPaymentMethod(session);
     final walletAmountToUse = _calculateWalletAmountToUse(
       orderTotal: total,
-      selectedPaymentMethod: selectedPaymentMethod,
       walletBalance: _resolveWalletBalance(),
     );
     final payableNow = (total - walletAmountToUse).clamp(0, total).toDouble();
@@ -2178,28 +2146,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     return 0;
   }
 
-  double _parseWalletAmountInput() {
-    final text = _walletAmountController.text.trim().replaceAll(',', '.');
-    return double.tryParse(text) ?? 0;
-  }
-
   double _calculateWalletAmountToUse({
     required double orderTotal,
-    required PaymentMethodEntity? selectedPaymentMethod,
     required double walletBalance,
   }) {
-    if (selectedPaymentMethod?.type == 'wallet') {
-      return walletBalance < orderTotal ? walletBalance : orderTotal;
-    }
-
-    if (!_useWalletBalance) return 0;
-
-    final requested = _parseWalletAmountInput();
-    if (requested <= 0) return 0;
-
-    return requested
-        .clamp(0, walletBalance < orderTotal ? walletBalance : orderTotal)
-        .toDouble();
+    return walletBalance < orderTotal ? walletBalance : orderTotal;
   }
 
   Widget _buildBottomBar(
@@ -2216,7 +2167,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     final selectedPaymentMethod = _getSelectedPaymentMethod(session);
     final walletAmountToUse = _calculateWalletAmountToUse(
       orderTotal: total,
-      selectedPaymentMethod: selectedPaymentMethod,
       walletBalance: _resolveWalletBalance(),
     );
     final availableCredit = _resolveAvailableCredit(session);
@@ -2348,30 +2298,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       final walletBalance = _resolveWalletBalance();
       final walletAmountToUse = _calculateWalletAmountToUse(
         orderTotal: orderTotal,
-        selectedPaymentMethod: selectedPaymentMethod,
         walletBalance: walletBalance,
       );
       final payableNow = (orderTotal - walletAmountToUse)
           .clamp(0, orderTotal)
           .toDouble();
-
-      if (_useWalletBalance && selectedPaymentMethod.type != 'wallet') {
-        final enteredAmount = _parseWalletAmountInput();
-        if (enteredAmount <= 0) {
-          Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-          AppSnackbar.showError(context, 'يرجى إدخال مبلغ صحيح من المحفظة');
-          return;
-        }
-
-        if (enteredAmount > walletBalance || enteredAmount > orderTotal) {
-          Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-          AppSnackbar.showError(
-            context,
-            'المبلغ المدخل من المحفظة أكبر من الحد المسموح',
-          );
-          return;
-        }
-      }
 
       // Create shipping address model
       final shippingAddress = ShippingAddressModel(
@@ -2424,7 +2355,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         shippingAddress: shippingAddress,
         paymentMethod: paymentMethod,
         couponCode: couponCode,
-        walletAmountUsed: walletAmountToUse > 0 ? walletAmountToUse : null,
         bankAccountId: bankAccountId,
         receiptImage: receiptImage,
         transferReference: transferReference,
