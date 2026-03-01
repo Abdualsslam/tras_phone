@@ -1475,6 +1475,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
   Widget _buildSupportedBanksPanel(ThemeData theme, bool isDark) {
     final locale = Localizations.localeOf(context).languageCode;
+    final accountNumberLabel = locale == 'ar' ? 'رقم الحساب' : 'Account Number';
 
     return Container(
       margin: EdgeInsets.only(top: 8.h),
@@ -1618,16 +1619,18 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                 color: AppColors.textSecondaryLight,
                               ),
                             ),
-                            Text(
-                              'رقم الحساب: ${account.accountNumber}',
+                            _buildCopyableBankField(
+                              label: accountNumberLabel,
+                              value: account.accountNumber,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: AppColors.textSecondaryLight,
                               ),
                             ),
                             if (account.iban != null &&
                                 account.iban!.isNotEmpty)
-                              Text(
-                                'IBAN: ${account.iban}',
+                              _buildCopyableBankField(
+                                label: 'IBAN',
+                                value: account.iban!,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: AppColors.textSecondaryLight,
                                 ),
@@ -1651,6 +1654,49 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         ],
       ),
     );
+  }
+
+  Widget _buildCopyableBankField({
+    required String label,
+    required String value,
+    required TextStyle? style,
+  }) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    return Row(
+      children: [
+        Expanded(child: Text('$label: $value', style: style)),
+        Tooltip(
+          message: isArabic ? 'نسخ $label' : 'Copy $label',
+          child: InkWell(
+            onTap: () => _copyBankValue(value, label),
+            borderRadius: BorderRadius.circular(8.r),
+            child: Container(
+              padding: EdgeInsets.all(6.w),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Icon(Iconsax.copy, size: 16.sp, color: AppColors.primary),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _copyBankValue(String value, String label) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: value));
+      if (!mounted) return;
+
+      final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+      final message = isArabic ? 'تم نسخ $label' : '$label copied';
+      AppSnackbar.showSuccess(context, message);
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackbar.showError(context, 'تعذر نسخ البيانات');
+    }
   }
 
   /// Builds the wallet balance info panel shown under the wallet payment method
