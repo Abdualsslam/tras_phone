@@ -136,7 +136,13 @@ class OrderModel {
   @JsonKey(defaultValue: 0.0)
   final double couponDiscount;
   @JsonKey(defaultValue: 0.0)
+  final double walletBalanceBefore;
+  @JsonKey(defaultValue: 0.0)
   final double walletAmountUsed;
+  @JsonKey(defaultValue: 0.0)
+  final double walletBalanceAfter;
+  @JsonKey(defaultValue: 0.0)
+  final double remainingAfterWallet;
   @JsonKey(defaultValue: 0)
   final int loyaltyPointsUsed;
   @JsonKey(defaultValue: 0.0)
@@ -212,7 +218,10 @@ class OrderModel {
     this.shippingCost = 0,
     this.discount = 0,
     this.couponDiscount = 0,
+    this.walletBalanceBefore = 0,
     this.walletAmountUsed = 0,
+    this.walletBalanceAfter = 0,
+    this.remainingAfterWallet = 0,
     this.loyaltyPointsUsed = 0,
     this.loyaltyPointsValue = 0,
     this.total = 0,
@@ -311,7 +320,12 @@ class OrderModel {
       shippingCost: shippingCost,
       discount: discount,
       couponDiscount: couponDiscount,
+      walletBalanceBefore: walletBalanceBefore,
       walletAmountUsed: walletAmountUsed,
+      walletBalanceAfter: walletBalanceAfter,
+      remainingAfterWallet: remainingAfterWallet > 0
+          ? remainingAfterWallet
+          : (total - walletAmountUsed).clamp(0, total).toDouble(),
       loyaltyPointsUsed: loyaltyPointsUsed,
       loyaltyPointsValue: loyaltyPointsValue,
       total: total,
@@ -368,7 +382,6 @@ class CreateOrderRequest {
   final String? paymentMethod;
   final String? customerNotes;
   final String? couponCode;
-  final double? walletAmountUsed;
 
   const CreateOrderRequest({
     this.shippingAddressId,
@@ -376,7 +389,6 @@ class CreateOrderRequest {
     this.paymentMethod,
     this.customerNotes,
     this.couponCode,
-    this.walletAmountUsed,
   });
 
   Map<String, dynamic> toJson() => {
@@ -385,8 +397,6 @@ class CreateOrderRequest {
     if (paymentMethod != null) 'paymentMethod': paymentMethod,
     if (customerNotes != null) 'customerNotes': customerNotes,
     if (couponCode != null) 'couponCode': couponCode,
-    if (walletAmountUsed != null && walletAmountUsed! > 0)
-      'walletAmountUsed': walletAmountUsed,
   };
 }
 

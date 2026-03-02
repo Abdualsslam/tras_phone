@@ -154,6 +154,8 @@ export interface PaymentMethod {
     instructionsAr?: string;
     instructionsEn?: string;
     bankDetails?: BankDetails;
+    isBankAccount?: boolean;
+    bankAccountId?: string;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -429,4 +431,3 @@ export interface AppVersion {
 }
 
 export default settingsApi;
-

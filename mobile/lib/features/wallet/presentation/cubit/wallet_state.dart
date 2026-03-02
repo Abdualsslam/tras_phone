@@ -20,6 +20,9 @@ class WalletLoading extends WalletState {
 
 class WalletLoaded extends WalletState {
   final double? balance;
+  final double? creditLimit;
+  final double? creditUsed;
+  final double? availableCredit;
   final List<WalletTransaction>? transactions;
   final LoyaltyPoints? loyaltyPoints;
   final List<LoyaltyTransaction>? loyaltyTransactions;
@@ -27,6 +30,9 @@ class WalletLoaded extends WalletState {
 
   const WalletLoaded({
     this.balance,
+    this.creditLimit,
+    this.creditUsed,
+    this.availableCredit,
     this.transactions,
     this.loyaltyPoints,
     this.loyaltyTransactions,
@@ -35,6 +41,9 @@ class WalletLoaded extends WalletState {
 
   WalletLoaded copyWith({
     double? balance,
+    double? creditLimit,
+    double? creditUsed,
+    double? availableCredit,
     List<WalletTransaction>? transactions,
     LoyaltyPoints? loyaltyPoints,
     List<LoyaltyTransaction>? loyaltyTransactions,
@@ -42,6 +51,9 @@ class WalletLoaded extends WalletState {
   }) {
     return WalletLoaded(
       balance: balance ?? this.balance,
+      creditLimit: creditLimit ?? this.creditLimit,
+      creditUsed: creditUsed ?? this.creditUsed,
+      availableCredit: availableCredit ?? this.availableCredit,
       transactions: transactions ?? this.transactions,
       loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
       loyaltyTransactions: loyaltyTransactions ?? this.loyaltyTransactions,

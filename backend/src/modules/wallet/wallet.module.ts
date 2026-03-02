@@ -10,6 +10,7 @@ import { Customer, CustomerSchema } from '@modules/customers/schemas/customer.sc
 import { WalletService } from './wallet.service';
 import { WalletController } from './wallet.controller';
 import { AuthModule } from '@modules/auth/auth.module';
+import { PermissionsGuard } from '@guards/permissions.guard';
 
 @Module({
     imports: [
@@ -33,7 +34,7 @@ import { AuthModule } from '@modules/auth/auth.module';
         AuthModule,
     ],
     controllers: [WalletController],
-    providers: [WalletService],
+    providers: [WalletService, PermissionsGuard],
     exports: [WalletService],
 })
 export class WalletModule implements OnModuleInit {

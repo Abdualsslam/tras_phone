@@ -110,7 +110,10 @@ class OrderEntity extends Equatable {
   final double shippingCost;
   final double discount;
   final double couponDiscount;
+  final double walletBalanceBefore;
   final double walletAmountUsed;
+  final double walletBalanceAfter;
+  final double remainingAfterWallet;
   final int loyaltyPointsUsed;
   final double loyaltyPointsValue;
   final double total;
@@ -176,7 +179,10 @@ class OrderEntity extends Equatable {
     this.shippingCost = 0,
     this.discount = 0,
     this.couponDiscount = 0,
+    this.walletBalanceBefore = 0,
     this.walletAmountUsed = 0,
+    this.walletBalanceAfter = 0,
+    this.remainingAfterWallet = 0,
     this.loyaltyPointsUsed = 0,
     this.loyaltyPointsValue = 0,
     required this.total,

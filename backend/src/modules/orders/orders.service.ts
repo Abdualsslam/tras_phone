@@ -36,7 +36,7 @@ import {
 import { ReturnsService } from '@modules/returns/returns.service';
 import { WalletService } from '@modules/wallet/wallet.service';
 import { NotificationsService } from '@modules/notifications/notifications.service';
-import * as PDFDocument from 'pdfkit';
+import PDFDocument from 'pdfkit';
 import { StorageService } from '@modules/integrations/storage.service';
 import { ConfigService } from '@nestjs/config';
 import { SettingsService } from '@modules/settings/settings.service';
@@ -280,28 +280,67 @@ export class OrdersService {
       subtotal - discount - couponDiscount + taxAmount + shippingCost;
     const paymentMethod = this.normalizePaymentMethod(data.paymentMethod);
 
-    let walletAmountUsed = Math.max(0, Number(data.walletAmountUsed || 0));
+    const walletBalanceBefore = Math.max(
+      0,
+      await this.walletService.getBalance(customerId),
+    );
+    const walletAmountUsed = Math.min(total, walletBalanceBefore);
+    const walletBalanceAfter = Math.max(0, walletBalanceBefore - walletAmountUsed);
     let creditAmount = 0;
 
-    if (walletAmountUsed > total) {
+    const remainingAfterWallet = total - walletAmountUsed;
+    const requiresBankTransferReceipt =
+      paymentMethod === 'bank_transfer' && remainingAfterWallet > 0;
+
+    const transferReceiptImage = requiresBankTransferReceipt
+      ? data.receiptImage?.trim()
+      : undefined;
+    if (requiresBankTransferReceipt && !transferReceiptImage) {
       throw new BadRequestException(
-        'Wallet amount cannot be greater than order total',
+        'Bank transfer receipt image is required for this order',
       );
     }
 
-    if (paymentMethod === 'wallet') {
-      const walletBalance = await this.walletService.getBalance(customerId);
-      walletAmountUsed = Math.min(total, Math.max(0, walletBalance));
-    } else if (walletAmountUsed > 0) {
-      const walletBalance = await this.walletService.getBalance(customerId);
-      if (walletBalance < walletAmountUsed) {
+    let selectedBankAccountId: Types.ObjectId | undefined;
+    if (requiresBankTransferReceipt) {
+      const bankAccountId = data.bankAccountId?.trim();
+      if (!bankAccountId) {
         throw new BadRequestException(
-          `Insufficient wallet balance. Available: ${walletBalance.toFixed(2)} SAR, required: ${walletAmountUsed.toFixed(2)} SAR`,
+          'Bank account selection is required for bank transfer orders',
         );
       }
+
+      const bankAccount = await this.bankAccountModel
+        .findOne({ _id: bankAccountId, isActive: true })
+        .select('_id')
+        .lean();
+      if (!bankAccount) {
+        throw new BadRequestException('Selected bank account is invalid');
+      }
+
+      selectedBankAccountId = new Types.ObjectId(bankAccountId);
     }
 
-    const remainingAfterWallet = total - walletAmountUsed;
+    const transferReference =
+      requiresBankTransferReceipt && data.transferReference?.trim()
+        ? data.transferReference.trim()
+        : undefined;
+
+    let transferDate: Date | undefined;
+    if (requiresBankTransferReceipt && data.transferDate) {
+      const parsedDate = new Date(data.transferDate);
+      if (Number.isNaN(parsedDate.getTime())) {
+        throw new BadRequestException(
+          'Invalid transferDate format. Use YYYY-MM-DD',
+        );
+      }
+      transferDate = parsedDate;
+    }
+
+    const transferNotes =
+      requiresBankTransferReceipt && data.notes?.trim()
+        ? data.notes.trim()
+        : undefined;
 
     // Validate credit limit when paying with credit
     if (paymentMethod === 'credit') {
@@ -347,8 +386,8 @@ export class OrdersService {
     const paymentStatus =
       paidAmount <= 0 ? 'unpaid' : paidAmount >= total ? 'paid' : 'partial';
     const transferStatus =
-      paymentMethod === 'bank_transfer' && remainingAfterWallet > 0
-        ? 'awaiting_receipt'
+      requiresBankTransferReceipt
+        ? 'receipt_uploaded'
         : 'not_required';
 
     // Create order (currency default SAR)
@@ -362,12 +401,18 @@ export class OrdersService {
       shippingCost,
       discount,
       couponDiscount,
+      walletBalanceBefore,
       walletAmountUsed,
+      walletBalanceAfter,
       creditAmount,
       total,
       paidAmount,
       paymentStatus,
       transferStatus,
+      bankAccountId: selectedBankAccountId,
+      transferReceiptImage,
+      transferReference,
+      transferDate,
       currencyCode: 'SAR',
       couponId,
       couponCode,
@@ -378,6 +423,14 @@ export class OrdersService {
       customerNotes: data.customerNotes,
       source: data.source || 'mobile',
     });
+
+    if (transferNotes) {
+      await this.addNote(
+        order._id.toString(),
+        transferNotes,
+        'payment_receipt',
+      );
+    }
 
     // Create order items with product details
     this.logger.debug(
@@ -1537,6 +1590,17 @@ export class OrdersService {
     const remainingAmount = Math.max(0, (order.total || 0) - (order.paidAmount || 0));
     if (remainingAmount <= 0) {
       throw new BadRequestException('Order is already fully paid');
+    }
+
+    if (data.bankAccountId) {
+      const bankAccount = await this.bankAccountModel
+        .findOne({ _id: data.bankAccountId, isActive: true })
+        .select('_id')
+        .lean();
+      if (!bankAccount) {
+        throw new BadRequestException('Selected bank account is invalid');
+      }
+      order.bankAccountId = new Types.ObjectId(data.bankAccountId);
     }
 
     // Update order with receipt info

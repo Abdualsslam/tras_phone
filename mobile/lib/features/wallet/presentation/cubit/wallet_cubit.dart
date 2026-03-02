@@ -4,6 +4,8 @@ library;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/loyalty_points_model.dart';
 import '../../data/models/loyalty_tier_model.dart';
+import '../../data/models/wallet_summary_model.dart';
+import '../../data/models/wallet_transaction_model.dart';
 import '../../data/repositories/wallet_repository.dart';
 import '../../domain/enums/wallet_enums.dart';
 import 'wallet_state.dart';
@@ -17,12 +19,26 @@ class WalletCubit extends Cubit<WalletState> {
   Future<void> loadBalance() async {
     emit(const WalletLoading());
     try {
-      final balance = await _repository.getBalance();
+      final summary = await _repository.getBalance();
       final currentState = state;
       if (currentState is WalletLoaded) {
-        emit(currentState.copyWith(balance: balance));
+        emit(
+          currentState.copyWith(
+            balance: summary.balance,
+            creditLimit: summary.creditLimit,
+            creditUsed: summary.creditUsed,
+            availableCredit: summary.availableCredit,
+          ),
+        );
       } else {
-        emit(WalletLoaded(balance: balance));
+        emit(
+          WalletLoaded(
+            balance: summary.balance,
+            creditLimit: summary.creditLimit,
+            creditUsed: summary.creditUsed,
+            availableCredit: summary.availableCredit,
+          ),
+        );
       }
     } catch (e) {
       emit(WalletError(e.toString()));
@@ -111,16 +127,22 @@ class WalletCubit extends Cubit<WalletState> {
   Future<void> loadAll() async {
     emit(const WalletLoading());
     try {
-      final results = await Future.wait([
+      final results = await Future.wait<dynamic>([
         _repository.getBalance(),
+        _repository.getTransactions(limit: 5),
         _repository.getPoints(),
         _repository.getTiers(),
       ]);
+      final summary = results[0] as WalletSummary;
       emit(
         WalletLoaded(
-          balance: results[0] as double,
-          loyaltyPoints: results[1] as LoyaltyPoints,
-          tiers: results[2] as List<LoyaltyTier>,
+          balance: summary.balance,
+          creditLimit: summary.creditLimit,
+          creditUsed: summary.creditUsed,
+          availableCredit: summary.availableCredit,
+          transactions: (results[1] as List).cast<WalletTransaction>(),
+          loyaltyPoints: results[2] as LoyaltyPoints,
+          tiers: results[3] as List<LoyaltyTier>,
         ),
       );
     } catch (e) {
@@ -132,9 +154,17 @@ class WalletCubit extends Cubit<WalletState> {
   Future<void> loadWalletWithTransactions() async {
     emit(const WalletLoading());
     try {
-      final balance = await _repository.getBalance();
+      final summary = await _repository.getBalance();
       final transactions = await _repository.getTransactions();
-      emit(WalletLoaded(balance: balance, transactions: transactions));
+      emit(
+        WalletLoaded(
+          balance: summary.balance,
+          creditLimit: summary.creditLimit,
+          creditUsed: summary.creditUsed,
+          availableCredit: summary.availableCredit,
+          transactions: transactions,
+        ),
+      );
     } catch (e) {
       emit(WalletError(e.toString()));
     }

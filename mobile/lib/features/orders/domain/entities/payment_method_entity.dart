@@ -49,14 +49,26 @@ class PaymentMethodEntity {
 
   /// Convert type to OrderPaymentMethod enum
   String get orderPaymentMethodValue {
-    final normalized = type.toLowerCase();
+    final normalized = type.toLowerCase().trim().replaceAll(
+      RegExp(r'[\s-]+'),
+      '_',
+    );
+    final compact = normalized.replaceAll('_', '');
 
-    switch (normalized) {
+    switch (compact) {
       case 'cod':
       case 'cash':
+      case 'cashondelivery':
         return 'cash_on_delivery';
       case 'card':
+      case 'creditcard':
         return 'credit_card';
+      case 'banktransfer':
+        return 'bank_transfer';
+      case 'applepay':
+        return 'apple_pay';
+      case 'stcpay':
+        return 'stc_pay';
       default:
         return normalized;
     }

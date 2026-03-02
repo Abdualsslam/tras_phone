@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsMongoId } from 'class-validator';
 
 export class UploadReceiptDto {
   @ApiProperty({
@@ -35,4 +35,13 @@ export class UploadReceiptDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiProperty({
+    description: 'Selected bank account ID',
+    required: false,
+    example: '507f1f77bcf86cd799439011',
+  })
+  @IsOptional()
+  @IsMongoId()
+  bankAccountId?: string;
 }

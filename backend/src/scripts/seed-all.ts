@@ -306,7 +306,6 @@ async function seedAll() {
                     walletBalance: 0,
                     loyaltyPoints: 0,
                     loyaltyTier: 'bronze',
-                    riskScore: 50,
                     totalOrders: randomNumber(0, 50),
                     totalSpent: randomNumber(0, 100000),
                     createdAt: randomDate(180),

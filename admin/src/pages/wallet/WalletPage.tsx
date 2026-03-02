@@ -3,74 +3,88 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { walletApi, type LoyaltyTier } from "@/api/wallet.api";
 import { customersApi } from "@/api/customers.api";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/api/client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-// Select is kept for potential future use
-import {
-  Loader2,
-  Wallet,
-  ArrowUpCircle,
-  ArrowDownCircle,
-  Gift,
-  Star,
-  Search,
-  TrendingUp,
-  Coins,
-  Plus,
-  Pencil,
-  Trash2,
-  Crown,
-} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Wallet, TrendingUp, Coins, Crown, Filter } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
-// ══════════════════════════════════════════════════════════════
-// Component
-// ══════════════════════════════════════════════════════════════
+import { CustomerPickerCard } from "./components/CustomerPickerCard";
+import { WalletContextBar } from "./components/WalletContextBar";
+import { WalletTransactionsCard } from "./components/WalletTransactionsCard";
+import {
+  WalletOperationWizardDialog,
+  type WalletOperationType,
+} from "./components/WalletOperationWizardDialog";
+import { LoyaltyTiersPanel } from "./components/LoyaltyTiersPanel";
+
+type TierFormValues = Omit<LoyaltyTier, "_id" | "createdAt" | "updatedAt">;
+
+type AuditFilterState = {
+  type: "_all" | "credit" | "debit";
+  transactionType: string;
+  search: string;
+  reference: string;
+  startDate: string;
+  endDate: string;
+  onlySelectedCustomer: boolean;
+};
+
+const defaultAuditFilters: AuditFilterState = {
+  type: "_all",
+  transactionType: "_all",
+  search: "",
+  reference: "",
+  startDate: "",
+  endDate: "",
+  onlySelectedCustomer: false,
+};
 
 export function WalletPage() {
   const queryClient = useQueryClient();
+  const { permissions } = useAuth();
 
+  const hasPermission = (permission: string) =>
+    permissions.includes("*") || permissions.includes(permission);
+  const canAddCredit = hasPermission("wallet.add_credit");
+  const canDeduct = hasPermission("wallet.deduct");
+  const canAdjustPoints = hasPermission("loyalty.adjust_points");
+  const canViewTransactions = hasPermission("wallet.view_transactions");
+  const canManageTiers = hasPermission("loyalty.manage_tiers");
+
+  const [activeTab, setActiveTab] = useState("operations");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [selectedCustomerName, setSelectedCustomerName] = useState<string>("");
   const [customerSearch, setCustomerSearch] = useState("");
-  const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
-  const [isDebitDialogOpen, setIsDebitDialogOpen] = useState(false);
-  const [isPointsDialogOpen, setIsPointsDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("customers");
 
-  // Tiers management
+  const [isOperationDialogOpen, setIsOperationDialogOpen] = useState(false);
+  const [defaultOperationType, setDefaultOperationType] = useState<WalletOperationType>("credit");
+
+  const [auditDraftFilters, setAuditDraftFilters] = useState<AuditFilterState>(defaultAuditFilters);
+  const [auditFilters, setAuditFilters] = useState<AuditFilterState>(defaultAuditFilters);
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditLimit, setAuditLimit] = useState(20);
+
   const [isCreateTierDialogOpen, setIsCreateTierDialogOpen] = useState(false);
   const [isEditTierDialogOpen, setIsEditTierDialogOpen] = useState(false);
   const [isDeleteTierDialogOpen, setIsDeleteTierDialogOpen] = useState(false);
   const [selectedTier, setSelectedTier] = useState<LoyaltyTier | null>(null);
-
-  // ─────────────────────────────────────────
-  // Queries
-  // ─────────────────────────────────────────
 
   const {
     data: tiers = [],
@@ -79,6 +93,7 @@ export function WalletPage() {
   } = useQuery({
     queryKey: ["wallet-tiers-admin"],
     queryFn: () => walletApi.getAllTiers(),
+    enabled: canManageTiers,
   });
 
   const { data: customerSearchResult, isLoading: customersLoading } = useQuery({
@@ -103,14 +118,42 @@ export function WalletPage() {
   });
 
   const {
-    data: recentTransactions = [],
-    isLoading: recentTransactionsLoading,
-    isError: recentTransactionsError,
-    error: recentTransactionsErrorData,
+    data: adminTransactionsData,
+    isLoading: adminTransactionsLoading,
+    isError: adminTransactionsError,
+    error: adminTransactionsErrorData,
   } = useQuery({
-    queryKey: ["wallet-admin-recent-transactions"],
-    queryFn: () => walletApi.getAllTransactions({ page: 1, limit: 10 }),
+    queryKey: [
+      "wallet-admin-transactions",
+      auditPage,
+      auditLimit,
+      auditFilters.type,
+      auditFilters.transactionType,
+      auditFilters.search,
+      auditFilters.reference,
+      auditFilters.startDate,
+      auditFilters.endDate,
+      auditFilters.onlySelectedCustomer,
+      selectedCustomerId,
+    ],
+    queryFn: () =>
+      walletApi.getAllTransactions({
+        page: auditPage,
+        limit: auditLimit,
+        type: auditFilters.type === "_all" ? undefined : auditFilters.type,
+        transactionType:
+          auditFilters.transactionType === "_all" ? undefined : auditFilters.transactionType,
+        search: auditFilters.search.trim() || undefined,
+        reference: auditFilters.reference.trim() || undefined,
+        startDate: auditFilters.startDate || undefined,
+        endDate: auditFilters.endDate || undefined,
+        customerId: auditFilters.onlySelectedCustomer ? selectedCustomerId || undefined : undefined,
+      }),
+    enabled: canViewTransactions,
   });
+
+  const auditTransactions = adminTransactionsData?.items || [];
+  const auditPagination = adminTransactionsData?.pagination;
 
   const {
     data: customerBalance,
@@ -131,76 +174,84 @@ export function WalletPage() {
   } = useQuery({
     queryKey: ["wallet-transactions", selectedCustomerId],
     queryFn: () => walletApi.getCustomerTransactions(selectedCustomerId),
-    enabled: !!selectedCustomerId,
+    enabled: !!selectedCustomerId && canViewTransactions,
   });
 
   const customerOptions = customerSearchResult?.items || [];
 
-  // ─────────────────────────────────────────
-  // Mutations
-  // ─────────────────────────────────────────
+  const formatOperationSuccessMessage = (
+    baseMessage: string,
+    transaction?: { transactionNumber?: string; referenceNumber?: string; reference?: string },
+  ) => {
+    const txNumber = transaction?.transactionNumber;
+    const reference = transaction?.referenceNumber || transaction?.reference;
+    const suffixParts = [txNumber ? `رقم العملية: ${txNumber}` : null, reference ? `المرجع: ${reference}` : null]
+      .filter(Boolean)
+      .join(" | ");
+
+    return suffixParts ? `${baseMessage} - ${suffixParts}` : baseMessage;
+  };
+
+  const focusAuditForWalletOperation = (
+    type: "credit" | "debit",
+    transaction?: { transactionNumber?: string; referenceNumber?: string; reference?: string },
+  ) => {
+    const nextFilters: AuditFilterState = {
+      ...defaultAuditFilters,
+      type,
+      search: transaction?.transactionNumber || "",
+      reference: transaction?.referenceNumber || transaction?.reference || "",
+      onlySelectedCustomer: !!selectedCustomerId,
+    };
+
+    setActiveTab("audit");
+    setAuditPage(1);
+    setAuditFilters(nextFilters);
+    setAuditDraftFilters(nextFilters);
+  };
+
+  const invalidateWalletQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["wallet-balance", selectedCustomerId] });
+    queryClient.invalidateQueries({ queryKey: ["wallet-transactions", selectedCustomerId] });
+    queryClient.invalidateQueries({ queryKey: ["wallet-admin-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["wallet-admin-transactions"] });
+  };
 
   const creditMutation = useMutation({
     mutationFn: walletApi.creditWallet,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["wallet-balance", selectedCustomerId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["wallet-transactions", selectedCustomerId],
-      });
-      queryClient.invalidateQueries({ queryKey: ["wallet-admin-stats"] });
-      queryClient.invalidateQueries({
-        queryKey: ["wallet-admin-recent-transactions"],
-      });
-      setIsCreditDialogOpen(false);
-      toast.success("تم إضافة الرصيد بنجاح");
-      creditForm.reset();
+    onSuccess: (transaction) => {
+      invalidateWalletQueries();
+      setIsOperationDialogOpen(false);
+      focusAuditForWalletOperation("credit", transaction);
+      toast.success(formatOperationSuccessMessage("تم إضافة الرصيد بنجاح", transaction));
     },
-    onError: (error) =>
-      toast.error(getErrorMessage(error, "حدث خطأ في إضافة الرصيد")),
+    onError: (error) => toast.error(getErrorMessage(error, "حدث خطأ في إضافة الرصيد")),
   });
 
   const debitMutation = useMutation({
     mutationFn: walletApi.debitWallet,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["wallet-balance", selectedCustomerId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["wallet-transactions", selectedCustomerId],
-      });
-      queryClient.invalidateQueries({ queryKey: ["wallet-admin-stats"] });
-      queryClient.invalidateQueries({
-        queryKey: ["wallet-admin-recent-transactions"],
-      });
-      setIsDebitDialogOpen(false);
-      toast.success("تم خصم الرصيد بنجاح");
-      debitForm.reset();
+    onSuccess: (transaction) => {
+      invalidateWalletQueries();
+      setIsOperationDialogOpen(false);
+      focusAuditForWalletOperation("debit", transaction);
+      toast.success(formatOperationSuccessMessage("تم خصم الرصيد بنجاح", transaction));
     },
-    onError: (error) =>
-      toast.error(getErrorMessage(error, "حدث خطأ في خصم الرصيد")),
+    onError: (error) => toast.error(getErrorMessage(error, "حدث خطأ في خصم الرصيد")),
   });
 
   const grantPointsMutation = useMutation({
     mutationFn: walletApi.grantPoints,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["wallet-balance", selectedCustomerId],
+    onSuccess: (transaction) => {
+      invalidateWalletQueries();
+      setIsOperationDialogOpen(false);
+      const message = formatOperationSuccessMessage("تم منح النقاط بنجاح", {
+        transactionNumber: transaction?.transactionNumber,
       });
-      queryClient.invalidateQueries({ queryKey: ["wallet-admin-stats"] });
-      queryClient.invalidateQueries({
-        queryKey: ["wallet-admin-recent-transactions"],
-      });
-      setIsPointsDialogOpen(false);
-      toast.success("تم منح النقاط بنجاح");
-      pointsForm.reset();
+      toast.success(message);
     },
-    onError: (error) =>
-      toast.error(getErrorMessage(error, "حدث خطأ في منح النقاط")),
+    onError: (error) => toast.error(getErrorMessage(error, "حدث خطأ في منح النقاط")),
   });
 
-  // Tiers mutations
   const createTierMutation = useMutation({
     mutationFn: walletApi.createTier,
     onSuccess: () => {
@@ -209,8 +260,7 @@ export function WalletPage() {
       toast.success("تم إنشاء المستوى بنجاح");
       tierForm.reset();
     },
-    onError: (error) =>
-      toast.error(getErrorMessage(error, "حدث خطأ في إنشاء المستوى")),
+    onError: (error) => toast.error(getErrorMessage(error, "حدث خطأ في إنشاء المستوى")),
   });
 
   const updateTierMutation = useMutation({
@@ -223,8 +273,7 @@ export function WalletPage() {
       toast.success("تم تحديث المستوى بنجاح");
       tierForm.reset();
     },
-    onError: (error) =>
-      toast.error(getErrorMessage(error, "حدث خطأ في تحديث المستوى")),
+    onError: (error) => toast.error(getErrorMessage(error, "حدث خطأ في تحديث المستوى")),
   });
 
   const deleteTierMutation = useMutation({
@@ -235,40 +284,10 @@ export function WalletPage() {
       setSelectedTier(null);
       toast.success("تم حذف المستوى بنجاح");
     },
-    onError: (error) =>
-      toast.error(getErrorMessage(error, "حدث خطأ في حذف المستوى")),
+    onError: (error) => toast.error(getErrorMessage(error, "حدث خطأ في حذف المستوى")),
   });
 
-  // ─────────────────────────────────────────
-  // Forms
-  // ─────────────────────────────────────────
-
-  const creditForm = useForm({
-    defaultValues: {
-      amount: 0,
-      description: "",
-      reference: "",
-    },
-  });
-
-  const debitForm = useForm({
-    defaultValues: {
-      amount: 0,
-      description: "",
-      reference: "",
-    },
-  });
-
-  const pointsForm = useForm({
-    defaultValues: {
-      points: 0,
-      reason: "",
-    },
-  });
-
-  const tierForm = useForm<
-    Omit<LoyaltyTier, "_id" | "createdAt" | "updatedAt">
-  >({
+  const tierForm = useForm<TierFormValues>({
     defaultValues: {
       name: "",
       nameAr: "",
@@ -284,72 +303,115 @@ export function WalletPage() {
     },
   });
 
-  // ─────────────────────────────────────────
-  // Handlers
-  // ─────────────────────────────────────────
-
-  const handleOpenCredit = () => {
-    if (!selectedCustomerId) {
-      toast.error("يرجى اختيار عميل أولاً");
-      return;
-    }
-    creditForm.reset({ amount: 0, description: "", reference: "" });
-    setIsCreditDialogOpen(true);
-  };
-
-  const handleOpenDebit = () => {
-    if (!selectedCustomerId) {
-      toast.error("يرجى اختيار عميل أولاً");
-      return;
-    }
-    debitForm.reset({ amount: 0, description: "", reference: "" });
-    setIsDebitDialogOpen(true);
-  };
-
-  const handleOpenPoints = () => {
-    if (!selectedCustomerId) {
-      toast.error("يرجى اختيار عميل أولاً");
-      return;
-    }
-    pointsForm.reset({ points: 0, reason: "" });
-    setIsPointsDialogOpen(true);
-  };
-
-  const onCreditSubmit = (data: {
-    amount: number;
-    description: string;
-    reference: string;
+  const handleSelectCustomer = (customer: {
+    _id: string;
+    contactName?: string;
+    companyName?: string;
+    phone?: string;
   }) => {
-    creditMutation.mutate({
-      customerId: selectedCustomerId,
-      amount: data.amount,
-      description: data.description,
-      reference: data.reference || undefined,
-    });
+    setSelectedCustomerId(customer._id);
+    const name = customer.contactName || customer.companyName || customer.phone || "عميل";
+    setCustomerSearch(name);
+    setSelectedCustomerName(name);
   };
 
-  const onDebitSubmit = (data: {
-    amount: number;
-    description: string;
-    reference: string;
-  }) => {
-    debitMutation.mutate({
-      customerId: selectedCustomerId,
-      amount: data.amount,
-      description: data.description,
-      reference: data.reference || undefined,
-    });
+  const handleClearSelection = () => {
+    setSelectedCustomerId("");
+    setSelectedCustomerName("");
+
+    if (auditDraftFilters.onlySelectedCustomer || auditFilters.onlySelectedCustomer) {
+      const nextFilters = {
+        ...defaultAuditFilters,
+        type: auditFilters.type,
+      };
+      setAuditDraftFilters(nextFilters);
+      setAuditFilters(nextFilters);
+      setAuditPage(1);
+    }
   };
 
-  const onPointsSubmit = (data: { points: number; reason: string }) => {
-    grantPointsMutation.mutate({
-      customerId: selectedCustomerId,
-      points: data.points,
-      reason: data.reason,
-    });
+  const applyAuditFilters = () => {
+    const normalized: AuditFilterState = {
+      ...auditDraftFilters,
+      search: auditDraftFilters.search.trim(),
+      reference: auditDraftFilters.reference.trim(),
+      onlySelectedCustomer: auditDraftFilters.onlySelectedCustomer && !!selectedCustomerId,
+    };
+
+    setAuditPage(1);
+    setAuditFilters(normalized);
   };
 
-  // Tiers handlers
+  const resetAuditFilters = () => {
+    setAuditPage(1);
+    setAuditDraftFilters(defaultAuditFilters);
+    setAuditFilters(defaultAuditFilters);
+  };
+
+  const openOperationWizard = (type: WalletOperationType) => {
+    if (!selectedCustomerId) {
+      toast.error("يرجى اختيار عميل أولاً");
+      return;
+    }
+
+    if (type === "credit" && !canAddCredit) {
+      toast.error("ليس لديك صلاحية إضافة رصيد");
+      return;
+    }
+
+    if (type === "debit" && !canDeduct) {
+      toast.error("ليس لديك صلاحية خصم الرصيد");
+      return;
+    }
+
+    if (type === "points" && !canAdjustPoints) {
+      toast.error("ليس لديك صلاحية تعديل النقاط");
+      return;
+    }
+
+    setDefaultOperationType(type);
+    setIsOperationDialogOpen(true);
+  };
+
+  const handleOperationSubmit = (
+    operationType: WalletOperationType,
+    data: {
+      amount?: number;
+      points?: number;
+      description?: string;
+      reason?: string;
+      reference?: string;
+    },
+  ) => {
+    if (!selectedCustomerId) {
+      toast.error("يرجى اختيار عميل أولاً");
+      return;
+    }
+
+    if (operationType === "points") {
+      grantPointsMutation.mutate({
+        customerId: selectedCustomerId,
+        points: Number(data.points || 0),
+        reason: (data.reason || "").trim(),
+      });
+      return;
+    }
+
+    const payload = {
+      customerId: selectedCustomerId,
+      amount: Number(data.amount || 0),
+      description: (data.description || "").trim(),
+      reference: data.reference,
+    };
+
+    if (operationType === "credit") {
+      creditMutation.mutate(payload);
+      return;
+    }
+
+    debitMutation.mutate(payload);
+  };
+
   const handleCreateTier = () => {
     tierForm.reset({
       name: "",
@@ -398,9 +460,7 @@ export function WalletPage() {
     setIsDeleteTierDialogOpen(true);
   };
 
-  const onTierSubmit = (
-    data: Omit<LoyaltyTier, "_id" | "createdAt" | "updatedAt">
-  ) => {
+  const onTierSubmit = (data: TierFormValues) => {
     if (selectedTier) {
       updateTierMutation.mutate({ id: selectedTier._id, data });
     } else {
@@ -414,46 +474,54 @@ export function WalletPage() {
     }
   };
 
-  // ─────────────────────────────────────────
-  // Render
-  // ─────────────────────────────────────────
+  const isOperationSubmitting =
+    creditMutation.isPending || debitMutation.isPending || grantPointsMutation.isPending;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">إدارة المحفظة والنقاط</h1>
         <p className="text-muted-foreground text-sm">
-          إدارة أرصدة العملاء ونقاط الولاء
+          تدفق موحد لتنفيذ العمليات المالية مع سجل واضح قابل للمراجعة
         </p>
       </div>
 
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="customers" className="flex items-center gap-2">
+          <TabsTrigger value="operations" className="flex items-center gap-2">
             <Wallet className="h-4 w-4" />
-            عملاء المحفظة
+            العمليات
           </TabsTrigger>
-          <TabsTrigger value="tiers" className="flex items-center gap-2">
-            <Crown className="h-4 w-4" />
-            مستويات الولاء
+          <TabsTrigger value="audit" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            السجل والتدقيق
           </TabsTrigger>
+          {canManageTiers && (
+            <TabsTrigger value="tiers" className="flex items-center gap-2">
+              <Crown className="h-4 w-4" />
+              مستويات الولاء
+            </TabsTrigger>
+          )}
         </TabsList>
 
-        {/* Customers Tab */}
-        <TabsContent value="customers" className="space-y-6">
-          {/* Wallet Overview */}
+        <div className="mt-4">
+          <WalletContextBar
+            selectedCustomerId={selectedCustomerId}
+            selectedCustomerName={selectedCustomerName}
+            balanceLoading={balanceLoading}
+            balance={customerBalance?.balance}
+            points={customerBalance?.points}
+            tier={customerBalance?.tier}
+          />
+        </div>
+
+        <TabsContent value="operations" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">
-                  إجمالي أرصدة المحافظ
-                </p>
+                <p className="text-sm text-muted-foreground">إجمالي أرصدة المحافظ</p>
                 <p className="text-2xl font-bold mt-1">
-                  {statsLoading
-                    ? "..."
-                    : formatCurrency(walletStats?.totalBalance || 0)}
+                  {statsLoading ? "..." : formatCurrency(walletStats?.totalBalance || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -461,9 +529,7 @@ export function WalletPage() {
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">المحافظ النشطة</p>
                 <p className="text-2xl font-bold mt-1">
-                  {statsLoading
-                    ? "..."
-                    : (walletStats?.activeWallets || 0).toLocaleString()}
+                  {statsLoading ? "..." : (walletStats?.activeWallets || 0).toLocaleString()}
                 </p>
               </CardContent>
             </Card>
@@ -471,9 +537,7 @@ export function WalletPage() {
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">إجمالي الإضافات</p>
                 <p className="text-2xl font-bold mt-1 text-green-600">
-                  {statsLoading
-                    ? "..."
-                    : formatCurrency(walletStats?.totalCredits || 0)}
+                  {statsLoading ? "..." : formatCurrency(walletStats?.totalCredits || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -481,9 +545,7 @@ export function WalletPage() {
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground">إجمالي الخصومات</p>
                 <p className="text-2xl font-bold mt-1 text-red-600">
-                  {statsLoading
-                    ? "..."
-                    : formatCurrency(walletStats?.totalDebits || 0)}
+                  {statsLoading ? "..." : formatCurrency(walletStats?.totalDebits || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -492,632 +554,325 @@ export function WalletPage() {
           {statsError && (
             <Card className="border-red-200 bg-red-50/40 dark:border-red-800 dark:bg-red-900/10">
               <CardContent className="pt-6 text-sm text-red-700 dark:text-red-300">
-                تعذر تحميل إحصائيات المحفظة:{" "}
-                {getErrorMessage(statsErrorData, "حدث خطأ غير متوقع")}
+                تعذر تحميل إحصائيات المحفظة: {getErrorMessage(statsErrorData, "حدث خطأ غير متوقع")}
               </CardContent>
             </Card>
           )}
 
-          {/* Customer Search */}
+          <CustomerPickerCard
+            customerSearch={customerSearch}
+            onSearchChange={setCustomerSearch}
+            customersLoading={customersLoading}
+            customerOptions={customerOptions}
+            selectedCustomerId={selectedCustomerId}
+            selectedCustomerName={selectedCustomerName}
+            onSelectCustomer={handleSelectCustomer}
+            onClearSelection={handleClearSelection}
+          />
+
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                البحث عن عميل
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="ابحث بالاسم أو رقم الجوال..."
-                      value={customerSearch}
-                      onChange={(e) => setCustomerSearch(e.target.value)}
-                    />
-                  </div>
+            <CardContent className="pt-6 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold">تنفيذ عملية مالية</h3>
+                  <p className="text-sm text-muted-foreground">
+                    اختر العميل ثم نفذ العملية عبر معالج خطوة بخطوة.
+                  </p>
                 </div>
+                <Coins className="h-5 w-5 text-muted-foreground" />
+              </div>
 
-                <p className="text-xs text-muted-foreground">
-                  اختر العميل من النتائج مباشرة. الصفحة تدير محافظ العملاء (وليس
-                  محفظة حساب الأدمن).
+              {!selectedCustomerId && (
+                <p className="text-sm text-muted-foreground">
+                  لا يمكن تنفيذ أي عملية قبل اختيار العميل.
                 </p>
+              )}
 
-                {customerSearch.trim().length >= 2 && (
-                  <div className="rounded-md border p-2 max-h-52 overflow-auto">
-                    {customersLoading ? (
-                      <p className="text-sm text-muted-foreground px-2 py-1">
-                        جاري البحث...
-                      </p>
-                    ) : customerOptions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground px-2 py-1">
-                        لا يوجد عملاء مطابقون
-                      </p>
-                    ) : (
-                      <div className="space-y-1">
-                        {customerOptions.map((customer) => (
-                          <button
-                            key={customer._id}
-                            type="button"
-                            className="w-full text-end px-3 py-2 rounded-md hover:bg-muted transition-colors"
-                            onClick={() => {
-                              setSelectedCustomerId(customer._id);
-                              setCustomerSearch(
-                                customer.contactName ||
-                                  customer.companyName ||
-                                  customer.phone
-                              );
-                              setSelectedCustomerName(
-                                customer.contactName ||
-                                  customer.companyName ||
-                                  customer.phone ||
-                                  "عميل"
-                              );
-                            }}
-                          >
-                            <div className="text-sm font-medium">
-                              {customer.contactName ||
-                                customer.companyName ||
-                                "عميل"}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {customer.phone} • {customer._id}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+              <div className="flex flex-wrap gap-2">
+                {canAddCredit && (
+                  <Button
+                    onClick={() => openOperationWizard("credit")}
+                    disabled={!selectedCustomerId}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    إضافة رصيد
+                  </Button>
                 )}
-
-                {selectedCustomerId && (
-                  <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
-                    <div className="text-xs text-muted-foreground">
-                      العميل المحدد:{" "}
-                      <span className="font-medium text-foreground">
-                        {selectedCustomerName || selectedCustomerId}
-                      </span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedCustomerId("");
-                        setSelectedCustomerName("");
-                      }}
-                    >
-                      إلغاء الاختيار
-                    </Button>
-                  </div>
+                {canDeduct && (
+                  <Button
+                    onClick={() => openOperationWizard("debit")}
+                    disabled={!selectedCustomerId}
+                    variant="destructive"
+                  >
+                    خصم رصيد
+                  </Button>
+                )}
+                {canAdjustPoints && (
+                  <Button
+                    onClick={() => openOperationWizard("points")}
+                    disabled={!selectedCustomerId}
+                    variant="outline"
+                  >
+                    منح نقاط
+                  </Button>
                 )}
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Recent Transactions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                آخر معاملات المحافظ (عامة)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recentTransactionsError ? (
-                <div className="text-sm text-red-700 dark:text-red-300">
-                  تعذر تحميل المعاملات العامة:{" "}
-                  {getErrorMessage(
-                    recentTransactionsErrorData,
-                    "حدث خطأ غير متوقع"
-                  )}
-                </div>
-              ) : recentTransactionsLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : recentTransactions.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  لا توجد معاملات حديثة
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>العميل</TableHead>
-                      <TableHead>النوع</TableHead>
-                      <TableHead>المبلغ</TableHead>
-                      <TableHead>الوصف</TableHead>
-                      <TableHead>التاريخ</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentTransactions.map((tx) => (
-                      <TableRow key={tx._id}>
-                        <TableCell>
-                          {tx.customerName || tx.customerId || "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              tx.type === "credit" ? "success" : "danger"
-                            }
-                          >
-                            {tx.type === "credit" ? "إضافة" : "خصم"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell
-                          className={
-                            tx.type === "credit"
-                              ? "text-green-600 font-medium"
-                              : "text-red-600 font-medium"
-                          }
-                        >
-                          {tx.type === "credit" ? "+" : "-"}
-                          {formatCurrency(tx.amount)}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {tx.description || "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDate(tx.createdAt)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              {!canAddCredit && !canDeduct && !canAdjustPoints && (
+                <p className="text-sm text-muted-foreground">
+                  لا تملك صلاحيات تنفيذ عمليات مالية على المحفظة.
+                </p>
               )}
             </CardContent>
           </Card>
-
-          {/* Customer Wallet Info */}
-          {selectedCustomerId && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">الرصيد</p>
-                      <p className="text-2xl font-bold">
-                        {balanceLoading
-                          ? "..."
-                          : formatCurrency(customerBalance?.balance || 0)}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                      <Coins className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">النقاط</p>
-                      <p className="text-2xl font-bold">
-                        {balanceLoading
-                          ? "..."
-                          : (customerBalance?.points || 0).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                      <Star className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">المستوى</p>
-                      <p className="text-2xl font-bold">
-                        {balanceLoading
-                          ? "..."
-                          : customerBalance?.tier || "Bronze"}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
           {selectedCustomerId && customerBalanceError && (
             <Card className="border-red-200 bg-red-50/40 dark:border-red-800 dark:bg-red-900/10">
               <CardContent className="pt-6 text-sm text-red-700 dark:text-red-300">
-                تعذر تحميل رصيد العميل:{" "}
-                {getErrorMessage(
-                  customerBalanceErrorData,
-                  "تأكد من اختيار عميل صحيح"
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Actions */}
-          {selectedCustomerId && (
-            <div className="flex gap-2">
-              <Button
-                onClick={handleOpenCredit}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <ArrowUpCircle className="h-4 w-4 ms-2" />
-                إضافة رصيد
-              </Button>
-              <Button onClick={handleOpenDebit} variant="destructive">
-                <ArrowDownCircle className="h-4 w-4 ms-2" />
-                خصم رصيد
-              </Button>
-              <Button onClick={handleOpenPoints} variant="outline">
-                <Gift className="h-4 w-4 ms-2" />
-                منح نقاط
-              </Button>
-            </div>
-          )}
-
-          {/* Transactions */}
-          {selectedCustomerId && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  سجل المعاملات
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {transactionsError ? (
-                  <div className="text-sm text-red-700 dark:text-red-300">
-                    تعذر تحميل معاملات العميل:{" "}
-                    {getErrorMessage(
-                      transactionsErrorData,
-                      "تأكد من اختيار عميل صحيح"
-                    )}
-                  </div>
-                ) : transactionsLoading ? (
-                  <div className="flex justify-center items-center h-40">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : transactions.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>لا توجد معاملات</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>النوع</TableHead>
-                        <TableHead>المبلغ</TableHead>
-                        <TableHead>الرصيد السابق</TableHead>
-                        <TableHead>الرصيد الجديد</TableHead>
-                        <TableHead>الوصف</TableHead>
-                        <TableHead>التاريخ</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transactions.map((tx) => (
-                        <TableRow key={tx._id}>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                tx.type === "credit" ? "success" : "danger"
-                              }
-                            >
-                              {tx.type === "credit" ? (
-                                <ArrowUpCircle className="h-3 w-3 ms-1" />
-                              ) : (
-                                <ArrowDownCircle className="h-3 w-3 ms-1" />
-                              )}
-                              {tx.type === "credit" ? "إضافة" : "خصم"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell
-                            className={
-                              tx.type === "credit"
-                                ? "text-green-600 font-medium"
-                                : "text-red-600 font-medium"
-                            }
-                          >
-                            {tx.type === "credit" ? "+" : "-"}
-                            {formatCurrency(tx.amount)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {formatCurrency(tx.balanceBefore)}
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {formatCurrency(tx.balanceAfter)}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {tx.description}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {formatDate(tx.createdAt)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                تعذر تحميل بيانات العميل: {getErrorMessage(customerBalanceErrorData, "تأكد من اختيار عميل صحيح")}
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
-        {/* Tiers Management Tab */}
-        <TabsContent value="tiers" className="space-y-6">
+        <TabsContent value="audit" className="space-y-6">
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5" />
-                  إدارة مستويات الولاء
-                </CardTitle>
-                <Button
-                  onClick={handleCreateTier}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Plus className="h-4 w-4 ms-2" />
-                  إضافة مستوى جديد
+            <CardContent className="pt-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-medium">فلاتر سجل المعاملات</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                <div className="space-y-2">
+                  <Label>نوع الحركة</Label>
+                  <Select
+                    value={auditDraftFilters.type}
+                    onValueChange={(value) =>
+                      setAuditDraftFilters((prev) => ({
+                        ...prev,
+                        type: value as AuditFilterState["type"],
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="الكل" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_all">الكل</SelectItem>
+                      <SelectItem value="credit">إضافة</SelectItem>
+                      <SelectItem value="debit">خصم</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>تصنيف العملية</Label>
+                  <Select
+                    value={auditDraftFilters.transactionType}
+                    onValueChange={(value) =>
+                      setAuditDraftFilters((prev) => ({ ...prev, transactionType: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="الكل" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_all">الكل</SelectItem>
+                      <SelectItem value="admin_credit">admin_credit</SelectItem>
+                      <SelectItem value="admin_debit">admin_debit</SelectItem>
+                      <SelectItem value="order_payment">order_payment</SelectItem>
+                      <SelectItem value="order_refund">order_refund</SelectItem>
+                      <SelectItem value="wallet_topup">wallet_topup</SelectItem>
+                      <SelectItem value="wallet_withdrawal">wallet_withdrawal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>بحث عام</Label>
+                  <Input
+                    placeholder="رقم عملية/عميل/وصف"
+                    value={auditDraftFilters.search}
+                    onChange={(e) =>
+                      setAuditDraftFilters((prev) => ({ ...prev, search: e.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>المرجع</Label>
+                  <Input
+                    placeholder="رقم المرجع"
+                    value={auditDraftFilters.reference}
+                    onChange={(e) =>
+                      setAuditDraftFilters((prev) => ({ ...prev, reference: e.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>من تاريخ</Label>
+                  <Input
+                    type="date"
+                    value={auditDraftFilters.startDate}
+                    onChange={(e) =>
+                      setAuditDraftFilters((prev) => ({ ...prev, startDate: e.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>إلى تاريخ</Label>
+                  <Input
+                    type="date"
+                    value={auditDraftFilters.endDate}
+                    onChange={(e) =>
+                      setAuditDraftFilters((prev) => ({ ...prev, endDate: e.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>نطاق العميل</Label>
+                  <div className="flex items-center gap-2 h-10 rounded-md border px-3">
+                    <input
+                      type="checkbox"
+                      checked={auditDraftFilters.onlySelectedCustomer}
+                      disabled={!selectedCustomerId}
+                      onChange={(e) =>
+                        setAuditDraftFilters((prev) => ({
+                          ...prev,
+                          onlySelectedCustomer: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {selectedCustomerId
+                        ? `العميل المحدد فقط (${selectedCustomerName || selectedCustomerId})`
+                        : "اختر عميلًا أولاً لتفعيل هذا الخيار"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={applyAuditFilters}>تطبيق الفلاتر</Button>
+                <Button variant="outline" onClick={resetAuditFilters}>
+                  إعادة ضبط
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              {tiersLoading ? (
-                <div className="flex justify-center items-center h-40">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : tiers.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Crown className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>لا توجد مستويات</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>الاسم</TableHead>
-                      <TableHead>الكود</TableHead>
-                      <TableHead>الحد الأدنى</TableHead>
-                      <TableHead>المضاعف</TableHead>
-                      <TableHead>الخصم</TableHead>
-                      <TableHead>المزايا</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead>الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tiers.map((tier) => (
-                      <TableRow key={tier._id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{tier.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {tier.nameAr}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{tier.code}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {tier.minPoints.toLocaleString()} نقطة
-                        </TableCell>
-                        <TableCell>x{tier.pointsMultiplier}</TableCell>
-                        <TableCell>{tier.discountPercentage}%</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {tier.freeShipping && (
-                              <Badge variant="success" className="text-xs">
-                                شحن مجاني
-                              </Badge>
-                            )}
-                            {tier.prioritySupport && (
-                              <Badge variant="success" className="text-xs">
-                                دعم أولوية
-                              </Badge>
-                            )}
-                            {tier.earlyAccess && (
-                              <Badge variant="success" className="text-xs">
-                                وصول مبكر
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={tier.isActive ? "success" : "danger"}>
-                            {tier.isActive ? "نشط" : "غير نشط"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditTier(tier)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteTier(tier)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
             </CardContent>
           </Card>
+
+          <WalletTransactionsCard
+            title="سجل معاملات المحافظ"
+            canViewTransactions={canViewTransactions}
+            transactions={auditTransactions}
+            loading={adminTransactionsLoading}
+            errorMessage={
+              adminTransactionsError
+                ? `تعذر تحميل المعاملات العامة: ${getErrorMessage(adminTransactionsErrorData, "حدث خطأ غير متوقع")}`
+                : undefined
+            }
+            showCustomer
+            footer={
+              canViewTransactions &&
+              auditPagination && (
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    صفحة {auditPagination.page} من {auditPagination.totalPages} - إجمالي السجلات: {auditPagination.total.toLocaleString()}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={String(auditLimit)}
+                      onValueChange={(value) => {
+                        setAuditLimit(Number(value));
+                        setAuditPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="الحجم" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10 / صفحة</SelectItem>
+                        <SelectItem value="20">20 / صفحة</SelectItem>
+                        <SelectItem value="50">50 / صفحة</SelectItem>
+                        <SelectItem value="100">100 / صفحة</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAuditPage((prev) => Math.max(1, prev - 1))}
+                      disabled={!auditPagination.hasPreviousPage}
+                    >
+                      السابق
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAuditPage((prev) => prev + 1)}
+                      disabled={!auditPagination.hasNextPage}
+                    >
+                      التالي
+                    </Button>
+                  </div>
+                </div>
+              )
+            }
+          />
+
+          {selectedCustomerId ? (
+            <WalletTransactionsCard
+              title="سجل معاملات العميل المحدد"
+              canViewTransactions={canViewTransactions}
+              transactions={transactions}
+              loading={transactionsLoading}
+              errorMessage={
+                transactionsError
+                  ? `تعذر تحميل معاملات العميل: ${getErrorMessage(transactionsErrorData, "حدث خطأ غير متوقع")}`
+                  : undefined
+              }
+            />
+          ) : (
+            <Card>
+              <CardContent className="pt-6 text-sm text-muted-foreground">
+                اختر عميلًا من تبويب "العمليات" لعرض سجل معاملاته التفصيلي.
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
+
+        {canManageTiers && (
+          <TabsContent value="tiers" className="space-y-6">
+            <LoyaltyTiersPanel
+              tiers={tiers}
+              loading={tiersLoading}
+              canManageTiers={canManageTiers}
+              onCreateTier={handleCreateTier}
+              onEditTier={handleEditTier}
+              onDeleteTier={handleDeleteTier}
+            />
+          </TabsContent>
+        )}
       </Tabs>
 
-      {/* Credit Dialog */}
-      <Dialog open={isCreditDialogOpen} onOpenChange={setIsCreditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>إضافة رصيد</DialogTitle>
-          </DialogHeader>
-          <form
-            onSubmit={creditForm.handleSubmit(onCreditSubmit)}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label>المبلغ *</Label>
-              <Input
-                type="number"
-                step="0.01"
-                {...creditForm.register("amount", { valueAsNumber: true })}
-                placeholder="0.00"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>الوصف *</Label>
-              <Textarea
-                {...creditForm.register("description")}
-                placeholder="سبب إضافة الرصيد..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>المرجع</Label>
-              <Input
-                {...creditForm.register("reference")}
-                placeholder="رقم المرجع (اختياري)"
-              />
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreditDialogOpen(false)}
-              >
-                إلغاء
-              </Button>
-              <Button
-                type="submit"
-                disabled={creditMutation.isPending}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {creditMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
-                )}
-                إضافة
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <WalletOperationWizardDialog
+        open={isOperationDialogOpen}
+        onOpenChange={setIsOperationDialogOpen}
+        selectedCustomerId={selectedCustomerId}
+        selectedCustomerName={selectedCustomerName}
+        walletBalance={customerBalance?.balance || 0}
+        canAddCredit={canAddCredit}
+        canDeduct={canDeduct}
+        canAdjustPoints={canAdjustPoints}
+        isSubmitting={isOperationSubmitting}
+        defaultOperation={defaultOperationType}
+        onSubmit={handleOperationSubmit}
+      />
 
-      {/* Debit Dialog */}
-      <Dialog open={isDebitDialogOpen} onOpenChange={setIsDebitDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>خصم رصيد</DialogTitle>
-          </DialogHeader>
-          <form
-            onSubmit={debitForm.handleSubmit(onDebitSubmit)}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label>المبلغ *</Label>
-              <Input
-                type="number"
-                step="0.01"
-                {...debitForm.register("amount", { valueAsNumber: true })}
-                placeholder="0.00"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>الوصف *</Label>
-              <Textarea
-                {...debitForm.register("description")}
-                placeholder="سبب خصم الرصيد..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>المرجع</Label>
-              <Input
-                {...debitForm.register("reference")}
-                placeholder="رقم المرجع (اختياري)"
-              />
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDebitDialogOpen(false)}
-              >
-                إلغاء
-              </Button>
-              <Button
-                type="submit"
-                disabled={debitMutation.isPending}
-                variant="destructive"
-              >
-                {debitMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
-                )}
-                خصم
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Points Dialog */}
-      <Dialog open={isPointsDialogOpen} onOpenChange={setIsPointsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>منح نقاط ولاء</DialogTitle>
-          </DialogHeader>
-          <form
-            onSubmit={pointsForm.handleSubmit(onPointsSubmit)}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label>عدد النقاط *</Label>
-              <Input
-                type="number"
-                {...pointsForm.register("points", { valueAsNumber: true })}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>السبب *</Label>
-              <Textarea
-                {...pointsForm.register("reason")}
-                placeholder="سبب منح النقاط..."
-              />
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsPointsDialogOpen(false)}
-              >
-                إلغاء
-              </Button>
-              <Button type="submit" disabled={grantPointsMutation.isPending}>
-                {grantPointsMutation.isPending && (
-                  <Loader2 className="h-4 w-4 ms-2 animate-spin" />
-                )}
-                منح
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create/Edit Tier Dialog */}
       <Dialog
         open={isCreateTierDialogOpen || isEditTierDialogOpen}
         onOpenChange={(open) => {
@@ -1131,30 +886,20 @@ export function WalletPage() {
       >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {selectedTier ? "تعديل مستوى الولاء" : "إضافة مستوى ولاء جديد"}
-            </DialogTitle>
+            <DialogTitle>{selectedTier ? "تعديل مستوى الولاء" : "إضافة مستوى ولاء جديد"}</DialogTitle>
           </DialogHeader>
-          <form
-            onSubmit={tierForm.handleSubmit(onTierSubmit)}
-            className="space-y-4"
-          >
+          <form onSubmit={tierForm.handleSubmit(onTierSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الاسم (إنجليزي) *</Label>
-                <Input
-                  {...tierForm.register("name", { required: true })}
-                  placeholder="برونزي"
-                />
+                <Input {...tierForm.register("name", { required: true })} placeholder="Bronze" />
               </div>
               <div className="space-y-2">
                 <Label>الاسم (عربي) *</Label>
-                <Input
-                  {...tierForm.register("nameAr", { required: true })}
-                  placeholder="برونزي"
-                />
+                <Input {...tierForm.register("nameAr", { required: true })} placeholder="برونزي" />
               </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>الكود *</Label>
@@ -1177,6 +922,7 @@ export function WalletPage() {
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>مضاعف النقاط *</Label>
@@ -1204,6 +950,7 @@ export function WalletPage() {
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>اللون (Hex)</Label>
@@ -1211,29 +958,19 @@ export function WalletPage() {
               </div>
               <div className="space-y-2">
                 <Label>ترتيب العرض</Label>
-                <Input
-                  type="number"
-                  {...tierForm.register("displayOrder", {
-                    valueAsNumber: true,
-                  })}
-                  placeholder="0"
-                />
+                <Input type="number" {...tierForm.register("displayOrder", { valueAsNumber: true })} placeholder="0" />
               </div>
             </div>
+
             <div className="space-y-2">
               <Label>الوصف (إنجليزي)</Label>
-              <Textarea
-                {...tierForm.register("description")}
-                placeholder="وصف المستوى..."
-              />
+              <Textarea {...tierForm.register("description")} placeholder="Tier description..." />
             </div>
             <div className="space-y-2">
               <Label>الوصف (عربي)</Label>
-              <Textarea
-                {...tierForm.register("descriptionAr")}
-                placeholder="وصف المستوى..."
-              />
+              <Textarea {...tierForm.register("descriptionAr")} placeholder="وصف المستوى..." />
             </div>
+
             <div className="space-y-4">
               <Label className="text-base font-semibold">المزايا</Label>
               <div className="space-y-3">
@@ -1244,9 +981,7 @@ export function WalletPage() {
                   <Switch
                     id="freeShipping"
                     checked={tierForm.watch("freeShipping")}
-                    onCheckedChange={(checked) =>
-                      tierForm.setValue("freeShipping", checked)
-                    }
+                    onCheckedChange={(checked) => tierForm.setValue("freeShipping", checked)}
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -1256,9 +991,7 @@ export function WalletPage() {
                   <Switch
                     id="prioritySupport"
                     checked={tierForm.watch("prioritySupport")}
-                    onCheckedChange={(checked) =>
-                      tierForm.setValue("prioritySupport", checked)
-                    }
+                    onCheckedChange={(checked) => tierForm.setValue("prioritySupport", checked)}
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -1268,25 +1001,23 @@ export function WalletPage() {
                   <Switch
                     id="earlyAccess"
                     checked={tierForm.watch("earlyAccess")}
-                    onCheckedChange={(checked) =>
-                      tierForm.setValue("earlyAccess", checked)
-                    }
+                    onCheckedChange={(checked) => tierForm.setValue("earlyAccess", checked)}
                   />
                 </div>
               </div>
             </div>
+
             <div className="flex items-center space-x-2 space-x-reverse">
               <Switch
                 id="isActive"
                 checked={tierForm.watch("isActive")}
-                onCheckedChange={(checked) =>
-                  tierForm.setValue("isActive", checked)
-                }
+                onCheckedChange={(checked) => tierForm.setValue("isActive", checked)}
               />
               <Label htmlFor="isActive" className="cursor-pointer">
                 نشط
               </Label>
             </div>
+
             <DialogFooter>
               <Button
                 type="button"
@@ -1302,13 +1033,10 @@ export function WalletPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={
-                  createTierMutation.isPending || updateTierMutation.isPending
-                }
+                disabled={createTierMutation.isPending || updateTierMutation.isPending}
                 className="bg-green-600 hover:bg-green-700"
               >
-                {(createTierMutation.isPending ||
-                  updateTierMutation.isPending) && (
+                {(createTierMutation.isPending || updateTierMutation.isPending) && (
                   <Loader2 className="h-4 w-4 ms-2 animate-spin" />
                 )}
                 {selectedTier ? "تحديث" : "إنشاء"}
@@ -1318,11 +1046,7 @@ export function WalletPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Tier Confirmation Dialog */}
-      <Dialog
-        open={isDeleteTierDialogOpen}
-        onOpenChange={setIsDeleteTierDialogOpen}
-      >
+      <Dialog open={isDeleteTierDialogOpen} onOpenChange={setIsDeleteTierDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>تأكيد الحذف</DialogTitle>
@@ -1351,9 +1075,7 @@ export function WalletPage() {
               onClick={onDeleteTierConfirm}
               disabled={deleteTierMutation.isPending}
             >
-              {deleteTierMutation.isPending && (
-                <Loader2 className="h-4 w-4 ms-2 animate-spin" />
-              )}
+              {deleteTierMutation.isPending && <Loader2 className="h-4 w-4 ms-2 animate-spin" />}
               حذف
             </Button>
           </DialogFooter>

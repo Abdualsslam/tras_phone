@@ -44,7 +44,6 @@ export interface UpdateCustomerDto extends Partial<CreateCustomerDto> {
     loyaltyPoints?: number;
     loyaltyTier?: 'bronze' | 'silver' | 'gold' | 'platinum';
     assignedSalesRepId?: string;
-    riskScore?: number;
     isFlagged?: boolean;
     flagReason?: string;
     
@@ -313,4 +312,3 @@ export interface CustomerStats {
 }
 
 export default customersApi;
-

@@ -2,7 +2,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -71,10 +70,10 @@ class _WalletScreenState extends State<WalletScreen> {
                 children: [
                   // Balance Card
                   _buildBalanceCard(context, theme, isDark, state),
-                  SizedBox(height: 24.h),
+                  SizedBox(height: 16.h),
 
-                  // Quick Actions
-                  _buildQuickActions(context, theme, isDark),
+                  // Credit Summary
+                  _buildCreditSummaryCard(context, theme, isDark, state),
                   SizedBox(height: 24.h),
 
                   // Transaction History
@@ -154,100 +153,92 @@ class _WalletScreenState extends State<WalletScreen> {
     return 'اليوم ${now.hour}:${now.minute.toString().padLeft(2, '0')} - آخر تحديث';
   }
 
-  Widget _buildQuickActions(
+  Widget _buildCreditSummaryCard(
     BuildContext context,
     ThemeData theme,
     bool isDark,
+    WalletState state,
   ) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildActionButton(
-            theme,
-            isDark,
-            icon: Iconsax.add,
-            label: AppLocalizations.of(context)!.addBalance,
-            color: AppColors.success,
-            onTap: () {
-              HapticFeedback.mediumImpact();
-              _showAddBalanceDialog(context);
-            },
+    final loadedState = state is WalletLoaded ? state : null;
+    final creditLimit = loadedState?.creditLimit ?? 0;
+    final creditUsed = loadedState?.creditUsed ?? 0;
+    final availableCredit = loadedState?.availableCredit ?? 0;
+    final usageRatio = creditLimit > 0 ? (creditUsed / creditLimit).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.creditLimit,
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
-        ),
-        SizedBox(width: 12.w),
-        Expanded(
-          child: _buildActionButton(
-            theme,
-            isDark,
-            icon: Iconsax.arrow_swap_horizontal,
-            label: AppLocalizations.of(context)!.transfer,
-            color: Colors.blue,
-            onTap: () {
-              HapticFeedback.mediumImpact();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(AppLocalizations.of(context)!.featureUnderDevelopment),
-                  duration: const Duration(seconds: 2),
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              Expanded(
+                child: _buildCreditMetric(
+                  theme,
+                  label: AppLocalizations.of(context)!.creditLimit,
+                  value: creditLimit,
                 ),
-              );
-            },
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: _buildCreditMetric(
+                  theme,
+                  label: AppLocalizations.of(context)!.creditUsed,
+                  value: creditUsed,
+                ),
+              ),
+            ],
           ),
-        ),
-        SizedBox(width: 12.w),
-        Expanded(
-          child: _buildActionButton(
-            theme,
-            isDark,
-            icon: Iconsax.document_text,
-            label: AppLocalizations.of(context)!.statement,
-            color: Colors.orange,
-            onTap: () {
-              HapticFeedback.mediumImpact();
-              context.push('/wallet/transactions');
-            },
+          SizedBox(height: 10.h),
+          LinearProgressIndicator(
+            value: usageRatio,
+            backgroundColor: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.grey.shade300,
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
           ),
-        ),
-      ],
+          SizedBox(height: 8.h),
+          Text(
+            AppLocalizations.of(context)!.creditAvailable(availableCredit.toStringAsFixed(2)),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildActionButton(
-    ThemeData theme,
-    bool isDark, {
-    required IconData icon,
+  Widget _buildCreditMetric(
+    ThemeData theme, {
     required String label,
-    required Color color,
-    required VoidCallback onTap,
+    required double value,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16.h),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(16.r),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.textTertiaryLight,
+          ),
         ),
-        child: Column(
-          children: [
-            Container(
-              width: 48.w,
-              height: 48.w,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 24.sp),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+        SizedBox(height: 4.h),
+        Text(
+          '${value.toStringAsFixed(2)} ر.س',
+          style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
-      ),
+      ],
     );
   }
 
@@ -415,85 +406,5 @@ class _WalletScreenState extends State<WalletScreen> {
     if (diff.inDays == 1) return l10n.yesterday;
     if (diff.inDays < 7) return l10n.daysAgo(diff.inDays);
     return '${date.day}/${date.month}/${date.year}';
-  }
-
-  void _showAddBalanceDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: AppColors.dividerLight,
-                borderRadius: BorderRadius.circular(2.r),
-              ),
-            ),
-            SizedBox(height: 24.h),
-            Text(
-              AppLocalizations.of(context)!.addBalance,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            SizedBox(height: 24.h),
-            // Quick amounts
-            Wrap(
-              spacing: 12.w,
-              runSpacing: 12.h,
-              children: [100, 250, 500, 1000].map((amount) {
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          AppLocalizations.of(context)!.addBalanceAmount(amount),
-                        ),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 24.w,
-                      vertical: 12.h,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.primary),
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: Text(
-                      '$amount ر.س',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: 24.h),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(AppLocalizations.of(context)!.addBalance),
-              ),
-            ),
-            SizedBox(height: MediaQuery.of(ctx).viewInsets.bottom + 16.h),
-          ],
-        ),
-      ),
-    );
   }
 }

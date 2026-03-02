@@ -43,7 +43,11 @@ abstract class OrdersRemoteDataSource {
     OrderPaymentMethod? paymentMethod,
     String? customerNotes,
     String? couponCode,
-    double? walletAmountUsed,
+    String? bankAccountId,
+    String? receiptImage,
+    String? transferReference,
+    String? transferDate,
+    String? transferNotes,
   });
 
   /// Cancel order (reason is required by API)
@@ -161,7 +165,8 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     final isEffectivelyFullyReturned =
         apiItem['isEffectivelyFullyReturned'] as bool? ?? false;
     return {
-      if (orderItemIdStr != null && orderItemIdStr.isNotEmpty) '_id': orderItemIdStr,
+      if (orderItemIdStr != null && orderItemIdStr.isNotEmpty)
+        '_id': orderItemIdStr,
       'productId': productIdStr ?? '',
       'sku': apiItem['productSku'] ?? apiItem['sku'] ?? '',
       'name': apiItem['productName'] ?? apiItem['name'] ?? '',
@@ -213,7 +218,11 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
     OrderPaymentMethod? paymentMethod,
     String? customerNotes,
     String? couponCode,
-    double? walletAmountUsed,
+    String? bankAccountId,
+    String? receiptImage,
+    String? transferReference,
+    String? transferDate,
+    String? transferNotes,
   }) async {
     developer.log('Creating order', name: 'OrdersDataSource');
 
@@ -226,8 +235,11 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
         if (paymentMethod != null) 'paymentMethod': paymentMethod.value,
         if (customerNotes != null) 'customerNotes': customerNotes,
         if (couponCode != null) 'couponCode': couponCode,
-        if (walletAmountUsed != null && walletAmountUsed > 0)
-          'walletAmountUsed': walletAmountUsed,
+        if (bankAccountId != null) 'bankAccountId': bankAccountId,
+        if (receiptImage != null) 'receiptImage': receiptImage,
+        if (transferReference != null) 'transferReference': transferReference,
+        if (transferDate != null) 'transferDate': transferDate,
+        if (transferNotes != null) 'notes': transferNotes,
       },
     );
 

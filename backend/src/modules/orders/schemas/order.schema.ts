@@ -64,7 +64,13 @@ export class Order {
   couponDiscount: number;
 
   @Prop({ type: Number, default: 0 })
+  walletBalanceBefore: number;
+
+  @Prop({ type: Number, default: 0 })
   walletAmountUsed: number;
+
+  @Prop({ type: Number, default: 0 })
+  walletBalanceAfter: number;
 
   @Prop({ type: Number, default: 0 })
   loyaltyPointsUsed: number;
@@ -303,6 +309,12 @@ OrderSchema.index({ 'shippingAddress.city': 1 });
 // Virtuals
 OrderSchema.virtual('remainingAmount').get(function () {
   return this.total - this.paidAmount;
+});
+
+OrderSchema.virtual('remainingAfterWallet').get(function () {
+  const used = this.walletAmountUsed || 0;
+  const total = this.total || 0;
+  return Math.max(0, total - used);
 });
 
 OrderSchema.virtual('itemsCount').get(function () {

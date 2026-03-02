@@ -54,6 +54,29 @@ export class WalletService {
     }
 
     /**
+     * Get customer wallet + credit summary
+     */
+    async getCustomerWalletSummary(customerId: string): Promise<{
+        balance: number;
+        creditLimit: number;
+        creditUsed: number;
+        availableCredit: number;
+    }> {
+        const balance = await this.getBalance(customerId);
+        const customer = await this.customerModel.findById(customerId).lean();
+
+        const creditLimit = Number(customer?.creditLimit ?? 0);
+        const creditUsed = Number(customer?.creditUsed ?? 0);
+
+        return {
+            balance,
+            creditLimit,
+            creditUsed,
+            availableCredit: Math.max(0, creditLimit - creditUsed),
+        };
+    }
+
+    /**
      * Credit wallet (add money)
      */
     async credit(data: {
@@ -69,6 +92,10 @@ export class WalletService {
         createdBy?: string;
         idempotencyKey?: string;
     }): Promise<WalletTransactionDocument> {
+        if (!Number.isFinite(data.amount) || data.amount <= 0) {
+            throw new BadRequestException('Credit amount must be greater than 0');
+        }
+
         if (data.idempotencyKey) {
             const existingTx = await this.walletTxModel.findOne({
                 customerId: data.customerId,
@@ -134,6 +161,10 @@ export class WalletService {
         createdBy?: string;
         idempotencyKey?: string;
     }): Promise<WalletTransactionDocument> {
+        if (!Number.isFinite(data.amount) || data.amount <= 0) {
+            throw new BadRequestException('Debit amount must be greater than 0');
+        }
+
         if (data.idempotencyKey) {
             const existingTx = await this.walletTxModel.findOne({
                 customerId: data.customerId,
@@ -234,6 +265,7 @@ export class WalletService {
         const transactions = await this.getWalletTransactions(customerId, filters);
         return transactions.map((tx: any) => ({
             _id: tx._id,
+            transactionNumber: tx.transactionNumber,
             customerId: tx.customerId,
             type: tx.direction,
             direction: tx.direction,
@@ -251,25 +283,87 @@ export class WalletService {
     async getAdminTransactions(filters?: {
         customerId?: string;
         type?: 'credit' | 'debit';
+        transactionType?: string;
+        search?: string;
+        reference?: string;
         startDate?: string;
         endDate?: string;
         page?: number;
         limit?: number;
-    }): Promise<any[]> {
+    }): Promise<{
+        items: any[];
+        pagination: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+            hasNextPage: boolean;
+            hasPreviousPage: boolean;
+        };
+    }> {
         const query: any = { status: 'completed' };
 
-        if (filters?.customerId) query.customerId = filters.customerId;
+        if (filters?.customerId && Types.ObjectId.isValid(filters.customerId)) {
+            query.customerId = new Types.ObjectId(filters.customerId);
+        }
+
         if (filters?.type) query.direction = filters.type;
+        if (filters?.transactionType) query.transactionType = filters.transactionType;
+
+        if (filters?.reference?.trim()) {
+            const referenceRegex = new RegExp(this.escapeRegex(filters.reference.trim()), 'i');
+            query.referenceNumber = referenceRegex;
+        }
 
         if (filters?.startDate || filters?.endDate) {
             query.createdAt = {};
             if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate);
-            if (filters.endDate) query.createdAt.$lte = new Date(filters.endDate);
+            if (filters.endDate) {
+                const endDate = new Date(filters.endDate);
+                endDate.setHours(23, 59, 59, 999);
+                query.createdAt.$lte = endDate;
+            }
+        }
+
+        if (filters?.search?.trim()) {
+            const searchTerm = filters.search.trim();
+            const searchRegex = new RegExp(this.escapeRegex(searchTerm), 'i');
+
+            const customerMatches = await this.customerModel
+                .find({
+                    $or: [
+                        { shopName: searchRegex },
+                        { shopNameAr: searchRegex },
+                        { responsiblePersonName: searchRegex },
+                    ],
+                })
+                .select('_id')
+                .lean();
+
+            const matchedCustomerIds = customerMatches.map((customer: any) => customer._id);
+
+            if (Types.ObjectId.isValid(searchTerm)) {
+                matchedCustomerIds.push(new Types.ObjectId(searchTerm));
+            }
+
+            query.$or = [
+                { transactionNumber: searchRegex },
+                { referenceNumber: searchRegex },
+                { transactionType: searchRegex },
+                { description: searchRegex },
+                { descriptionAr: searchRegex },
+            ];
+
+            if (matchedCustomerIds.length > 0) {
+                query.$or.push({ customerId: { $in: matchedCustomerIds } });
+            }
         }
 
         const page = Math.max(1, Number(filters?.page || 1));
         const limit = Math.max(1, Math.min(200, Number(filters?.limit || 50)));
         const skip = (page - 1) * limit;
+
+        const total = await this.walletTxModel.countDocuments(query);
 
         const transactions = await this.walletTxModel
             .find(query)
@@ -300,10 +394,11 @@ export class WalletService {
             ]),
         );
 
-        return transactions.map((tx: any) => {
+        const items = transactions.map((tx: any) => {
             const customerId = tx.customerId?.toString();
             return {
                 _id: tx._id,
+                transactionNumber: tx.transactionNumber,
                 customerId,
                 customerName: customerId ? customerNameById.get(customerId) : undefined,
                 type: tx.direction,
@@ -318,6 +413,24 @@ export class WalletService {
                 createdAt: tx.createdAt,
             };
         });
+
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+
+        return {
+            items,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages,
+                hasNextPage: page < totalPages,
+                hasPreviousPage: page > 1,
+            },
+        };
+    }
+
+    private escapeRegex(value: string): string {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     async getWalletStats(): Promise<{
@@ -423,6 +536,10 @@ export class WalletService {
         expiresAt?: Date;
         createdBy?: string;
     }): Promise<LoyaltyTransactionDocument> {
+        if (!Number.isFinite(data.points) || data.points <= 0) {
+            throw new BadRequestException('Points to grant must be greater than 0');
+        }
+
         const balance = await this.getPointsBalance(data.customerId);
         const transactionNumber = await this.generateLoyaltyTxNumber();
 
@@ -469,6 +586,10 @@ export class WalletService {
         referenceId?: string;
         referenceNumber?: string;
     }): Promise<LoyaltyTransactionDocument> {
+        if (!Number.isFinite(data.points) || data.points <= 0) {
+            throw new BadRequestException('Points to redeem must be greater than 0');
+        }
+
         const balance = await this.getPointsBalance(data.customerId);
 
         if (balance < data.points) {

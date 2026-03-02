@@ -234,6 +234,13 @@ export function SettingsPage() {
       queryFn: () => settingsApi.getPaymentMethods(),
     });
 
+  const isRawBankTransferMethod = (method: PaymentMethod) =>
+    method.type === "bank_transfer" && !method.isBankAccount;
+
+  const visiblePaymentMethods = paymentMethods.filter(
+    (method) => !isRawBankTransferMethod(method),
+  );
+
   const { data: appVersions = [], isLoading: appVersionsLoading } = useQuery({
     queryKey: ["settings-app-versions"],
     queryFn: () => settingsApi.getAppVersions(),
@@ -738,6 +745,11 @@ const handleAddPaymentMethod = () => {
   };
 
   const handleEditPaymentMethod = (method: PaymentMethod) => {
+    if (isRawBankTransferMethod(method)) {
+      toast.error("طريقة التحويل البنكي الأساسية محمية ولا يمكن تعديلها");
+      return;
+    }
+
     setIsEditing(true);
     setSelectedItem(method);
     paymentMethodForm.reset({
@@ -770,6 +782,11 @@ const handleAddPaymentMethod = () => {
   };
 
   const handleDeletePaymentMethod = (method: PaymentMethod) => {
+    if (isRawBankTransferMethod(method)) {
+      toast.error("طريقة التحويل البنكي الأساسية محمية ولا يمكن حذفها");
+      return;
+    }
+
     if (confirm(`هل أنت متأكد من حذف "${method.name}"؟`)) {
       deletePaymentMethodMutation.mutate(method._id);
     }
@@ -1467,7 +1484,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
             <CardContent>
               {paymentMethodsLoading ? (
                 renderLoadingState()
-              ) : paymentMethods.length === 0 ? (
+              ) : visiblePaymentMethods.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>لا توجد طرق دفع</p>
@@ -1485,7 +1502,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paymentMethods.map((method) => (
+                    {visiblePaymentMethods.map((method) => (
                       <TableRow key={method._id}>
                         <TableCell>
                           {(method.logo || method.icon) ? (

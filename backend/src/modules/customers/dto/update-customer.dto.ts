@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEnum, IsMongoId, IsNumber, IsDateString, Min, IsEmail, Matches, IsBoolean, Max } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsMongoId, IsNumber, IsDateString, Min, IsEmail, Matches, IsBoolean } from 'class-validator';
 
 export class UpdateCustomerDto {
     // ═════════════════════════════════════
@@ -178,13 +178,6 @@ export class UpdateCustomerDto {
     @IsMongoId()
     @IsOptional()
     assignedSalesRepId?: string;
-
-    @ApiProperty({ required: false, description: 'Risk score (0-100)', minimum: 0, maximum: 100 })
-    @IsNumber()
-    @IsOptional()
-    @Min(0)
-    @Max(100)
-    riskScore?: number;
 
     @ApiProperty({ required: false, description: 'Is customer flagged' })
     @IsBoolean()

@@ -7,6 +7,7 @@ import {
   IsObject,
   IsNumber,
   IsBoolean,
+  IsDateString,
 } from 'class-validator';
 
 /**
@@ -106,7 +107,8 @@ export class CreateOrderDto {
   source?: string;
 
   @ApiProperty({
-    description: 'Amount to use from wallet',
+    description:
+      'Deprecated: wallet amount is auto-applied by backend using available balance up to order total.',
     example: 50,
     required: false,
   })
@@ -131,4 +133,50 @@ export class CreateOrderDto {
   @IsNumber()
   @IsOptional()
   loyaltyPointsAmount?: number;
+
+  @ApiProperty({
+    description:
+      'Bank transfer receipt image (base64 or URL). Required for bank transfer orders that still need payment.',
+    example: 'data:image/jpeg;base64,/9j/4AAQSk...',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  receiptImage?: string;
+
+  @ApiProperty({
+    description: 'Transfer reference number',
+    example: 'TRF123456789',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  transferReference?: string;
+
+  @ApiProperty({
+    description: 'Transfer date (YYYY-MM-DD)',
+    example: '2026-02-27',
+    required: false,
+  })
+  @IsOptional()
+  @IsDateString()
+  transferDate?: string;
+
+  @ApiProperty({
+    description: 'Transfer notes',
+    example: 'Payment completed via bank transfer',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiProperty({
+    description: 'Selected bank account ID for bank transfer',
+    example: '507f1f77bcf86cd799439011',
+    required: false,
+  })
+  @IsOptional()
+  @IsMongoId()
+  bankAccountId?: string;
 }
