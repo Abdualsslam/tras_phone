@@ -241,22 +241,29 @@ export class OrdersService {
     let couponDiscount = 0;
     let couponId: Types.ObjectId | undefined;
     let couponCode: string | undefined;
+    const requestedCouponCode = data.couponCode?.trim() || cart.couponCode?.trim();
+
+    let customerPriceLevelId: string | undefined;
+    try {
+      const customerForCoupon = await this.customersService.findById(customerId);
+      customerPriceLevelId = customerForCoupon?.priceLevelId?.toString();
+    } catch {
+      customerPriceLevelId = undefined;
+    }
 
     // Validate and apply coupon if provided
-    if (data.couponCode) {
+    if (requestedCouponCode) {
       try {
-        // Check if this is customer's first order
-        const previousOrdersCount = await this.orderModel.countDocuments({
-          customerId: new Types.ObjectId(customerId),
-        });
-        const isFirstOrder = previousOrdersCount === 0;
-
         // Validate coupon
         const validation = await this.couponsService.validate(
-          data.couponCode,
+          requestedCouponCode,
           customerId,
           subtotal,
-          isFirstOrder,
+          {
+            productIds: cart.items.map((item) => item.productId.toString()),
+            priceLevelId: customerPriceLevelId,
+            shippingCost: cart.shippingCost,
+          },
         );
 
         couponId = validation.coupon._id;
@@ -506,7 +513,7 @@ export class OrdersService {
     await this.cartService.convertCart(customerId, order._id.toString());
 
     // Record coupon usage if applied
-    if (order.couponId && order.couponDiscount > 0) {
+    if (order.couponId) {
       await this.couponsService.recordUsage({
         couponId: order.couponId.toString(),
         customerId: customerId,
@@ -518,13 +525,8 @@ export class OrdersService {
 
     // Record promotion usage if applied
     if (order.appliedPromotions && order.appliedPromotions.length > 0) {
-      // Calculate promotion discount (discount minus coupon discount)
-      // Note: Promotions might be applied at item level, so we use 0 if no separate promotion discount
-      // If there's a general promotion discount, it would be: order.discount - order.couponDiscount
-      const totalPromotionDiscount = Math.max(
-        0,
-        order.discount - order.couponDiscount,
-      );
+      // order.discount now represents promotions only (coupon discount is stored separately)
+      const totalPromotionDiscount = Math.max(0, order.discount);
       const promotionDiscountPerPromo =
         totalPromotionDiscount > 0
           ? totalPromotionDiscount / order.appliedPromotions.length
@@ -1175,6 +1177,13 @@ export class OrdersService {
 
           updateData.paymentStatus = 'refunded';
           updateData.paidAmount = 0;
+        }
+
+        if (order.couponId) {
+          await this.couponsService.revertUsageForOrder(
+            order._id.toString(),
+            order.couponId.toString(),
+          );
         }
         break;
     }

@@ -16,7 +16,6 @@ import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../promotions/presentation/widgets/coupon_input.dart';
-import '../../../promotions/data/models/coupon_validation_model.dart';
 import '../../domain/entities/checkout_session_entity.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/checkout_session_cubit.dart';
@@ -42,7 +41,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     with WidgetsBindingObserver {
   String? _selectedAddressId;
   String? _selectedPaymentMethodId;
-  CouponValidation? _appliedCoupon;
   final TextEditingController _transferReferenceController =
       TextEditingController();
   final TextEditingController _transferNotesController =
@@ -133,10 +131,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
               final defaultMethod = displayPaymentMethods.first;
               setState(() => _selectedPaymentMethodId = defaultMethod.id);
               _fetchBankAccountsIfNeeded(defaultMethod);
-            }
-            // Set coupon if applied from session
-            if (state.session.hasCouponApplied && _appliedCoupon == null) {
-              _appliedCoupon = state.session.coupon?.toCouponValidation();
             }
           } else if (state is CheckoutSessionCouponError) {
             AppSnackbar.showError(context, state.message);
@@ -526,11 +520,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                             final walletBalance = cubitWalletBalance > 0
                                 ? cubitWalletBalance
                                 : sessionWalletBalance;
-                            final orderTotal =
-                                session.cart.subtotal -
-                                (_appliedCoupon?.discountAmount ?? 0) +
-                                session.cart.shippingCost +
-                                session.cart.taxAmount;
+                            final orderTotal = _resolveOrderTotal(session);
                             PaymentMethodEntity? creditMethod;
                             for (final method in session.paymentMethods) {
                               if (method.type == 'credit') {
@@ -665,11 +655,16 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
                         // Coupon Section
                         BlocBuilder<CheckoutSessionCubit, CheckoutSessionState>(
-                          builder: (context, sessionState) {
-                            final orderTotal =
-                                sessionState is CheckoutSessionLoaded
-                                ? sessionState.session.cart.subtotal
-                                : 0.0;
+                          builder: (context, _) {
+                            final session =
+                                context
+                                    .read<CheckoutSessionCubit>()
+                                    .currentSession;
+                            final appliedCode =
+                                session?.coupon?.code ?? session?.cart.couponCode;
+                            final appliedDiscount = _resolveCouponDiscount(
+                              session,
+                            );
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -677,12 +672,17 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                 _buildSectionTitle(theme, 'كود الخصم'),
                                 SizedBox(height: 12.h),
                                 CouponInput(
-                                  orderTotal: orderTotal,
-                                  onCouponApplied: (validation) {
-                                    setState(() => _appliedCoupon = validation);
+                                  appliedCode: appliedCode,
+                                  appliedDiscount: appliedDiscount,
+                                  onApplyCoupon: (code) async {
+                                    return context
+                                        .read<CheckoutSessionCubit>()
+                                        .applyCoupon(code);
                                   },
-                                  onCouponRemoved: () {
-                                    setState(() => _appliedCoupon = null);
+                                  onRemoveCoupon: () async {
+                                    await context
+                                        .read<CheckoutSessionCubit>()
+                                        .removeCoupon();
                                   },
                                 ),
                               ],
@@ -1689,12 +1689,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         // Get order total from checkout session
         double orderTotal = 0;
         if (checkoutState is CheckoutSessionLoaded) {
-          final session = checkoutState.session;
-          orderTotal =
-              session.cart.subtotal -
-              (_appliedCoupon?.discountAmount ?? 0) +
-              session.cart.shippingCost +
-              session.cart.taxAmount;
+          orderTotal = _resolveOrderTotal(checkoutState.session);
         }
 
         final isSufficient = walletBalance >= orderTotal;
@@ -1872,11 +1867,12 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     CheckoutSessionEntity session,
   ) {
     final cart = session.cart;
-    final couponDiscount = _appliedCoupon?.discountAmount ?? 0.0;
+    final promotionDiscount = cart.discount;
+    final couponDiscount = _resolveCouponDiscount(session);
     final subtotal = cart.subtotal;
     final shippingCost = cart.shippingCost;
     final taxAmount = cart.taxAmount;
-    final total = subtotal - couponDiscount + shippingCost + taxAmount;
+    final total = _resolveOrderTotal(session);
     final walletAmountToUse = _calculateWalletAmountToUse(
       orderTotal: total,
       walletBalance: _resolveWalletBalance(),
@@ -2037,11 +2033,20 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             'الشحن',
             '${shippingCost.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
           ),
+          if (promotionDiscount > 0) ...[
+            SizedBox(height: 8.h),
+            _buildSummaryRow(
+              theme,
+              'خصم العروض',
+              '-${promotionDiscount.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
+              valueColor: AppColors.success,
+            ),
+          ],
           if (couponDiscount > 0) ...[
             SizedBox(height: 8.h),
             _buildSummaryRow(
               theme,
-              'الخصم',
+              'خصم الكوبون',
               '-${couponDiscount.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
               valueColor: AppColors.success,
             ),
@@ -2146,6 +2151,25 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     return 0;
   }
 
+  double _resolveCouponDiscount(CheckoutSessionEntity? session) {
+    if (session == null) return 0;
+    final sessionCouponDiscount = (session.coupon?.discountAmount ?? 0).toDouble();
+    if (sessionCouponDiscount > 0) return sessionCouponDiscount;
+    return session.cart.couponDiscount;
+  }
+
+  double _resolveOrderTotal(CheckoutSessionEntity session) {
+    final cartTotal = session.cart.total;
+    if (cartTotal.isFinite) {
+      return cartTotal;
+    }
+    return session.cart.subtotal -
+        session.cart.discount -
+        _resolveCouponDiscount(session) +
+        session.cart.shippingCost +
+        session.cart.taxAmount;
+  }
+
   double _calculateWalletAmountToUse({
     required double orderTotal,
     required double walletBalance,
@@ -2159,11 +2183,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     bool isDark,
     CheckoutSessionEntity session,
   ) {
-    final couponDiscount = _appliedCoupon?.discountAmount ?? 0.0;
-    final subtotal = session.cart.subtotal;
-    final shippingCost = session.cart.shippingCost;
-    final taxAmount = session.cart.taxAmount;
-    final total = subtotal - couponDiscount + shippingCost + taxAmount;
+    final total = _resolveOrderTotal(session);
     final selectedPaymentMethod = _getSelectedPaymentMethod(session);
     final walletAmountToUse = _calculateWalletAmountToUse(
       orderTotal: total,
@@ -2251,8 +2271,13 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
       if (!mounted) return;
 
-      // Get coupon code if applied
-      final couponCode = _appliedCoupon?.coupon?.code;
+      // Get coupon code if applied (session coupon first, then cart coupon)
+      final couponCode =
+          (session.coupon?.code?.trim().isNotEmpty ?? false)
+          ? session.coupon!.code.trim()
+          : ((session.cart.couponCode?.trim().isNotEmpty ?? false)
+                ? session.cart.couponCode!.trim()
+                : null);
 
       // Get selected address
       AddressEntity? selectedAddress;
@@ -2290,11 +2315,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         selectedPaymentMethod.orderPaymentMethodValue,
       );
 
-      final orderTotal =
-          session.cart.subtotal -
-          (_appliedCoupon?.discountAmount ?? 0) +
-          session.cart.shippingCost +
-          session.cart.taxAmount;
+      final orderTotal = _resolveOrderTotal(session);
       final walletBalance = _resolveWalletBalance();
       final walletAmountToUse = _calculateWalletAmountToUse(
         orderTotal: orderTotal,
@@ -2432,15 +2453,5 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     }
 
     return 0;
-  }
-}
-
-extension on CheckoutCouponEntity {
-  CouponValidation toCouponValidation() {
-    return CouponValidation(
-      isValid: isValid,
-      discountAmount: discountAmount,
-      message: message,
-    );
   }
 }

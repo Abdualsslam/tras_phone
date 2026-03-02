@@ -100,13 +100,29 @@ export class PromotionsController {
     @ApiAuthErrorResponses()
     async validateCoupon(
         @CurrentUser() user: any,
-        @Body() data: { code: string; orderAmount: number },
+        @Body()
+        data: {
+            code: string;
+            orderAmount: number;
+            shippingCost?: number;
+            priceLevelId?: string;
+            items?: Array<{ productId?: string; categoryId?: string }>;
+        },
     ) {
         const result = await this.couponsService.validate(
             data.code,
             user.customerId,
             data.orderAmount,
-            false, // TODO: Check if first order
+            {
+                productIds: (data.items || [])
+                    .map((item) => item.productId)
+                    .filter((id): id is string => !!id),
+                categoryIds: (data.items || [])
+                    .map((item) => item.categoryId)
+                    .filter((id): id is string => !!id),
+                priceLevelId: data.priceLevelId,
+                shippingCost: data.shippingCost,
+            },
         );
         return ResponseBuilder.success(
             { coupon: result.coupon, discountAmount: result.discountAmount },

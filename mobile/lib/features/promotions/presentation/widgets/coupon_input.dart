@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/models/coupon_validation_model.dart';
-import '../cubit/promotions_cubit.dart';
 
 class CouponInput extends StatefulWidget {
-  final double orderTotal;
-  final Function(CouponValidation) onCouponApplied;
-  final VoidCallback onCouponRemoved;
+  final String? appliedCode;
+  final double appliedDiscount;
+  final Future<String?> Function(String code) onApplyCoupon;
+  final Future<void> Function() onRemoveCoupon;
 
   const CouponInput({
     super.key,
-    required this.orderTotal,
-    required this.onCouponApplied,
-    required this.onCouponRemoved,
+    this.appliedCode,
+    required this.appliedDiscount,
+    required this.onApplyCoupon,
+    required this.onRemoveCoupon,
   });
 
   @override
@@ -22,11 +21,11 @@ class CouponInput extends StatefulWidget {
 class _CouponInputState extends State<CouponInput> {
   final controller = TextEditingController();
   bool isLoading = false;
-  CouponValidation? appliedCoupon;
   String? errorMessage;
 
   Future<void> _applyCoupon() async {
-    if (controller.text.isEmpty) return;
+    final code = controller.text.trim().toUpperCase();
+    if (code.isEmpty) return;
 
     setState(() {
       isLoading = true;
@@ -34,36 +33,34 @@ class _CouponInputState extends State<CouponInput> {
     });
 
     try {
-      final result = await context.read<PromotionsCubit>().validateCoupon(
-        code: controller.text.toUpperCase(),
-        orderTotal: widget.orderTotal,
-      );
-
-      if (result != null && result.isValid) {
-        setState(() => appliedCoupon = result);
-        widget.onCouponApplied(result);
-      } else if (result != null) {
-        setState(() => errorMessage = result.getMessage('ar'));
+      final applyError = await widget.onApplyCoupon(code);
+      if (!mounted) return;
+      if (applyError != null && applyError.isNotEmpty) {
+        setState(() => errorMessage = applyError);
+      } else {
+        controller.clear();
       }
-    } catch (e) {
-      setState(() => errorMessage = 'حدث خطأ، حاول مرة أخرى');
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
-  void _removeCoupon() {
+  Future<void> _removeCoupon() async {
     setState(() {
-      appliedCoupon = null;
+      errorMessage = null;
       controller.clear();
     });
-    widget.onCouponRemoved();
+    await widget.onRemoveCoupon();
   }
 
   @override
   Widget build(BuildContext context) {
+    final appliedCode = widget.appliedCode;
+
     // كوبون مطبق
-    if (appliedCoupon != null) {
+    if (appliedCode != null && appliedCode.isNotEmpty) {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -80,11 +77,11 @@ class _CouponInputState extends State<CouponInput> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    appliedCoupon!.coupon!.code,
+                    appliedCode,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    'خصم: ${appliedCoupon!.discountAmount?.toStringAsFixed(2)} ر.س',
+                    'خصم: ${widget.appliedDiscount.toStringAsFixed(2)} ر.س',
                     style: TextStyle(color: Colors.green[700]),
                   ),
                 ],
@@ -92,7 +89,7 @@ class _CouponInputState extends State<CouponInput> {
             ),
             IconButton(
               icon: const Icon(Icons.close, color: Colors.red),
-              onPressed: _removeCoupon,
+              onPressed: isLoading ? null : _removeCoupon,
             ),
           ],
         ),

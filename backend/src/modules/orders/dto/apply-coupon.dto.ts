@@ -8,7 +8,7 @@ import { IsString, IsNotEmpty, IsOptional, IsNumber, IsMongoId, Min } from 'clas
  */
 export class ApplyCouponDto {
     @ApiProperty({
-        description: 'Coupon ID',
+        description: 'Coupon ID (optional, legacy)',
         example: '507f1f77bcf86cd799439011',
         required: false,
     })
@@ -25,13 +25,14 @@ export class ApplyCouponDto {
     couponCode: string;
 
     @ApiProperty({
-        description: 'Discount amount in currency',
+        description: 'Discount amount in currency (ignored by backend)',
         example: 50.00,
         minimum: 0,
+        required: false,
     })
     @IsNumber()
-    @IsNotEmpty()
+    @IsOptional()
     @Min(0)
-    discountAmount: number;
+    discountAmount?: number;
 }
 

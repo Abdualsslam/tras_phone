@@ -9,6 +9,9 @@ import { PromotionBrand, PromotionBrandSchema } from './schemas/promotion-brand.
 import { PromotionUsage, PromotionUsageSchema } from './schemas/promotion-usage.schema';
 import { Coupon, CouponSchema } from './schemas/coupon.schema';
 import { CouponUsage, CouponUsageSchema } from './schemas/coupon-usage.schema';
+import { Customer, CustomerSchema } from '@modules/customers/schemas/customer.schema';
+import { Product, ProductSchema } from '@modules/products/schemas/product.schema';
+import { Order, OrderSchema } from '@modules/orders/schemas/order.schema';
 import { PromotionsService } from './promotions.service';
 import { CouponsService } from './coupons.service';
 import { PromotionsController } from './promotions.controller';
@@ -24,6 +27,9 @@ import { AuthModule } from '@modules/auth/auth.module';
             { name: PromotionUsage.name, schema: PromotionUsageSchema },
             { name: Coupon.name, schema: CouponSchema },
             { name: CouponUsage.name, schema: CouponUsageSchema },
+            { name: Customer.name, schema: CustomerSchema },
+            { name: Product.name, schema: ProductSchema },
+            { name: Order.name, schema: OrderSchema },
         ]),
         JwtModule.registerAsync({
             imports: [ConfigModule],

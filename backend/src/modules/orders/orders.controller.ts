@@ -200,9 +200,7 @@ export class CartController {
   ) {
     const cart = await this.cartService.applyCoupon(
       user.customerId,
-      applyCouponDto.couponId,
       applyCouponDto.couponCode,
-      applyCouponDto.discountAmount,
     );
     return ResponseBuilder.success(cart, 'Coupon applied', 'تم تطبيق الكوبون');
   }
@@ -313,6 +311,7 @@ export class CheckoutController {
 
     // 4. Get customer basic info (findByUserId expects userId = user.id)
     let customer: any = { id: user.customerId };
+    let customerPriceLevelId: string | undefined;
     let creditInfo:
       | { creditLimit: number; creditUsed: number; availableCredit: number }
       | undefined;
@@ -331,6 +330,7 @@ export class CheckoutController {
           priceLevelId: customerDoc.priceLevelId?.toString(),
           walletBalance: customerDoc.walletBalance ?? 0,
         };
+        customerPriceLevelId = customerDoc.priceLevelId?.toString();
 
         // Get cash on delivery permission
         canCashOnDelivery = customerDoc.canCashOnDelivery ?? true;
@@ -367,6 +367,11 @@ export class CheckoutController {
           query.couponCode,
           user.customerId,
           cart.subtotal,
+          {
+            productIds: cart.items.map((item) => item.productId),
+            priceLevelId: customerPriceLevelId,
+            shippingCost: cart.shippingCost,
+          },
         );
         coupon = {
           isValid: true,
