@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
-import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/order_entity.dart';
 import '../../domain/entities/order_stats_entity.dart';
 import '../cubit/orders_cubit.dart';

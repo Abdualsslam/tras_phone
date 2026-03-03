@@ -43,13 +43,10 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   String? _selectedAddressId;
   String? _selectedPaymentMethodId;
   CouponValidation? _appliedCoupon;
-  final TextEditingController _transferReferenceController =
-      TextEditingController();
   final TextEditingController _transferNotesController =
       TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
 
-  DateTime? _transferDate;
   String? _receiptImagePath;
   String? _selectedBankAccountId;
   bool _isLoadingBankAccounts = false;
@@ -68,7 +65,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _transferReferenceController.dispose();
     _transferNotesController.dispose();
     super.dispose();
   }
@@ -874,72 +870,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           ),
           SizedBox(height: 14.h),
           TextField(
-            controller: _transferReferenceController,
-            decoration: const InputDecoration(
-              labelText: 'رقم التحويل (اختياري)',
-              hintText: 'مثال: TRF123456',
-            ),
-          ),
-          SizedBox(height: 10.h),
-          InkWell(
-            onTap: () async {
-              final date = await showDatePicker(
-                context: context,
-                initialDate: _transferDate ?? DateTime.now(),
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now(),
-              );
-              if (date != null && mounted) {
-                setState(() => _transferDate = date);
-              }
-            },
-            borderRadius: BorderRadius.circular(12.r),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.cardDark : AppColors.cardLight,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(
-                  color: isDark
-                      ? AppColors.dividerDark
-                      : AppColors.dividerLight,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Iconsax.calendar_1,
-                    size: 18.sp,
-                    color: AppColors.textSecondaryLight,
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: Text(
-                      _transferDate != null
-                          ? DateFormat('yyyy-MM-dd').format(_transferDate!)
-                          : 'تاريخ التحويل (اختياري)',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: _transferDate != null
-                            ? null
-                            : AppColors.textTertiaryLight,
-                      ),
-                    ),
-                  ),
-                  if (_transferDate != null)
-                    GestureDetector(
-                      onTap: () => setState(() => _transferDate = null),
-                      child: Icon(
-                        Icons.close,
-                        size: 18.sp,
-                        color: AppColors.textSecondaryLight,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 10.h),
-          TextField(
             controller: _transferNotesController,
             maxLines: 2,
             decoration: const InputDecoration(
@@ -1281,19 +1211,20 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 ),
               ],
             ),
-            // Credit limit details panel
-            if (method.isCreditMethod && method.creditLimit != null)
-              _buildCreditInfoPanel(theme, isDark, method),
+            // Wallet balance details panel
+            if (method.type == 'wallet' && isSelected)
+              _buildWalletInfoPanel(theme, isDark),
+            // Credit limit details panel (for merged wallet+credit)
             if (isWalletCreditMerged &&
                 method.type == 'wallet' &&
                 mergedCreditMethod != null &&
                 isSelected)
               _buildCreditInfoPanel(theme, isDark, mergedCreditMethod),
+            // Credit limit details panel (for pure credit method)
+            if (method.isCreditMethod && method.creditLimit != null)
+              _buildCreditInfoPanel(theme, isDark, method),
             if (_isBankTransferMethod(method) && isSelected)
               _buildSupportedBanksPanel(theme, isDark),
-            // Wallet balance details panel
-            if (method.type == 'wallet' && isSelected)
-              _buildWalletInfoPanel(theme, isDark),
           ],
         ),
       ),
@@ -2338,12 +2269,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         final file = File(_receiptImagePath!);
         final bytes = await file.readAsBytes();
         receiptImage = base64Encode(bytes);
-        transferReference = _transferReferenceController.text.trim().isNotEmpty
-            ? _transferReferenceController.text.trim()
-            : null;
-        transferDate = _transferDate != null
-            ? DateFormat('yyyy-MM-dd').format(_transferDate!)
-            : null;
+        transferReference = null;
+        transferDate = null;
         transferNotes = _transferNotesController.text.trim().isNotEmpty
             ? _transferNotesController.text.trim()
             : null;
