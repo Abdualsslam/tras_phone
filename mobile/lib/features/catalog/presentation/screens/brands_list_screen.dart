@@ -1,7 +1,6 @@
 /// Brands List Screen - Displays all product brands
 library;
 
-import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
