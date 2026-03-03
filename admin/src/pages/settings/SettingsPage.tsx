@@ -942,7 +942,7 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
   // ─────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ direction: "rtl" }}>
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">الإعدادات</h1>
@@ -953,43 +953,40 @@ const onPaymentMethodSubmit = (data: PaymentMethodFormData) => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4 flex-wrap">
-          <TabsTrigger value="general" className="flex items-center gap-2">
+        <TabsList className="mb-4 w-full">
+          <TabsTrigger value="general">
             <Store className="h-4 w-4" />
             عام
           </TabsTrigger>
-          <TabsTrigger
-            value="notifications"
-            className="flex items-center gap-2"
-          >
+          <TabsTrigger value="notifications">
             <Bell className="h-4 w-4" />
             الإشعارات
           </TabsTrigger>
-          <TabsTrigger value="countries" className="flex items-center gap-2">
+          <TabsTrigger value="countries">
             <Globe className="h-4 w-4" />
             الدول
           </TabsTrigger>
-          <TabsTrigger value="cities" className="flex items-center gap-2">
+          <TabsTrigger value="cities">
             <MapPin className="h-4 w-4" />
             المدن
           </TabsTrigger>
-          <TabsTrigger value="currencies" className="flex items-center gap-2">
+          <TabsTrigger value="currencies">
             <Coins className="h-4 w-4" />
             العملات
           </TabsTrigger>
-          <TabsTrigger value="taxes" className="flex items-center gap-2">
+          <TabsTrigger value="taxes">
             <Percent className="h-4 w-4" />
             الضرائب
           </TabsTrigger>
-          <TabsTrigger value="shipping" className="flex items-center gap-2">
+          <TabsTrigger value="shipping">
             <Truck className="h-4 w-4" />
             الشحن
           </TabsTrigger>
-          <TabsTrigger value="payment" className="flex items-center gap-2">
+          <TabsTrigger value="payment">
             <CreditCard className="h-4 w-4" />
             الدفع
           </TabsTrigger>
-          <TabsTrigger value="app-versions" className="flex items-center gap-2">
+          <TabsTrigger value="app-versions">
             <Smartphone className="h-4 w-4" />
             إصدارات التطبيق
           </TabsTrigger>

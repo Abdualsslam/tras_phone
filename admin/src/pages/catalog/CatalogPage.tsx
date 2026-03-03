@@ -1267,7 +1267,7 @@ function QualityTypesTab() {
 
 export function CatalogPage() {
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in" style={{ direction: "rtl" }}>
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -1280,16 +1280,16 @@ export function CatalogPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="brands" className="w-full">
-        <TabsList className="w-full max-w-md">
-          <TabsTrigger value="brands" className="flex-1 gap-2">
+        <TabsList className="w-full">
+          <TabsTrigger value="brands">
             <Building2 className="h-4 w-4" />
             العلامات التجارية
           </TabsTrigger>
-          <TabsTrigger value="devices" className="flex-1 gap-2">
+          <TabsTrigger value="devices">
             <Smartphone className="h-4 w-4" />
             الأجهزة
           </TabsTrigger>
-          <TabsTrigger value="quality" className="flex-1 gap-2">
+          <TabsTrigger value="quality">
             <Tag className="h-4 w-4" />
             أنواع الجودة
           </TabsTrigger>

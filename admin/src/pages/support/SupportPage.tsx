@@ -382,16 +382,16 @@ export function SupportPage() {
 
             {/* Tabs */}
             <Tabs defaultValue="tickets" className="w-full">
-                <TabsList>
-                    <TabsTrigger value="tickets" className="gap-2">
+                <TabsList className="w-full">
+                    <TabsTrigger value="tickets">
                         <HeadphonesIcon className="h-4 w-4" />
                         التذاكر
                     </TabsTrigger>
-                    <TabsTrigger value="categories" className="gap-2">
+                    <TabsTrigger value="categories">
                         <FolderOpen className="h-4 w-4" />
                         الفئات
                     </TabsTrigger>
-                    <TabsTrigger value="canned" className="gap-2">
+                    <TabsTrigger value="canned">
                         <MessageSquare className="h-4 w-4" />
                         الردود الجاهزة
                     </TabsTrigger>

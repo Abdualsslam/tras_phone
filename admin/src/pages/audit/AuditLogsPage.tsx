@@ -228,7 +228,7 @@ export function AuditLogsPage() {
     // ─────────────────────────────────────────
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6" style={{ direction: "rtl" }}>
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold">سجل المراجعة</h1>
@@ -293,23 +293,23 @@ export function AuditLogsPage() {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-4">
-                    <TabsTrigger value="logs" className="flex items-center gap-2">
+                <TabsList className="mb-4 w-full">
+                    <TabsTrigger value="logs">
                         <History className="h-4 w-4" />
                         سجلات الأنشطة
                     </TabsTrigger>
-                    <TabsTrigger value="logins" className="flex items-center gap-2">
+                    <TabsTrigger value="logins">
                         <LogIn className="h-4 w-4" />
                         تسجيلات الدخول
                     </TabsTrigger>
-                    <TabsTrigger value="critical" className="flex items-center gap-2">
+                    <TabsTrigger value="critical">
                         <ShieldAlert className="h-4 w-4" />
                         حرج
                         {criticalLogs.length > 0 && (
                             <Badge variant="danger" className="me-1">{criticalLogs.length}</Badge>
                         )}
                     </TabsTrigger>
-                    <TabsTrigger value="suspicious" className="flex items-center gap-2">
+                    <TabsTrigger value="suspicious">
                         <AlertTriangle className="h-4 w-4" />
                         مشبوه
                         {suspiciousLogins.length > 0 && (
