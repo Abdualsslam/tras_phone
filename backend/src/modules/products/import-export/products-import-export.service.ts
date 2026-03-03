@@ -89,7 +89,7 @@ export class ProductsImportExportService {
     const workbook = new ExcelJS.Workbook();
 
     this.buildProductsSheet(workbook, []);
-    this.buildReferencesSheets(workbook, true);
+    await this.buildReferencesSheets(workbook, false);
     this.buildCompatibilitySheet(workbook, []);
 
     const buffer = await workbook.xlsx.writeBuffer();

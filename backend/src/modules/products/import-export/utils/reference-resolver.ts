@@ -72,12 +72,16 @@ export class ReferenceResolver {
     return maps;
   }
 
-  async getReferenceData(): Promise<ReferenceData> {
+  async getReferenceData(options?: {
+    includeInactive?: boolean;
+  }): Promise<ReferenceData> {
+    const filter = options?.includeInactive ? {} : { isActive: true };
+
     const [brands, categories, qualityTypes, devices] = await Promise.all([
-      this.brandModel.find({}).lean().exec(),
-      this.categoryModel.find({}).lean().exec(),
-      this.qualityTypeModel.find({}).lean().exec(),
-      this.deviceModel.find({}).lean().exec(),
+      this.brandModel.find(filter).lean().exec(),
+      this.categoryModel.find(filter).lean().exec(),
+      this.qualityTypeModel.find(filter).lean().exec(),
+      this.deviceModel.find(filter).lean().exec(),
     ]);
 
     return { brands, categories, qualityTypes, devices };
