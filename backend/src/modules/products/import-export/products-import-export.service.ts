@@ -341,6 +341,10 @@ export class ProductsImportExportService {
         }
 
         const productData = this.mapProductRow(row, refs);
+        const hasExplicitStatus =
+          row.status !== undefined &&
+          row.status !== null &&
+          String(row.status).trim() !== '';
         const mode = query.mode || ImportMode.UPSERT;
 
         if (mode === ImportMode.CREATE && existingBySku) {
@@ -362,12 +366,21 @@ export class ProductsImportExportService {
         }
 
         if (existingBySku) {
+          const updateData = { ...productData };
+          if (!hasExplicitStatus) {
+            delete updateData.status;
+          }
+
           await this.productModel
-            .updateOne({ _id: existingBySku._id }, { $set: productData })
+            .updateOne({ _id: existingBySku._id }, { $set: updateData })
             .exec();
           updated += 1;
         } else {
-          await this.productModel.create(productData);
+          const createData = {
+            ...productData,
+            status: hasExplicitStatus ? productData.status : 'active',
+          };
+          await this.productModel.create(createData);
           created += 1;
         }
       } catch (error: any) {
@@ -541,7 +554,10 @@ export class ProductsImportExportService {
           ? true
           : parseBoolean(row.trackInventory),
       allowBackorder: parseBoolean((row as any).allowBackorder),
-      status: row.status || 'draft',
+      status:
+        row.status === undefined || row.status === null
+          ? undefined
+          : String(row.status).trim() || undefined,
       isActive: row.isActive === undefined ? true : parseBoolean(row.isActive),
       isFeatured: parseBoolean(row.isFeatured),
       isNewArrival: parseBoolean(row.isNewArrival),

@@ -135,7 +135,7 @@
 - `lowStockThreshold` الافتراضي `5`.
 - `trackInventory` الافتراضي `true`.
 - `allowBackorder` الافتراضي `false`.
-- `status` الافتراضي `draft`.
+- `status` الافتراضي `active` للمنتج الجديد، وفي حالة تحديث منتج موجود تبقى الحالة الحالية إذا كان الحقل فارغًا.
 - `isActive` الافتراضي `true`.
 - `isFeatured` و `isNewArrival` و `isBestSeller` الافتراضي `false`.
 
