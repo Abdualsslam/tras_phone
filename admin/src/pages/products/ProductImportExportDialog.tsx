@@ -22,16 +22,68 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+const requiredTemplateFields = [
+  { key: "sku", label: "sku" },
+  { key: "name", label: "name" },
+  { key: "nameAr", label: "nameAr" },
+  { key: "slug", label: "slug" },
+  { key: "brandSlug", label: "brandSlug" },
+  { key: "categorySlug", label: "categorySlug" },
+  { key: "qualityTypeSlug", label: "qualityTypeSlug" },
+  { key: "basePrice", label: "basePrice" },
+] as const;
+
+const optionalTemplateFields = [
+  { key: "id", label: "id" },
+  { key: "additionalCategorySlugs", label: "additionalCategorySlugs" },
+  { key: "compareAtPrice", label: "compareAtPrice" },
+  { key: "costPrice", label: "costPrice" },
+  { key: "stockQuantity", label: "stockQuantity" },
+  { key: "lowStockThreshold", label: "lowStockThreshold" },
+  { key: "trackInventory", label: "trackInventory" },
+  { key: "allowBackorder", label: "allowBackorder" },
+  { key: "status", label: "status" },
+  { key: "isActive", label: "isActive" },
+  { key: "isFeatured", label: "isFeatured" },
+  { key: "isNewArrival", label: "isNewArrival" },
+  { key: "isBestSeller", label: "isBestSeller" },
+  { key: "description", label: "description" },
+  { key: "descriptionAr", label: "descriptionAr" },
+  { key: "shortDescription", label: "shortDescription" },
+  { key: "shortDescriptionAr", label: "shortDescriptionAr" },
+  { key: "mainImage", label: "mainImage" },
+  { key: "images", label: "images" },
+  { key: "video", label: "video" },
+  { key: "specifications", label: "specifications" },
+  { key: "weight", label: "weight" },
+  { key: "dimensions", label: "dimensions" },
+  { key: "color", label: "color" },
+  { key: "tags", label: "tags" },
+  { key: "warrantyDays", label: "warrantyDays" },
+  { key: "warrantyDescription", label: "warrantyDescription" },
+  { key: "metaTitle", label: "metaTitle" },
+  { key: "metaTitleAr", label: "metaTitleAr" },
+  { key: "metaDescription", label: "metaDescription" },
+  { key: "metaDescriptionAr", label: "metaDescriptionAr" },
+  { key: "metaKeywords", label: "metaKeywords" },
+  { key: "compatibleDevices", label: "compatibleDevices" },
+] as const;
+
 export function ProductImportExportDialog({ open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [mode, setMode] = useState<ImportMode>("upsert");
   const [result, setResult] = useState<ProductsImportExportResult | null>(null);
+  const [selectedOptionalTemplateFields, setSelectedOptionalTemplateFields] =
+    useState<string[]>([]);
 
   const fileName = useMemo(() => file?.name || "", [file]);
 
   const downloadTemplateMutation = useMutation({
-    mutationFn: productsApi.downloadImportTemplate,
+    mutationFn: () =>
+      productsApi.downloadImportTemplate({
+        optionalFields: selectedOptionalTemplateFields,
+      }),
     onSuccess: (blob) => {
       downloadBlob(blob, `products-template-${Date.now()}.xlsx`);
       toast.success("تم تحميل القالب");
@@ -82,6 +134,14 @@ export function ProductImportExportDialog({ open, onOpenChange }: Props) {
     onError: (error) => toast.error(getErrorMessage(error, "فشل التحديث الجزئي")),
   });
 
+  const toggleOptionalTemplateField = (field: string) => {
+    setSelectedOptionalTemplateFields((prev) =>
+      prev.includes(field)
+        ? prev.filter((item) => item !== field)
+        : [...prev, field],
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
@@ -108,6 +168,75 @@ export function ProductImportExportDialog({ open, onOpenChange }: Props) {
             >
               <Download className="h-4 w-4" /> تصدير المنتجات
             </Button>
+          </div>
+
+          <div className="rounded-lg border p-3 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">تخصيص أعمدة قالب الاستيراد</p>
+                <p className="text-xs text-gray-500">
+                  الافتراضي: الحقول الإلزامية فقط. الحقول الاختيارية المختارة: {selectedOptionalTemplateFields.length}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setSelectedOptionalTemplateFields(
+                      optionalTemplateFields.map((field) => field.key),
+                    )
+                  }
+                >
+                  تحديد الكل
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedOptionalTemplateFields([])}
+                >
+                  إلغاء الكل
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-gray-600">الحقول الإلزامية:</p>
+              <div className="flex flex-wrap gap-2">
+                {requiredTemplateFields.map((field) => (
+                  <span
+                    key={field.key}
+                    className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700"
+                  >
+                    {field.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-gray-600">الحقول الاختيارية:</p>
+              <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                {optionalTemplateFields.map((field) => {
+                  const checked = selectedOptionalTemplateFields.includes(field.key);
+                  return (
+                    <label
+                      key={field.key}
+                      className="flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleOptionalTemplateField(field.key)}
+                      />
+                      <span>{field.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-3">

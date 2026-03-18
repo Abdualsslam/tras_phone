@@ -30,6 +30,7 @@ import { ProductsImportExportService } from './products-import-export.service';
 import {
   ExportProductsQueryDto,
   ImportProductsQueryDto,
+  TemplateQueryDto,
 } from './dto';
 
 @ApiTags('Products Import/Export')
@@ -42,8 +43,11 @@ export class ProductsImportExportController {
   @Get('template')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Download products Excel template' })
-  async downloadTemplate(@Res({ passthrough: true }) res: Response) {
-    const buffer = await this.service.exportTemplate();
+  async downloadTemplate(
+    @Query() query: TemplateQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const buffer = await this.service.exportTemplate(query);
     res.set({
       'Content-Type':
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

@@ -12,11 +12,12 @@ import {
   ProductDeviceCompatibilityDocument,
 } from '../schemas/product-device-compatibility.schema';
 import {
+  ExportProductsQueryDto,
   ImportMode,
   ImportProductsQueryDto,
+  TemplateQueryDto,
   ValidationResultDto,
-} from './dto/import-products.dto';
-import { ExportProductsQueryDto } from './dto/export-filter.dto';
+} from './dto';
 import {
   DeviceCompatibilityRow,
   ProductRow,
@@ -75,6 +76,25 @@ const PRODUCT_HEADERS = [
   'compatibleDevices',
 ] as const;
 
+const REQUIRED_TEMPLATE_HEADERS = [
+  'sku',
+  'name',
+  'nameAr',
+  'slug',
+  'brandSlug',
+  'categorySlug',
+  'qualityTypeSlug',
+  'basePrice',
+] as const;
+
+const REQUIRED_TEMPLATE_HEADERS_SET = new Set<string>(REQUIRED_TEMPLATE_HEADERS);
+
+const OPTIONAL_TEMPLATE_HEADERS = PRODUCT_HEADERS.filter(
+  (header) => !REQUIRED_TEMPLATE_HEADERS_SET.has(header),
+);
+
+const OPTIONAL_TEMPLATE_HEADERS_SET = new Set<string>(OPTIONAL_TEMPLATE_HEADERS);
+
 @Injectable()
 export class ProductsImportExportService {
   constructor(
@@ -85,10 +105,11 @@ export class ProductsImportExportService {
     private readonly referenceResolver: ReferenceResolver,
   ) {}
 
-  async exportTemplate(): Promise<Buffer> {
+  async exportTemplate(query: TemplateQueryDto = {}): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
+    const headers = this.resolveTemplateHeaders(query.optionalFields);
 
-    this.buildProductsSheet(workbook, []);
+    this.buildProductsSheet(workbook, [], headers);
     await this.buildReferencesSheets(workbook, false);
     this.buildCompatibilitySheet(workbook, []);
 
@@ -125,7 +146,7 @@ export class ProductsImportExportService {
       .lean()
       .exec();
 
-    this.buildProductsSheet(workbook, products as any[]);
+    this.buildProductsSheet(workbook, products as any[], [...PRODUCT_HEADERS]);
 
     if (query.includeReferences !== false) {
       await this.buildReferencesSheets(workbook, false);
@@ -601,55 +622,93 @@ export class ProductsImportExportService {
     }
   }
 
-  private buildProductsSheet(workbook: ExcelJS.Workbook, products: any[]) {
+  private resolveTemplateHeaders(optionalFields?: string[]): string[] {
+    if (!optionalFields?.length) {
+      return [...REQUIRED_TEMPLATE_HEADERS];
+    }
+
+    const normalizedOptionalFields = [
+      ...new Set(optionalFields.map((field) => String(field).trim()).filter(Boolean)),
+    ];
+
+    const invalidFields = normalizedOptionalFields.filter(
+      (field) => !OPTIONAL_TEMPLATE_HEADERS_SET.has(field),
+    );
+
+    if (invalidFields.length) {
+      throw new BadRequestException(
+        `Invalid optional fields: ${invalidFields.join(', ')}. Allowed optional fields: ${OPTIONAL_TEMPLATE_HEADERS.join(', ')}`,
+      );
+    }
+
+    const selectedOptionalFields = new Set(normalizedOptionalFields);
+
+    return PRODUCT_HEADERS.filter(
+      (header) =>
+        REQUIRED_TEMPLATE_HEADERS_SET.has(header) ||
+        selectedOptionalFields.has(header),
+    );
+  }
+
+  private buildProductsSheet(
+    workbook: ExcelJS.Workbook,
+    products: any[],
+    headers: string[] = [...PRODUCT_HEADERS],
+  ) {
     const ws = workbook.addWorksheet('Products');
-    ws.addRow(PRODUCT_HEADERS as unknown as string[]);
+    ws.addRow(headers);
     ws.getRow(1).font = { bold: true };
 
     for (const p of products) {
-      ws.addRow([
-        stringifyId(p._id),
-        p.sku || '',
-        p.name || '',
-        p.nameAr || '',
-        p.slug || '',
-        p.brandId?.slug || '',
-        p.categoryId?.slug || '',
-        (p.additionalCategories || []).map((c: any) => c.slug).join(','),
-        p.qualityTypeId?.code || '',
-        p.basePrice ?? '',
-        p.compareAtPrice ?? '',
-        p.costPrice ?? '',
-        p.stockQuantity ?? '',
-        p.lowStockThreshold ?? '',
-        p.trackInventory ?? '',
-        p.allowBackorder ?? '',
-        p.status || '',
-        p.isActive ?? '',
-        p.isFeatured ?? '',
-        p.isNewArrival ?? '',
-        p.isBestSeller ?? '',
-        p.description || '',
-        p.descriptionAr || '',
-        p.shortDescription || '',
-        p.shortDescriptionAr || '',
-        p.mainImage || '',
-        (p.images || []).join(','),
-        p.video || '',
-        p.specifications ? JSON.stringify(p.specifications) : '',
-        p.weight ?? '',
-        p.dimensions || '',
-        p.color || '',
-        (p.tags || []).join(','),
-        p.warrantyDays ?? '',
-        p.warrantyDescription || '',
-        p.metaTitle || '',
-        p.metaTitleAr || '',
-        p.metaDescription || '',
-        p.metaDescriptionAr || '',
-        (p.metaKeywords || []).join(','),
-        (p.compatibleDevices || []).map((d: any) => d.slug).join(','),
-      ]);
+      const valuesByHeader: Record<string, any> = {
+        id: stringifyId(p._id),
+        sku: p.sku || '',
+        name: p.name || '',
+        nameAr: p.nameAr || '',
+        slug: p.slug || '',
+        brandSlug: p.brandId?.slug || '',
+        categorySlug: p.categoryId?.slug || '',
+        additionalCategorySlugs: (p.additionalCategories || [])
+          .map((c: any) => c.slug)
+          .join(','),
+        qualityTypeSlug: p.qualityTypeId?.code || '',
+        basePrice: p.basePrice ?? '',
+        compareAtPrice: p.compareAtPrice ?? '',
+        costPrice: p.costPrice ?? '',
+        stockQuantity: p.stockQuantity ?? '',
+        lowStockThreshold: p.lowStockThreshold ?? '',
+        trackInventory: p.trackInventory ?? '',
+        allowBackorder: p.allowBackorder ?? '',
+        status: p.status || '',
+        isActive: p.isActive ?? '',
+        isFeatured: p.isFeatured ?? '',
+        isNewArrival: p.isNewArrival ?? '',
+        isBestSeller: p.isBestSeller ?? '',
+        description: p.description || '',
+        descriptionAr: p.descriptionAr || '',
+        shortDescription: p.shortDescription || '',
+        shortDescriptionAr: p.shortDescriptionAr || '',
+        mainImage: p.mainImage || '',
+        images: (p.images || []).join(','),
+        video: p.video || '',
+        specifications: p.specifications ? JSON.stringify(p.specifications) : '',
+        weight: p.weight ?? '',
+        dimensions: p.dimensions || '',
+        color: p.color || '',
+        tags: (p.tags || []).join(','),
+        warrantyDays: p.warrantyDays ?? '',
+        warrantyDescription: p.warrantyDescription || '',
+        metaTitle: p.metaTitle || '',
+        metaTitleAr: p.metaTitleAr || '',
+        metaDescription: p.metaDescription || '',
+        metaDescriptionAr: p.metaDescriptionAr || '',
+        metaKeywords: (p.metaKeywords || []).join(','),
+        compatibleDevices: (p.compatibleDevices || [])
+          .map((d: any) => d.slug)
+          .join(','),
+      };
+
+      ws.addRow(headers.map((header) => valuesByHeader[header] ?? ''));
     }
   }
 
