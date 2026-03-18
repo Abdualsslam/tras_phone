@@ -22,52 +22,118 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+interface TemplateFieldOption {
+  key: string;
+  label: string;
+  descriptionAr: string;
+}
+
 const requiredTemplateFields = [
-  { key: "sku", label: "sku" },
-  { key: "name", label: "name" },
-  { key: "nameAr", label: "nameAr" },
-  { key: "slug", label: "slug" },
-  { key: "brandSlug", label: "brandSlug" },
-  { key: "categorySlug", label: "categorySlug" },
-  { key: "qualityTypeSlug", label: "qualityTypeSlug" },
-  { key: "basePrice", label: "basePrice" },
-] as const;
+  { key: "sku", label: "sku", descriptionAr: "كود المنتج الفريد" },
+  { key: "name", label: "name", descriptionAr: "اسم المنتج (الرئيسي)" },
+  { key: "nameAr", label: "nameAr", descriptionAr: "اسم المنتج بالعربية" },
+  { key: "slug", label: "slug", descriptionAr: "الرابط النصي للمنتج" },
+  { key: "brandSlug", label: "brandSlug", descriptionAr: "رمز البراند (slug)" },
+  {
+    key: "categorySlug",
+    label: "categorySlug",
+    descriptionAr: "رمز الفئة (slug)",
+  },
+  {
+    key: "qualityTypeSlug",
+    label: "qualityTypeSlug",
+    descriptionAr: "رمز نوع الجودة (code)",
+  },
+  { key: "basePrice", label: "basePrice", descriptionAr: "السعر الأساسي" },
+] as const satisfies readonly TemplateFieldOption[];
 
 const optionalTemplateFields = [
-  { key: "id", label: "id" },
-  { key: "additionalCategorySlugs", label: "additionalCategorySlugs" },
-  { key: "compareAtPrice", label: "compareAtPrice" },
-  { key: "costPrice", label: "costPrice" },
-  { key: "stockQuantity", label: "stockQuantity" },
-  { key: "lowStockThreshold", label: "lowStockThreshold" },
-  { key: "trackInventory", label: "trackInventory" },
-  { key: "allowBackorder", label: "allowBackorder" },
-  { key: "status", label: "status" },
-  { key: "isActive", label: "isActive" },
-  { key: "isFeatured", label: "isFeatured" },
-  { key: "isNewArrival", label: "isNewArrival" },
-  { key: "isBestSeller", label: "isBestSeller" },
-  { key: "description", label: "description" },
-  { key: "descriptionAr", label: "descriptionAr" },
-  { key: "shortDescription", label: "shortDescription" },
-  { key: "shortDescriptionAr", label: "shortDescriptionAr" },
-  { key: "mainImage", label: "mainImage" },
-  { key: "images", label: "images" },
-  { key: "video", label: "video" },
-  { key: "specifications", label: "specifications" },
-  { key: "weight", label: "weight" },
-  { key: "dimensions", label: "dimensions" },
-  { key: "color", label: "color" },
-  { key: "tags", label: "tags" },
-  { key: "warrantyDays", label: "warrantyDays" },
-  { key: "warrantyDescription", label: "warrantyDescription" },
-  { key: "metaTitle", label: "metaTitle" },
-  { key: "metaTitleAr", label: "metaTitleAr" },
-  { key: "metaDescription", label: "metaDescription" },
-  { key: "metaDescriptionAr", label: "metaDescriptionAr" },
-  { key: "metaKeywords", label: "metaKeywords" },
-  { key: "compatibleDevices", label: "compatibleDevices" },
-] as const;
+  { key: "id", label: "id", descriptionAr: "معرّف المنتج (للتحديث)" },
+  {
+    key: "additionalCategorySlugs",
+    label: "additionalCategorySlugs",
+    descriptionAr: "فئات إضافية (slugs مفصولة بفواصل)",
+  },
+  {
+    key: "compareAtPrice",
+    label: "compareAtPrice",
+    descriptionAr: "السعر قبل الخصم",
+  },
+  { key: "costPrice", label: "costPrice", descriptionAr: "سعر التكلفة" },
+  { key: "stockQuantity", label: "stockQuantity", descriptionAr: "كمية المخزون" },
+  {
+    key: "lowStockThreshold",
+    label: "lowStockThreshold",
+    descriptionAr: "حد تنبيه انخفاض المخزون",
+  },
+  {
+    key: "trackInventory",
+    label: "trackInventory",
+    descriptionAr: "تفعيل تتبع المخزون",
+  },
+  {
+    key: "allowBackorder",
+    label: "allowBackorder",
+    descriptionAr: "السماح بالطلب عند نفاد المخزون",
+  },
+  { key: "status", label: "status", descriptionAr: "حالة المنتج" },
+  { key: "isActive", label: "isActive", descriptionAr: "نشط/غير نشط" },
+  { key: "isFeatured", label: "isFeatured", descriptionAr: "منتج مميز" },
+  { key: "isNewArrival", label: "isNewArrival", descriptionAr: "وصول جديد" },
+  { key: "isBestSeller", label: "isBestSeller", descriptionAr: "الأكثر مبيعًا" },
+  { key: "description", label: "description", descriptionAr: "الوصف" },
+  { key: "descriptionAr", label: "descriptionAr", descriptionAr: "الوصف بالعربية" },
+  {
+    key: "shortDescription",
+    label: "shortDescription",
+    descriptionAr: "وصف مختصر",
+  },
+  {
+    key: "shortDescriptionAr",
+    label: "shortDescriptionAr",
+    descriptionAr: "وصف مختصر بالعربية",
+  },
+  { key: "mainImage", label: "mainImage", descriptionAr: "رابط الصورة الرئيسية" },
+  { key: "images", label: "images", descriptionAr: "روابط صور إضافية" },
+  { key: "video", label: "video", descriptionAr: "رابط الفيديو" },
+  {
+    key: "specifications",
+    label: "specifications",
+    descriptionAr: "مواصفات المنتج (JSON)",
+  },
+  { key: "weight", label: "weight", descriptionAr: "الوزن" },
+  { key: "dimensions", label: "dimensions", descriptionAr: "الأبعاد" },
+  { key: "color", label: "color", descriptionAr: "اللون" },
+  { key: "tags", label: "tags", descriptionAr: "وسوم المنتج" },
+  { key: "warrantyDays", label: "warrantyDays", descriptionAr: "مدة الضمان (أيام)" },
+  {
+    key: "warrantyDescription",
+    label: "warrantyDescription",
+    descriptionAr: "وصف الضمان",
+  },
+  { key: "metaTitle", label: "metaTitle", descriptionAr: "عنوان SEO" },
+  { key: "metaTitleAr", label: "metaTitleAr", descriptionAr: "عنوان SEO بالعربية" },
+  {
+    key: "metaDescription",
+    label: "metaDescription",
+    descriptionAr: "وصف SEO",
+  },
+  {
+    key: "metaDescriptionAr",
+    label: "metaDescriptionAr",
+    descriptionAr: "وصف SEO بالعربية",
+  },
+  {
+    key: "metaKeywords",
+    label: "metaKeywords",
+    descriptionAr: "كلمات مفتاحية SEO",
+  },
+  {
+    key: "compatibleDevices",
+    label: "compatibleDevices",
+    descriptionAr: "الأجهزة المتوافقة (slugs)",
+  },
+] as const satisfies readonly TemplateFieldOption[];
 
 export function ProductImportExportDialog({ open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
@@ -208,9 +274,10 @@ export function ProductImportExportDialog({ open, onOpenChange }: Props) {
                 {requiredTemplateFields.map((field) => (
                   <span
                     key={field.key}
-                    className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700"
+                    className="inline-flex flex-col rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700"
                   >
-                    {field.label}
+                    <span className="font-medium">{field.label}</span>
+                    <span className="text-[11px] text-emerald-800">{field.descriptionAr}</span>
                   </span>
                 ))}
               </div>
@@ -231,7 +298,10 @@ export function ProductImportExportDialog({ open, onOpenChange }: Props) {
                         checked={checked}
                         onChange={() => toggleOptionalTemplateField(field.key)}
                       />
-                      <span>{field.label}</span>
+                      <span className="flex flex-col gap-0.5">
+                        <span className="font-medium">{field.label}</span>
+                        <span className="text-[11px] text-gray-500">{field.descriptionAr}</span>
+                      </span>
                     </label>
                   );
                 })}
