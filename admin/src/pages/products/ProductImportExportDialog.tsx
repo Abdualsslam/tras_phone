@@ -28,6 +28,24 @@ interface TemplateFieldOption {
   descriptionAr: string;
 }
 
+interface ImportValidationPayload {
+  isValid?: boolean;
+  totalRows?: number;
+  errors?: Array<{
+    row: number;
+    sheet: string;
+    field: string;
+    message: string;
+    value?: unknown;
+  }>;
+  warnings?: Array<{
+    row: number;
+    sheet: string;
+    field: string;
+    message: string;
+  }>;
+}
+
 const requiredTemplateFields = [
   { key: "sku", label: "sku", descriptionAr: "كود المنتج الفريد" },
   { key: "name", label: "name", descriptionAr: "اسم المنتج (الرئيسي)" },
@@ -187,9 +205,13 @@ export function ProductImportExportDialog({ open, onOpenChange }: Props) {
     mutationFn: (selectedFile: File) =>
       productsApi.importProductsExcel(selectedFile, { mode }),
     onSuccess: (data) => {
-      const payload = (data?.validation ? data.validation : data) as ProductsImportExportResult;
+      const payload = normalizeImportResult(data);
       setResult(payload);
-      toast.success("اكتملت عملية الاستيراد");
+      if (payload.success) {
+        toast.success("اكتملت عملية الاستيراد");
+      } else {
+        toast.warning(`تعذر إكمال الاستيراد: يوجد ${payload.summary.errors} خطأ`);
+      }
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
     onError: (error) => toast.error(getErrorMessage(error, "فشل الاستيراد")),
@@ -400,4 +422,41 @@ function downloadBlob(blob: Blob, filename: string) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function normalizeImportResult(payload: unknown): ProductsImportExportResult {
+  const data = payload as {
+    success?: boolean;
+    summary?: ProductsImportExportResult["summary"];
+    errors?: ProductsImportExportResult["errors"];
+    warnings?: ProductsImportExportResult["warnings"];
+    validation?: ImportValidationPayload;
+  };
+
+  if (data?.summary) {
+    return {
+      success: Boolean(data.success),
+      summary: data.summary,
+      errors: data.errors || [],
+      warnings: data.warnings || [],
+    };
+  }
+
+  const validation = data?.validation || {};
+  const errors = validation.errors || [];
+  const warnings = validation.warnings || [];
+  const totalRows = Number(validation.totalRows || 0);
+
+  return {
+    success: false,
+    summary: {
+      total: totalRows,
+      created: 0,
+      updated: 0,
+      skipped: totalRows,
+      errors: errors.length,
+    },
+    errors,
+    warnings,
+  };
 }

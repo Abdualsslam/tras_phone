@@ -836,11 +836,12 @@ export class ProductsImportExportService {
         output[header] = row.getCell(idx).value as any;
       }
 
-      const hasValue = Object.values(output).some(
-        (v) => v !== null && v !== undefined && String(v).trim() !== '',
+      const normalizedOutput = normalizeCellValues(output);
+      const hasValue = Object.values(normalizedOutput).some((v) =>
+        hasMeaningfulCellValue(v),
       );
       if (hasValue) {
-        results.push(normalizeCellValues(output) as T);
+        results.push(normalizedOutput as T);
       }
     });
 
@@ -861,13 +862,68 @@ export class ProductsImportExportService {
 function normalizeCellValues(row: Record<string, any>): Record<string, any> {
   const output: Record<string, any> = {};
   for (const [k, v] of Object.entries(row)) {
-    if (v && typeof v === 'object' && 'text' in (v as any)) {
-      output[k] = (v as any).text;
-    } else {
-      output[k] = v;
-    }
+    output[k] = normalizeExcelCellValue(v);
   }
   return output;
+}
+
+function normalizeExcelCellValue(value: any): any {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== 'object') {
+    return value;
+  }
+
+  if (Array.isArray((value as any).richText)) {
+    return (value as any).richText
+      .map((item: any) => String(item?.text ?? ''))
+      .join('');
+  }
+
+  if ('result' in (value as any)) {
+    return normalizeExcelCellValue((value as any).result);
+  }
+
+  if ('text' in (value as any)) {
+    return String((value as any).text ?? '').trim();
+  }
+
+  if ('hyperlink' in (value as any)) {
+    const text = (value as any).text;
+    return text ? String(text).trim() : String((value as any).hyperlink || '').trim();
+  }
+
+  if ('formula' in (value as any)) {
+    return normalizeExcelCellValue((value as any).result);
+  }
+
+  return undefined;
+}
+
+function hasMeaningfulCellValue(value: any): boolean {
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === 'string') {
+    return value.trim() !== '';
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return true;
+  }
+
+  if (value instanceof Date) {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  return false;
 }
 
 function safeJsonParse(value: any): Record<string, any> | undefined {
