@@ -135,14 +135,29 @@ export class ProductsService {
       isFeatured,
       isNewArrival,
       isBestSeller,
-      sort = 'createdAt',
-      order = 'desc',
+      sort,
+      order,
+      sortBy,
+      sortOrder,
     } = filters || {};
 
     const query: any = {};
 
     if (search) {
-      query.$text = { $search: search };
+      const escapedSearch = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchRegex = new RegExp(escapedSearch, 'i');
+      query.$and = [
+        ...(query.$and || []),
+        {
+          $or: [
+            { sku: searchRegex },
+            { name: searchRegex },
+            { nameAr: searchRegex },
+            { slug: searchRegex },
+            { tags: { $in: [searchRegex] } },
+          ],
+        },
+      ];
     }
 
     if (categoryId) query.categoryId = new Types.ObjectId(categoryId);
@@ -199,10 +214,18 @@ export class ProductsService {
     }
 
     const skip = (page - 1) * limit;
-    let sortField = sort;
+    const resolvedSortField = sortBy || sort || 'createdAt';
+    let sortField = resolvedSortField;
     if (sort === 'price') sortField = 'basePrice';
+    if (sortBy === 'price') sortField = 'basePrice';
 
-    const sortObj: any = { [sortField]: order === 'desc' ? -1 : 1 };
+    const resolvedSortOrder = sortOrder || order || 'desc';
+    const primarySortDirection = resolvedSortOrder === 'asc' ? 1 : -1;
+    const sortObj: any = { [sortField]: primarySortDirection };
+
+    if (sortField !== 'createdAt') {
+      sortObj.createdAt = -1;
+    }
 
     const [data, total] = await Promise.all([
       this.productModel

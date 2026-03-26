@@ -55,6 +55,8 @@ export interface ProductsQueryParams {
     categoryId?: string;
     brandId?: string;
     status?: string;
+    sortBy?: 'price' | 'name' | 'createdAt' | 'viewsCount' | 'ordersCount' | 'averageRating';
+    sortOrder?: 'asc' | 'desc';
 }
 
 export interface PriceLevel {
