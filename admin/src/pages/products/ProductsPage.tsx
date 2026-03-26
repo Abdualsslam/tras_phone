@@ -753,13 +753,14 @@ export function ProductsPage() {
   };
 
   const products = data?.items || [];
-  const totalPages = data?.pagination?.totalPages || 1;
+  const totalPages = data?.pagination?.totalPages ?? 1;
 
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
+    const serverTotalPages = data?.pagination?.totalPages;
+    if (serverTotalPages && currentPage > serverTotalPages) {
+      setCurrentPage(serverTotalPages);
     }
-  }, [currentPage, totalPages]);
+  }, [currentPage, data?.pagination?.totalPages]);
 
   return (
     <div className="space-y-6 animate-fade-in">
