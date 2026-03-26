@@ -158,7 +158,12 @@ export function ProductImportExportDialog({ open, onOpenChange }: Props) {
   });
 
   const exportMutation = useMutation({
-    mutationFn: () => productsApi.exportProductsExcel({ includeReferences: true, includeCompatibility: true }),
+    mutationFn: () =>
+      productsApi.exportProductsExcel({
+        includeReferences: true,
+        includeCompatibility: true,
+        optionalFields: selectedOptionalTemplateFields,
+      }),
     onSuccess: (blob) => {
       downloadBlob(blob, `products-export-${Date.now()}.xlsx`);
       toast.success("تم تصدير المنتجات بنجاح");
@@ -239,7 +244,7 @@ export function ProductImportExportDialog({ open, onOpenChange }: Props) {
           <div className="rounded-lg border p-3 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <p className="text-sm font-medium">تخصيص أعمدة قالب الاستيراد</p>
+                <p className="text-sm font-medium">تخصيص أعمدة القالب والتصدير</p>
                 <p className="text-xs text-gray-500">
                   الافتراضي: الحقول الإلزامية فقط. الحقول الاختيارية المختارة: {selectedOptionalTemplateFields.length}
                 </p>

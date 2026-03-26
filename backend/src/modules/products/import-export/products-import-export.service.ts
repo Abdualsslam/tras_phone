@@ -146,7 +146,8 @@ export class ProductsImportExportService {
       .lean()
       .exec();
 
-    this.buildProductsSheet(workbook, products as any[], [...PRODUCT_HEADERS]);
+    const headers = this.resolveTemplateHeaders(query.optionalFields);
+    this.buildProductsSheet(workbook, products as any[], headers);
 
     if (query.includeReferences !== false) {
       await this.buildReferencesSheets(workbook, false);

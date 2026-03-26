@@ -377,9 +377,14 @@ export const productsApi = {
         includeCompatibility?: boolean;
         includeReferences?: boolean;
         search?: string;
+        optionalFields?: string[];
     }): Promise<Blob> => {
+        const optionalFields = params?.optionalFields?.filter(Boolean) || [];
         const response = await apiClient.get('/products/import-export/export', {
-            params,
+            params: {
+                ...params,
+                optionalFields: optionalFields.length ? optionalFields.join(',') : undefined,
+            },
             responseType: 'blob',
         });
         return response.data;
