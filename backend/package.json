@@ -29,7 +29,8 @@
     "import:brands-devices": "ts-node -r tsconfig-paths/register src/scripts/import-brands-devices-from-excel.ts",
     "import:categories": "ts-node -r tsconfig-paths/register src/scripts/import-categories-from-excel.ts",
     "import:quality-types": "ts-node -r tsconfig-paths/register src/scripts/import-quality-types-from-excel.ts",
-    "import:products-final": "ts-node -r tsconfig-paths/register src/scripts/import-products-final-from-excel.ts"
+    "import:products-final": "ts-node -r tsconfig-paths/register src/scripts/import-products-final-from-excel.ts",
+    "sync:product-compatibility": "ts-node -r tsconfig-paths/register src/scripts/sync-product-compatibility-from-excel.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.490.0",
