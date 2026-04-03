@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Brand, BrandDocument } from './schemas/brand.schema';
 import { Device, DeviceDocument } from './schemas/device.schema';
 import { QualityType, QualityTypeDocument } from './schemas/quality-type.schema';
@@ -19,7 +19,60 @@ export class CatalogService {
         private deviceModel: Model<DeviceDocument>,
         @InjectModel(QualityType.name)
         private qualityTypeModel: Model<QualityTypeDocument>,
+        @InjectModel('Product')
+        private productModel: Model<any>,
     ) { }
+
+    private async getBrandProductCountsMap(brandIds?: Array<string | Types.ObjectId>): Promise<Map<string, number>> {
+        const matchStage: any = {
+            status: { $in: ['active', 'draft'] },
+        };
+
+        if (brandIds && brandIds.length > 0) {
+            matchStage.brandId = {
+                $in: brandIds.map((id) =>
+                    id instanceof Types.ObjectId ? id : new Types.ObjectId(id),
+                ),
+            };
+        }
+
+        const rows = await this.productModel.aggregate([
+            { $match: matchStage },
+            { $group: { _id: '$brandId', count: { $sum: 1 } } },
+        ]);
+
+        const countMap = new Map<string, number>();
+        rows.forEach((row: any) => {
+            if (row?._id) {
+                countMap.set(row._id.toString(), row.count);
+            }
+        });
+
+        return countMap;
+    }
+
+    private normalizeBrandIdValue(brandId: any): any {
+        if (!brandId || typeof brandId !== 'object') {
+            return brandId;
+        }
+
+        return brandId._id || brandId.id || brandId;
+    }
+
+    private buildBrandFilter(brandId: string): any {
+        if (!brandId) {
+            return {};
+        }
+
+        const filters: any[] = [{ brandId }, { 'brandId._id': brandId }, { 'brandId.id': brandId }];
+
+        if (Types.ObjectId.isValid(brandId)) {
+            const objectId = new Types.ObjectId(brandId);
+            filters.push({ brandId: objectId }, { 'brandId._id': objectId }, { 'brandId.id': objectId });
+        }
+
+        return { $or: filters };
+    }
 
     // ═════════════════════════════════════
     // Brands
@@ -44,12 +97,34 @@ export class CatalogService {
         
         if (filters?.featured) query.isFeatured = true;
 
-        return this.brandModel.find(query).sort({ displayOrder: 1, name: 1 });
+        const brands = await this.brandModel.find(query).sort({ displayOrder: 1, name: 1 });
+        const countMap = await this.getBrandProductCountsMap(
+            brands.map((brand: any) => brand._id),
+        );
+
+        return brands.map((brand: any) => {
+            brand.productsCount = countMap.get(brand._id.toString()) || 0;
+            return brand;
+        });
+    }
+
+    async findBrandByIdOrSlug(identifier: string): Promise<BrandDocument> {
+        const query = Types.ObjectId.isValid(identifier)
+            ? { _id: identifier }
+            : { slug: identifier };
+
+        const brand = await this.brandModel.findOne(query);
+        if (!brand) throw new NotFoundException('Brand not found');
+        return brand;
     }
 
     async findBrandBySlug(slug: string): Promise<BrandDocument> {
         const brand = await this.brandModel.findOne({ slug });
         if (!brand) throw new NotFoundException('Brand not found');
+
+        const countMap = await this.getBrandProductCountsMap([brand._id]);
+        (brand as any).productsCount = countMap.get((brand as any)._id.toString()) || 0;
+
         return brand;
     }
 
@@ -73,6 +148,10 @@ export class CatalogService {
     // ═════════════════════════════════════
 
     async createDevice(data: any): Promise<DeviceDocument> {
+        if (data?.brandId) {
+            data.brandId = this.normalizeBrandIdValue(data.brandId);
+        }
+
         const existing = await this.deviceModel.findOne({ slug: data.slug });
         if (existing) {
             throw new ConflictException('Device with this slug already exists');
@@ -80,9 +159,17 @@ export class CatalogService {
         return this.deviceModel.create(data);
     }
 
-    async findDevicesByBrand(brandId: string): Promise<DeviceDocument[]> {
+    async findDevicesByBrand(brandIdentifier: string): Promise<DeviceDocument[]> {
+        const brand = await this.findBrandByIdOrSlug(brandIdentifier);
+        const brandFilter = this.buildBrandFilter(String((brand as any)._id));
+
         return this.deviceModel
-            .find({ brandId, isActive: true })
+            .find({
+                $and: [
+                    brandFilter,
+                    { isActive: true },
+                ],
+            })
             .populate('brandId', 'name nameAr slug logo')
             .sort({ releaseYear: -1, displayOrder: 1 });
     }
@@ -110,16 +197,29 @@ export class CatalogService {
         const { page = 1, limit = 20, search, brandId, includeInactive = false } = params;
         const skip = (page - 1) * limit;
 
-        const query: any = {};
-        if (!includeInactive) query.isActive = true;
-        if (brandId) query.brandId = brandId;
+        const conditions: any[] = [];
+        if (!includeInactive) {
+            conditions.push({ isActive: true });
+        }
+        if (brandId) {
+            conditions.push(this.buildBrandFilter(brandId));
+        }
         if (search) {
-            query.$or = [
+            conditions.push({
+                $or: [
                 { name: { $regex: search, $options: 'i' } },
                 { nameAr: { $regex: search, $options: 'i' } },
                 { slug: { $regex: search, $options: 'i' } },
-            ];
+                ],
+            });
         }
+
+        const query: any =
+            conditions.length === 0
+                ? {}
+                : conditions.length === 1
+                    ? conditions[0]
+                    : { $and: conditions };
 
         const [data, total] = await Promise.all([
             this.deviceModel
@@ -172,6 +272,10 @@ export class CatalogService {
     }
 
     async updateDevice(id: string, data: any): Promise<DeviceDocument> {
+        if (data?.brandId) {
+            data.brandId = this.normalizeBrandIdValue(data.brandId);
+        }
+
         const device = await this.deviceModel.findByIdAndUpdate(
             id,
             { $set: data },

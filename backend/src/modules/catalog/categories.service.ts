@@ -78,6 +78,34 @@ export class CategoriesService {
         return normalized;
     }
 
+    private async getProductCountsMap(categoryIds?: Array<string | Types.ObjectId>): Promise<Map<string, number>> {
+        const matchStage: any = {
+            status: { $in: ['active', 'draft'] },
+        };
+
+        if (categoryIds && categoryIds.length > 0) {
+            matchStage.categoryId = {
+                $in: categoryIds.map((id) =>
+                    id instanceof Types.ObjectId ? id : new Types.ObjectId(id),
+                ),
+            };
+        }
+
+        const productCounts = await this.productModel.aggregate([
+            { $match: matchStage },
+            { $group: { _id: '$categoryId', count: { $sum: 1 } } },
+        ]);
+
+        const countMap = new Map<string, number>();
+        productCounts.forEach((item: any) => {
+            if (item._id) {
+                countMap.set(item._id.toString(), item.count);
+            }
+        });
+
+        return countMap;
+    }
+
     /**
      * Create category
      */
@@ -130,7 +158,16 @@ export class CategoriesService {
             .sort({ displayOrder: 1, name: 1 })
             .lean();
 
-        return categories.map((category) => this.normalizeCategory(category));
+        const countMap = await this.getProductCountsMap(
+            categories.map((category: any) => category._id),
+        );
+
+        return categories.map((category: any) =>
+            this.normalizeCategory({
+                ...category,
+                productsCount: countMap.get(category._id.toString()) || 0,
+            }),
+        );
     }
 
     /**
@@ -142,7 +179,16 @@ export class CategoriesService {
             .sort({ displayOrder: 1, name: 1 })
             .lean();
 
-        return categories.map((category) => this.normalizeCategory(category));
+        const countMap = await this.getProductCountsMap(
+            categories.map((category: any) => category._id),
+        );
+
+        return categories.map((category: any) =>
+            this.normalizeCategory({
+                ...category,
+                productsCount: countMap.get(category._id.toString()) || 0,
+            }),
+        );
     }
 
     /**
@@ -154,19 +200,9 @@ export class CategoriesService {
             .sort({ level: 1, displayOrder: 1 })
             .lean();
 
-        // Get product counts per category
-        const productCounts = await this.productModel.aggregate([
-            { $match: { status: { $in: ['active', 'draft'] } } },
-            { $group: { _id: '$categoryId', count: { $sum: 1 } } },
-        ]);
-
-        // Create a map of category ID to product count
-        const countMap = new Map<string, number>();
-        productCounts.forEach((item: any) => {
-            if (item._id) {
-                countMap.set(item._id.toString(), item.count);
-            }
-        });
+        const countMap = await this.getProductCountsMap(
+            categories.map((category: any) => category._id),
+        );
 
         // Add product count to each category
         const categoriesWithCount = categories.map((cat: any) =>
@@ -262,9 +298,23 @@ export class CategoriesService {
             .sort({ level: 1 })
             .lean();
 
+        const allCategoryIds = [
+            category._id,
+            ...breadcrumb.map((item: any) => item._id),
+        ];
+        const countMap = await this.getProductCountsMap(allCategoryIds);
+
         return {
-            category: this.normalizeCategory(category),
-            breadcrumb: breadcrumb.map((item) => this.normalizeCategory(item)),
+            category: this.normalizeCategory({
+                ...category,
+                productsCount: countMap.get(category._id.toString()) || 0,
+            }),
+            breadcrumb: breadcrumb.map((item: any) =>
+                this.normalizeCategory({
+                    ...item,
+                    productsCount: countMap.get(item._id.toString()) || 0,
+                }),
+            ),
         };
     }
 

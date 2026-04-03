@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   catalogApi,
@@ -510,6 +510,8 @@ function DevicesTab() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrandId, setSelectedBrandId] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const devicesLimit = 20;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [formData, setFormData] = useState({
@@ -537,18 +539,50 @@ function DevicesTab() {
     queryFn: () => catalogApi.getBrands(),
   });
 
-  const { data: devices, isLoading } = useQuery({
-    queryKey: ["devices", selectedBrandId],
+  const { data: devicesData, isLoading } = useQuery({
+    queryKey: ["devices-paginated-catalog", selectedBrandId, searchQuery, currentPage],
     queryFn: () =>
-      selectedBrandId
-        ? catalogApi.getDevicesByBrand(selectedBrandId)
-        : catalogApi.getDevices({ limit: 100 }),
+      catalogApi.getDevicesPaginated({
+        page: currentPage,
+        limit: devicesLimit,
+        search: searchQuery || undefined,
+        brandId: selectedBrandId || undefined,
+        includeInactive: true,
+      }),
   });
+
+  const devices = devicesData?.items || [];
+  const devicesPagination = devicesData?.pagination || {
+    page: 1,
+    limit: devicesLimit,
+    total: 0,
+    totalPages: 1,
+  };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedBrandId]);
+
+  useEffect(() => {
+    if (currentPage > devicesPagination.totalPages) {
+      setCurrentPage(devicesPagination.totalPages);
+    }
+  }, [currentPage, devicesPagination.totalPages]);
+
+  const totalPages = devicesPagination.totalPages;
+  const maxVisiblePages = 5;
+  const startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  const adjustedStartPage = Math.max(1, endPage - maxVisiblePages + 1);
+  const visiblePages = Array.from(
+    { length: endPage - adjustedStartPage + 1 },
+    (_, idx) => adjustedStartPage + idx,
+  );
 
   const createMutation = useMutation({
     mutationFn: catalogApi.createDevice,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      queryClient.invalidateQueries({ queryKey: ["devices-paginated-catalog"] });
       handleCloseDialog();
     },
   });
@@ -571,7 +605,7 @@ function DevicesTab() {
       }>;
     }) => catalogApi.updateDevice(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      queryClient.invalidateQueries({ queryKey: ["devices-paginated-catalog"] });
       handleCloseDialog();
     },
   });
@@ -579,7 +613,7 @@ function DevicesTab() {
   const deleteMutation = useMutation({
     mutationFn: catalogApi.deleteDevice,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["devices"] });
+      queryClient.invalidateQueries({ queryKey: ["devices-paginated-catalog"] });
     },
   });
 
@@ -628,12 +662,6 @@ function DevicesTab() {
       createMutation.mutate(formData);
     }
   };
-
-  const filteredDevices = (devices || []).filter(
-    (d) =>
-      d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.nameAr?.includes(searchQuery)
-  );
 
   return (
     <div className="space-y-4">
@@ -686,7 +714,7 @@ function DevicesTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDevices.map((device) => (
+                {devices.map((device) => (
                   <TableRow key={device._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -754,13 +782,13 @@ function DevicesTab() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredDevices.length === 0 && (
+                {devices.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={6}
                       className="text-center py-8 text-gray-500"
                     >
-                      لا توجد أجهزة
+                      {searchQuery ? "لا توجد أجهزة تطابق البحث" : "لا توجد أجهزة"}
                     </TableCell>
                   </TableRow>
                 )}
@@ -769,6 +797,75 @@ function DevicesTab() {
           )}
         </CardContent>
       </Card>
+
+      {devicesPagination.totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500 dark:text-gray-400">
+            {devicesPagination.total} جهاز - صفحة {devicesPagination.page} من {devicesPagination.totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              السابق
+            </Button>
+            <div className="flex items-center gap-1">
+              {adjustedStartPage > 1 && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                  >
+                    1
+                  </Button>
+                  {adjustedStartPage > 2 && <span className="px-1 text-gray-400">...</span>}
+                </>
+              )}
+
+              {visiblePages.map((page) => (
+                <Button
+                  key={page}
+                  type="button"
+                  variant={page === currentPage ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                >
+                  {page}
+                </Button>
+              ))}
+
+              {endPage < totalPages && (
+                <>
+                  {endPage < totalPages - 1 && <span className="px-1 text-gray-400">...</span>}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                  >
+                    {totalPages}
+                  </Button>
+                </>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= devicesPagination.totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              التالي
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Device Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

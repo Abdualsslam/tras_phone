@@ -120,13 +120,13 @@ export class CatalogController {
   }
 
   @Public()
-  @Get('brands/:id/products')
+  @Get('brands/:identifier/products')
   @ApiOperation({
-    summary: 'Get products by brand ID',
+    summary: 'Get products by brand ID or slug',
     description:
-      'Retrieve all products for a specific brand by its ID. Public endpoint.',
+      'Retrieve all products for a specific brand by its ID or slug. Public endpoint.',
   })
-  @ApiParam({ name: 'id', description: 'Brand ID', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({ name: 'identifier', description: 'Brand ID or slug', example: 'apple or 507f1f77bcf86cd799439011' })
   @ApiQuery({
     name: 'page',
     required: false,
@@ -170,13 +170,14 @@ export class CatalogController {
   })
   @ApiPublicErrorResponses()
   async getBrandProducts(
-    @Param('id') id: string,
+    @Param('identifier') identifier: string,
     @Query() query: Partial<ProductFilterQueryDto>,
   ) {
-    // جلب منتجات البراند مباشرة باستخدام الـ ID
+    const brand = await this.catalogService.findBrandByIdOrSlug(identifier);
+
     const result = await this.productsService.findAll({
       ...query,
-      brandId: id,
+      brandId: String((brand as any)._id),
       status: 'active', // فقط المنتجات النشطة
     });
 
