@@ -9,6 +9,7 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../data/datasources/catalog_remote_datasource.dart';
 import '../../data/models/product_filter_query.dart';
@@ -59,22 +60,57 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   String _sortOrder = 'desc';
   bool _isGridView = true;
   final Set<String> _favoriteProductIds = {};
+  List<CategoryEntity> _availableCategories = const [];
+  bool _isLoadingCategories = false;
+  String? _selectedCategoryId;
+  String? _selectedCategoryName;
+
+  String? get _fixedCategoryId {
+    final value = widget.categoryId?.trim();
+    if (value == null || value.isEmpty) return null;
+    return value;
+  }
+
+  bool get _hasFixedCategoryFilter => _fixedCategoryId != null;
+
+  bool get _canSelectCategoryFilter =>
+      !_hasFixedCategoryFilter && (widget.deviceId?.isNotEmpty ?? false);
+
+  String? get _activeCategoryId => _fixedCategoryId ?? _selectedCategoryId;
 
   bool get _isStrictCategoryDeviceFlow =>
-      (widget.categoryId?.isNotEmpty ?? false) &&
+      (_activeCategoryId?.isNotEmpty ?? false) &&
       (widget.deviceId?.isNotEmpty ?? false);
 
-  bool get _hasCategoryFilter => widget.categoryId?.isNotEmpty ?? false;
+  bool get _hasCategoryFilter => _activeCategoryId?.isNotEmpty ?? false;
 
   String get _activeCategoryName {
-    final value = widget.categoryName?.trim();
-    if (value != null && value.isNotEmpty) return value;
+    final fixedValue = widget.categoryName?.trim();
+    if (_hasFixedCategoryFilter &&
+        fixedValue != null &&
+        fixedValue.isNotEmpty) {
+      return fixedValue;
+    }
+
+    final selectedValue = _selectedCategoryName?.trim();
+    if (selectedValue != null && selectedValue.isNotEmpty) return selectedValue;
+
+    final activeId = _activeCategoryId;
+    if (activeId != null) {
+      final categoryIndex = _availableCategories.indexWhere(
+        (category) => category.id == activeId,
+      );
+      if (categoryIndex != -1) {
+        return _availableCategories[categoryIndex].nameAr;
+      }
+    }
+
     return 'الفئة المختارة';
   }
 
   Future<({List<ProductEntity> products, int resolvedPage, int totalPages})>
   _loadStrictCategoryDevicePage({required int startPage}) async {
-    final categoryId = widget.categoryId!;
+    final categoryId = _activeCategoryId!;
     final deviceId = widget.deviceId!;
     final sortByEnum = _getSortByEnum();
     final sortOrderEnum = _sortOrder == 'asc' ? SortOrder.asc : SortOrder.desc;
@@ -119,6 +155,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
   void initState() {
     super.initState();
     _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
+    _selectedCategoryId = _fixedCategoryId;
+    _selectedCategoryName = widget.categoryName?.trim();
+
     // Initialize sort from widget parameter or defaults
     if (widget.sortBy == 'newest') {
       _sortBy = 'createdAt';
@@ -130,6 +169,54 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     _scrollController.addListener(_onScroll);
     _loadProducts();
     _loadFavoriteIds();
+    if (_canSelectCategoryFilter) {
+      _loadCategoriesForFilter();
+    }
+  }
+
+  Future<void> _loadCategoriesForFilter() async {
+    setState(() => _isLoadingCategories = true);
+    try {
+      final categories = await _dataSource.getCategories();
+      if (!mounted) return;
+
+      setState(() {
+        _availableCategories = categories;
+        _isLoadingCategories = false;
+
+        if (_selectedCategoryId != null) {
+          final selectedIndex = categories.indexWhere(
+            (category) => category.id == _selectedCategoryId,
+          );
+
+          if (selectedIndex == -1) {
+            _selectedCategoryId = null;
+            _selectedCategoryName = null;
+          } else if ((_selectedCategoryName ?? '').trim().isEmpty) {
+            _selectedCategoryName = categories[selectedIndex].nameAr;
+          }
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingCategories = false);
+    }
+  }
+
+  Future<void> _onCategoryFilterChanged({
+    required String? categoryId,
+    required String? categoryName,
+  }) async {
+    if (_hasFixedCategoryFilter || _selectedCategoryId == categoryId) return;
+
+    setState(() {
+      _selectedCategoryId = categoryId;
+      _selectedCategoryName = categoryName;
+      _products.clear();
+      _hasLoadedOnce = false;
+    });
+
+    await _loadProducts();
   }
 
   Future<void> _loadFavoriteIds() async {
@@ -222,7 +309,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           : SortOrder.desc;
 
       final filter = ProductFilterQuery(
-        categoryId: widget.categoryId,
+        categoryId: _activeCategoryId,
         brandId: widget.brandId,
         deviceId: widget.deviceId,
         isFeatured: widget.isFeatured,
@@ -292,7 +379,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           : SortOrder.desc;
 
       final filter = ProductFilterQuery(
-        categoryId: widget.categoryId,
+        categoryId: _activeCategoryId,
         brandId: widget.brandId,
         deviceId: widget.deviceId,
         isFeatured: widget.isFeatured,
@@ -355,7 +442,9 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           children: [
             // Sort & View Options
             _buildSortBar(isDark),
-            if (_hasCategoryFilter) _buildCategoryFilterBar(isDark),
+            if (_hasFixedCategoryFilter) _buildCategoryFilterBar(isDark),
+            if (_canSelectCategoryFilter)
+              _buildSelectableCategoryFilterBar(isDark),
 
             // Products Grid/List
             Expanded(
@@ -500,6 +589,129 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSelectableCategoryFilterBar(bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 10.h),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Iconsax.filter, size: 14.sp, color: AppColors.primary),
+              SizedBox(width: 8.w),
+              Text(
+                'اختر الفئة:',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
+              ),
+              if (_isLoadingCategories) ...[
+                SizedBox(width: 8.w),
+                SizedBox(
+                  width: 12.w,
+                  height: 12.w,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          SizedBox(height: 8.h),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildCategoryChoiceChip(
+                  label: 'كل الفئات',
+                  isSelected: _activeCategoryId == null,
+                  isDark: isDark,
+                  onTap: () => _onCategoryFilterChanged(
+                    categoryId: null,
+                    categoryName: null,
+                  ),
+                ),
+                for (final category in _availableCategories) ...[
+                  SizedBox(width: 8.w),
+                  _buildCategoryChoiceChip(
+                    label: category.nameAr,
+                    isSelected: _activeCategoryId == category.id,
+                    isDark: isDark,
+                    onTap: () => _onCategoryFilterChanged(
+                      categoryId: category.id,
+                      categoryName: category.nameAr,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryChoiceChip({
+    required String label,
+    required bool isSelected,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.12)
+              : (isDark ? AppColors.cardDark : AppColors.backgroundLight),
+          borderRadius: BorderRadius.circular(999.r),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.4)
+                : (isDark ? AppColors.dividerDark : AppColors.dividerLight),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              Icon(Iconsax.category, size: 12.sp, color: AppColors.primary),
+              SizedBox(width: 6.w),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? AppColors.primary
+                    : (isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -876,7 +1088,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                         ),
                       ),
                       Text(
-                        _isStrictCategoryDeviceFlow ? 'فلتر ثابت' : 'مطبق',
+                        _hasFixedCategoryFilter ? 'فلتر ثابت' : 'مطبق',
                         style: TextStyle(
                           fontSize: 11.sp,
                           color: AppColors.primary,

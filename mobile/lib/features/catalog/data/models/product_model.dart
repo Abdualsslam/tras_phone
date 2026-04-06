@@ -35,6 +35,10 @@ class ProductModel {
 
   @JsonKey(defaultValue: [])
   final List<String> compatibleDevices;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final List<String> compatibleDeviceNames;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final List<String> compatibleDeviceNamesAr;
 
   @JsonKey(name: 'relatedProducts', readValue: _readRelatedProducts)
   final List<String>? relatedProducts;
@@ -149,6 +153,8 @@ class ProductModel {
     this.additionalCategories = const [],
     required this.qualityTypeId,
     this.compatibleDevices = const [],
+    this.compatibleDeviceNames = const [],
+    this.compatibleDeviceNamesAr = const [],
     this.mainImage,
     this.images = const [],
     this.video,
@@ -313,6 +319,34 @@ class ProductModel {
     return result;
   }
 
+  static List<String> _readCompatibleDeviceNames(
+    Map<String, dynamic> json, {
+    required bool arabic,
+  }) {
+    final directKey = arabic
+        ? 'compatibleDeviceNamesAr'
+        : 'compatibleDeviceNames';
+    final direct = _readStringList(json[directKey]);
+    if (direct.isNotEmpty) return direct;
+
+    final value = json['compatibleDevices'];
+    if (value is! List) return const [];
+
+    final names = <String>[];
+    for (final item in value) {
+      if (item is! Map) continue;
+      final map = Map<String, dynamic>.from(item);
+      final rawName = arabic
+          ? (map['nameAr'] ?? map['name'])
+          : (map['name'] ?? map['nameAr']);
+      final name = rawName?.toString().trim();
+      if (name != null && name.isNotEmpty) {
+        names.add(name);
+      }
+    }
+    return names;
+  }
+
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     final nowIso = DateTime.now().toIso8601String();
     final normalized = Map<String, dynamic>.from(json);
@@ -360,23 +394,40 @@ class ProductModel {
     String? brandName, brandNameAr;
     String? categoryName, categoryNameAr;
     String? qualityTypeName, qualityTypeNameAr;
+    final compatibleDeviceNames = _readCompatibleDeviceNames(
+      json,
+      arabic: false,
+    );
+    final compatibleDeviceNamesAr = _readCompatibleDeviceNames(
+      json,
+      arabic: true,
+    );
 
     final brandData = json['brandId'];
     if (brandData is Map<String, dynamic>) {
       brandName = brandData['name'] as String?;
       brandNameAr = brandData['nameAr'] as String?;
+    } else {
+      brandName = json['brandName']?.toString();
+      brandNameAr = json['brandNameAr']?.toString();
     }
 
     final categoryData = json['categoryId'];
     if (categoryData is Map<String, dynamic>) {
       categoryName = categoryData['name'] as String?;
       categoryNameAr = categoryData['nameAr'] as String?;
+    } else {
+      categoryName = json['categoryName']?.toString();
+      categoryNameAr = json['categoryNameAr']?.toString();
     }
 
     final qualityData = json['qualityTypeId'];
     if (qualityData is Map<String, dynamic>) {
       qualityTypeName = qualityData['name'] as String?;
       qualityTypeNameAr = qualityData['nameAr'] as String?;
+    } else {
+      qualityTypeName = json['qualityTypeName']?.toString();
+      qualityTypeNameAr = json['qualityTypeNameAr']?.toString();
     }
 
     final model = _$ProductModelFromJson(normalized);
@@ -395,6 +446,8 @@ class ProductModel {
       additionalCategories: model.additionalCategories,
       qualityTypeId: model.qualityTypeId,
       compatibleDevices: model.compatibleDevices,
+      compatibleDeviceNames: compatibleDeviceNames,
+      compatibleDeviceNamesAr: compatibleDeviceNamesAr,
       mainImage: model.mainImage,
       images: model.images,
       video: model.video,
@@ -458,6 +511,8 @@ class ProductModel {
       additionalCategories: additionalCategories,
       qualityTypeId: qualityTypeId,
       compatibleDevices: compatibleDevices,
+      compatibleDeviceNames: compatibleDeviceNames,
+      compatibleDeviceNamesAr: compatibleDeviceNamesAr,
       mainImage: mainImage,
       images: images,
       video: video,

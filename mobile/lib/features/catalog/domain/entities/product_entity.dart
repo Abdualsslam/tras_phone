@@ -24,6 +24,8 @@ class ProductEntity extends Equatable {
   final List<String> additionalCategories;
   final String qualityTypeId;
   final List<String> compatibleDevices;
+  final List<String> compatibleDeviceNames;
+  final List<String> compatibleDeviceNamesAr;
 
   // Images
   final String? mainImage;
@@ -33,6 +35,7 @@ class ProductEntity extends Equatable {
   // Pricing
   final double basePrice;
   final double? compareAtPrice;
+
   /// Customer tier price (returned when logged in - see 16-pricing-rules)
   final double? tierPrice;
 
@@ -106,6 +109,8 @@ class ProductEntity extends Equatable {
     this.additionalCategories = const [],
     required this.qualityTypeId,
     this.compatibleDevices = const [],
+    this.compatibleDeviceNames = const [],
+    this.compatibleDeviceNamesAr = const [],
     this.mainImage,
     this.images = const [],
     this.video,

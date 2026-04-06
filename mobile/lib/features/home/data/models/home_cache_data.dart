@@ -59,12 +59,15 @@ class HomeCacheData {
     List<ProductEntity> featuredProducts,
     List<ProductEntity> newArrivals,
     List<ProductEntity> bestSellers,
-  }) toEntities() {
+  })
+  toEntities() {
     return (
       categories: categories
           .map((json) => CategoryModel.fromJson(json).toEntity())
           .toList(),
-      brands: brands.map((json) => BrandModel.fromJson(json).toEntity()).toList(),
+      brands: brands
+          .map((json) => BrandModel.fromJson(json).toEntity())
+          .toList(),
       featuredProducts: featuredProducts
           .map((json) => ProductModel.fromJson(json).toEntity())
           .toList(),
@@ -140,6 +143,8 @@ class HomeCacheData {
       'additionalCategories': entity.additionalCategories,
       'qualityTypeId': entity.qualityTypeId,
       'compatibleDevices': entity.compatibleDevices,
+      'compatibleDeviceNames': entity.compatibleDeviceNames,
+      'compatibleDeviceNamesAr': entity.compatibleDeviceNamesAr,
       'mainImage': entity.mainImage,
       'images': entity.images,
       'video': entity.video,

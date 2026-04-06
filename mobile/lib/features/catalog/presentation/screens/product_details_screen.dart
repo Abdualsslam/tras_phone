@@ -33,10 +33,12 @@ class ProductDetailsScreen extends StatefulWidget {
 }
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
+  late ProductEntity _product;
   int _currentImageIndex = 0;
   int _quantity = 1;
   bool _isFavorite = false;
   bool _isLoadingFavorite = false;
+  bool _productLoading = false;
   late PageController _pageController;
   late FavoriteRemoteDataSource _favoriteDataSource;
   late CatalogRepository _catalogRepository;
@@ -56,14 +58,44 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _printProductData();
+    _product = widget.product;
+    _printProductData(_product);
     _pageController = PageController();
     _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
     _catalogRepository = getIt<CatalogRepository>();
     _educationRepository = getIt<EducationRepository>();
     _checkFavoriteStatus();
+    _loadProductDetails();
     _loadReviews();
     _loadRelatedEducationalContent();
+  }
+
+  Future<void> _loadProductDetails() async {
+    setState(() {
+      _productLoading = true;
+    });
+
+    final result = await _catalogRepository.getProduct(widget.product.id);
+    if (!mounted) return;
+
+    result.fold(
+      (_) {
+        setState(() {
+          _productLoading = false;
+        });
+      },
+      (product) {
+        setState(() {
+          _product = product;
+          _productLoading = false;
+          if (_quantity > _product.stockQuantity &&
+              _product.stockQuantity > 0) {
+            _quantity = _product.stockQuantity;
+          }
+        });
+        _printProductData(_product);
+      },
+    );
   }
 
   Future<void> _loadRelatedEducationalContent() async {
@@ -110,8 +142,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  void _printProductData() {
-    final p = widget.product;
+  void _printProductData(ProductEntity p) {
     debugPrint('═══════════════════════════════════════════════════');
     debugPrint('Product Details (visited):');
     debugPrint('  id: ${p.id}');
@@ -129,6 +160,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     debugPrint('  status: ${p.status}');
     debugPrint('  reviewsCount: ${p.reviewsCount}');
     debugPrint('  averageRating: ${p.averageRating}');
+    debugPrint('  compatibleDevices count: ${p.compatibleDevices.length}');
+    debugPrint('  compatibleDeviceNamesAr: ${p.compatibleDeviceNamesAr}');
     debugPrint('  mainImage: ${p.mainImage}');
     debugPrint('  images count: ${p.images.length}');
     if (p.descriptionAr != null || p.description != null) {
@@ -311,7 +344,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final product = widget.product;
+    final product = _product;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -348,6 +381,21 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   if (product.description != null ||
                       product.descriptionAr != null) ...[
                     _buildDescription(theme, product),
+                    SizedBox(height: 24.h),
+                  ],
+
+                  // Specs (Category & Quality)
+                  if ((product.categoryNameAr ?? product.categoryName) !=
+                          null ||
+                      (product.qualityTypeNameAr ?? product.qualityTypeName) !=
+                          null) ...[
+                    _buildProductSpecs(theme, product),
+                    SizedBox(height: 24.h),
+                  ],
+
+                  if (product.compatibleDeviceNames.isNotEmpty ||
+                      product.compatibleDeviceNamesAr.isNotEmpty) ...[
+                    _buildCompatibleDevicesSection(theme, product),
                     SizedBox(height: 24.h),
                   ],
 
@@ -677,6 +725,185 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProductSpecs(ThemeData theme, ProductEntity product) {
+    final isDark = theme.brightness == Brightness.dark;
+
+    final hasCategory =
+        product.categoryNameAr != null || product.categoryName != null;
+    final hasQuality =
+        product.qualityTypeNameAr != null || product.qualityTypeName != null;
+
+    if (!hasCategory && !hasQuality) return const SizedBox.shrink();
+
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowLight,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'المواصفات',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          if (hasCategory)
+            _buildSpecRow(
+              theme,
+              'القسم:',
+              product.categoryNameAr ?? product.categoryName ?? '',
+            ),
+          if (hasCategory && hasQuality)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 4.h),
+              child: Divider(
+                color: isDark ? AppColors.glassBorder : Colors.grey[200],
+              ),
+            ),
+          if (hasQuality)
+            _buildSpecRow(
+              theme,
+              'درجة الجودة:',
+              product.qualityTypeNameAr ?? product.qualityTypeName ?? '',
+              highlight: true,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompatibleDevicesSection(
+    ThemeData theme,
+    ProductEntity product,
+  ) {
+    final isDark = theme.brightness == Brightness.dark;
+    final locale = Localizations.localeOf(context).languageCode;
+    final devices = locale == 'ar'
+        ? (product.compatibleDeviceNamesAr.isNotEmpty
+              ? product.compatibleDeviceNamesAr
+              : product.compatibleDeviceNames)
+        : (product.compatibleDeviceNames.isNotEmpty
+              ? product.compatibleDeviceNames
+              : product.compatibleDeviceNamesAr);
+
+    if (devices.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowLight,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'الأجهزة المتوافقة',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (_productLoading) ...[
+                SizedBox(width: 8.w),
+                SizedBox(
+                  width: 14.w,
+                  height: 14.h,
+                  child: const CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ],
+            ],
+          ),
+          SizedBox(height: 12.h),
+          Wrap(
+            spacing: 8.w,
+            runSpacing: 8.h,
+            children: devices
+                .map(
+                  (device) => Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 8.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(999.r),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      device,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpecRow(
+    ThemeData theme,
+    String label,
+    String value, {
+    bool highlight = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.textSecondaryLight,
+          ),
+        ),
+        Container(
+          padding: highlight
+              ? EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h)
+              : null,
+          decoration: highlight
+              ? BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6.r),
+                )
+              : null,
+          child: Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: highlight ? FontWeight.w600 : FontWeight.w500,
+              color: highlight ? AppColors.primary : null,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

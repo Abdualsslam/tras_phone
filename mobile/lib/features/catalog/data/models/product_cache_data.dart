@@ -96,6 +96,8 @@ class ProductCacheData {
       'additionalCategories': entity.additionalCategories,
       'qualityTypeId': entity.qualityTypeId,
       'compatibleDevices': entity.compatibleDevices,
+      'compatibleDeviceNames': entity.compatibleDeviceNames,
+      'compatibleDeviceNamesAr': entity.compatibleDeviceNamesAr,
       'mainImage': entity.mainImage,
       'images': entity.images,
       'video': entity.video,
