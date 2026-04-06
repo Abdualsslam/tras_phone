@@ -4,15 +4,13 @@ library;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import '../../cache/image_cache_config.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
-import '../../config/theme/app_colors.dart';
-import '../../di/injection.dart';
-import '../../../features/favorite/data/datasources/favorite_remote_datasource.dart';
 
-class ProductCard extends StatefulWidget {
+import '../../cache/image_cache_config.dart';
+import '../../config/theme/app_colors.dart';
+
+class ProductCard extends StatelessWidget {
   final String id;
   final String name;
   final String? nameAr;
@@ -40,111 +38,19 @@ class ProductCard extends StatefulWidget {
     this.onToggleFavorite,
   });
 
-  @override
-  State<ProductCard> createState() => _ProductCardState();
-}
+  bool get hasDiscount => originalPrice != null && originalPrice! > price;
 
-class _ProductCardState extends State<ProductCard> {
-  FavoriteRemoteDataSource? _favoriteDataSource;
-  bool _isFavoriteLocal = false;
-  bool _isTogglingFavorite = false;
-
-  bool get _usesExternalFavoriteControl => widget.onToggleFavorite != null;
-
-  bool get _displayedFavorite =>
-      _usesExternalFavoriteControl ? widget.isFavorite : _isFavoriteLocal;
-
-  bool get hasDiscount =>
-      widget.originalPrice != null && widget.originalPrice! > widget.price;
-
-  bool get isOutOfStock =>
-      widget.stockQuantity != null && widget.stockQuantity! <= 0;
+  bool get isOutOfStock => stockQuantity != null && stockQuantity! <= 0;
 
   int get discountPercent {
     if (!hasDiscount) return 0;
-    return (((widget.originalPrice! - widget.price) / widget.originalPrice!) *
-            100)
-        .round();
+    return (((originalPrice! - price) / originalPrice!) * 100).round();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _isFavoriteLocal = widget.isFavorite;
-
-    if (!_usesExternalFavoriteControl) {
-      _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
-      _resolveInitialFavoriteState();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant ProductCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.id != widget.id || oldWidget.isFavorite != widget.isFavorite) {
-      _isFavoriteLocal = widget.isFavorite;
-    }
-
-    if (!_usesExternalFavoriteControl && oldWidget.id != widget.id) {
-      _resolveInitialFavoriteState();
-    }
-  }
-
-  Future<void> _resolveInitialFavoriteState() async {
-    final dataSource = _favoriteDataSource;
-    if (dataSource == null) return;
-
-    try {
-      final ids = await dataSource.getFavoriteProductIds();
-      if (!mounted) return;
-      setState(() {
-        _isFavoriteLocal = ids.contains(widget.id);
-      });
-    } catch (_) {
-      // Keep current local state when resolving fails.
-    }
-  }
-
-  Future<void> _handleFavoriteTap() async {
+  void _handleFavoriteTap() {
+    if (onToggleFavorite == null) return;
     HapticFeedback.lightImpact();
-
-    if (_usesExternalFavoriteControl) {
-      widget.onToggleFavorite?.call();
-      return;
-    }
-
-    if (_isTogglingFavorite) return;
-    final dataSource = _favoriteDataSource;
-    if (dataSource == null) return;
-
-    final previous = _isFavoriteLocal;
-    setState(() {
-      _isFavoriteLocal = !previous;
-      _isTogglingFavorite = true;
-    });
-
-    try {
-      final next = await dataSource.toggleFavorite(widget.id, previous);
-
-      if (!mounted) return;
-      setState(() {
-        _isFavoriteLocal = next;
-        _isTogglingFavorite = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isFavoriteLocal = previous;
-        _isTogglingFavorite = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تعذر تحديث المفضلة، حاول مرة أخرى'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    onToggleFavorite?.call();
   }
 
   @override
@@ -152,109 +58,155 @@ class _ProductCardState extends State<ProductCard> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
-          borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadowLight,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image Section with badges
-            _buildImageSection(isDark),
+      onTap: onTap,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final hasBoundedHeight = constraints.maxHeight.isFinite;
+          final cardWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : 165.w;
+          final imageHeight = hasBoundedHeight
+              ? (constraints.maxHeight * 0.48).clamp(110.r, cardWidth * 0.82)
+              : cardWidth;
 
-            // Content Section
-            Padding(
-              padding: EdgeInsets.all(12.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Product Name
-                  Text(
-                    widget.nameAr ?? widget.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimaryLight,
-                      height: 1.3,
-                    ),
+          return Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.cardDark : AppColors.cardLight,
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.shadowLight,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: hasBoundedHeight
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: imageHeight,
+                        width: double.infinity,
+                        child: _buildImageSection(isDark),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.all(12.r),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                nameAr ?? name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight,
+                                  height: 1.3,
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.bottomLeft,
+                                  child: _buildPriceSection(isDark),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: imageHeight,
+                        width: double.infinity,
+                        child: _buildImageSection(isDark),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(12.r),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              nameAr ?? name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimaryLight,
+                                height: 1.3,
+                              ),
+                            ),
+                            SizedBox(height: 8.h),
+                            _buildPriceSection(isDark),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 8.h),
-
-                  // Price Section
-                  _buildPriceSection(isDark),
-                ],
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildImageSection(bool isDark) {
-    return AspectRatio(
-      aspectRatio: 1.0,
-      child: Stack(
-        children: [
-          // Product Image
-          ClipRRect(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(16.r),
-              topRight: Radius.circular(16.r),
-            ),
-            child: Container(
-              width: double.infinity,
-              color: isDark ? AppColors.surfaceDark : Colors.grey[100],
-              child: _buildImage(),
-            ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(16.r),
+            topRight: Radius.circular(16.r),
           ),
-
-          // Discount Badge
-          if (hasDiscount)
-            Positioned(
-              top: 8.h,
-              left: 8.w,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: AppColors.error,
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Text(
-                  '-$discountPercent%',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
+          child: Container(
+            width: double.infinity,
+            color: isDark ? AppColors.surfaceDark : Colors.grey[100],
+            child: _buildImage(),
+          ),
+        ),
+        if (hasDiscount)
+          Positioned(
+            top: 8.h,
+            left: 8.w,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: AppColors.error,
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Text(
+                '-$discountPercent%',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-
-          // Favorite Button
+          ),
+        if (onToggleFavorite != null)
           Positioned(
             top: 8.h,
             right: 8.w,
-              child: GestureDetector(
-                onTap: _handleFavoriteTap,
-                child: Container(
-                  width: 32.w,
-                  height: 32.w,
+            child: GestureDetector(
+              onTap: _handleFavoriteTap,
+              child: Container(
+                width: 32.w,
+                height: 32.w,
                 decoration: BoxDecoration(
                   color: (isDark ? AppColors.cardDark : Colors.white)
                       .withValues(alpha: 0.95),
@@ -268,9 +220,9 @@ class _ProductCardState extends State<ProductCard> {
                   ],
                 ),
                 child: Icon(
-                  _displayedFavorite ? Iconsax.heart5 : Iconsax.heart,
+                  isFavorite ? Iconsax.heart5 : Iconsax.heart,
                   size: 16.sp,
-                  color: _displayedFavorite
+                  color: isFavorite
                       ? AppColors.error
                       : (isDark
                             ? AppColors.textSecondaryDark
@@ -279,93 +231,68 @@ class _ProductCardState extends State<ProductCard> {
               ),
             ),
           ),
-
-          // Out of Stock Overlay
-          if (isOutOfStock)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(16.r),
-                    topRight: Radius.circular(16.r),
-                  ),
+        if (isOutOfStock)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16.r),
+                  topRight: Radius.circular(16.r),
                 ),
-                child: Center(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 6.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Text(
-                      'نفذت الكمية',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimaryLight,
-                      ),
+              ),
+              child: Center(
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 6.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Text(
+                    'نفذت الكمية',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimaryLight,
                     ),
                   ),
                 ),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 
   Widget _buildImage() {
-    if (widget.imageUrl == null || widget.imageUrl!.isEmpty) {
-      return Center(
-        child: Icon(
-          Iconsax.mobile,
-          size: 48.sp,
-          color: AppColors.textTertiaryLight,
-        ),
-      );
+    if (imageUrl == null || imageUrl!.isEmpty) {
+      return const _ProductImageFallback();
     }
 
-    final isLocalAsset = widget.imageUrl!.startsWith('assets/');
-
-    if (isLocalAsset) {
+    if (imageUrl!.startsWith('assets/')) {
       return Image.asset(
-        widget.imageUrl!,
+        imageUrl!,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
-        errorBuilder: (_, __, ___) => Center(
-          child: Icon(
-            Iconsax.image,
-            size: 48.sp,
-            color: AppColors.textTertiaryLight,
-          ),
-        ),
+        errorBuilder: (context, error, stackTrace) =>
+            const _ProductImageFallback(),
       );
     }
 
     return CachedNetworkImage(
-      imageUrl: widget.imageUrl!,
-      cacheKey: imageCacheKey(widget.imageUrl!),
+      imageUrl: imageUrl!,
+      cacheKey: imageCacheKey(imageUrl!),
       cacheManager: imageCacheManager,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      placeholder: (context, url) => Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-        ),
-      ),
-      errorWidget: (context, url, error) => Center(
-        child: Icon(
-          Iconsax.image,
-          size: 48.sp,
-          color: AppColors.textTertiaryLight,
-        ),
-      ),
+      fadeInDuration: const Duration(milliseconds: 140),
+      placeholder: (context, url) => const _ProductImagePlaceholder(),
+      errorWidget: (context, url, error) => const _ProductImageFallback(),
     );
   }
 
@@ -374,12 +301,11 @@ class _ProductCardState extends State<ProductCard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Current Price
         Row(
           children: [
             Flexible(
               child: Text(
-                '${widget.price.toStringAsFixed(0)} ر.س',
+                '${price.toStringAsFixed(0)} ر.س',
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w700,
@@ -391,12 +317,10 @@ class _ProductCardState extends State<ProductCard> {
             ),
           ],
         ),
-
-        // Original Price (if discounted)
         if (hasDiscount) ...[
           SizedBox(height: 2.h),
           Text(
-            '${widget.originalPrice!.toStringAsFixed(0)} ر.س',
+            '${originalPrice!.toStringAsFixed(0)} ر.س',
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: FontWeight.w400,
@@ -412,22 +336,69 @@ class _ProductCardState extends State<ProductCard> {
             overflow: TextOverflow.ellipsis,
           ),
         ],
-
-        // Low Stock Warning
-        if (widget.stockQuantity != null &&
-            widget.stockQuantity! > 0 &&
-            widget.stockQuantity! <= 10) ...[
-          SizedBox(height: 4.h),
-          Text(
-            'متبقي ${widget.stockQuantity} فقط',
-            style: TextStyle(
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w600,
-              color: AppColors.warning,
-            ),
-          ),
-        ],
       ],
+    );
+  }
+}
+
+class _ProductImagePlaceholder extends StatelessWidget {
+  const _ProductImagePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary.withValues(alpha: 0.08),
+            AppColors.primary.withValues(alpha: 0.16),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Container(
+          width: 38.w,
+          height: 38.w,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.5),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Iconsax.gallery,
+            size: 18.sp,
+            color: AppColors.primary.withValues(alpha: 0.7),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProductImageFallback extends StatelessWidget {
+  const _ProductImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary.withValues(alpha: 0.05),
+            AppColors.primary.withValues(alpha: 0.12),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Iconsax.mobile,
+          size: 40.sp,
+          color: AppColors.primary.withValues(alpha: 0.72),
+        ),
+      ),
     );
   }
 }

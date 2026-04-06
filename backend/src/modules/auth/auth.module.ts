@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { DeviceIntegrityService } from './device-integrity.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from '@guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '@guards/optional-jwt-auth.guard';
@@ -69,7 +70,13 @@ import { PriceLevel, PriceLevelSchema } from '@modules/products/schemas/price-le
     ]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, OptionalJwtAuthGuard],
+  providers: [
+    AuthService,
+    DeviceIntegrityService,
+    JwtStrategy,
+    JwtAuthGuard,
+    OptionalJwtAuthGuard,
+  ],
   exports: [
     AuthService,
     JwtStrategy,

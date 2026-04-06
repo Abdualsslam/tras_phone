@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/mixins/product_favorites_mixin.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../data/datasources/catalog_remote_datasource.dart';
@@ -21,7 +22,8 @@ class SearchScreen extends StatefulWidget {
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends State<SearchScreen>
+    with ProductFavoritesMixin<SearchScreen> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
   final _dataSource = getIt<CatalogRemoteDataSource>();
@@ -39,6 +41,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _loadPopularTags();
+    loadFavoriteProductIds();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
@@ -562,9 +565,11 @@ class _SearchScreenState extends State<SearchScreen> {
                 price: product.price,
                 originalPrice: product.originalPrice,
                 stockQuantity: product.stockQuantity,
+                isFavorite: isProductFavorite(product.id),
                 onTap: () {
                   context.push('/product/${product.id}', extra: product);
                 },
+                onToggleFavorite: () => toggleFavoriteProduct(product.id),
                 onAddToCart: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

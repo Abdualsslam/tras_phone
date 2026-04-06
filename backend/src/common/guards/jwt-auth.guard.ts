@@ -73,6 +73,10 @@ export class JwtAuthGuard implements CanActivate {
 
       // Validate user exists and is active
       const user = await this.authService.validateUser(payload.sub);
+      const session = await this.authService.validateSessionTrust(
+        payload.sub,
+        payload.jti,
+      );
 
       if (!user) {
         console.error(`[JwtAuthGuard] User not found: ${payload.sub}`);
@@ -116,16 +120,18 @@ export class JwtAuthGuard implements CanActivate {
           .lean();
         if (customer) {
           const cust = customer as any;
-          userObj.customerId = cust._id.toString();
-          // Name for tickets/support (required by Ticket schema)
-          userObj.name = cust.responsiblePersonName || cust.shopName || user.phone;
-        }
+        userObj.customerId = cust._id.toString();
+        // Name for tickets/support (required by Ticket schema)
+        userObj.name = cust.responsiblePersonName || cust.shopName || user.phone;
+      }
         // Email for tickets: User.email or fallback to phone (contact identifier)
         if (!userObj.email && user.phone) {
           userObj.email = user.phone;
         }
       }
 
+      userObj.sessionId = session._id.toString();
+      userObj.sessionTrustStatus = session.trustStatus;
       request.user = userObj;
 
       return true;

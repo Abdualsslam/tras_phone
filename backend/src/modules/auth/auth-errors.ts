@@ -14,9 +14,12 @@ export const AUTH_ERROR_CODES = {
   USER_NOT_FOUND: 'AUTH_USER_NOT_FOUND',
   AUTH_HEADER_MISSING: 'AUTH_HEADER_MISSING',
   AUTHENTICATION_FAILED: 'AUTH_AUTHENTICATION_FAILED',
+  DEVICE_NOT_TRUSTED: 'AUTH_DEVICE_NOT_TRUSTED',
+  SESSION_REVOKED: 'AUTH_SESSION_REVOKED',
 } as const;
 
-export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[keyof typeof AUTH_ERROR_CODES];
+export type AuthErrorCode =
+  (typeof AUTH_ERROR_CODES)[keyof typeof AUTH_ERROR_CODES];
 
 type AuthErrorMessage = {
   message: string;
@@ -45,7 +48,8 @@ const AUTH_ERROR_MESSAGES: Record<AuthErrorCode, AuthErrorMessage> = {
     messageAr: 'حسابك قيد المراجعة. يرجى انتظار التفعيل',
   },
   [AUTH_ERROR_CODES.ACCOUNT_NOT_ACTIVE]: {
-    message: 'Your account is not active. Please verify your account or contact support',
+    message:
+      'Your account is not active. Please verify your account or contact support',
     messageAr: 'حسابك غير مفعل. يرجى التحقق من حسابك أو التواصل مع الدعم',
   },
   [AUTH_ERROR_CODES.ACCOUNT_LOCKED]: {
@@ -75,6 +79,14 @@ const AUTH_ERROR_MESSAGES: Record<AuthErrorCode, AuthErrorMessage> = {
   [AUTH_ERROR_CODES.AUTHENTICATION_FAILED]: {
     message: 'Authentication failed',
     messageAr: 'فشلت المصادقة',
+  },
+  [AUTH_ERROR_CODES.DEVICE_NOT_TRUSTED]: {
+    message: 'This device or app build is not trusted',
+    messageAr: 'هذا الجهاز أو إصدار التطبيق غير موثوق',
+  },
+  [AUTH_ERROR_CODES.SESSION_REVOKED]: {
+    message: 'This session has been revoked',
+    messageAr: 'تم إلغاء هذه الجلسة',
   },
 };
 

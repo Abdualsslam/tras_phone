@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, Matches } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsString, IsNotEmpty, Matches, IsOptional, ValidateNested } from 'class-validator';
+import { DeviceIntegrityDto } from './device-integrity.dto';
 
 export class LoginDto {
     @ApiProperty({
@@ -20,4 +22,14 @@ export class LoginDto {
     @IsString()
     @IsNotEmpty()
     password: string;
+
+    @ApiProperty({
+        required: false,
+        type: DeviceIntegrityDto,
+        description: 'Device integrity payload used to bind sessions to trusted app builds'
+    })
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => DeviceIntegrityDto)
+    deviceIntegrity?: DeviceIntegrityDto;
 }

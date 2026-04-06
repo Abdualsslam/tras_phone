@@ -156,6 +156,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get outOfStock => 'غير متوفر';
 
   @override
+  String get requestedQuantityUnavailable => 'الكمية المطلوبة غير متوفرة';
+
+  @override
   String get quantity => 'الكمية';
 
   @override

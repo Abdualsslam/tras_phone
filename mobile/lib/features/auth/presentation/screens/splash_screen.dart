@@ -1,6 +1,8 @@
 /// Splash Screen - App startup screen
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/security/app_security_service.dart';
 import '../../../../core/services/biometric_credential_service.dart';
 import '../../../../core/services/biometric_service.dart';
 import '../cubit/auth_cubit.dart';
@@ -53,6 +56,19 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAuth() async {
+    final securityService = getIt<AppSecurityService>();
+    final assessment = await securityService.evaluateStartupRisk();
+
+    if (!mounted) {
+      return;
+    }
+
+    if (assessment.shouldBlock) {
+      context.go('/security-blocked', extra: assessment);
+      return;
+    }
+
+    unawaited(securityService.warmUpIntegrityProvider());
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
       context.read<AuthCubit>().checkAuthStatus();

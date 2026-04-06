@@ -1,27 +1,21 @@
 /// Main entry point for TRAS Phone application
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'app.dart';
 import 'core/di/injection.dart';
+import 'core/security/app_security_service.dart';
 import 'features/notifications/services/push_notification_manager.dart';
 
 void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Load environment variables
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (e) {
-    debugPrint('Warning: Could not load .env file: $e');
-    debugPrint('Please create .env file from .env.example');
-  }
 
   // Initialize Hive for caching
   await Hive.initFlutter();
@@ -61,6 +55,7 @@ void main() async {
 
   // Setup dependency injection
   await setupDependencies();
+  unawaited(getIt<AppSecurityService>().warmUpIntegrityProvider());
 
   // Run the app
   runApp(const TrasPhoneApp());

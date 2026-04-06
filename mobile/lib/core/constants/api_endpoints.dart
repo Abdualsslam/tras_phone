@@ -22,6 +22,8 @@ class ApiEndpoints {
   static const String me = '/auth/me';
   static const String fcmToken = '/auth/fcm-token';
   static const String sessions = '/auth/sessions';
+  static const String deviceIntegrityChallenge =
+      '/auth/device-integrity/challenge';
   static String deleteSession(String sessionId) => '/auth/sessions/$sessionId';
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -169,6 +171,12 @@ class ApiEndpoints {
   static const String locationsCountries = '/locations/countries';
   static const String locationsCities = '/locations/cities';
   static const String locationsMarkets = '/locations/markets';
+  static const String locationsGeocodeReverse = '/locations/geocode/reverse';
+  static const String locationsGeocodeForward = '/locations/geocode/forward';
+  static const String locationsPlacesAutocomplete =
+      '/locations/places/autocomplete';
+  static String locationsPlaceDetails(String placeId) =>
+      '/locations/places/$placeId';
   static const String locationsShippingCalculate =
       '/locations/shipping/calculate';
   static const String locationsShippingZones = '/locations/shipping-zones';

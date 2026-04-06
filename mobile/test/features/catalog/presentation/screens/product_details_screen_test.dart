@@ -31,6 +31,7 @@ void main() {
   late MockEducationRepository educationRepository;
   late ProductEntity product;
   late ProductEntity initialProduct;
+  late ProductEntity inStockProduct;
 
   setUp(() {
     getIt = GetIt.instance;
@@ -40,6 +41,10 @@ void main() {
     catalogRepository = MockCatalogRepository();
     educationRepository = MockEducationRepository();
     product = ProductModel.fromJson(productDetailPayloadData()).toEntity();
+    inStockProduct = ProductModel.fromJson({
+      ...productDetailPayloadData(),
+      'stockQuantity': 4,
+    }).toEntity();
     initialProduct = ProductModel.fromJson({
       ...productDetailPayloadData(),
       'compatibleDevices': const [
@@ -142,4 +147,22 @@ void main() {
       ).called(1);
     },
   );
+
+  testWidgets('shows in-stock state without revealing stock count', (
+    tester,
+  ) async {
+    when(
+      () => catalogRepository.getProduct(any()),
+    ).thenAnswer((_) async => Right<Failure, ProductEntity>(inStockProduct));
+
+    await tester.pumpWidget(buildTestApp(inStockProduct));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final context = tester.element(find.byType(ProductDetailsScreen));
+    final l10n = AppLocalizations.of(context)!;
+
+    expect(find.text(l10n.inStock), findsOneWidget);
+    expect(find.textContaining('قطعة متاحة'), findsNothing);
+  });
 }

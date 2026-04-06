@@ -5,16 +5,17 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../data/services/geocoding_service.dart';
+import '../../data/datasources/locations_remote_datasource.dart';
 import 'map_location_state.dart';
 
 class MapLocationCubit extends Cubit<MapLocationState> {
-  final GeocodingService _geocodingService;
+  final LocationsRemoteDataSource _locationsRemoteDataSource;
   Timer? _debounceTimer;
 
-  MapLocationCubit({GeocodingService? geocodingService})
-    : _geocodingService = geocodingService ?? GeocodingService(),
-      super(const MapLocationState());
+  MapLocationCubit({
+    required LocationsRemoteDataSource locationsRemoteDataSource,
+  }) : _locationsRemoteDataSource = locationsRemoteDataSource,
+       super(const MapLocationState());
 
   @override
   Future<void> close() {
@@ -172,7 +173,7 @@ class MapLocationCubit extends Cubit<MapLocationState> {
     emit(state.copyWith(status: MapLocationStatus.geocodingLoading));
 
     try {
-      final result = await _geocodingService.reverseGeocode(
+      final result = await _locationsRemoteDataSource.reverseGeocode(
         latitude: latitude,
         longitude: longitude,
         language: 'ar',
@@ -240,7 +241,7 @@ class MapLocationCubit extends Cubit<MapLocationState> {
     try {
       // Try Places API first (if available)
       try {
-        final places = await _geocodingService.searchPlaces(
+        final places = await _locationsRemoteDataSource.searchPlaces(
           query: query,
           language: 'ar',
           latitude: state.latitude,
@@ -276,7 +277,7 @@ class MapLocationCubit extends Cubit<MapLocationState> {
       }
 
       // Fallback to forward geocoding
-      final results = await _geocodingService.forwardGeocode(
+      final results = await _locationsRemoteDataSource.forwardGeocode(
         address: query,
         language: 'ar',
       );
@@ -339,7 +340,7 @@ class MapLocationCubit extends Cubit<MapLocationState> {
     // Otherwise, get place details
     if (result.placeId.isNotEmpty) {
       try {
-        final placeDetails = await _geocodingService.getPlaceDetails(
+        final placeDetails = await _locationsRemoteDataSource.getPlaceDetails(
           placeId: result.placeId,
           language: 'ar',
         );

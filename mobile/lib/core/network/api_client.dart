@@ -1,7 +1,12 @@
 /// API Client wrapper using Dio
 library;
 
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import '../config/app_config.dart';
 import '../errors/exceptions.dart';
 import 'auth_interceptor.dart';
@@ -30,6 +35,8 @@ class ApiClient {
         },
       ),
     );
+
+    _configureCertificatePinning();
   }
 
   Dio get dio => _dio;
@@ -61,6 +68,40 @@ class ApiClient {
     if (enableLogging) {
       _dio.interceptors.add(LoggingInterceptor());
     }
+  }
+
+  void _configureCertificatePinning() {
+    if (!AppConfig.enableCertificatePinning || AppConfig.baseUri.scheme != 'https') {
+      return;
+    }
+
+    final pins = <String>{
+      if (AppConfig.apiCertSha256Pin.isNotEmpty) AppConfig.apiCertSha256Pin,
+      if (AppConfig.apiCertBackupSha256Pin.isNotEmpty)
+        AppConfig.apiCertBackupSha256Pin,
+    };
+
+    if (pins.isEmpty) {
+      return;
+    }
+
+    _dio.httpClientAdapter = IOHttpClientAdapter(
+      createHttpClient: () => HttpClient(),
+      validateCertificate: (certificate, host, port) {
+        if (certificate == null) {
+          return false;
+        }
+
+        if (host != AppConfig.baseUri.host) {
+          return true;
+        }
+
+        final fingerprint = base64UrlEncode(
+          sha256.convert(certificate.der).bytes,
+        ).replaceAll('=', '');
+        return pins.contains(fingerprint);
+      },
+    );
   }
 
   void setAuthToken(String token) {

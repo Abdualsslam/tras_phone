@@ -1,7 +1,7 @@
 /// App Configuration - Environment and global settings
 library;
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 
 class AppConfig {
   AppConfig._();
@@ -12,22 +12,11 @@ class AppConfig {
   static const String appVersion = '1.0.0';
   static const int appBuildNumber = 1;
 
-  // API Configuration (for future use)
+  // API Configuration
   static const String baseUrl = 'https://api.trasphone.com/api/v1';
   static const String apiVersion = 'v1';
   static const Duration apiTimeout = Duration(seconds: 60);
-
-  // Google Maps API Key (loaded from .env)
-  static String get googleMapsApiKey {
-    final key = dotenv.env['GOOGLE_MAPS_API_KEY'];
-    if (key == null || key.isEmpty) {
-      throw Exception(
-        'GOOGLE_MAPS_API_KEY is not set in .env file. '
-        'Please create .env file from .env.example and add your API key.',
-      );
-    }
-    return key;
-  }
+  static final Uri baseUri = Uri.parse(baseUrl);
 
   // Pagination
   static const int defaultPageSize = 20;
@@ -54,4 +43,31 @@ class AppConfig {
   // Currency
   static const String defaultCurrency = 'SAR';
   static const String currencySymbol = 'ر.س';
+
+  // Security hardening
+  static const bool securityEnforcementEnabled = bool.fromEnvironment(
+    'SECURITY_ENFORCEMENT_ENABLED',
+    defaultValue: kReleaseMode,
+  );
+  static const bool enableCertificatePinning = bool.fromEnvironment(
+    'ENABLE_CERTIFICATE_PINNING',
+    defaultValue: kReleaseMode,
+  );
+  static const bool enableNetworkLogging = bool.fromEnvironment(
+    'ENABLE_NETWORK_LOGGING',
+    defaultValue: !kReleaseMode,
+  );
+  static const String playIntegrityCloudProjectNumber = String.fromEnvironment(
+    'PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER',
+  );
+  static const String apiCertSha256Pin = String.fromEnvironment(
+    'API_CERT_SHA256_PIN',
+  );
+  static const String apiCertBackupSha256Pin = String.fromEnvironment(
+    'API_CERT_BACKUP_SHA256_PIN',
+  );
+  static const String securitySupportEmail = String.fromEnvironment(
+    'SECURITY_SUPPORT_EMAIL',
+    defaultValue: 'security@trasphone.com',
+  );
 }

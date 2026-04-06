@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/mixins/product_favorites_mixin.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
@@ -25,7 +26,8 @@ class DeviceProductsScreen extends StatefulWidget {
   State<DeviceProductsScreen> createState() => _DeviceProductsScreenState();
 }
 
-class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
+class _DeviceProductsScreenState extends State<DeviceProductsScreen>
+    with ProductFavoritesMixin<DeviceProductsScreen> {
   final _repository = getIt<CatalogRepository>();
   final ScrollController _scrollController = ScrollController();
 
@@ -45,6 +47,7 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     _loadProducts();
+    loadFavoriteProductIds();
   }
 
   @override
@@ -242,7 +245,9 @@ class _DeviceProductsScreenState extends State<DeviceProductsScreen> {
             price: product.price,
             originalPrice: product.originalPrice,
             stockQuantity: product.stockQuantity,
+            isFavorite: isProductFavorite(product.id),
             onTap: () => context.push('/product/${product.id}', extra: product),
+            onToggleFavorite: () => toggleFavoriteProduct(product.id),
           );
         } else if (_isLoadingMore) {
           return const Center(

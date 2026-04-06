@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+    ValidateNested,
     IsString,
     IsNotEmpty,
     IsEmail,
@@ -10,6 +11,8 @@ import {
     IsEnum,
     IsMongoId,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { DeviceIntegrityDto } from './device-integrity.dto';
 
 export class RegisterDto {
     @ApiProperty({
@@ -106,4 +109,14 @@ export class RegisterDto {
     @IsEnum(['shop', 'technician', 'distributor', 'other'])
     @IsOptional()
     businessType?: string;
+
+    @ApiProperty({
+        required: false,
+        type: DeviceIntegrityDto,
+        description: 'Device integrity payload used to bind sessions to trusted app builds'
+    })
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => DeviceIntegrityDto)
+    deviceIntegrity?: DeviceIntegrityDto;
 }

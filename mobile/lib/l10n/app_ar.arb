@@ -247,6 +247,11 @@
     "description": "حالة المنتج غير المتوفر"
   },
 
+  "requestedQuantityUnavailable": "الكمية المطلوبة غير متوفرة",
+  "@requestedQuantityUnavailable": {
+    "description": "رسالة عامة عندما تكون الكمية المطلوبة أكبر من المخزون المتاح"
+  },
+
   "quantity": "الكمية",
   "@quantity": {
     "description": "عنوان الكمية"

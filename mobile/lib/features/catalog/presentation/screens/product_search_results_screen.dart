@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/mixins/product_favorites_mixin.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../data/datasources/catalog_remote_datasource.dart';
@@ -22,7 +23,8 @@ class ProductSearchResultsScreen extends StatefulWidget {
 }
 
 class _ProductSearchResultsScreenState
-    extends State<ProductSearchResultsScreen> {
+    extends State<ProductSearchResultsScreen>
+    with ProductFavoritesMixin<ProductSearchResultsScreen> {
   final _dataSource = getIt<CatalogRemoteDataSource>();
   List<ProductEntity> _products = [];
   bool _isLoading = true;
@@ -32,6 +34,7 @@ class _ProductSearchResultsScreenState
   void initState() {
     super.initState();
     _loadResults();
+    loadFavoriteProductIds();
   }
 
   Future<void> _loadResults() async {
@@ -216,7 +219,9 @@ class _ProductSearchResultsScreenState
           price: product.price,
           originalPrice: product.originalPrice,
           stockQuantity: product.stockQuantity,
+          isFavorite: isProductFavorite(product.id),
           onTap: () => context.push('/product/${product.id}', extra: product),
+          onToggleFavorite: () => toggleFavoriteProduct(product.id),
         );
       },
     );

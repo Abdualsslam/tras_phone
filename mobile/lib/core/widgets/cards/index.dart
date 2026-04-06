@@ -6,3 +6,4 @@ export 'category_card.dart';
 export 'brand_card.dart';
 export 'glass_chip.dart';
 export 'product_card.dart';
+export 'product_list_item.dart';

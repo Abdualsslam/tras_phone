@@ -2,19 +2,19 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/mixins/product_favorites_mixin.dart';
 import '../../../../core/widgets/widgets.dart';
-import '../../domain/entities/category_entity.dart';
-import '../../domain/entities/product_entity.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/catalog_remote_datasource.dart';
 import '../../data/models/product_filter_query.dart';
-import '../../../favorite/data/datasources/favorite_remote_datasource.dart';
-import '../../../../l10n/app_localizations.dart';
+import '../../domain/entities/category_entity.dart';
+import '../../domain/entities/product_entity.dart';
 
 class ProductsListScreen extends StatefulWidget {
   final bool? isFeatured;
@@ -44,26 +44,26 @@ class ProductsListScreen extends StatefulWidget {
   State<ProductsListScreen> createState() => _ProductsListScreenState();
 }
 
-class _ProductsListScreenState extends State<ProductsListScreen> {
+class _ProductsListScreenState extends State<ProductsListScreen>
+    with ProductFavoritesMixin<ProductsListScreen> {
   final _dataSource = getIt<CatalogRemoteDataSource>();
-  late final FavoriteRemoteDataSource _favoriteDataSource;
   final ScrollController _scrollController = ScrollController();
 
   List<ProductEntity> _products = [];
+  List<CategoryEntity> _availableCategories = const [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasLoadedOnce = false;
   bool _hasMore = true;
+  bool _isGridView = true;
+  bool _isLoadingCategories = false;
   int _currentPage = 1;
   final int _limit = 20;
   String _sortBy = 'createdAt';
   String _sortOrder = 'desc';
-  bool _isGridView = true;
-  final Set<String> _favoriteProductIds = {};
-  List<CategoryEntity> _availableCategories = const [];
-  bool _isLoadingCategories = false;
   String? _selectedCategoryId;
   String? _selectedCategoryName;
+  String? _errorMessage;
 
   String? get _fixedCategoryId {
     final value = widget.categoryId?.trim();
@@ -78,11 +78,11 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
   String? get _activeCategoryId => _fixedCategoryId ?? _selectedCategoryId;
 
+  bool get _hasCategoryFilter => _activeCategoryId?.isNotEmpty ?? false;
+
   bool get _isStrictCategoryDeviceFlow =>
       (_activeCategoryId?.isNotEmpty ?? false) &&
       (widget.deviceId?.isNotEmpty ?? false);
-
-  bool get _hasCategoryFilter => _activeCategoryId?.isNotEmpty ?? false;
 
   String get _activeCategoryName {
     final fixedValue = widget.categoryName?.trim();
@@ -93,19 +93,104 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     }
 
     final selectedValue = _selectedCategoryName?.trim();
-    if (selectedValue != null && selectedValue.isNotEmpty) return selectedValue;
+    if (selectedValue != null && selectedValue.isNotEmpty) {
+      return selectedValue;
+    }
 
     final activeId = _activeCategoryId;
     if (activeId != null) {
-      final categoryIndex = _availableCategories.indexWhere(
-        (category) => category.id == activeId,
-      );
-      if (categoryIndex != -1) {
-        return _availableCategories[categoryIndex].nameAr;
+      final match = _availableCategories.where((item) => item.id == activeId);
+      if (match.isNotEmpty) {
+        return match.first.nameAr;
       }
     }
 
     return 'الفئة المختارة';
+  }
+
+  String get _resolvedTitle {
+    if (widget.title != null && widget.title!.isNotEmpty) {
+      return widget.title!;
+    }
+    if (widget.deviceName != null && widget.deviceName!.isNotEmpty) {
+      return 'منتجات ${widget.deviceName!}';
+    }
+    if (widget.brandName != null && widget.brandName!.isNotEmpty) {
+      return 'منتجات ${widget.brandName!}';
+    }
+    if (widget.categoryName != null && widget.categoryName!.isNotEmpty) {
+      return 'منتجات ${widget.categoryName!}';
+    }
+    return widget.isFeatured == true
+        ? AppLocalizations.of(context)!.featuredProducts
+        : AppLocalizations.of(context)!.products;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCategoryId = _fixedCategoryId;
+    _selectedCategoryName = widget.categoryName?.trim();
+
+    if (widget.sortBy == 'newest') {
+      _sortBy = 'createdAt';
+      _sortOrder = 'desc';
+    } else if (widget.sortBy != null) {
+      _sortBy = widget.sortBy!;
+    }
+
+    _scrollController.addListener(_onScroll);
+    _loadProducts();
+    loadFavoriteProductIds();
+    if (_canSelectCategoryFilter) {
+      _loadCategoriesForFilter();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreProducts();
+    }
+  }
+
+  Future<void> _loadCategoriesForFilter() async {
+    setState(() => _isLoadingCategories = true);
+    try {
+      final categories = await _dataSource.getCategories();
+      if (!mounted) return;
+
+      setState(() {
+        _availableCategories = categories;
+        _isLoadingCategories = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingCategories = false);
+    }
+  }
+
+  Future<void> _onCategoryFilterChanged({
+    required String? categoryId,
+    required String? categoryName,
+  }) async {
+    if (_hasFixedCategoryFilter || _selectedCategoryId == categoryId) return;
+
+    setState(() {
+      _selectedCategoryId = categoryId;
+      _selectedCategoryName = categoryName;
+      _products.clear();
+      _hasLoadedOnce = false;
+      _errorMessage = null;
+    });
+
+    await _loadProducts();
   }
 
   Future<({List<ProductEntity> products, int resolvedPage, int totalPages})>
@@ -132,9 +217,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
       final pageProducts = response.toEntities();
       totalPages = response.pages < 1 ? 1 : response.pages;
-
       matchedProducts = pageProducts
-          .where((p) => p.categoryId == categoryId)
+          .where((product) => product.categoryId == categoryId)
           .toList();
 
       if (matchedProducts.isNotEmpty || page >= totalPages) {
@@ -151,138 +235,11 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
-    _selectedCategoryId = _fixedCategoryId;
-    _selectedCategoryName = widget.categoryName?.trim();
-
-    // Initialize sort from widget parameter or defaults
-    if (widget.sortBy == 'newest') {
-      _sortBy = 'createdAt';
-      _sortOrder = 'desc';
-    } else if (widget.sortBy != null) {
-      _sortBy = widget.sortBy!;
-    }
-
-    _scrollController.addListener(_onScroll);
-    _loadProducts();
-    _loadFavoriteIds();
-    if (_canSelectCategoryFilter) {
-      _loadCategoriesForFilter();
-    }
-  }
-
-  Future<void> _loadCategoriesForFilter() async {
-    setState(() => _isLoadingCategories = true);
-    try {
-      final categories = await _dataSource.getCategories();
-      if (!mounted) return;
-
-      setState(() {
-        _availableCategories = categories;
-        _isLoadingCategories = false;
-
-        if (_selectedCategoryId != null) {
-          final selectedIndex = categories.indexWhere(
-            (category) => category.id == _selectedCategoryId,
-          );
-
-          if (selectedIndex == -1) {
-            _selectedCategoryId = null;
-            _selectedCategoryName = null;
-          } else if ((_selectedCategoryName ?? '').trim().isEmpty) {
-            _selectedCategoryName = categories[selectedIndex].nameAr;
-          }
-        }
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _isLoadingCategories = false);
-    }
-  }
-
-  Future<void> _onCategoryFilterChanged({
-    required String? categoryId,
-    required String? categoryName,
-  }) async {
-    if (_hasFixedCategoryFilter || _selectedCategoryId == categoryId) return;
-
-    setState(() {
-      _selectedCategoryId = categoryId;
-      _selectedCategoryName = categoryName;
-      _products.clear();
-      _hasLoadedOnce = false;
-    });
-
-    await _loadProducts();
-  }
-
-  Future<void> _loadFavoriteIds() async {
-    try {
-      final favoriteIds = await _favoriteDataSource.getFavoriteProductIds();
-      setState(() {
-        _favoriteProductIds.clear();
-        _favoriteProductIds.addAll(favoriteIds);
-      });
-    } catch (e) {
-      // Silently fail - favorite check is optional
-    }
-  }
-
-  Future<void> _toggleFavorite(String productId) async {
-    final isFavorite = _favoriteProductIds.contains(productId);
-
-    setState(() {
-      if (isFavorite) {
-        _favoriteProductIds.remove(productId);
-      } else {
-        _favoriteProductIds.add(productId);
-      }
-    });
-
-    try {
-      HapticFeedback.lightImpact();
-      await _favoriteDataSource.toggleFavorite(productId, isFavorite);
-    } catch (e) {
-      // Revert on error
-      setState(() {
-        if (isFavorite) {
-          _favoriteProductIds.add(productId);
-        } else {
-          _favoriteProductIds.remove(productId);
-        }
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('فشل تحديث المفضلة: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      _loadMoreProducts();
-    }
-  }
-
   Future<void> _loadProducts() async {
     setState(() {
       _isLoading = true;
       _currentPage = 1;
+      _errorMessage = null;
       if (!_hasLoadedOnce) {
         _products.clear();
       }
@@ -292,6 +249,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     try {
       if (_isStrictCategoryDeviceFlow) {
         final strictResult = await _loadStrictCategoryDevicePage(startPage: 1);
+        if (!mounted) return;
 
         setState(() {
           _products = strictResult.products;
@@ -303,23 +261,20 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         return;
       }
 
-      final sortByEnum = _getSortByEnum();
-      final sortOrderEnum = _sortOrder == 'asc'
-          ? SortOrder.asc
-          : SortOrder.desc;
-
-      final filter = ProductFilterQuery(
-        categoryId: _activeCategoryId,
-        brandId: widget.brandId,
-        deviceId: widget.deviceId,
-        isFeatured: widget.isFeatured,
-        sortBy: sortByEnum,
-        sortOrder: sortOrderEnum,
-        page: _currentPage,
-        limit: _limit,
+      final response = await _dataSource.getProductsWithFilter(
+        ProductFilterQuery(
+          categoryId: _activeCategoryId,
+          brandId: widget.brandId,
+          deviceId: widget.deviceId,
+          isFeatured: widget.isFeatured,
+          sortBy: _getSortByEnum(),
+          sortOrder: _sortOrder == 'asc' ? SortOrder.asc : SortOrder.desc,
+          page: _currentPage,
+          limit: _limit,
+        ),
       );
 
-      final response = await _dataSource.getProductsWithFilter(filter);
+      if (!mounted) return;
 
       setState(() {
         _products = response.toEntities();
@@ -327,13 +282,77 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         _hasLoadedOnce = true;
         _isLoading = false;
       });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('حدث خطأ: $e')));
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = error.toString();
+      });
+
+      if (_hasLoadedOnce && _products.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تعذر تحديث المنتجات في الوقت الحالي'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
+    }
+  }
+
+  Future<void> _loadMoreProducts() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    setState(() => _isLoadingMore = true);
+    final nextPage = _currentPage + 1;
+
+    try {
+      if (_isStrictCategoryDeviceFlow) {
+        final strictResult = await _loadStrictCategoryDevicePage(
+          startPage: nextPage,
+        );
+        if (!mounted) return;
+
+        setState(() {
+          _products.addAll(strictResult.products);
+          _currentPage = strictResult.resolvedPage;
+          _hasMore = _currentPage < strictResult.totalPages;
+          _isLoadingMore = false;
+        });
+        return;
+      }
+
+      final response = await _dataSource.getProductsWithFilter(
+        ProductFilterQuery(
+          categoryId: _activeCategoryId,
+          brandId: widget.brandId,
+          deviceId: widget.deviceId,
+          isFeatured: widget.isFeatured,
+          sortBy: _getSortByEnum(),
+          sortOrder: _sortOrder == 'asc' ? SortOrder.asc : SortOrder.desc,
+          page: nextPage,
+          limit: _limit,
+        ),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _products.addAll(response.toEntities());
+        _currentPage = nextPage;
+        _hasMore = _currentPage < response.pages;
+        _isLoadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingMore = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تعذر تحميل المزيد من المنتجات'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -352,79 +371,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     }
   }
 
-  Future<void> _loadMoreProducts() async {
-    if (_isLoadingMore || !_hasMore) return;
-
-    setState(() => _isLoadingMore = true);
-    final nextPage = _currentPage + 1;
-
-    try {
-      if (_isStrictCategoryDeviceFlow) {
-        final strictResult = await _loadStrictCategoryDevicePage(
-          startPage: nextPage,
-        );
-
-        setState(() {
-          _products.addAll(strictResult.products);
-          _currentPage = strictResult.resolvedPage;
-          _hasMore = _currentPage < strictResult.totalPages;
-          _isLoadingMore = false;
-        });
-        return;
-      }
-
-      final sortByEnum = _getSortByEnum();
-      final sortOrderEnum = _sortOrder == 'asc'
-          ? SortOrder.asc
-          : SortOrder.desc;
-
-      final filter = ProductFilterQuery(
-        categoryId: _activeCategoryId,
-        brandId: widget.brandId,
-        deviceId: widget.deviceId,
-        isFeatured: widget.isFeatured,
-        sortBy: sortByEnum,
-        sortOrder: sortOrderEnum,
-        page: nextPage,
-        limit: _limit,
-      );
-
-      final response = await _dataSource.getProductsWithFilter(filter);
-
-      setState(() {
-        _products.addAll(response.toEntities());
-        _currentPage = nextPage;
-        _hasMore = _currentPage < response.pages;
-        _isLoadingMore = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoadingMore = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    String resolvedTitle;
-    if (widget.title != null && widget.title!.isNotEmpty) {
-      resolvedTitle = widget.title!;
-    } else if (widget.deviceName != null && widget.deviceName!.isNotEmpty) {
-      resolvedTitle = 'منتجات ${widget.deviceName!}';
-    } else if (widget.brandName != null && widget.brandName!.isNotEmpty) {
-      resolvedTitle = 'منتجات ${widget.brandName!}';
-    } else if (widget.categoryName != null && widget.categoryName!.isNotEmpty) {
-      resolvedTitle = 'منتجات ${widget.categoryName!}';
-    } else {
-      resolvedTitle = widget.isFeatured == true
-          ? AppLocalizations.of(context)!.featuredProducts
-          : AppLocalizations.of(context)!.products;
-    }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(resolvedTitle),
+        title: Text(_resolvedTitle),
         actions: [
           IconButton(
             onPressed: () => context.push('/search'),
@@ -440,26 +393,36 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         onRefresh: _loadProducts,
         child: Column(
           children: [
-            // Sort & View Options
             _buildSortBar(isDark),
             if (_hasFixedCategoryFilter) _buildCategoryFilterBar(isDark),
             if (_canSelectCategoryFilter)
               _buildSelectableCategoryFilterBar(isDark),
-
-            // Products Grid/List
             Expanded(
-              child: (_isLoading && !_hasLoadedOnce)
-                  ? const ProductsGridShimmer()
-                  : _products.isEmpty
-                  ? _buildEmptyState(isDark)
-                  : _isGridView
-                  ? _buildProductsGrid()
-                  : _buildProductsList(),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: _buildBody(isDark),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildBody(bool isDark) {
+    if (_isLoading && !_hasLoadedOnce) {
+      return const ProductsGridShimmer();
+    }
+
+    if (_errorMessage != null && _products.isEmpty) {
+      return _buildErrorState(isDark);
+    }
+
+    if (_products.isEmpty) {
+      return _buildEmptyState(isDark);
+    }
+
+    return _isGridView ? _buildProductsGrid() : _buildProductsList();
   }
 
   Widget _buildSortBar(bool isDark) {
@@ -475,7 +438,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       ),
       child: Row(
         children: [
-          // Results count
           Text(
             '${_products.length} منتج',
             style: TextStyle(
@@ -485,9 +447,18 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   : AppColors.textSecondaryLight,
             ),
           ),
+          if (_isLoading && _hasLoadedOnce) ...[
+            SizedBox(width: 10.w),
+            SizedBox(
+              width: 14.w,
+              height: 14.w,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
           const Spacer(),
-
-          // Sort dropdown
           GestureDetector(
             onTap: _showSortOptions,
             child: Container(
@@ -509,8 +480,6 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
             ),
           ),
           SizedBox(width: 8.w),
-
-          // View toggle
           GestureDetector(
             onTap: () => setState(() => _isGridView = !_isGridView),
             child: Container(
@@ -718,6 +687,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
 
   Widget _buildProductsGrid() {
     return GridView.builder(
+      key: const ValueKey('products-grid'),
       controller: _scrollController,
       padding: EdgeInsets.all(16.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -728,145 +698,50 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
       ),
       itemCount: _products.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index < _products.length) {
-          final product = _products[index];
-          return ProductCard(
-            id: product.id.toString(),
-            name: product.name,
-            nameAr: product.nameAr,
-            imageUrl: product.imageUrl,
-            price: product.price,
-            originalPrice: product.originalPrice,
-            stockQuantity: product.stockQuantity,
-            isFavorite: _favoriteProductIds.contains(product.id),
-            onTap: () => context.push('/product/${product.id}', extra: product),
-            onToggleFavorite: () => _toggleFavorite(product.id),
-          );
-        } else if (_isLoadingMore) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: CircularProgressIndicator(),
-            ),
-          );
-        } else {
-          return const SizedBox.shrink();
+        if (index >= _products.length) {
+          return const _LoadMoreProductsIndicator();
         }
+
+        final product = _products[index];
+        return ProductCard(
+          id: product.id.toString(),
+          name: product.name,
+          nameAr: product.nameAr,
+          imageUrl: product.imageUrl,
+          price: product.price,
+          originalPrice: product.originalPrice,
+          stockQuantity: product.stockQuantity,
+          isFavorite: isProductFavorite(product.id),
+          onTap: () => context.push('/product/${product.id}', extra: product),
+          onToggleFavorite: () => toggleFavoriteProduct(product.id),
+        );
       },
     );
   }
 
   Widget _buildProductsList() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return ListView.separated(
+      key: const ValueKey('products-list'),
       controller: _scrollController,
       padding: EdgeInsets.all(16.w),
       itemCount: _products.length + (_isLoadingMore ? 1 : 0),
-      separatorBuilder: (_, _) => SizedBox(height: 12.h),
+      separatorBuilder: (context, index) => SizedBox(height: 12.h),
       itemBuilder: (context, index) {
-        if (index < _products.length) {
-          final product = _products[index];
-          return GestureDetector(
-            onTap: () => context.push('/product/${product.id}', extra: product),
-            child: Container(
-              padding: EdgeInsets.all(12.w),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.cardDark : AppColors.cardLight,
-                borderRadius: BorderRadius.circular(12.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  // Image
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8.r),
-                    child: Image.asset(
-                      (product.imageUrl ?? '').startsWith('assets/')
-                          ? product.imageUrl ??
-                                'assets/images/products/phone_screen.png'
-                          : 'assets/images/products/phone_screen.png',
-                      width: 80.w,
-                      height: 80.w,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
-                        width: 80.w,
-                        height: 80.w,
-                        color: AppColors.backgroundLight,
-                        child: Icon(Iconsax.image, size: 30.sp),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-
-                  // Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product.nameAr,
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? AppColors.textPrimaryDark
-                                : AppColors.textPrimaryLight,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 4.h),
-                        if (product.originalPrice != null &&
-                            product.originalPrice! > product.price) ...[
-                          Text(
-                            '${product.originalPrice!.toStringAsFixed(0)} ر.س',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: AppColors.textTertiaryLight,
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                        ],
-                        Text(
-                          '${product.price.toStringAsFixed(0)} ر.س',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  Icon(
-                    Iconsax.arrow_left_2,
-                    size: 20.sp,
-                    color: isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight,
-                  ),
-                ],
-              ),
-            ),
-          );
-        } else if (_isLoadingMore) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: CircularProgressIndicator(),
-            ),
-          );
-        } else {
-          return const SizedBox.shrink();
+        if (index >= _products.length) {
+          return const _LoadMoreProductsIndicator();
         }
+
+        final product = _products[index];
+        return ProductListItem(
+          id: product.id,
+          title: product.nameAr,
+          imageUrl: product.imageUrl,
+          price: product.price,
+          originalPrice: product.originalPrice,
+          isFavorite: isProductFavorite(product.id),
+          onTap: () => context.push('/product/${product.id}', extra: product),
+          onToggleFavorite: () => toggleFavoriteProduct(product.id),
+        );
       },
     );
   }
@@ -875,41 +750,87 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
     final strictCategoryMessage = _isStrictCategoryDeviceFlow;
 
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Iconsax.box_1,
-            size: 80.sp,
-            color: isDark
-                ? AppColors.textTertiaryDark
-                : AppColors.textTertiaryLight,
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            'لا توجد منتجات',
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
+      key: const ValueKey('products-empty-state'),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Iconsax.box_1,
+              size: 80.sp,
               color: isDark
-                  ? AppColors.textPrimaryDark
-                  : AppColors.textPrimaryLight,
+                  ? AppColors.textTertiaryDark
+                  : AppColors.textTertiaryLight,
             ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            strictCategoryMessage
-                ? 'لا توجد منتجات لهذا الجهاز ضمن الفئة المختارة'
-                : 'لا توجد منتجات حالياً',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
+            SizedBox(height: 16.h),
+            Text(
+              'لا توجد منتجات',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            SizedBox(height: 8.h),
+            Text(
+              strictCategoryMessage
+                  ? 'لا توجد منتجات لهذا الجهاز ضمن الفئة المختارة'
+                  : 'لا توجد منتجات حالياً',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(bool isDark) {
+    return Center(
+      key: const ValueKey('products-error-state'),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 28.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Iconsax.warning_2, size: 72.sp, color: AppColors.error),
+            SizedBox(height: 16.h),
+            Text(
+              'تعذر تحميل المنتجات',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w700,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'تحقق من الاتصال ثم أعد المحاولة.',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 18.h),
+            FilledButton.tonal(
+              onPressed: _loadProducts,
+              child: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -983,7 +904,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
           _sortOrder = sortOrder;
         });
         Navigator.pop(context);
-        _loadProducts(); // Reload with new sort
+        _loadProducts();
       },
       leading: Icon(
         isSelected ? Iconsax.tick_circle5 : Iconsax.tick_circle,
@@ -1015,8 +936,8 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
+        initialChildSize: 0.65,
+        minChildSize: 0.4,
         maxChildSize: 0.9,
         expand: false,
         builder: (context, scrollController) => Padding(
@@ -1040,7 +961,7 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: Text(
-                      'إعادة ضبط',
+                      'إغلاق',
                       style: TextStyle(color: AppColors.primary),
                     ),
                   ),
@@ -1087,20 +1008,13 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                           ),
                         ),
                       ),
-                      Text(
-                        _hasFixedCategoryFilter ? 'فلتر ثابت' : 'مطبق',
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          color: AppColors.primary,
-                        ),
-                      ),
                     ],
                   ),
                 ),
                 SizedBox(height: 20.h),
               ],
               Text(
-                'نطاق السعر',
+                'الترتيب الحالي',
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
@@ -1109,24 +1023,66 @@ class _ProductsListScreenState extends State<ProductsListScreen> {
                       : AppColors.textPrimaryLight,
                 ),
               ),
-              SizedBox(height: 12.h),
-              RangeSlider(
-                values: const RangeValues(0, 1000),
-                min: 0,
-                max: 2000,
-                divisions: 20,
-                activeColor: AppColors.primary,
-                onChanged: (values) {},
+              SizedBox(height: 10.h),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.cardDark : AppColors.backgroundLight,
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Text(
+                  _getSortLabel(),
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
-              const Spacer(),
+              SizedBox(height: 20.h),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('تطبيق', style: TextStyle(fontSize: 16.sp)),
+                  child: Text('تم', style: TextStyle(fontSize: 16.sp)),
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadMoreProductsIndicator extends StatelessWidget {
+  const _LoadMoreProductsIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.cardDark
+            : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.dividerDark
+              : AppColors.dividerLight,
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.w),
+          child: SizedBox(
+            width: 26.w,
+            height: 26.w,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.2,
+              color: AppColors.primary,
+            ),
           ),
         ),
       ),

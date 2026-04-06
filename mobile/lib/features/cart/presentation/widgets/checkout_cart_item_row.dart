@@ -130,14 +130,15 @@ class CheckoutCartItemRow extends StatelessWidget {
   }
 
   Widget _buildIssueLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     String text;
     Color color;
 
     if (item.isProductInactive) {
-      text = 'المنتج غير متوفر';
+      text = l10n.outOfStock;
       color = AppColors.error;
     } else if (item.hasStockIssue) {
-      text = 'الكمية المتوفرة: ${item.product.stockQuantity}';
+      text = l10n.requestedQuantityUnavailable;
       color = AppColors.warning;
     } else {
       return const SizedBox.shrink();

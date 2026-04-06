@@ -27,7 +27,7 @@ class BrandsSection extends StatelessWidget {
         ),
         SizedBox(height: 14.h),
         SizedBox(
-          height: 115.h,
+          height: 128.r,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -65,13 +65,14 @@ class _BrandCard extends StatelessWidget {
         context.push(route);
       },
       child: SizedBox(
-        width: 100.w,
+        width: 110.r,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 100.w,
-              height: 64.h,
+              width: 110.r,
+              height: 72.r,
               decoration: BoxDecoration(
                 color: isDark ? AppColors.cardDark : Colors.white,
                 borderRadius: BorderRadius.circular(16.r),
@@ -135,4 +136,3 @@ class _BrandCard extends StatelessWidget {
     );
   }
 }
-

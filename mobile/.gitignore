@@ -41,3 +41,6 @@ app.*.map.json
 # Environment variables
 .env
 /android/local.properties
+/android/key.properties
+/ios/Flutter/MapsConfig.xcconfig
+/build/release-symbols/

@@ -19,6 +19,30 @@ export class UserSession {
     @Prop({ required: true, unique: true })
     tokenId: string;
 
+    @Prop({ enum: ['trusted', 'restricted', 'blocked'], default: 'restricted' })
+    trustStatus: 'trusted' | 'restricted' | 'blocked';
+
+    @Prop({ type: [String], default: [] })
+    trustReasons: string[];
+
+    @Prop()
+    attestedPackageName?: string;
+
+    @Prop()
+    integrityRequestType?: string;
+
+    @Prop({ type: [String], default: [] })
+    deviceRecognitionVerdicts?: string[];
+
+    @Prop()
+    appRecognitionVerdict?: string;
+
+    @Prop()
+    licensingVerdict?: string;
+
+    @Prop({ type: Date })
+    integrityVerifiedAt?: Date;
+
     // Device Info
     @Prop()
     deviceType?: string;
@@ -57,5 +81,6 @@ export const UserSessionSchema = SchemaFactory.createForClass(UserSession);
 // ═════════════════════════════════════
 UserSessionSchema.index({ tokenId: 1 });
 UserSessionSchema.index({ userId: 1, expiresAt: 1 });
+UserSessionSchema.index({ userId: 1, trustStatus: 1 });
 UserSessionSchema.index({ deviceId: 1 });
 UserSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index

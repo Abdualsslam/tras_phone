@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/di/injection.dart';
 import '../cubit/map_location_cubit.dart';
 import '../cubit/map_location_state.dart';
 
@@ -45,7 +46,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
 
     return BlocProvider(
       create: (context) {
-        final cubit = MapLocationCubit();
+        final cubit = MapLocationCubit(locationsRemoteDataSource: getIt());
         cubit.initialize(
           initialLatitude: widget.initialLatitude,
           initialLongitude: widget.initialLongitude,
@@ -303,7 +304,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
               shrinkWrap: true,
               padding: EdgeInsets.symmetric(vertical: 8.h),
               itemCount: state.searchResults.length,
-              separatorBuilder: (_, __) => Divider(
+              separatorBuilder: (_, _) => Divider(
                 height: 1,
                 color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
               ),

@@ -949,13 +949,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   color: isInStock ? AppColors.success : AppColors.error,
                 ),
               ),
-              if (isInStock)
-                Text(
-                  '${product.stockQuantity} قطعة متاحة',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textTertiaryLight,
-                  ),
-                ),
             ],
           ),
         ],

@@ -4,8 +4,10 @@ library;
 import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/security/app_security_service.dart';
 import '../models/user_model.dart';
 import '../models/token_response.dart';
 import '../models/auth_response.dart';
@@ -99,9 +101,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final formattedPhone = Formatters.phoneToInternational(phone);
     developer.log('Formatted phone for API: $formattedPhone', name: 'AuthDataSource');
 
+    final securityPayload = await getIt<AppSecurityService>()
+        .buildAuthIntegrityPayload(requestType: 'auth.login');
+
     final response = await _apiClient.post(
       ApiEndpoints.login,
-      data: {'phone': formattedPhone, 'password': password},
+      data: {
+        'phone': formattedPhone,
+        'password': password,
+        'deviceIntegrity': securityPayload.toJson(),
+      },
     );
 
     final authResponse = AuthResponse.fromJson(response.data);
@@ -129,10 +138,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final formattedPhone = Formatters.phoneToInternational(phone);
 
     try {
+      final securityPayload = await getIt<AppSecurityService>()
+          .buildAuthIntegrityPayload(requestType: 'auth.register');
+
       final requestData = {
         'phone': formattedPhone,
         'password': password,
         'userType': 'customer', // Always customer for mobile app
+        'deviceIntegrity': securityPayload.toJson(),
         if (email != null) 'email': email,
         if (responsiblePersonName != null)
           'responsiblePersonName': responsiblePersonName,

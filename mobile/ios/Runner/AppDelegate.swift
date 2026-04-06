@@ -11,7 +11,9 @@ import GoogleMaps
     // Get API key from Info.plist
     if let path = Bundle.main.path(forResource: "Info", ofType: "plist"),
        let plist = NSDictionary(contentsOfFile: path),
-       let apiKey = plist["GMSApiKey"] as? String {
+       let apiKey = plist["GMSApiKey"] as? String,
+       !apiKey.isEmpty,
+       !apiKey.hasPrefix("$(") {
       GMSServices.provideAPIKey(apiKey)
     }
     

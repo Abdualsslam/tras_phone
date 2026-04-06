@@ -13,7 +13,9 @@ import '../features/auth/presentation/screens/onboarding_screen.dart';
 import '../features/auth/presentation/screens/otp_verification_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
 import '../features/auth/presentation/screens/reset_password_screen.dart';
+import '../features/auth/presentation/screens/security_blocked_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
+import '../core/security/app_security_models.dart';
 import '../features/catalog/presentation/screens/screens.dart';
 import '../features/catalog/presentation/screens/category_products_screen.dart';
 import '../features/catalog/presentation/screens/brand_details_screen.dart';
@@ -83,6 +85,34 @@ final GoRouter appRouter = GoRouter(
     // AUTH ROUTES
     // ═══════════════════════════════════════════════════════════════════════
     GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
+    GoRoute(
+      path: '/security-blocked',
+      builder: (context, state) {
+        final assessment =
+            state.extra as AppSecurityAssessment? ??
+            const AppSecurityAssessment(
+              status: AppSecurityStatus.blocked,
+              signals: LocalSecuritySignals(
+                platform: 'unknown',
+                isDebuggable: false,
+                isDebuggerAttached: false,
+                isEmulator: false,
+                hasTestKeys: false,
+                hasRootFiles: false,
+                hasMagiskFiles: false,
+                hasHookFramework: false,
+                hasFridaServer: false,
+                packageName: null,
+                appVersion: null,
+                issues: <String>['security_blocked'],
+              ),
+              reasons: <String>['security_blocked'],
+              enforcementEnabled: true,
+            );
+
+        return SecurityBlockedScreen(assessment: assessment);
+      },
+    ),
     GoRoute(
       path: '/onboarding',
       builder: (context, state) => const OnboardingScreen(),

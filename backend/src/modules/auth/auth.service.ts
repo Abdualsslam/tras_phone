@@ -9,6 +9,7 @@ import { Model, Types } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import { User, UserDocument } from '@modules/users/schemas/user.schema';
 import {
   UserSession,
@@ -49,6 +50,7 @@ import {
 } from './schemas/password-reset-request.schema';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { DeviceIntegrityDto } from './dto/device-integrity.dto';
 import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
 import { AuditService } from '../audit/audit.service';
 import {
@@ -58,6 +60,10 @@ import {
   AUTH_ERROR_CODES,
   buildAuthUnauthorizedException,
 } from './auth-errors';
+import {
+  DeviceIntegrityService,
+  DeviceTrustVerdict,
+} from './device-integrity.service';
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -111,6 +117,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private readonly auditService: AuditService,
+    private readonly deviceIntegrityService: DeviceIntegrityService,
   ) {}
 
   private buildUserIdCandidates(userId: string): Array<string | Types.ObjectId> {
@@ -228,6 +235,54 @@ export class AuthService {
     return normalized;
   }
 
+  createDeviceIntegrityChallenge(requestType: string) {
+    return this.deviceIntegrityService.createChallenge(requestType);
+  }
+
+  private async evaluateDeviceIntegrity(
+    deviceIntegrity?: DeviceIntegrityDto,
+  ): Promise<DeviceTrustVerdict> {
+    const verdict = await this.deviceIntegrityService.evaluate(deviceIntegrity);
+    this.deviceIntegrityService.assertTrusted(verdict);
+    return verdict;
+  }
+
+  async validateSessionTrust(userId: string, tokenId?: string) {
+    if (!tokenId) {
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.SESSION_REVOKED,
+      });
+    }
+
+    const session = await this.sessionModel.findOne({
+      userId: new Types.ObjectId(userId),
+      tokenId,
+    });
+
+    if (!session) {
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.SESSION_REVOKED,
+      });
+    }
+
+    if (session.expiresAt.getTime() <= Date.now()) {
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.SESSION_REVOKED,
+      });
+    }
+
+    if (session.trustStatus !== 'trusted') {
+      throw buildAuthUnauthorizedException({
+        code: AUTH_ERROR_CODES.DEVICE_NOT_TRUSTED,
+      });
+    }
+
+    session.lastActivityAt = new Date();
+    await session.save();
+
+    return session;
+  }
+
   /**
    * Register new user
    */
@@ -242,7 +297,10 @@ export class AuthService {
       shopNameAr,
       cityId,
       businessType,
+      deviceIntegrity,
     } = registerDto;
+
+    const deviceTrust = await this.evaluateDeviceIntegrity(deviceIntegrity);
 
     // Normalize phone number for consistent comparison
     const normalizedPhone = this.normalizePhone(phone);
@@ -487,12 +545,17 @@ export class AuthService {
       }
     }
 
-    // Generate tokens
-    const tokens = await this.generateTokens(user);
+    const session = await this.createSession(user._id, {
+      tokenId: randomUUID(),
+      trustVerdict: deviceTrust,
+      deviceIntegrity,
+    });
+    const tokens = await this.generateTokens(user, session.tokenId);
 
     return {
       user: user.toJSON(),
       ...tokens,
+      sessionId: session._id.toString(),
     };
   }
 
@@ -500,7 +563,7 @@ export class AuthService {
    * Login user
    */
   async login(loginDto: LoginDto, ipAddress?: string, userAgent?: string) {
-    const { phone, password } = loginDto;
+    const { phone, password, deviceIntegrity } = loginDto;
 
     // Find user with password field
     const user = await this.userModel
@@ -738,16 +801,17 @@ export class AuthService {
       status: 'success',
     });
 
-    // Generate tokens
-    const tokens = await this.generateTokens(user);
+    const deviceTrust = await this.evaluateDeviceIntegrity(deviceIntegrity);
 
     // Create session
-    const session = await this.createSession(
-      user._id,
-      tokens.accessToken,
+    const session = await this.createSession(user._id, {
+      tokenId: randomUUID(),
       ipAddress,
       userAgent,
-    );
+      trustVerdict: deviceTrust,
+      deviceIntegrity,
+    });
+    const tokens = await this.generateTokens(user, session.tokenId);
 
     await this.auditService.logLogin({
       userType: user.userType as 'admin' | 'customer',
@@ -973,8 +1037,18 @@ export class AuthService {
     user.lastLoginAt = new Date();
     await user.save();
 
-    // Generate tokens
-    const tokens = await this.generateTokens(user);
+    const session = await this.createSession(user._id, {
+      tokenId: randomUUID(),
+      ipAddress,
+      userAgent,
+      trustVerdict: {
+        status: 'trusted',
+        reasons: [],
+        platform: 'web',
+        verifiedAt: new Date(),
+      },
+    });
+    const tokens = await this.generateTokens(user, session.tokenId);
 
     await this.auditService.logLogin({
       userType: 'admin',
@@ -993,6 +1067,7 @@ export class AuthService {
     return {
       user: fullProfile,
       ...tokens,
+      sessionId: session._id.toString(),
     };
   }
 
@@ -1022,7 +1097,11 @@ export class AuthService {
         });
       }
 
-      const tokens = await this.generateTokens(user);
+      const session = await this.validateSessionTrust(
+        user._id.toString(),
+        payload.jti,
+      );
+      const tokens = await this.generateTokens(user, session.tokenId);
 
       return tokens;
     } catch (error) {
@@ -1230,11 +1309,12 @@ export class AuthService {
   /**
    * Generate JWT tokens
    */
-  private async generateTokens(user: UserDocument) {
+  private async generateTokens(user: UserDocument, tokenId: string) {
     const payload = {
       sub: user._id.toString(),
       phone: user.phone,
       userType: user.userType,
+      jti: tokenId,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -1348,13 +1428,17 @@ export class AuthService {
    * Logout user (delete current session by token)
    */
   async logout(userId: string, token: string) {
-    // Extract token ID (first 32 characters, same as in createSession)
-    const tokenId = token.substring(0, 32);
+    const payload = await this.jwtService.verifyAsync(token, {
+      secret: this.configService.get<string>(
+        'JWT_SECRET',
+        'your-super-secret-jwt-key',
+      ),
+    });
 
     // Delete session by tokenId and userId
     await this.sessionModel.deleteOne({
       userId: new Types.ObjectId(userId),
-      tokenId,
+      tokenId: payload.jti,
     });
 
     return { message: 'Logout successful' };
@@ -1382,24 +1466,44 @@ export class AuthService {
    */
   private async createSession(
     userId: Types.ObjectId,
-    token: string,
-    ipAddress?: string,
-    userAgent?: string,
+    params: {
+      tokenId: string;
+      ipAddress?: string;
+      userAgent?: string;
+      deviceIntegrity?: DeviceIntegrityDto;
+      trustVerdict: DeviceTrustVerdict;
+    },
   ): Promise<UserSessionDocument> {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
 
-    // Generate unique token ID using timestamp + random string
-    const tokenId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-
     // Use findOneAndUpdate with upsert to avoid duplicate key errors
     const session = await this.sessionModel.findOneAndUpdate(
-      { tokenId },
+      { tokenId: params.tokenId },
       {
         userId,
-        tokenId,
-        ipAddress,
-        userAgent,
+        tokenId: params.tokenId,
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+        trustStatus: params.trustVerdict.status,
+        trustReasons: params.trustVerdict.reasons,
+        attestedPackageName:
+          params.trustVerdict.packageName ??
+          params.deviceIntegrity?.packageName ??
+          params.deviceIntegrity?.signals?.packageName,
+        integrityRequestType:
+          params.trustVerdict.requestType ?? params.deviceIntegrity?.requestType,
+        deviceRecognitionVerdicts:
+          params.trustVerdict.deviceRecognitionVerdicts ?? [],
+        appRecognitionVerdict: params.trustVerdict.appRecognitionVerdict,
+        licensingVerdict: params.trustVerdict.licensingVerdict,
+        integrityVerifiedAt:
+          params.trustVerdict.verifiedAt ?? new Date(),
+        appVersion:
+          params.trustVerdict.appVersion ??
+          params.deviceIntegrity?.appVersion ??
+          params.deviceIntegrity?.signals?.appVersion,
+        deviceType: params.deviceIntegrity?.platform,
         expiresAt,
         lastActivityAt: new Date(),
       },

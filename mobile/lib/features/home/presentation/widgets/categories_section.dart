@@ -28,7 +28,7 @@ class CategoriesSection extends StatelessWidget {
         ),
         SizedBox(height: 14.h),
         SizedBox(
-          height: 100.h,
+          height: 122.r,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -66,14 +66,14 @@ class _CategoryChip extends StatelessWidget {
         context.push(route);
       },
       child: SizedBox(
-        width: 74.w,
+        width: 82.r,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Icon circle
             Container(
-              width: 56.w,
-              height: 56.w,
+              width: 56.r,
+              height: 56.r,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isDark ? AppColors.cardDark : Colors.white,
@@ -97,8 +97,8 @@ class _CategoryChip extends StatelessWidget {
                         cacheKey: imageCacheKey(category.image!),
                         cacheManager: imageCacheManager,
                         fit: BoxFit.cover,
-                        width: 56.w,
-                        height: 56.w,
+                        width: 56.r,
+                        height: 56.r,
                         placeholder: (_, _) => _buildIconFallback(),
                         errorWidget: (_, _, _) => _buildIconFallback(),
                       )
@@ -106,7 +106,6 @@ class _CategoryChip extends StatelessWidget {
               ),
             ),
             SizedBox(height: 8.h),
-            // Label
             Text(
               category.nameAr,
               style: TextStyle(

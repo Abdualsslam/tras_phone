@@ -50,6 +50,7 @@
   "reviews": "Reviews",
   "inStock": "In Stock",
   "outOfStock": "Out of Stock",
+  "requestedQuantityUnavailable": "Requested quantity is unavailable",
   "quantity": "Quantity",
   "total": "Total",
   "subtotal": "Subtotal",

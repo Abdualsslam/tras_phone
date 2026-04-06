@@ -392,6 +392,12 @@ abstract class AppLocalizations {
   /// **'غير متوفر'**
   String get outOfStock;
 
+  /// رسالة عامة عندما تكون الكمية المطلوبة أكبر من المخزون المتاح
+  ///
+  /// In ar, this message translates to:
+  /// **'الكمية المطلوبة غير متوفرة'**
+  String get requestedQuantityUnavailable;
+
   /// عنوان الكمية
   ///
   /// In ar, this message translates to:

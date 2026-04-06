@@ -156,6 +156,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outOfStock => 'Out of Stock';
 
   @override
+  String get requestedQuantityUnavailable =>
+      'Requested quantity is unavailable';
+
+  @override
   String get quantity => 'Quantity';
 
   @override

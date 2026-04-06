@@ -2,6 +2,7 @@
 library;
 
 import 'package:get_it/get_it.dart';
+import '../config/app_config.dart';
 import '../network/api_client.dart';
 import '../network/network_info.dart';
 import '../network/token_manager.dart';
@@ -73,6 +74,7 @@ import '../cubit/theme_cubit.dart';
 import '../services/biometric_credential_service.dart';
 import '../services/biometric_service.dart';
 import '../services/share_service.dart';
+import '../security/app_security_service.dart';
 import '../constants/storage_keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
@@ -104,9 +106,12 @@ Future<void> setupDependencies() async {
   apiClient.initialize(
     tokenManager: tokenManager,
     onLogout: _handleForcedLogout,
-    enableLogging: true, // Set to false in production
+    enableLogging: AppConfig.enableNetworkLogging,
   );
   getIt.registerSingleton<ApiClient>(apiClient);
+  getIt.registerLazySingleton<AppSecurityService>(
+    () => AppSecurityService(apiClient: getIt<ApiClient>()),
+  );
 
   // Cache Services
   final hiveCacheService = HiveCacheService();

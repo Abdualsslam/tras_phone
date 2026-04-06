@@ -6,6 +6,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
 import '../models/country_model.dart';
 import '../models/city_model.dart';
+import '../models/geocoding_result.dart';
 import '../models/market_model.dart';
 import '../models/shipping_zone_model.dart';
 import '../models/shipping_calculation_model.dart';
@@ -22,13 +23,33 @@ abstract class LocationsRemoteDataSource {
     double? orderTotal,
   });
   Future<List<ShippingZoneModel>> getShippingZones();
+  Future<GeocodingResult?> reverseGeocode({
+    required double latitude,
+    required double longitude,
+    String? language,
+  });
+  Future<List<GeocodingResult>> forwardGeocode({
+    required String address,
+    String? language,
+  });
+  Future<List<PlaceAutocompleteResult>> searchPlaces({
+    required String query,
+    String? language,
+    double? latitude,
+    double? longitude,
+    int radius,
+  });
+  Future<GeocodingResult?> getPlaceDetails({
+    required String placeId,
+    String? language,
+  });
 }
 
 class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
   final ApiClient _apiClient;
 
   LocationsRemoteDataSourceImpl({required ApiClient apiClient})
-      : _apiClient = apiClient;
+    : _apiClient = apiClient;
 
   @override
   Future<List<CountryModel>> getCountries() async {
@@ -71,7 +92,10 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
 
     if (data is List) {
       final cities = data.map((c) => CityModel.fromJson(c)).toList();
-      developer.log('Parsed ${cities.length} cities', name: 'LocationsDataSource');
+      developer.log(
+        'Parsed ${cities.length} cities',
+        name: 'LocationsDataSource',
+      );
       return cities;
     }
 
@@ -159,6 +183,114 @@ class LocationsRemoteDataSourceImpl implements LocationsRemoteDataSource {
     }
     throw Exception(
       response.data['messageAr'] ?? 'Failed to get shipping zones',
+    );
+  }
+
+  @override
+  Future<GeocodingResult?> reverseGeocode({
+    required double latitude,
+    required double longitude,
+    String? language,
+  }) async {
+    final response = await _apiClient.get(
+      ApiEndpoints.locationsGeocodeReverse,
+      queryParameters: {
+        'lat': latitude,
+        'lng': longitude,
+        if (language != null) 'language': language,
+      },
+    );
+
+    if (response.data['success'] == true) {
+      final data = response.data['data'];
+      if (data == null) return null;
+      return GeocodingResult.fromJson(Map<String, dynamic>.from(data));
+    }
+
+    throw Exception(
+      response.data['messageAr'] ?? 'Failed to reverse geocode location',
+    );
+  }
+
+  @override
+  Future<List<GeocodingResult>> forwardGeocode({
+    required String address,
+    String? language,
+  }) async {
+    final response = await _apiClient.get(
+      ApiEndpoints.locationsGeocodeForward,
+      queryParameters: {
+        'address': address,
+        if (language != null) 'language': language,
+      },
+    );
+
+    if (response.data['success'] == true) {
+      final data = response.data['data'] as List? ?? const [];
+      return data
+          .map(
+            (result) =>
+                GeocodingResult.fromJson(Map<String, dynamic>.from(result)),
+          )
+          .toList();
+    }
+
+    throw Exception(response.data['messageAr'] ?? 'Failed to search addresses');
+  }
+
+  @override
+  Future<List<PlaceAutocompleteResult>> searchPlaces({
+    required String query,
+    String? language,
+    double? latitude,
+    double? longitude,
+    int radius = 50000,
+  }) async {
+    final response = await _apiClient.get(
+      ApiEndpoints.locationsPlacesAutocomplete,
+      queryParameters: {
+        'input': query,
+        if (language != null) 'language': language,
+        if (latitude != null) 'lat': latitude,
+        if (longitude != null) 'lng': longitude,
+        'radius': radius,
+      },
+    );
+
+    if (response.data['success'] == true) {
+      final data = response.data['data'] as List? ?? const [];
+      return data
+          .map(
+            (prediction) => PlaceAutocompleteResult.fromJson(
+              Map<String, dynamic>.from(prediction),
+            ),
+          )
+          .toList();
+    }
+
+    throw Exception(
+      response.data['messageAr'] ?? 'Failed to get place suggestions',
+    );
+  }
+
+  @override
+  Future<GeocodingResult?> getPlaceDetails({
+    required String placeId,
+    String? language,
+  }) async {
+    final response = await _apiClient.get(
+      ApiEndpoints.locationsPlaceDetails(placeId),
+      queryParameters: {if (language != null) 'language': language},
+    );
+
+    if (response.data['success'] == true) {
+      final data = response.data['data'];
+      if (data == null) return null;
+      return GeocodingResult.fromJson(Map<String, dynamic>.from(data));
+    }
+
+    throw Exception(
+      response.data['messageAr'] ?? 'Failed to get place details',
     );
   }
 }

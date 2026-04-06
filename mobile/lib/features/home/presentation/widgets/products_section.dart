@@ -9,14 +9,18 @@ import 'section_header.dart';
 class ProductsSection extends StatelessWidget {
   final String title;
   final List<ProductEntity> products;
+  final Set<String> favoriteProductIds;
   final VoidCallback? onSeeAll;
+  final ValueChanged<String>? onToggleFavorite;
   final IconData? icon;
 
   const ProductsSection({
     super.key,
     required this.title,
     required this.products,
+    this.favoriteProductIds = const <String>{},
     this.onSeeAll,
+    this.onToggleFavorite,
     this.icon,
   });
 
@@ -46,8 +50,12 @@ class ProductsSection extends StatelessWidget {
                   price: product.price,
                   originalPrice: product.originalPrice,
                   stockQuantity: product.stockQuantity,
+                  isFavorite: favoriteProductIds.contains(product.id),
                   onTap: () =>
                       context.push('/product/${product.id}', extra: product),
+                  onToggleFavorite: onToggleFavorite == null
+                      ? null
+                      : () => onToggleFavorite!(product.id),
                   onAddToCart: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

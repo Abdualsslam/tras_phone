@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/mixins/product_favorites_mixin.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/product_entity.dart';
@@ -23,7 +24,8 @@ class BrandDetailsScreen extends StatefulWidget {
   State<BrandDetailsScreen> createState() => _BrandDetailsScreenState();
 }
 
-class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
+class _BrandDetailsScreenState extends State<BrandDetailsScreen>
+    with ProductFavoritesMixin<BrandDetailsScreen> {
   final _repository = getIt<CatalogRepository>();
   final ScrollController _scrollController = ScrollController();
 
@@ -42,6 +44,7 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
     _brand = widget.brand;
     _scrollController.addListener(_onScroll);
     _loadData();
+    loadFavoriteProductIds();
   }
 
   @override
@@ -234,10 +237,13 @@ class _BrandDetailsScreenState extends State<BrandDetailsScreen> {
                                     price: product.price,
                                     originalPrice: product.originalPrice,
                                     stockQuantity: product.stockQuantity,
+                                    isFavorite: isProductFavorite(product.id),
                                     onTap: () => context.push(
                                       '/product/${product.id}',
                                       extra: product,
                                     ),
+                                    onToggleFavorite: () =>
+                                        toggleFavoriteProduct(product.id),
                                   );
                                 } else if (_isLoadingMore) {
                                   return const Center(

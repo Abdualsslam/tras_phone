@@ -28,6 +28,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
+import { DeviceIntegrityChallengeDto } from './dto/device-integrity-challenge.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { ProcessPasswordResetDto } from './dto/process-password-reset.dto';
 import { RejectPasswordResetDto } from './dto/reject-password-reset.dto';
@@ -84,6 +85,34 @@ export class AuthController {
       result,
       'User registered successfully',
       'تم تسجيل المستخدم بنجاح',
+    );
+  }
+
+  @Public()
+  @Post('device-integrity/challenge')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Create a short-lived device integrity challenge',
+    description:
+      'Creates a signed nonce that the mobile app uses when requesting Play Integrity tokens.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Device integrity challenge created successfully',
+    type: ApiResponseDto,
+  })
+  @ApiPublicErrorResponses()
+  async createDeviceIntegrityChallenge(
+    @Body() dto: DeviceIntegrityChallengeDto,
+  ) {
+    const challenge = this.authService.createDeviceIntegrityChallenge(
+      dto.requestType,
+    );
+
+    return ResponseBuilder.success(
+      challenge,
+      'Integrity challenge created successfully',
+      'تم إنشاء تحدي التحقق بنجاح',
     );
   }
 
