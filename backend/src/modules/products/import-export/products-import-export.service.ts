@@ -12,11 +12,12 @@ import {
   ProductDeviceCompatibilityDocument,
 } from '../schemas/product-device-compatibility.schema';
 import {
+  ExportProductsQueryDto,
   ImportMode,
   ImportProductsQueryDto,
+  TemplateQueryDto,
   ValidationResultDto,
-} from './dto/import-products.dto';
-import { ExportProductsQueryDto } from './dto/export-filter.dto';
+} from './dto';
 import {
   DeviceCompatibilityRow,
   ProductRow,
@@ -75,6 +76,25 @@ const PRODUCT_HEADERS = [
   'compatibleDevices',
 ] as const;
 
+const REQUIRED_TEMPLATE_HEADERS = [
+  'sku',
+  'name',
+  'nameAr',
+  'slug',
+  'brandSlug',
+  'categorySlug',
+  'qualityTypeSlug',
+  'basePrice',
+] as const;
+
+const REQUIRED_TEMPLATE_HEADERS_SET = new Set<string>(REQUIRED_TEMPLATE_HEADERS);
+
+const OPTIONAL_TEMPLATE_HEADERS = PRODUCT_HEADERS.filter(
+  (header) => !REQUIRED_TEMPLATE_HEADERS_SET.has(header),
+);
+
+const OPTIONAL_TEMPLATE_HEADERS_SET = new Set<string>(OPTIONAL_TEMPLATE_HEADERS);
+
 @Injectable()
 export class ProductsImportExportService {
   constructor(
@@ -85,11 +105,12 @@ export class ProductsImportExportService {
     private readonly referenceResolver: ReferenceResolver,
   ) {}
 
-  async exportTemplate(): Promise<Buffer> {
+  async exportTemplate(query: TemplateQueryDto = {}): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
+    const headers = this.resolveTemplateHeaders(query.optionalFields);
 
-    this.buildProductsSheet(workbook, []);
-    this.buildReferencesSheets(workbook, true);
+    this.buildProductsSheet(workbook, [], headers);
+    await this.buildReferencesSheets(workbook, false);
     this.buildCompatibilitySheet(workbook, []);
 
     const buffer = await workbook.xlsx.writeBuffer();
@@ -125,7 +146,8 @@ export class ProductsImportExportService {
       .lean()
       .exec();
 
-    this.buildProductsSheet(workbook, products as any[]);
+    const headers = this.resolveTemplateHeaders(query.optionalFields);
+    this.buildProductsSheet(workbook, products as any[], headers);
 
     if (query.includeReferences !== false) {
       await this.buildReferencesSheets(workbook, false);
@@ -320,6 +342,10 @@ export class ProductsImportExportService {
         }
 
         const productData = this.mapProductRow(row, refs);
+        const hasExplicitStatus =
+          row.status !== undefined &&
+          row.status !== null &&
+          String(row.status).trim() !== '';
         const mode = query.mode || ImportMode.UPSERT;
 
         if (mode === ImportMode.CREATE && existingBySku) {
@@ -341,12 +367,21 @@ export class ProductsImportExportService {
         }
 
         if (existingBySku) {
+          const updateData = { ...productData };
+          if (!hasExplicitStatus) {
+            delete updateData.status;
+          }
+
           await this.productModel
-            .updateOne({ _id: existingBySku._id }, { $set: productData })
+            .updateOne({ _id: existingBySku._id }, { $set: updateData })
             .exec();
           updated += 1;
         } else {
-          await this.productModel.create(productData);
+          const createData = {
+            ...productData,
+            status: hasExplicitStatus ? productData.status : 'active',
+          };
+          await this.productModel.create(createData);
           created += 1;
         }
       } catch (error: any) {
@@ -520,7 +555,10 @@ export class ProductsImportExportService {
           ? true
           : parseBoolean(row.trackInventory),
       allowBackorder: parseBoolean((row as any).allowBackorder),
-      status: row.status || 'draft',
+      status:
+        row.status === undefined || row.status === null
+          ? undefined
+          : String(row.status).trim() || undefined,
       isActive: row.isActive === undefined ? true : parseBoolean(row.isActive),
       isFeatured: parseBoolean(row.isFeatured),
       isNewArrival: parseBoolean(row.isNewArrival),
@@ -601,55 +639,93 @@ export class ProductsImportExportService {
     }
   }
 
-  private buildProductsSheet(workbook: ExcelJS.Workbook, products: any[]) {
+  private resolveTemplateHeaders(optionalFields?: string[]): string[] {
+    if (!optionalFields?.length) {
+      return [...REQUIRED_TEMPLATE_HEADERS];
+    }
+
+    const normalizedOptionalFields = [
+      ...new Set(optionalFields.map((field) => String(field).trim()).filter(Boolean)),
+    ];
+
+    const invalidFields = normalizedOptionalFields.filter(
+      (field) => !OPTIONAL_TEMPLATE_HEADERS_SET.has(field),
+    );
+
+    if (invalidFields.length) {
+      throw new BadRequestException(
+        `Invalid optional fields: ${invalidFields.join(', ')}. Allowed optional fields: ${OPTIONAL_TEMPLATE_HEADERS.join(', ')}`,
+      );
+    }
+
+    const selectedOptionalFields = new Set(normalizedOptionalFields);
+
+    return PRODUCT_HEADERS.filter(
+      (header) =>
+        REQUIRED_TEMPLATE_HEADERS_SET.has(header) ||
+        selectedOptionalFields.has(header),
+    );
+  }
+
+  private buildProductsSheet(
+    workbook: ExcelJS.Workbook,
+    products: any[],
+    headers: string[] = [...PRODUCT_HEADERS],
+  ) {
     const ws = workbook.addWorksheet('Products');
-    ws.addRow(PRODUCT_HEADERS as unknown as string[]);
+    ws.addRow(headers);
     ws.getRow(1).font = { bold: true };
 
     for (const p of products) {
-      ws.addRow([
-        stringifyId(p._id),
-        p.sku || '',
-        p.name || '',
-        p.nameAr || '',
-        p.slug || '',
-        p.brandId?.slug || '',
-        p.categoryId?.slug || '',
-        (p.additionalCategories || []).map((c: any) => c.slug).join(','),
-        p.qualityTypeId?.code || '',
-        p.basePrice ?? '',
-        p.compareAtPrice ?? '',
-        p.costPrice ?? '',
-        p.stockQuantity ?? '',
-        p.lowStockThreshold ?? '',
-        p.trackInventory ?? '',
-        p.allowBackorder ?? '',
-        p.status || '',
-        p.isActive ?? '',
-        p.isFeatured ?? '',
-        p.isNewArrival ?? '',
-        p.isBestSeller ?? '',
-        p.description || '',
-        p.descriptionAr || '',
-        p.shortDescription || '',
-        p.shortDescriptionAr || '',
-        p.mainImage || '',
-        (p.images || []).join(','),
-        p.video || '',
-        p.specifications ? JSON.stringify(p.specifications) : '',
-        p.weight ?? '',
-        p.dimensions || '',
-        p.color || '',
-        (p.tags || []).join(','),
-        p.warrantyDays ?? '',
-        p.warrantyDescription || '',
-        p.metaTitle || '',
-        p.metaTitleAr || '',
-        p.metaDescription || '',
-        p.metaDescriptionAr || '',
-        (p.metaKeywords || []).join(','),
-        (p.compatibleDevices || []).map((d: any) => d.slug).join(','),
-      ]);
+      const valuesByHeader: Record<string, any> = {
+        id: stringifyId(p._id),
+        sku: p.sku || '',
+        name: p.name || '',
+        nameAr: p.nameAr || '',
+        slug: p.slug || '',
+        brandSlug: p.brandId?.slug || '',
+        categorySlug: p.categoryId?.slug || '',
+        additionalCategorySlugs: (p.additionalCategories || [])
+          .map((c: any) => c.slug)
+          .join(','),
+        qualityTypeSlug: p.qualityTypeId?.code || '',
+        basePrice: p.basePrice ?? '',
+        compareAtPrice: p.compareAtPrice ?? '',
+        costPrice: p.costPrice ?? '',
+        stockQuantity: p.stockQuantity ?? '',
+        lowStockThreshold: p.lowStockThreshold ?? '',
+        trackInventory: p.trackInventory ?? '',
+        allowBackorder: p.allowBackorder ?? '',
+        status: p.status || '',
+        isActive: p.isActive ?? '',
+        isFeatured: p.isFeatured ?? '',
+        isNewArrival: p.isNewArrival ?? '',
+        isBestSeller: p.isBestSeller ?? '',
+        description: p.description || '',
+        descriptionAr: p.descriptionAr || '',
+        shortDescription: p.shortDescription || '',
+        shortDescriptionAr: p.shortDescriptionAr || '',
+        mainImage: p.mainImage || '',
+        images: (p.images || []).join(','),
+        video: p.video || '',
+        specifications: p.specifications ? JSON.stringify(p.specifications) : '',
+        weight: p.weight ?? '',
+        dimensions: p.dimensions || '',
+        color: p.color || '',
+        tags: (p.tags || []).join(','),
+        warrantyDays: p.warrantyDays ?? '',
+        warrantyDescription: p.warrantyDescription || '',
+        metaTitle: p.metaTitle || '',
+        metaTitleAr: p.metaTitleAr || '',
+        metaDescription: p.metaDescription || '',
+        metaDescriptionAr: p.metaDescriptionAr || '',
+        metaKeywords: (p.metaKeywords || []).join(','),
+        compatibleDevices: (p.compatibleDevices || [])
+          .map((d: any) => d.slug)
+          .join(','),
+      };
+
+      ws.addRow(headers.map((header) => valuesByHeader[header] ?? ''));
     }
   }
 
@@ -760,11 +836,12 @@ export class ProductsImportExportService {
         output[header] = row.getCell(idx).value as any;
       }
 
-      const hasValue = Object.values(output).some(
-        (v) => v !== null && v !== undefined && String(v).trim() !== '',
+      const normalizedOutput = normalizeCellValues(output);
+      const hasValue = Object.values(normalizedOutput).some((v) =>
+        hasMeaningfulCellValue(v),
       );
       if (hasValue) {
-        results.push(normalizeCellValues(output) as T);
+        results.push(normalizedOutput as T);
       }
     });
 
@@ -785,13 +862,68 @@ export class ProductsImportExportService {
 function normalizeCellValues(row: Record<string, any>): Record<string, any> {
   const output: Record<string, any> = {};
   for (const [k, v] of Object.entries(row)) {
-    if (v && typeof v === 'object' && 'text' in (v as any)) {
-      output[k] = (v as any).text;
-    } else {
-      output[k] = v;
-    }
+    output[k] = normalizeExcelCellValue(v);
   }
   return output;
+}
+
+function normalizeExcelCellValue(value: any): any {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== 'object') {
+    return value;
+  }
+
+  if (Array.isArray((value as any).richText)) {
+    return (value as any).richText
+      .map((item: any) => String(item?.text ?? ''))
+      .join('');
+  }
+
+  if ('result' in (value as any)) {
+    return normalizeExcelCellValue((value as any).result);
+  }
+
+  if ('text' in (value as any)) {
+    return String((value as any).text ?? '').trim();
+  }
+
+  if ('hyperlink' in (value as any)) {
+    const text = (value as any).text;
+    return text ? String(text).trim() : String((value as any).hyperlink || '').trim();
+  }
+
+  if ('formula' in (value as any)) {
+    return normalizeExcelCellValue((value as any).result);
+  }
+
+  return undefined;
+}
+
+function hasMeaningfulCellValue(value: any): boolean {
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === 'string') {
+    return value.trim() !== '';
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return true;
+  }
+
+  if (value instanceof Date) {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  return false;
 }
 
 function safeJsonParse(value: any): Record<string, any> | undefined {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import {
   productsApi,
   type CreateProductDto,
@@ -183,8 +184,12 @@ const initialFormData: AddProductForm = {
 export function ProductsPage() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const [urlSearchParams, setUrlSearchParams] = useSearchParams();
+
+  const initialPage = Math.max(1, Number(urlSearchParams.get("page") || "1") || 1);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(initialPage);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -216,14 +221,36 @@ export function ProductsPage() {
 
   // Fetch products
   const { data, isLoading, error } = useQuery({
-    queryKey: ["products", searchQuery, statusFilter],
+    queryKey: ["products", searchQuery, statusFilter, currentPage],
     queryFn: () =>
       productsApi.getAll({
         search: searchQuery,
         status: statusFilter,
+        page: currentPage,
         limit: 20,
+        sortBy: "createdAt",
+        sortOrder: "desc",
       }),
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams(urlSearchParams);
+    if (currentPage > 1) {
+      nextParams.set("page", String(currentPage));
+    } else {
+      nextParams.delete("page");
+    }
+
+    const current = urlSearchParams.toString();
+    const next = nextParams.toString();
+    if (current !== next) {
+      setUrlSearchParams(nextParams, { replace: true });
+    }
+  }, [currentPage, setUrlSearchParams, urlSearchParams]);
 
   // Fetch categories for dropdown
   const { data: categories = [] } = useQuery<CategoryTree[]>({
@@ -726,6 +753,14 @@ export function ProductsPage() {
   };
 
   const products = data?.items || [];
+  const totalPages = data?.pagination?.totalPages ?? 1;
+
+  useEffect(() => {
+    const serverTotalPages = data?.pagination?.totalPages;
+    if (serverTotalPages && currentPage > serverTotalPages) {
+      setCurrentPage(serverTotalPages);
+    }
+  }, [currentPage, data?.pagination?.totalPages]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -824,116 +859,146 @@ export function ProductsPage() {
               <p>{t("common.noData")}</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>المنتج</TableHead>
-                  <TableHead>{t("products.sku")}</TableHead>
-                  <TableHead>{t("products.category")}</TableHead>
-                  <TableHead>{t("products.price")}</TableHead>
-                  <TableHead>{t("products.stock")}</TableHead>
-                  <TableHead>{t("products.status")}</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {products.map((product) => (
-                  <TableRow key={product._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-slate-800 overflow-hidden flex-shrink-0">
-                          {(product as any).mainImage || product.images?.[0] ? (
-                            <img
-                              src={
-                                (product as any).mainImage || product.images[0]
-                              }
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="h-6 w-6 text-gray-300" />
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">
-                            {product.name}
-                          </p>
-                          {product.brand && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {product.brand.name}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-gray-600 dark:text-gray-400 font-mono text-sm">
-                      {product.sku}
-                    </TableCell>
-                    <TableCell className="text-gray-600 dark:text-gray-400">
-                      {product.category?.name || "-"}
-                    </TableCell>
-                    <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                      {formatCurrency(product.price || 0, "SAR", locale)}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={
-                          product.stock > 10
-                            ? "text-green-600"
-                            : product.stock > 0
-                              ? "text-yellow-600"
-                              : "text-red-600"
-                        }
-                      >
-                        {product.stock}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={statusVariants[product.status]}>
-                        {statusLabels[product.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleViewDetails(product)}
-                          >
-                            <Eye className="h-4 w-4" />
-                            التفاصيل
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(product)}>
-                            <Pencil className="h-4 w-4" />
-                            تعديل
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleOpenPrices(product)}
-                          >
-                            <DollarSign className="h-4 w-4" />
-                            مستويات الأسعار
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => handleDelete(product)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            حذف
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>المنتج</TableHead>
+                    <TableHead>{t("products.sku")}</TableHead>
+                    <TableHead>{t("products.category")}</TableHead>
+                    <TableHead>{t("products.price")}</TableHead>
+                    <TableHead>{t("products.stock")}</TableHead>
+                    <TableHead>{t("products.status")}</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {products.map((product) => (
+                    <TableRow key={product._id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-slate-800 overflow-hidden flex-shrink-0">
+                            {(product as any).mainImage || product.images?.[0] ? (
+                              <img
+                                src={
+                                  (product as any).mainImage || product.images[0]
+                                }
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package className="h-6 w-6 text-gray-300" />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                              {product.name}
+                            </p>
+                            {product.brand && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {product.brand.name}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-600 dark:text-gray-400 font-mono text-sm">
+                        {product.sku}
+                      </TableCell>
+                      <TableCell className="text-gray-600 dark:text-gray-400">
+                        {product.category?.name || "-"}
+                      </TableCell>
+                      <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                        {formatCurrency(product.price || 0, "SAR", locale)}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={
+                            product.stock > 10
+                              ? "text-green-600"
+                              : product.stock > 0
+                                ? "text-yellow-600"
+                                : "text-red-600"
+                          }
+                        >
+                          {product.stock}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariants[product.status]}>
+                          {statusLabels[product.status]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleViewDetails(product)}
+                            >
+                              <Eye className="h-4 w-4" />
+                              التفاصيل
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(product)}>
+                              <Pencil className="h-4 w-4" />
+                              تعديل
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleOpenPrices(product)}
+                            >
+                              <DollarSign className="h-4 w-4" />
+                              مستويات الأسعار
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDelete(product)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              حذف
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t px-4 py-3">
+                  <p className="text-sm text-gray-500">صفحة {currentPage} من {totalPages}</p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                      disabled={currentPage <= 1 || isLoading}
+                    >
+                      السابق
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage((prev) =>
+                          Math.min(totalPages, prev + 1),
+                        )
+                      }
+                      disabled={currentPage >= totalPages || isLoading}
+                    >
+                      التالي
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

@@ -317,16 +317,16 @@ export function NotificationsPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="notifications" className="w-full">
-        <TabsList>
-          <TabsTrigger value="notifications" className="gap-2">
+        <TabsList className="w-full">
+          <TabsTrigger value="notifications">
             <Bell className="h-4 w-4" />
             الإشعارات
           </TabsTrigger>
-          <TabsTrigger value="templates" className="gap-2">
+          <TabsTrigger value="templates">
             <FileText className="h-4 w-4" />
             القوالب
           </TabsTrigger>
-          <TabsTrigger value="campaigns" className="gap-2">
+          <TabsTrigger value="campaigns">
             <Rocket className="h-4 w-4" />
             الحملات
           </TabsTrigger>

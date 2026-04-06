@@ -705,7 +705,7 @@ class ShippingAddress {
 }
 ```
 
-> **ملاحظة خصومات:** في سلة الباك-إند الحالية، الحقل `discount` يعكس قيمة الكوبون نفسها (`couponDiscount`) داخل cart totals. في الطلب (`Order`) ستجد `discount` و `couponDiscount` كحقول منفصلة.
+> **ملاحظة خصومات:** في السلة والطلب، الحقل `discount` مخصص لخصومات العروض (Promotions)، بينما `couponDiscount` مخصص لخصم الكوبون فقط.
 
 **Flutter Code:**
 
@@ -873,11 +873,11 @@ Future<Cart> clearCart() async {
 
 ```dart
 {
-  "couponCode": "SUMMER2024",        // مطلوب
-  "couponId": "507f1f77bcf...",      // اختياري
-  "discountAmount": 50.00             // مطلوب - قيمة الخصم
+  "couponCode": "SUMMER2024"         // مطلوب
 }
 ```
+
+> ملاحظة: `couponId` و `discountAmount` لم يعدا مطلوبين. السيرفر يتحقق من الكوبون ويحسب الخصم داخلياً.
 
 **Response:**
 
@@ -896,13 +896,9 @@ Future<Cart> clearCart() async {
 /// تطبيق كوبون على السلة
 Future<Cart> applyCoupon({
   required String couponCode,
-  String? couponId,
-  required double discountAmount,
 }) async {
   final response = await _dio.post('/cart/coupon', data: {
     'couponCode': couponCode,
-    if (couponId != null) 'couponId': couponId,
-    'discountAmount': discountAmount,
   });
 
   if (response.data['status'] == 'success') {
@@ -936,7 +932,7 @@ Future<Cart> removeCoupon() async {
 
 ---
 
-> **⚠️ ملاحظة مهمة:** يمكن تطبيق الكوبونات في السلة باستخدام `/cart/coupon` (يتطلب `couponCode` و `discountAmount`)، أو يمكن إرسال `couponCode` مباشرة عند إنشاء الطلب في `/orders` (سيتم التحقق منه تلقائياً). راجع قسم إنشاء الطلب أدناه.
+> **⚠️ ملاحظة مهمة:** يمكن تطبيق الكوبونات في السلة باستخدام `/cart/coupon` (يتطلب `couponCode` فقط)، أو يمكن إرسال `couponCode` مباشرة عند إنشاء الطلب في `/orders` (سيتم التحقق منه تلقائياً). راجع قسم إنشاء الطلب أدناه.
 
 ---
 

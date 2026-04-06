@@ -36,11 +36,7 @@ abstract class CartRemoteDataSource {
   Future<CartEntity> clearCart();
 
   /// Apply coupon code
-  Future<CartEntity> applyCoupon({
-    String? couponId,
-    String? couponCode,
-    double? discountAmount,
-  });
+  Future<CartEntity> applyCoupon({required String couponCode});
 
   /// Remove coupon
   Future<CartEntity> removeCoupon();
@@ -149,23 +145,12 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
   }
 
   @override
-  Future<CartEntity> applyCoupon({
-    String? couponId,
-    String? couponCode,
-    double? discountAmount,
-  }) async {
-    developer.log(
-      'Applying coupon: code=$couponCode, id=$couponId, discount=$discountAmount',
-      name: 'CartDataSource',
-    );
+  Future<CartEntity> applyCoupon({required String couponCode}) async {
+    developer.log('Applying coupon: code=$couponCode', name: 'CartDataSource');
 
     final response = await _apiClient.post(
       ApiEndpoints.cartCoupon,
-      data: {
-        if (couponId != null) 'couponId': couponId,
-        if (couponCode != null) 'couponCode': couponCode,
-        if (discountAmount != null) 'discountAmount': discountAmount,
-      },
+      data: {'couponCode': couponCode},
     );
 
     final data = response.data['data'] ?? response.data;

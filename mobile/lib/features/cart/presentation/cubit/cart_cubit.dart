@@ -106,11 +106,7 @@ class CartCubit extends Cubit<CartState> {
   }
 
   /// Apply coupon
-  Future<void> applyCoupon(
-    String couponCode, {
-    String? couponId,
-    double? discountAmount,
-  }) async {
+  Future<void> applyCoupon(String couponCode) async {
     final currentCart = state is CartLoaded ? (state as CartLoaded).cart : null;
     if (currentCart != null) {
       emit(CartUpdating(currentCart));
@@ -118,9 +114,7 @@ class CartCubit extends Cubit<CartState> {
 
     try {
       final cart = await _remoteDataSource.applyCoupon(
-        couponId: couponId,
         couponCode: couponCode,
-        discountAmount: discountAmount,
       );
       emit(CartLoaded(cart));
     } catch (e) {

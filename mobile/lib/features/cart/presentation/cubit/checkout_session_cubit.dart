@@ -15,6 +15,19 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
     : _remoteDataSource = remoteDataSource,
       super(const CheckoutSessionInitial());
 
+  String? _resolveAppliedCouponCode(CheckoutSessionEntity? session) {
+    if (session == null) return null;
+    final codeFromCoupon = session.coupon?.code?.trim();
+    if (codeFromCoupon != null && codeFromCoupon.isNotEmpty) {
+      return codeFromCoupon;
+    }
+    final codeFromCart = session.cart.couponCode?.trim();
+    if (codeFromCart != null && codeFromCart.isNotEmpty) {
+      return codeFromCart;
+    }
+    return null;
+  }
+
   /// Load checkout session from server
   Future<void> loadSession({String? couponCode}) async {
     emit(const CheckoutSessionLoading());
@@ -34,7 +47,13 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
       );
 
       emit(
-        CheckoutSessionLoaded(session: session, appliedCouponCode: couponCode),
+        CheckoutSessionLoaded(
+          session: session,
+          appliedCouponCode:
+              (couponCode?.trim().isNotEmpty ?? false)
+                  ? couponCode!.trim()
+                  : _resolveAppliedCouponCode(session),
+        ),
       );
 
       print(
@@ -68,16 +87,10 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
   }
 
   /// Apply coupon code
-  Future<void> applyCoupon(String code) async {
+  Future<String?> applyCoupon(String code) async {
     final currentSession = _getCurrentSession();
-    if (currentSession == null) return;
-
-    emit(
-      CheckoutSessionApplyingCoupon(
-        currentSession: currentSession,
-        couponCode: code,
-      ),
-    );
+    if (currentSession == null) return 'تعذر تحميل بيانات الدفع';
+    final previousCouponCode = _resolveAppliedCouponCode(currentSession);
 
     try {
       // Determine platform
@@ -95,11 +108,18 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
 
       // Check if coupon was valid
       if (session.coupon != null && session.coupon!.isValid) {
-        emit(CheckoutSessionLoaded(session: session, appliedCouponCode: code));
+        emit(
+          CheckoutSessionLoaded(
+            session: session,
+            appliedCouponCode:
+                _resolveAppliedCouponCode(session) ?? code.toUpperCase(),
+          ),
+        );
         developer.log(
           'Coupon applied: $code, discount: ${session.coupon!.discountAmount}',
           name: 'CheckoutSessionCubit',
         );
+        return null;
       } else {
         // Coupon was invalid
         final errorMessage = session.coupon?.message ?? 'الكوبون غير صالح';
@@ -114,9 +134,10 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
         emit(
           CheckoutSessionLoaded(
             session: currentSession,
-            appliedCouponCode: null,
+            appliedCouponCode: previousCouponCode,
           ),
         );
+        return errorMessage;
       }
     } catch (e) {
       developer.log(
@@ -133,15 +154,21 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
 
       // Revert to previous state
       emit(
-        CheckoutSessionLoaded(session: currentSession, appliedCouponCode: null),
+        CheckoutSessionLoaded(
+          session: currentSession,
+          appliedCouponCode: previousCouponCode,
+        ),
       );
+
+      return e.toString();
     }
   }
 
   /// Remove applied coupon
-  Future<void> removeCoupon() async {
+  Future<String?> removeCoupon() async {
     final currentSession = _getCurrentSession();
-    if (currentSession == null) return;
+    if (currentSession == null) return 'تعذر تحميل بيانات الدفع';
+    final previousCouponCode = _resolveAppliedCouponCode(currentSession);
 
     emit(const CheckoutSessionLoading());
 
@@ -162,6 +189,7 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
       emit(CheckoutSessionLoaded(session: session, appliedCouponCode: null));
 
       developer.log('Coupon removed', name: 'CheckoutSessionCubit');
+      return null;
     } catch (e) {
       developer.log(
         'Error removing coupon: $e',
@@ -169,10 +197,14 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
         error: e,
       );
 
-      // Revert to previous state without coupon
+      // Revert to previous state
       emit(
-        CheckoutSessionLoaded(session: currentSession, appliedCouponCode: null),
+        CheckoutSessionLoaded(
+          session: currentSession,
+          appliedCouponCode: previousCouponCode,
+        ),
       );
+      return e.toString();
     }
   }
 

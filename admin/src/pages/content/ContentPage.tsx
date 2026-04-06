@@ -1090,7 +1090,7 @@ export function ContentPage() {
   // ─────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ direction: "rtl" }}>
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">إدارة المحتوى</h1>
@@ -1178,24 +1178,24 @@ export function ContentPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4 flex-wrap">
-          <TabsTrigger value="pages" className="flex items-center gap-2">
+        <TabsList className="mb-4 w-full">
+          <TabsTrigger value="pages">
             <FileText className="h-4 w-4" />
             الصفحات
           </TabsTrigger>
-          <TabsTrigger value="banners" className="flex items-center gap-2">
+          <TabsTrigger value="banners">
             <Image className="h-4 w-4" />
             البنرات
           </TabsTrigger>
-          <TabsTrigger value="sliders" className="flex items-center gap-2">
+          <TabsTrigger value="sliders">
             <Layers className="h-4 w-4" />
             السلايدر
           </TabsTrigger>
-          <TabsTrigger value="faqs" className="flex items-center gap-2">
+          <TabsTrigger value="faqs">
             <HelpCircle className="h-4 w-4" />
             الأسئلة الشائعة
           </TabsTrigger>
-          <TabsTrigger value="testimonials" className="flex items-center gap-2">
+          <TabsTrigger value="testimonials">
             <Star className="h-4 w-4" />
             الشهادات
             {pendingTestimonials > 0 && (

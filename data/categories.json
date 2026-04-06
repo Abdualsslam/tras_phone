@@ -1,0 +1,202 @@
+[
+  {
+    "slug": "lsq-lshsh",
+    "name": "لاصق الشاشة",
+    "nameAr": "لاصق الشاشة",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "lshsh",
+    "name": "الشاشة",
+    "nameAr": "الشاشة",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "flt-lshhn",
+    "name": "فلات الشحن",
+    "nameAr": "فلات الشحن",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "lbtry",
+    "name": "البطارية",
+    "nameAr": "البطارية",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "ysy-lbwr",
+    "name": "آيسي الباور",
+    "nameAr": "آيسي الباور",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "ysy-lswt",
+    "name": "آيسي الصوت",
+    "nameAr": "آيسي الصوت",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "ysy-lshhn",
+    "name": "آيسي الشحن",
+    "nameAr": "آيسي الشحن",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "ysy-lwy-fy",
+    "name": "آيسي الواي فاي",
+    "nameAr": "آيسي الواي فاي",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "mnfdh-lshhn",
+    "name": "منفذ الشحن",
+    "nameAr": "منفذ الشحن",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "zr-ltshgyl",
+    "name": "زر التشغيل",
+    "nameAr": "زر التشغيل",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "flt-lshsh",
+    "name": "فلات الشاشة",
+    "nameAr": "فلات الشاشة",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "flt-lryysy",
+    "name": "فلات الرئيسي",
+    "nameAr": "فلات الرئيسي",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "zrr-lswt",
+    "name": "أزرار الصوت",
+    "nameAr": "أزرار الصوت",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "dst-lkmyr",
+    "name": "عدسات الكاميرا",
+    "nameAr": "عدسات الكاميرا",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "sm-khrjy",
+    "name": "سماعة خارجية",
+    "nameAr": "سماعة خارجية",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "mjr-lshryh",
+    "name": "مجر الشريحة",
+    "nameAr": "مجر الشريحة",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "lkmyr",
+    "name": "الكاميرا",
+    "nameAr": "الكاميرا",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "lshsy",
+    "name": "الشاصي",
+    "nameAr": "الشاصي",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "lgt",
+    "name": "الغطاء",
+    "nameAr": "الغطاء",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "lntyn",
+    "name": "الأنتينا",
+    "nameAr": "الأنتينا",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "sm-mklm",
+    "name": "سماعة مكالمة",
+    "nameAr": "سماعة مكالمة",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "lhtzz",
+    "name": "الاهتزاز",
+    "nameAr": "الاهتزاز",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "bsm-lsb",
+    "name": "بصمة الإصبع",
+    "nameAr": "بصمة الإصبع",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "kwnktwr-lbtry",
+    "name": "كونكتور البطارية",
+    "nameAr": "كونكتور البطارية",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  },
+  {
+    "slug": "kwnktwr-lshsh",
+    "name": "كونكتور الشاشة",
+    "nameAr": "كونكتور الشاشة",
+    "parentSlug": "",
+    "level": 0,
+    "isActive": true
+  }
+]

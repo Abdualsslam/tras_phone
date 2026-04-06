@@ -55,6 +55,8 @@ export interface ProductsQueryParams {
     categoryId?: string;
     brandId?: string;
     status?: string;
+    sortBy?: 'price' | 'name' | 'createdAt' | 'viewsCount' | 'ordersCount' | 'averageRating';
+    sortOrder?: 'asc' | 'desc';
 }
 
 export interface PriceLevel {
@@ -357,8 +359,12 @@ export const productsApi = {
     // Import / Export
     // ─────────────────────────────────────────
 
-    downloadImportTemplate: async (): Promise<Blob> => {
+    downloadImportTemplate: async (params?: { optionalFields?: string[] }): Promise<Blob> => {
+        const optionalFields = params?.optionalFields?.filter(Boolean) || [];
         const response = await apiClient.get('/products/import-export/template', {
+            params: optionalFields.length
+                ? { optionalFields: optionalFields.join(',') }
+                : undefined,
             responseType: 'blob',
         });
         return response.data;
@@ -373,9 +379,14 @@ export const productsApi = {
         includeCompatibility?: boolean;
         includeReferences?: boolean;
         search?: string;
+        optionalFields?: string[];
     }): Promise<Blob> => {
+        const optionalFields = params?.optionalFields?.filter(Boolean) || [];
         const response = await apiClient.get('/products/import-export/export', {
-            params,
+            params: {
+                ...params,
+                optionalFields: optionalFields.length ? optionalFields.join(',') : undefined,
+            },
             responseType: 'blob',
         });
         return response.data;

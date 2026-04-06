@@ -22,16 +22,152 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+interface TemplateFieldOption {
+  key: string;
+  label: string;
+  descriptionAr: string;
+}
+
+interface ImportValidationPayload {
+  isValid?: boolean;
+  totalRows?: number;
+  errors?: Array<{
+    row: number;
+    sheet: string;
+    field: string;
+    message: string;
+    value?: unknown;
+  }>;
+  warnings?: Array<{
+    row: number;
+    sheet: string;
+    field: string;
+    message: string;
+  }>;
+}
+
+const requiredTemplateFields = [
+  { key: "sku", label: "sku", descriptionAr: "كود المنتج الفريد" },
+  { key: "name", label: "name", descriptionAr: "اسم المنتج (الرئيسي)" },
+  { key: "nameAr", label: "nameAr", descriptionAr: "اسم المنتج بالعربية" },
+  { key: "slug", label: "slug", descriptionAr: "الرابط النصي للمنتج" },
+  { key: "brandSlug", label: "brandSlug", descriptionAr: "رمز البراند (slug)" },
+  {
+    key: "categorySlug",
+    label: "categorySlug",
+    descriptionAr: "رمز الفئة (slug)",
+  },
+  {
+    key: "qualityTypeSlug",
+    label: "qualityTypeSlug",
+    descriptionAr: "رمز نوع الجودة (code)",
+  },
+  { key: "basePrice", label: "basePrice", descriptionAr: "السعر الأساسي" },
+] as const satisfies readonly TemplateFieldOption[];
+
+const optionalTemplateFields = [
+  { key: "id", label: "id", descriptionAr: "معرّف المنتج (للتحديث)" },
+  {
+    key: "additionalCategorySlugs",
+    label: "additionalCategorySlugs",
+    descriptionAr: "فئات إضافية (slugs مفصولة بفواصل)",
+  },
+  {
+    key: "compareAtPrice",
+    label: "compareAtPrice",
+    descriptionAr: "السعر قبل الخصم",
+  },
+  { key: "costPrice", label: "costPrice", descriptionAr: "سعر التكلفة" },
+  { key: "stockQuantity", label: "stockQuantity", descriptionAr: "كمية المخزون" },
+  {
+    key: "lowStockThreshold",
+    label: "lowStockThreshold",
+    descriptionAr: "حد تنبيه انخفاض المخزون",
+  },
+  {
+    key: "trackInventory",
+    label: "trackInventory",
+    descriptionAr: "تفعيل تتبع المخزون",
+  },
+  {
+    key: "allowBackorder",
+    label: "allowBackorder",
+    descriptionAr: "السماح بالطلب عند نفاد المخزون",
+  },
+  { key: "status", label: "status", descriptionAr: "حالة المنتج" },
+  { key: "isActive", label: "isActive", descriptionAr: "نشط/غير نشط" },
+  { key: "isFeatured", label: "isFeatured", descriptionAr: "منتج مميز" },
+  { key: "isNewArrival", label: "isNewArrival", descriptionAr: "وصول جديد" },
+  { key: "isBestSeller", label: "isBestSeller", descriptionAr: "الأكثر مبيعًا" },
+  { key: "description", label: "description", descriptionAr: "الوصف" },
+  { key: "descriptionAr", label: "descriptionAr", descriptionAr: "الوصف بالعربية" },
+  {
+    key: "shortDescription",
+    label: "shortDescription",
+    descriptionAr: "وصف مختصر",
+  },
+  {
+    key: "shortDescriptionAr",
+    label: "shortDescriptionAr",
+    descriptionAr: "وصف مختصر بالعربية",
+  },
+  { key: "mainImage", label: "mainImage", descriptionAr: "رابط الصورة الرئيسية" },
+  { key: "images", label: "images", descriptionAr: "روابط صور إضافية" },
+  { key: "video", label: "video", descriptionAr: "رابط الفيديو" },
+  {
+    key: "specifications",
+    label: "specifications",
+    descriptionAr: "مواصفات المنتج (JSON)",
+  },
+  { key: "weight", label: "weight", descriptionAr: "الوزن" },
+  { key: "dimensions", label: "dimensions", descriptionAr: "الأبعاد" },
+  { key: "color", label: "color", descriptionAr: "اللون" },
+  { key: "tags", label: "tags", descriptionAr: "وسوم المنتج" },
+  { key: "warrantyDays", label: "warrantyDays", descriptionAr: "مدة الضمان (أيام)" },
+  {
+    key: "warrantyDescription",
+    label: "warrantyDescription",
+    descriptionAr: "وصف الضمان",
+  },
+  { key: "metaTitle", label: "metaTitle", descriptionAr: "عنوان SEO" },
+  { key: "metaTitleAr", label: "metaTitleAr", descriptionAr: "عنوان SEO بالعربية" },
+  {
+    key: "metaDescription",
+    label: "metaDescription",
+    descriptionAr: "وصف SEO",
+  },
+  {
+    key: "metaDescriptionAr",
+    label: "metaDescriptionAr",
+    descriptionAr: "وصف SEO بالعربية",
+  },
+  {
+    key: "metaKeywords",
+    label: "metaKeywords",
+    descriptionAr: "كلمات مفتاحية SEO",
+  },
+  {
+    key: "compatibleDevices",
+    label: "compatibleDevices",
+    descriptionAr: "الأجهزة المتوافقة (slugs)",
+  },
+] as const satisfies readonly TemplateFieldOption[];
+
 export function ProductImportExportDialog({ open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [mode, setMode] = useState<ImportMode>("upsert");
   const [result, setResult] = useState<ProductsImportExportResult | null>(null);
+  const [selectedOptionalTemplateFields, setSelectedOptionalTemplateFields] =
+    useState<string[]>([]);
 
   const fileName = useMemo(() => file?.name || "", [file]);
 
   const downloadTemplateMutation = useMutation({
-    mutationFn: productsApi.downloadImportTemplate,
+    mutationFn: () =>
+      productsApi.downloadImportTemplate({
+        optionalFields: selectedOptionalTemplateFields,
+      }),
     onSuccess: (blob) => {
       downloadBlob(blob, `products-template-${Date.now()}.xlsx`);
       toast.success("تم تحميل القالب");
@@ -40,7 +176,12 @@ export function ProductImportExportDialog({ open, onOpenChange }: Props) {
   });
 
   const exportMutation = useMutation({
-    mutationFn: () => productsApi.exportProductsExcel({ includeReferences: true, includeCompatibility: true }),
+    mutationFn: () =>
+      productsApi.exportProductsExcel({
+        includeReferences: true,
+        includeCompatibility: true,
+        optionalFields: selectedOptionalTemplateFields,
+      }),
     onSuccess: (blob) => {
       downloadBlob(blob, `products-export-${Date.now()}.xlsx`);
       toast.success("تم تصدير المنتجات بنجاح");
@@ -64,9 +205,13 @@ export function ProductImportExportDialog({ open, onOpenChange }: Props) {
     mutationFn: (selectedFile: File) =>
       productsApi.importProductsExcel(selectedFile, { mode }),
     onSuccess: (data) => {
-      const payload = (data?.validation ? data.validation : data) as ProductsImportExportResult;
+      const payload = normalizeImportResult(data);
       setResult(payload);
-      toast.success("اكتملت عملية الاستيراد");
+      if (payload.success) {
+        toast.success("اكتملت عملية الاستيراد");
+      } else {
+        toast.warning(`تعذر إكمال الاستيراد: يوجد ${payload.summary.errors} خطأ`);
+      }
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
     onError: (error) => toast.error(getErrorMessage(error, "فشل الاستيراد")),
@@ -82,9 +227,17 @@ export function ProductImportExportDialog({ open, onOpenChange }: Props) {
     onError: (error) => toast.error(getErrorMessage(error, "فشل التحديث الجزئي")),
   });
 
+  const toggleOptionalTemplateField = (field: string) => {
+    setSelectedOptionalTemplateFields((prev) =>
+      prev.includes(field)
+        ? prev.filter((item) => item !== field)
+        : [...prev, field],
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>استيراد / تصدير المنتجات (Excel)</DialogTitle>
           <DialogDescription>
@@ -108,6 +261,79 @@ export function ProductImportExportDialog({ open, onOpenChange }: Props) {
             >
               <Download className="h-4 w-4" /> تصدير المنتجات
             </Button>
+          </div>
+
+          <div className="rounded-lg border p-3 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">تخصيص أعمدة القالب والتصدير</p>
+                <p className="text-xs text-gray-500">
+                  الافتراضي: الحقول الإلزامية فقط. الحقول الاختيارية المختارة: {selectedOptionalTemplateFields.length}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setSelectedOptionalTemplateFields(
+                      optionalTemplateFields.map((field) => field.key),
+                    )
+                  }
+                >
+                  تحديد الكل
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedOptionalTemplateFields([])}
+                >
+                  إلغاء الكل
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-gray-600">الحقول الإلزامية:</p>
+              <div className="flex flex-wrap gap-2">
+                {requiredTemplateFields.map((field) => (
+                  <span
+                    key={field.key}
+                    className="inline-flex flex-col rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-700"
+                  >
+                    <span className="font-medium">{field.label}</span>
+                    <span className="text-[11px] text-emerald-800">{field.descriptionAr}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-gray-600">الحقول الاختيارية:</p>
+              <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                {optionalTemplateFields.map((field) => {
+                  const checked = selectedOptionalTemplateFields.includes(field.key);
+                  return (
+                    <label
+                      key={field.key}
+                      className="flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleOptionalTemplateField(field.key)}
+                      />
+                      <span className="flex flex-col gap-0.5">
+                        <span className="font-medium">{field.label}</span>
+                        <span className="text-[11px] text-gray-500">{field.descriptionAr}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-3">
@@ -196,4 +422,41 @@ function downloadBlob(blob: Blob, filename: string) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function normalizeImportResult(payload: unknown): ProductsImportExportResult {
+  const data = payload as {
+    success?: boolean;
+    summary?: ProductsImportExportResult["summary"];
+    errors?: ProductsImportExportResult["errors"];
+    warnings?: ProductsImportExportResult["warnings"];
+    validation?: ImportValidationPayload;
+  };
+
+  if (data?.summary) {
+    return {
+      success: Boolean(data.success),
+      summary: data.summary,
+      errors: data.errors || [],
+      warnings: data.warnings || [],
+    };
+  }
+
+  const validation = data?.validation || {};
+  const errors = validation.errors || [];
+  const warnings = validation.warnings || [];
+  const totalRows = Number(validation.totalRows || 0);
+
+  return {
+    success: false,
+    summary: {
+      total: totalRows,
+      created: 0,
+      updated: 0,
+      skipped: totalRows,
+      errors: errors.length,
+    },
+    errors,
+    warnings,
+  };
 }

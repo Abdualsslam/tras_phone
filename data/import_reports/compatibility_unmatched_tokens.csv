@@ -1,0 +1,529 @@
+token,count
+"iPhone 6",50
+"Samsung A7",42
+"iPhone 13",36
+"iPhone 11 Pro",28
+"iPhone 7",28
+"Samsung A5",28
+"Samsung A52",28
+"Samsung A3",26
+"iPhone 14",24
+"iPhone 15",24
+"Samsung A22",24
+"Samsung N960",24
+"Samsung Note 9",23
+"Samsung N975",22
+"Samsung A33",22
+"iPhone 15 Pro Max",21
+"Samsung Note 8",20
+"Samsung A715",20
+"Samsung N986",20
+"iPhone 5",20
+"iPhone 15 Pro",19
+"iPhone 15 برو",19
+"iPhone 15 برو ماكس",19
+"Samsung A307",18
+"Samsung A73",18
+"Samsung A336",18
+"iPhone 12 Pro Max",17
+"iPhone 8 Plus",17
+"iPhone 13 Pro",17
+"iPhone 13 برو ماكس",16
+"Samsung S908",16
+"Samsung A21",16
+"Samsung A107",16
+"Samsung A705",16
+"Samsung A1",16
+"Samsung A9",16
+"Samsung A225",15
+"iPhone 14 Pro Max",14
+"iPhone 7 Plus",14
+"iPhone 7 بلس",14
+"iPhone 13 برو",14
+"Samsung N920",14
+"Samsung A720",14
+"Samsung A037",14
+"Samsung A54",14
+"Samsung S918",14
+"Samsung Note 20 Ultra",13
+"iPhone 14 Pro",13
+"iPhone 14 برو",13
+"iPhone 14 برو ماكس",13
+"iPhone 14 Plus",12
+"iPhone 14 بلس",12
+"N960",12
+"Samsung S10 Plus",12
+"Samsung A207",12
+"Samsung A23",12
+"Samsung A326",12
+"Samsung A2197",12
+"Samsung A146",12
+"iPhone 12 Mini",11
+"N975",11
+"iPhone 16",10
+"A515",10
+"A715",10
+"Samsung S22 Ultra",10
+"Samsung A115",10
+"Samsung A42",10
+"Samsung A426",10
+"Samsung A526",10
+"Samsung A2",10
+"Samsung A205",10
+"Samsung N970",10
+"Samsung N910",10
+"Samsung A8",10
+"Samsung A1822",10
+"Samsung A1823",10
+"Samsung A1893",10
+"Samsung A1954",10
+"A307",9
+"Samsung Note 11",9
+"iPhone 16 Pro",8
+"Samsung Note 5",8
+"N950",8
+"G955",8
+"Samsung A226",8
+"A315",8
+"N986",8
+"G973",8
+"S908",8
+"Samsung A127",8
+"Samsung A022",8
+"Samsung A137",8
+"A705",8
+"Samsung A045",8
+"Samsung A042",8
+"Samsung A235",8
+"Samsung A24",8
+"Samsung A245",8
+"Samsung A510",8
+"Samsung N980",8
+"Samsung A93",8
+"Samsung S3",8
+"Samsung A2757",8
+"Samsung A2200",8
+"Samsung A2188",8
+"Samsung A1599",8
+"Samsung S1",8
+"iPhone 16 برو",7
+"iPhone 16 Pro Max",7
+"G950",7
+"A505",7
+"A520",7
+"Samsung S20 Plus",7
+"G985",7
+"G988",7
+"Samsung S21 Ultra",7
+"G998",7
+"G930",7
+"G960",7
+"Samsung A25",7
+"A336",7
+"Samsung Note 12",7
+"Samsung N985",6
+"iPhone 6 Plus",6
+"N920",6
+"iPhone 13 Mini",6
+"iPhone 13 ميني",6
+"A225",6
+"A310",6
+"G920",6
+"Samsung S24",6
+"G935",6
+"A025",6
+"A037",6
+"A107",6
+"Samsung A155",6
+"A207",6
+"A528",6
+"Samsung A2228",6
+"Samsung A49",6
+"Samsung n9",6
+"Samsung Note 20",6
+"A305",6
+"Samsung A60",6
+"Samsung N770",6
+"Samsung N9005",6
+"Samsung A94",6
+"Samsung A92",6
+"Samsung S4",6
+"Samsung A06",6
+"Samsung A6",6
+"Samsung A2777",6
+"Samsung A1584",6
+"Samsung A1652",6
+"Samsung A2379",6
+"Samsung A2461",6
+"Samsung A1395",6
+"Samsung A1432",6
+"Samsung A1489",6
+"Samsung N981",6
+"Samsung A95",6
+"Samsung A1476",6
+"Samsung A1475",6
+"Samsung A1474",6
+"iPhone 16 برو ماكس",5
+"A750",5
+"G975",5
+"Samsung S20 Ultra",5
+"G965",5
+"iPhone 6 بلس",5
+"A115",5
+"A125",5
+"A135",5
+"A426",5
+"A526",5
+"A205",5
+"Samsung Note 7",5
+"N970",5
+"Samsung Note 4",5
+"G900",5
+"A1822",5
+"A1823",5
+"A1954",5
+"J530",5
+"J710",5
+"J730",5
+"S918B",5
+"A720",4
+"A226",4
+"iPhone 15 Plus",4
+"iPhone 15 بلس",4
+"A032",4
+"A137",4
+"Samsung A156",4
+"A217",4
+"Samsung A27",4
+"Samsung n56",4
+"Samsung A013",4
+"A045",4
+"A047",4
+"A245",4
+"A326",4
+"A507",4
+"A536",4
+"Samsung A726",4
+"G570",4
+"N980",4
+"N910",4
+"Samsung A77",4
+"Samsung A96",4
+"Samsung S2",4
+"Samsung A236",4
+"A346",4
+"Samsung A730",4
+"G531",4
+"Samsung A2428",4
+"Samsung A2429",4
+"Samsung A2270",4
+"Samsung A2430",4
+"Samsung A2696",4
+"Samsung A2462",4
+"A2200",4
+"A2188",4
+"A1893",4
+"Samsung A1673",4
+"Samsung A1674",4
+"Samsung A1675",4
+"Samsung A1567",4
+"Samsung A1566",4
+"A1599",4
+"Samsung A1538",4
+"Samsung A1550",4
+"Samsung A2133",4
+"Samsung A2126",4
+"Samsung A2124",4
+"Samsung A2125",4
+"Samsung A1701",4
+"Samsung A1709",4
+"Samsung A1852",4
+"J701",4
+"Samsung A17",4
+"Samsung S911",4
+"Samsung s3",4
+"Samsung s2",4
+"Samsung A1416",4
+"Samsung A1600",4
+"N985",3
+"A710",3
+"G928",3
+"A127",3
+"A145",3
+"A325",3
+"A525",3
+"A2197",3
+"G980",3
+"A022",3
+"A136",3
+"Samsung Note 3",3
+"N9005",3
+"X215",3
+"G610",3
+"A2757",3
+"A2777",3
+"A1584",3
+"A1652",3
+"Samsung A1895",3
+"Samsung A2014",3
+"A1395",3
+"A1432",3
+"A1489",3
+"J120",3
+"J200",3
+"J250",3
+"J320",3
+"J400",3
+"J500",3
+"J510",3
+"J700",3
+"N981",3
+"G781",3
+"A1475",3
+"A1474",3
+"Samsung S24 Ultra",2
+"Samsung A055",2
+"Samsung N28",2
+"A105",2
+"A155",2
+"iPhone 311",2
+"iPhone 3112020",2
+"A013",2
+"A042",2
+"A215",2
+"Samsung A335",2
+"A726",2
+"G532",2
+"J610",2
+"Samsung s4",2
+"Samsung Note2",2
+"Samsung N7100",2
+"Samsung A1 Plus",2
+"X210",2
+"iPhone 13برو",2
+"iPhone 15برو",2
+"Samsung A035",2
+"Samsung A066",2
+"Samsung A065",2
+"A146P",2
+"A146U",2
+"A236",2
+"Samsung A260",2
+"Samsung A300",2
+"Samsung A356",2
+"Samsung A500",2
+"A510",2
+"A546",2
+"T505",2
+"A730",2
+"A736",2
+"Samsung A738",2
+"Samsung A800",2
+"G611",2
+"X688",2
+"X688C",2
+"X688B",2
+"A2428",2
+"A2429",2
+"A2270",2
+"A2430",2
+"A2379",2
+"A2461",2
+"A2462",2
+"Samsung A1430",2
+"Samsung A1403",2
+"A1674",2
+"A1675",2
+"A1567",2
+"A1566",2
+"Samsung A2153",2
+"Samsung A2123",2
+"Samsung A2154",2
+"Samsung A2152",2
+"Samsung A2072",2
+"Samsung A2325",2
+"Samsung A2316",2
+"Samsung A2588",2
+"A1538",2
+"A1550",2
+"A2126",2
+"A2124",2
+"A2125",2
+"A1701",2
+"A1709",2
+"A1852",2
+"Samsung A2301",2
+"Samsung A2459",2
+"Samsung A2460",2
+"Samsung A2068",2
+"Samsung A2230",2
+"Samsung A2231",2
+"Samsung A2378",2
+"Samsung A2069",2
+"Samsung A2232",2
+"Samsung A2233",2
+"Samsung A2229",2
+"Samsung A26",2
+"Samsung A551",2
+"M315",2
+"Samsung n2",2
+"Samsung A1+",2
+"Samsung A1Plus",2
+"Samsung A2Plus",2
+"Samsung A2+",2
+"N770F",2
+"Samsung a1341",2
+"Samsung A1344",2
+"Samsung A18",2
+"Samsung A57",2
+"Samsung A76",2
+"Samsung A79",2
+"Samsung A58",2
+"Samsung A98",2
+"Samsung A83",2
+"Samsung A74",2
+"Samsung A91",2
+"P619",2
+"Samsung N61",2
+"Samsung N63",2
+"G996",2
+"Samsung S21 Fe",2
+"Samsung S901",2
+"Samsung S916",2
+"S911",2
+"S918",2
+"X659B",2
+"X658",2
+"T220",2
+"T231",2
+"T555",2
+"T585",2
+"Samsung S7 Fe",2
+"Samsung A9 Plus",2
+"X216",2
+"iPhone 3",2
+"iPhone 4",2
+"iPhone 10",2
+"A1416",2
+"Samsung A2602",2
+"Samsung A2603",2
+"Samsung A2604",2
+"A1600",2
+"iPhone 6Plus",1
+"A326U",1
+"G925",1
+"iPhone 16برو ماكس",1
+"A057",1
+"A335",1
+"A725",1
+"N770",1
+"N7100",1
+"Samsung Note 30",1
+"I9100",1
+"I9300",1
+"I9500",1
+"T510",1
+"iPhone 14برو",1
+"A015",1
+"A035",1
+"A037U",1
+"M045",1
+"A066",1
+"A065",1
+"A146",1
+"A156",1
+"M336",1
+"A235",1
+"A356",1
+"A605",1
+"T500",1
+"A738",1
+"L1911",1
+"X205",1
+"X682",1
+"X657C",1
+"X657",1
+"X657B",1
+"X6283",1
+"X662",1
+"X662B",1
+"X6817B",1
+"X6817",1
+"X665C",1
+"X665E",1
+"X559C",1
+"X6532",1
+"X680",1
+"X680C",1
+"A2696",1
+"A1430",1
+"A1403",1
+"A2123",1
+"A2154",1
+"A2152",1
+"A2072",1
+"A2325",1
+"A2316",1
+"A2588",1
+"A2301",1
+"A2459",1
+"A2460",1
+"A2068",1
+"A2230",1
+"A2228",1
+"A2231",1
+"A2069",1
+"A2232",1
+"A2233",1
+"A2229",1
+"L6502",1
+"P682",1
+"J260",1
+"J600",1
+"J415",1
+"J810",1
+"M025",1
+"M115",1
+"M125",1
+"M135",1
+"M346",1
+"M526",1
+"M1810F",1
+"X695",1
+"X663",1
+"X697",1
+"X6825",1
+"iPhone 30",1
+"X6711",1
+"X6833B",1
+"X6716B",1
+"X692",1
+"X6823",1
+"X6511",1
+"P205",1
+"X6826",1
+"G780",1
+"G991",1
+"S901",1
+"Samsung S23 Plus",1
+"S916B",1
+"P610",1
+"T875",1
+"T876",1
+"X700",1
+"X706",1
+"T509",1
+"T515",1
+"T517",1
+"T733",1
+"T736",1
+"Samsung A9+",1
+"X6812",1
+"V2302",1
+"V770",1
+"F711",1
+"F721",1
+"F926",1
+"A2602",1
+"A2603",1
+"A2604",1

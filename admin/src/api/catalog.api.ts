@@ -180,9 +180,18 @@ export const catalogApi = {
         includeInactive?: boolean;
     }): Promise<{ items: Device[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> => {
         const response = await apiClient.get<ApiResponse<Device[]>>('/catalog/devices/paginated', { params });
+        const responseData = response.data as any;
+        const meta = responseData?.meta?.pagination || responseData?.meta || responseData?.pagination || {};
+        const items = extractArrayData<Device>(response.data);
+
         return {
-            items: extractArrayData<Device>(response.data),
-            pagination: (response.data as any).pagination || { page: 1, limit: 20, total: 0, totalPages: 0 },
+            items,
+            pagination: {
+                page: Number(meta.page) || params?.page || 1,
+                limit: Number(meta.limit) || params?.limit || 20,
+                total: Number(meta.total) || items.length,
+                totalPages: Number(meta.totalPages ?? meta.pages) || 1,
+            },
         };
     },
 

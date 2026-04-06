@@ -661,7 +661,7 @@ export function EducationalContentPage() {
   // ─────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ direction: "rtl" }}>
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">المحتوى التعليمي</h1>
@@ -730,12 +730,12 @@ export function EducationalContentPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="categories" className="flex items-center gap-2">
+        <TabsList className="w-full">
+          <TabsTrigger value="categories">
             <FolderTree className="h-4 w-4" />
             الفئات
           </TabsTrigger>
-          <TabsTrigger value="content" className="flex items-center gap-2">
+          <TabsTrigger value="content">
             <BookOpen className="h-4 w-4" />
             المحتوى
           </TabsTrigger>

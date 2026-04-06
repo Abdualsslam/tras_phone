@@ -6,6 +6,7 @@ import { ProductsService } from '@modules/products/products.service';
 import { InventoryService } from '@modules/inventory/inventory.service';
 import { CustomersService } from '@modules/customers/customers.service';
 import { SettingsService } from '@modules/settings/settings.service';
+import { CouponsService } from '@modules/promotions/coupons.service';
 import { SyncCartItemDto } from './dto/sync-cart.dto';
 import { CheckoutCartDto, CheckoutCartItemDto, CartItemProductDto } from './dto/checkout-session.dto';
 
@@ -28,6 +29,7 @@ export class CartService {
         @Inject(forwardRef(() => CustomersService))
         private customersService: CustomersService,
         private settingsService: SettingsService,
+        private couponsService: CouponsService,
     ) { }
 
     /**
@@ -45,6 +47,18 @@ export class CartService {
                 status: 'active',
                 items: [],
             });
+            return cart;
+        }
+
+        // Legacy normalization: old carts stored coupon value inside `discount`.
+        // Keep `discount` for promotions only when there are actually applied promotions.
+        const hasAppliedPromotions =
+            Array.isArray(cart.appliedPromotions) && cart.appliedPromotions.length > 0;
+        if (!hasAppliedPromotions && Number(cart.discount || 0) > 0) {
+            cart.discount = 0;
+            const couponDiscount = Number(cart.couponDiscount || 0);
+            cart.total = cart.subtotal - couponDiscount + cart.taxAmount + cart.shippingCost;
+            await cart.save();
         }
 
         return cart;
@@ -182,15 +196,25 @@ export class CartService {
      */
     async applyCoupon(
         customerId: string,
-        couponId: string | undefined,
         couponCode: string,
-        discountAmount: number,
     ): Promise<CartDocument> {
         const cart = await this.getCart(customerId);
+        const customer = await this.customersService.findById(customerId);
 
-        cart.couponId = couponId ? new Types.ObjectId(couponId) : undefined;
-        cart.couponCode = couponCode;
-        cart.couponDiscount = discountAmount;
+        const validation = await this.couponsService.validate(
+            couponCode,
+            customerId,
+            cart.subtotal,
+            {
+                productIds: cart.items.map((item) => item.productId.toString()),
+                priceLevelId: customer?.priceLevelId?.toString(),
+                shippingCost: cart.shippingCost,
+            },
+        );
+
+        cart.couponId = validation.coupon._id;
+        cart.couponCode = validation.coupon.code;
+        cart.couponDiscount = validation.discountAmount;
 
         await this.recalculateTotals(cart);
         cart.lastActivityAt = new Date();
@@ -236,8 +260,10 @@ export class CartService {
     private async recalculateTotals(cart: CartDocument): Promise<void> {
         cart.itemsCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
         cart.subtotal = cart.items.reduce((sum, item) => sum + item.totalPrice, 0);
-        cart.discount = cart.couponDiscount;
-        cart.total = cart.subtotal - cart.discount + cart.taxAmount + cart.shippingCost;
+        const discount = Number(cart.discount || 0);
+        const couponDiscount = Number(cart.couponDiscount || 0);
+        cart.total =
+            cart.subtotal - discount - couponDiscount + cart.taxAmount + cart.shippingCost;
     }
 
     /**
@@ -359,7 +385,7 @@ export class CartService {
             discount,
             taxAmount,
             shippingCost,
-            total: subtotal - couponDiscount + taxAmount + shippingCost,
+            total: subtotal - discount - couponDiscount + taxAmount + shippingCost,
             couponCode: cart.couponCode,
             couponDiscount,
         };
@@ -582,7 +608,8 @@ export class CartService {
         // Compute totals from newItems
         const itemsCount = newItems.reduce((sum, item) => sum + item.quantity, 0);
         const subtotal = newItems.reduce((sum, item) => sum + item.totalPrice, 0);
-        const total = subtotal - (cart.couponDiscount || 0) + (cart.taxAmount || 0) + (cart.shippingCost || 0);
+        const total =
+            subtotal - (cart.discount || 0) - (cart.couponDiscount || 0) + (cart.taxAmount || 0) + (cart.shippingCost || 0);
         const lastActivityAt = new Date();
 
         // Persist to DB with findOneAndUpdate (guarantees write; no Mongoose change-tracking)

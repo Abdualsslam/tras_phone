@@ -44,11 +44,7 @@ class CheckoutSessionEntity extends Equatable {
       hasCouponApplied ? (coupon!.discountAmount ?? 0) : 0;
 
   /// Calculate final total with coupon discount
-  double get finalTotal =>
-      cart.subtotal -
-      appliedCouponDiscount +
-      cart.taxAmount +
-      cart.shippingCost;
+  double get finalTotal => cart.total;
 
   @override
   List<Object?> get props => [

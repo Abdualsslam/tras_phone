@@ -374,16 +374,16 @@ export function InventoryPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
+        <TabsList className="mb-4 w-full">
+          <TabsTrigger value="overview">
             <Package className="h-4 w-4" />
             المخزون
           </TabsTrigger>
-          <TabsTrigger value="warehouses" className="flex items-center gap-2">
+          <TabsTrigger value="warehouses">
             <WarehouseIcon className="h-4 w-4" />
             المستودعات
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center gap-2">
+          <TabsTrigger value="alerts">
             <AlertTriangle className="h-4 w-4" />
             التنبيهات
             {alerts.length > 0 && (
@@ -392,19 +392,19 @@ export function InventoryPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="movements" className="flex items-center gap-2">
+          <TabsTrigger value="movements">
             <ArrowLeftRight className="h-4 w-4" />
             الحركات
           </TabsTrigger>
-          <TabsTrigger value="counts" className="flex items-center gap-2">
+          <TabsTrigger value="counts">
             <ClipboardList className="h-4 w-4" />
             الجرد
           </TabsTrigger>
-          <TabsTrigger value="transfers" className="flex items-center gap-2">
+          <TabsTrigger value="transfers">
             <Truck className="h-4 w-4" />
             التحويلات
           </TabsTrigger>
-          <TabsTrigger value="reservations" className="flex items-center gap-2">
+          <TabsTrigger value="reservations">
             <Lock className="h-4 w-4" />
             الحجوزات
           </TabsTrigger>
