@@ -25,13 +25,13 @@ void main() {
   testWidgets('shows a generic stock issue message without a quantity', (
     tester,
   ) async {
-    const item = CheckoutCartItemEntity(
+    final item = CheckoutCartItemEntity(
       productId: 'p1',
       quantity: 5,
       unitPrice: 100,
       totalPrice: 500,
       addedAt: DateTime(2026, 4, 7),
-      product: CartItemProductEntity(
+      product: const CartItemProductEntity(
         name: 'Product',
         nameAr: 'منتج',
         sku: 'SKU-1',
