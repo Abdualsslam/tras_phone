@@ -16,6 +16,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../promotions/presentation/widgets/coupon_input.dart';
 import '../../domain/entities/checkout_session_entity.dart';
+import '../widgets/checkout_sections.dart';
 import '../cubit/cart_cubit.dart';
 import '../cubit/checkout_session_cubit.dart';
 import '../cubit/checkout_session_state.dart';
@@ -157,7 +158,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                 ),
               ),
               body: AppError(
-                title: 'حدث خطأ أثناء تحميل البيانات',
+                title: 'Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª',
                 message: state.message,
                 onRetry: () =>
                     context.read<CheckoutSessionCubit>().loadSession(),
@@ -245,7 +246,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                     ),
                                     SizedBox(height: 8.h),
                                     Text(
-                                      'لا توجد عناوين متاحة',
+                                      'Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¹Ù†Ø§ÙˆÙŠÙ† Ù…ØªØ§Ø­Ø©',
                                       style: theme.textTheme.bodyMedium
                                           ?.copyWith(fontSize: 14.sp),
                                     ),
@@ -401,7 +402,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                     ),
                                     SizedBox(height: 8.h),
                                     Text(
-                                      'لا توجد طرق دفع متاحة',
+                                      'Ù„Ø§ ØªÙˆØ¬Ø¯ Ø·Ø±Ù‚ Ø¯ÙØ¹ Ù…ØªØ§Ø­Ø©',
                                       style: theme.textTheme.bodyMedium,
                                     ),
                                   ],
@@ -475,7 +476,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                               children: [
                                 _buildSectionTitle(
                                   theme,
-                                  'بيانات التحويل البنكي',
+                                  'Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªØ­ÙˆÙŠÙ„ Ø§Ù„Ø¨Ù†ÙƒÙŠ',
                                 ),
                                 SizedBox(height: 12.h),
                                 _buildBankTransferSection(theme, isDark),
@@ -573,7 +574,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                       SizedBox(width: 8.w),
                                       Expanded(
                                         child: Text(
-                                          'استخدام رصيد المحفظة',
+                                          'Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø±ØµÙŠØ¯ Ø§Ù„Ù…Ø­ÙØ¸Ø©',
                                           style: theme.textTheme.titleSmall
                                               ?.copyWith(
                                                 fontWeight: FontWeight.w700,
@@ -598,7 +599,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'تم اختيار الدفع بالمحفظة، سيتم الخصم من المحفظة أولاً ثم من حد الائتمان تلقائياً.',
+                                          'ØªÙ… Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ø¯ÙØ¹ Ø¨Ø§Ù„Ù…Ø­ÙØ¸Ø©ØŒ Ø³ÙŠØªÙ… Ø§Ù„Ø®ØµÙ… Ù…Ù† Ø§Ù„Ù…Ø­ÙØ¸Ø© Ø£ÙˆÙ„Ø§Ù‹ Ø«Ù… Ù…Ù† Ø­Ø¯ Ø§Ù„Ø§Ø¦ØªÙ…Ø§Ù† ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹.',
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
                                                 color: AppColors
@@ -607,16 +608,16 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                         ),
                                         SizedBox(height: 8.h),
                                         Text(
-                                          'من المحفظة: ${walletAutoUse.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                          'Ù…Ù† Ø§Ù„Ù…Ø­ÙØ¸Ø©: ${walletAutoUse.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
                                           style: theme.textTheme.bodySmall,
                                         ),
                                         Text(
-                                          'من الائتمان: ${creditAutoUse.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                          'Ù…Ù† Ø§Ù„Ø§Ø¦ØªÙ…Ø§Ù†: ${creditAutoUse.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
                                           style: theme.textTheme.bodySmall,
                                         ),
                                         if (remainingAfterWalletAndCredit > 0)
                                           Text(
-                                            'المتبقي بعد المحفظة والائتمان: ${remainingAfterWalletAndCredit.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                            'Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ Ø¨Ø¹Ø¯ Ø§Ù„Ù…Ø­ÙØ¸Ø© ÙˆØ§Ù„Ø§Ø¦ØªÙ…Ø§Ù†: ${remainingAfterWalletAndCredit.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
                                             style: theme.textTheme.bodySmall
                                                 ?.copyWith(
                                                   color: AppColors.error,
@@ -627,7 +628,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                     )
                                   else ...[
                                     Text(
-                                      'سيتم الخصم تلقائياً من المحفظة أولاً في جميع الطلبات.',
+                                      'Ø³ÙŠØªÙ… Ø§Ù„Ø®ØµÙ… ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ù…Ù† Ø§Ù„Ù…Ø­ÙØ¸Ø© Ø£ÙˆÙ„Ø§Ù‹ ÙÙŠ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø·Ù„Ø¨Ø§Øª.',
                                       style: theme.textTheme.bodySmall
                                           ?.copyWith(
                                             color: AppColors.textSecondaryLight,
@@ -635,11 +636,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                     ),
                                     SizedBox(height: 8.h),
                                     Text(
-                                      'المخصوم تلقائياً: ${walletAutoUse.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                      'Ø§Ù„Ù…Ø®ØµÙˆÙ… ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹: ${walletAutoUse.toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
                                       style: theme.textTheme.bodySmall,
                                     ),
                                     Text(
-                                      'المتبقي بعد المحفظة: ${(orderTotal - walletAutoUse).clamp(0, orderTotal).toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                                      'Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ Ø¨Ø¹Ø¯ Ø§Ù„Ù…Ø­ÙØ¸Ø©: ${(orderTotal - walletAutoUse).clamp(0, orderTotal).toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
                                       style: theme.textTheme.bodySmall,
                                     ),
                                   ],
@@ -666,7 +667,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildSectionTitle(theme, 'كود الخصم'),
+                                _buildSectionTitle(theme, 'ÙƒÙˆØ¯ Ø§Ù„Ø®ØµÙ…'),
                                 SizedBox(height: 12.h),
                                 CouponInput(
                                   appliedCode: appliedCode,
@@ -766,7 +767,10 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
     final state = context.read<OrdersCubit>().state;
     if (state is OrdersError && _bankAccounts.isEmpty) {
-      AppSnackbar.showError(context, 'تعذر تحميل الحسابات البنكية');
+      AppSnackbar.showError(
+        context,
+        'ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª Ø§Ù„Ø¨Ù†ÙƒÙŠØ©',
+      );
     }
   }
 
@@ -775,118 +779,12 @@ class _CheckoutScreenState extends State<CheckoutScreen>
   }
 
   Widget _buildBankTransferSection(ThemeData theme, bool isDark) {
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(
-          color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'إيصال التحويل (مطلوب)',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          GestureDetector(
-            onTap: _pickTransferReceiptImage,
-            child: Container(
-              height: 170.h,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.cardDark : AppColors.cardLight,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(
-                  color: _receiptImagePath != null
-                      ? AppColors.primary
-                      : (isDark
-                            ? AppColors.dividerDark
-                            : AppColors.dividerLight),
-                ),
-              ),
-              child: _receiptImagePath == null
-                  ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Iconsax.gallery_add,
-                          size: 36.sp,
-                          color: AppColors.textTertiaryLight,
-                        ),
-                        SizedBox(height: 10.h),
-                        Text(
-                          'اضغط لاختيار صورة الإيصال',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondaryLight,
-                          ),
-                        ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          'PNG, JPG حتى 10 MB',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textTertiaryLight,
-                          ),
-                        ),
-                      ],
-                    )
-                  : Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10.r),
-                          child: Image.file(
-                            File(_receiptImagePath!),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Positioned(
-                          top: 8.h,
-                          left: 8.w,
-                          child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _receiptImagePath = null),
-                            child: Container(
-                              padding: EdgeInsets.all(6.w),
-                              decoration: const BoxDecoration(
-                                color: AppColors.error,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.close,
-                                size: 14.sp,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-          SizedBox(height: 14.h),
-          TextField(
-            controller: _transferNotesController,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'ملاحظات التحويل (اختياري)',
-              hintText: 'أي تفاصيل إضافية عن عملية التحويل',
-            ),
-          ),
-          SizedBox(height: 14.h),
-          Text(
-            'ستجد البنوك المدعومة تحت خيار "تحويل بنكي" بالأعلى.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondaryLight,
-            ),
-          ),
-        ],
-      ),
+    return CheckoutTransferReceiptSection(
+      isDark: isDark,
+      receiptImagePath: _receiptImagePath,
+      transferNotesController: _transferNotesController,
+      onPickImage: _pickTransferReceiptImage,
+      onClearImage: () => setState(() => _receiptImagePath = null),
     );
   }
 
@@ -899,7 +797,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
             children: [
               ListTile(
                 leading: const Icon(Iconsax.camera),
-                title: const Text('التقاط صورة'),
+                title: const Text('Ø§Ù„ØªÙ‚Ø§Ø· ØµÙˆØ±Ø©'),
                 onTap: () async {
                   Navigator.pop(context);
                   final xFile = await _imagePicker.pickImage(
@@ -914,7 +812,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
               ),
               ListTile(
                 leading: const Icon(Iconsax.gallery),
-                title: const Text('اختيار من المعرض'),
+                title: const Text('Ø§Ø®ØªÙŠØ§Ø± Ù…Ù† Ø§Ù„Ù…Ø¹Ø±Ø¶'),
                 onTap: () async {
                   Navigator.pop(context);
                   final xFile = await _imagePicker.pickImage(
@@ -947,147 +845,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     AddressEntity address, {
     required bool isSelected,
   }) {
-    return GestureDetector(
+    return CheckoutAddressCard(
+      address: address,
+      isSelected: isSelected,
+      isDark: isDark,
       onTap: () => setState(() => _selectedAddressId = address.id),
-      child: Container(
-        margin: EdgeInsets.only(bottom: 4.h),
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.cardDark
-              : (isSelected
-                    ? AppColors.primary.withValues(alpha: 0.04)
-                    : AppColors.inputBackgroundLight),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : (isDark ? AppColors.dividerDark : AppColors.dividerLight),
-            width: isSelected ? 1.5 : 1,
-          ),
-          boxShadow: isDark
-              ? null
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40.w,
-              height: 40.w,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: Icon(
-                Iconsax.location,
-                color: AppColors.primary,
-                size: 22.sp,
-              ),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        address.label,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14.sp,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (address.isDefault) ...[
-                        SizedBox(width: 6.w),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 6.w,
-                            vertical: 2.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4.r),
-                          ),
-                          child: Text(
-                            'افتراضي',
-                            style: TextStyle(
-                              fontSize: 10.sp,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    address.addressLine,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondaryLight,
-                      fontSize: 12.sp,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (address.cityName != null || address.phone != null) ...[
-                    SizedBox(height: 2.h),
-                    Text(
-                      [
-                        if (address.cityName != null) address.cityName!,
-                        if (address.phone != null) address.phone!,
-                      ].join(' • '),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textTertiaryLight,
-                        fontSize: 11.sp,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            SizedBox(width: 8.w),
-            Container(
-              width: 22.w,
-              height: 22.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isSelected ? AppColors.primary : Colors.transparent,
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.textTertiaryLight,
-                  width: 2,
-                ),
-              ),
-              child: isSelected
-                  ? Center(
-                      child: Container(
-                        width: 8.w,
-                        height: 8.w,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -1102,133 +864,31 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     final locale = Localizations.localeOf(context).languageCode;
     final iconData = _getPaymentMethodIcon(method.type);
     final displayName = isWalletCreditMerged && method.type == 'wallet'
-        ? 'المحفظة + الآجل'
+        ? 'Wallet + Credit'
         : method.getName(locale);
     final displayDescription = isWalletCreditMerged && method.type == 'wallet'
-        ? 'خصم تلقائي من المحفظة ثم من حد الائتمان'
+        ? 'Wallet balance is used first, then available credit.'
         : method.getDescription(locale);
-
-    return GestureDetector(
+    return CheckoutPaymentCard(
+      isDark: isDark,
+      isSelected: isSelected,
+      iconData: iconData,
+      displayName: displayName,
+      displayDescription: displayDescription,
       onTap: () => _onSelectPaymentMethod(method),
-      child: Container(
-        margin: EdgeInsets.only(bottom: 4.h),
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
-        decoration: BoxDecoration(
-          color: isDark
-              ? AppColors.cardDark
-              : (isSelected
-                    ? AppColors.primary.withValues(alpha: 0.04)
-                    : AppColors.inputBackgroundLight),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : (isDark ? AppColors.dividerDark : AppColors.dividerLight),
-            width: isSelected ? 1.5 : 1,
-          ),
-          boxShadow: isDark
-              ? null
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                // Icon/logo (left)
-                Container(
-                  width: 40.w,
-                  height: 40.w,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: Icon(iconData, color: AppColors.primary, size: 22.sp),
-                ),
-                SizedBox(width: 12.w),
-                // Payment method name and description (center)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        displayName,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14.sp,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (displayDescription != null) ...[
-                        SizedBox(height: 2.h),
-                        Text(
-                          displayDescription,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textTertiaryLight,
-                            fontSize: 12.sp,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                // Selection indicator (right)
-                Container(
-                  width: 22.w,
-                  height: 22.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected ? AppColors.primary : Colors.transparent,
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.textTertiaryLight,
-                      width: 2,
-                    ),
-                  ),
-                  child: isSelected
-                      ? Center(
-                          child: Container(
-                            width: 8.w,
-                            height: 8.w,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        )
-                      : null,
-                ),
-              ],
-            ),
-            // Wallet balance details panel
-            if (method.type == 'wallet' && isSelected)
-              _buildWalletInfoPanel(theme, isDark),
-            // Credit limit details panel (for merged wallet+credit)
-            if (isWalletCreditMerged &&
-                method.type == 'wallet' &&
-                mergedCreditMethod != null &&
-                isSelected)
-              _buildCreditInfoPanel(theme, isDark, mergedCreditMethod),
-            // Credit limit details panel (for pure credit method)
-            if (method.isCreditMethod && method.creditLimit != null)
-              _buildCreditInfoPanel(theme, isDark, method),
-            if (_isBankTransferMethod(method) && isSelected)
-              _buildSupportedBanksPanel(theme, isDark),
-          ],
-        ),
-      ),
+      details: [
+        if (method.type == 'wallet' && isSelected)
+          _buildWalletInfoPanel(theme, isDark),
+        if (isWalletCreditMerged &&
+            method.type == 'wallet' &&
+            mergedCreditMethod != null &&
+            isSelected)
+          _buildCreditInfoPanel(theme, isDark, mergedCreditMethod),
+        if (method.isCreditMethod && method.creditLimit != null)
+          _buildCreditInfoPanel(theme, isDark, method),
+        if (_isBankTransferMethod(method) && isSelected)
+          _buildSupportedBanksPanel(theme, isDark),
+      ],
     );
   }
 
@@ -1242,348 +902,23 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     final creditUsed = method.creditUsed ?? 0;
     final availableCredit =
         method.availableCredit ?? (creditLimit - creditUsed);
-    final usageRatio = creditLimit > 0 ? creditUsed / creditLimit : 0.0;
-
-    // Color based on usage percentage
-    final Color progressColor;
-    if (usageRatio < 0.5) {
-      progressColor = AppColors.success;
-    } else if (usageRatio < 0.8) {
-      progressColor = Colors.orange;
-    } else {
-      progressColor = AppColors.error;
-    }
-
-    return Container(
-      margin: EdgeInsets.only(top: 8.h),
-      padding: EdgeInsets.all(10.w),
-      decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.surfaceDark.withValues(alpha: 0.5)
-            : AppColors.primary.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(
-          color: isDark
-              ? AppColors.dividerDark
-              : AppColors.primary.withValues(alpha: 0.1),
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Available credit - highlighted
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Iconsax.wallet_check, size: 14.sp, color: progressColor),
-                  SizedBox(width: 6.w),
-                  Text(
-                    'المتاح',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 12.sp,
-                      color: isDark
-                          ? Colors.white70
-                          : AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                '${availableCredit.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w700,
-                  color: progressColor,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4.r),
-            child: LinearProgressIndicator(
-              value: usageRatio.clamp(0.0, 1.0),
-              minHeight: 5.h,
-              backgroundColor: isDark ? Colors.white12 : AppColors.dividerLight,
-              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-            ),
-          ),
-          SizedBox(height: 8.h),
-          // Credit limit and used
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Credit limit
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'الحد: ',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 11.sp,
-                      color: isDark
-                          ? Colors.white54
-                          : AppColors.textTertiaryLight,
-                    ),
-                  ),
-                  Text(
-                    '${creditLimit.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? Colors.white70
-                          : AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ],
-              ),
-              // Used amount
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'المستخدم: ',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 11.sp,
-                      color: isDark
-                          ? Colors.white54
-                          : AppColors.textTertiaryLight,
-                    ),
-                  ),
-                  Text(
-                    '${creditUsed.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? Colors.white70
-                          : AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
+    return CheckoutCreditInfoPanel(
+      isDark: isDark,
+      creditLimit: creditLimit,
+      creditUsed: creditUsed,
+      availableCredit: availableCredit,
     );
   }
 
   Widget _buildSupportedBanksPanel(ThemeData theme, bool isDark) {
-    final locale = Localizations.localeOf(context).languageCode;
-    final accountNumberLabel = locale == 'ar' ? 'رقم الحساب' : 'Account Number';
-
-    return Container(
-      margin: EdgeInsets.only(top: 8.h),
-      padding: EdgeInsets.all(10.w),
-      decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.surfaceDark.withValues(alpha: 0.5)
-            : AppColors.primary.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(
-          color: isDark
-              ? AppColors.dividerDark
-              : AppColors.primary.withValues(alpha: 0.1),
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'البنوك المدعومة',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            'اختر البنك الذي قمت بالتحويل إليه',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondaryLight,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          if (_isLoadingBankAccounts)
-            const Center(child: CircularProgressIndicator())
-          else if (_bankAccounts.isEmpty)
-            Text(
-              'لا توجد حسابات بنكية متاحة حالياً',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondaryLight,
-              ),
-            )
-          else
-            ..._bankAccounts.map((account) {
-              final isSelected = _selectedBankAccountId == account.id;
-              return GestureDetector(
-                onTap: () =>
-                    setState(() => _selectedBankAccountId = account.id),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  margin: EdgeInsets.only(bottom: 8.h),
-                  padding: EdgeInsets.all(10.w),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.cardDark
-                        : (isSelected
-                              ? AppColors.primary.withValues(alpha: 0.05)
-                              : AppColors.cardLight),
-                    borderRadius: BorderRadius.circular(8.r),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : (isDark
-                                ? AppColors.dividerDark
-                                : AppColors.dividerLight),
-                      width: isSelected ? 1.4 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 34.w,
-                        height: 34.w,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: account.logo != null && account.logo!.isNotEmpty
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(8.r),
-                                child: Image.network(
-                                  account.logo!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, error, stackTrace) => Icon(
-                                    Iconsax.bank,
-                                    size: 16.sp,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              )
-                            : Icon(
-                                Iconsax.bank,
-                                size: 16.sp,
-                                color: AppColors.primary,
-                              ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    account.getDisplayName(locale),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                if (account.isDefault)
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 6.w,
-                                      vertical: 2.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.success.withValues(
-                                        alpha: 0.12,
-                                      ),
-                                      borderRadius: BorderRadius.circular(4.r),
-                                    ),
-                                    child: Text(
-                                      'افتراضي',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            fontSize: 10.sp,
-                                            color: AppColors.success,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            SizedBox(height: 2.h),
-                            Text(
-                              'اسم الحساب: ${account.getAccountName(locale)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondaryLight,
-                              ),
-                            ),
-                            _buildCopyableBankField(
-                              label: accountNumberLabel,
-                              value: account.accountNumber,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondaryLight,
-                              ),
-                            ),
-                            if (account.iban != null &&
-                                account.iban!.isNotEmpty)
-                              _buildCopyableBankField(
-                                label: 'IBAN',
-                                value: account.iban!,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.textSecondaryLight,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Icon(
-                        isSelected ? Iconsax.tick_circle5 : Iconsax.tick_circle,
-                        size: 22.sp,
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.textTertiaryLight,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCopyableBankField({
-    required String label,
-    required String value,
-    required TextStyle? style,
-  }) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-
-    return Row(
-      children: [
-        Expanded(child: Text('$label: $value', style: style)),
-        Tooltip(
-          message: isArabic ? 'نسخ $label' : 'Copy $label',
-          child: InkWell(
-            onTap: () => _copyBankValue(value, label),
-            borderRadius: BorderRadius.circular(8.r),
-            child: Container(
-              padding: EdgeInsets.all(6.w),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Icon(Iconsax.copy, size: 16.sp, color: AppColors.primary),
-            ),
-          ),
-        ),
-      ],
+    return CheckoutSupportedBanksPanel(
+      isDark: isDark,
+      isLoading: _isLoadingBankAccounts,
+      bankAccounts: _bankAccounts,
+      selectedBankAccountId: _selectedBankAccountId,
+      onSelectBankAccount: (bankId) =>
+          setState(() => _selectedBankAccountId = bankId),
+      onCopyValue: _copyBankValue,
     );
   }
 
@@ -1593,11 +928,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       if (!mounted) return;
 
       final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-      final message = isArabic ? 'تم نسخ $label' : '$label copied';
+      final message = isArabic ? 'ØªÙ… Ù†Ø³Ø® $label' : '$label copied';
       AppSnackbar.showSuccess(context, message);
     } catch (_) {
       if (!mounted) return;
-      AppSnackbar.showError(context, 'تعذر نسخ البيانات');
+      AppSnackbar.showError(context, 'ØªØ¹Ø°Ø± Ù†Ø³Ø® Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª');
     }
   }
 
@@ -1666,7 +1001,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                       ),
                       SizedBox(width: 6.w),
                       Text(
-                        'الرصيد المتاح',
+                        'Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ù…ØªØ§Ø­',
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontSize: 12.sp,
                           color: isDark
@@ -1709,7 +1044,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'المطلوب: ',
+                        'Ø§Ù„Ù…Ø·Ù„ÙˆØ¨: ',
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontSize: 11.sp,
                           color: isDark
@@ -1734,7 +1069,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'المتبقي: ',
+                        'Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ: ',
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontSize: 11.sp,
                           color: isDark
@@ -1775,7 +1110,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                       SizedBox(width: 6.w),
                       Expanded(
                         child: Text(
-                          'الرصيد غير كافٍ. ينقصك ${(orderTotal - walletBalance).toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
+                          'Ø§Ù„Ø±ØµÙŠØ¯ ØºÙŠØ± ÙƒØ§ÙÙ. ÙŠÙ†Ù‚ØµÙƒ ${(orderTotal - walletBalance).toStringAsFixed(2)} ${AppLocalizations.of(context)!.currency}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontSize: 11.sp,
                             color: Colors.orange.shade800,
@@ -1798,260 +1133,18 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     bool isDark,
     CheckoutSessionEntity session,
   ) {
-    final cart = session.cart;
-    final promotionDiscount = cart.discount;
-    final couponDiscount = _resolveCouponDiscount(session);
-    final subtotal = cart.subtotal;
-    final shippingCost = cart.shippingCost;
-    final taxAmount = cart.taxAmount;
     final total = _resolveOrderTotal(session);
     final walletAmountToUse = _calculateWalletAmountToUse(
       orderTotal: total,
       walletBalance: _resolveWalletBalance(),
     );
     final payableNow = (total - walletAmountToUse).clamp(0, total).toDouble();
-    final itemsCount = cart.itemsCount;
-    final locale = Localizations.localeOf(context).languageCode;
-
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // تفاصيل المنتجات - شكل فاتورة
-          Text(
-            AppLocalizations.of(context)!.products,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          if (cart.items.isEmpty)
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.h),
-              child: Text(
-                'لا توجد منتجات',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondaryLight,
-                ),
-              ),
-            )
-          else ...[
-            // رأس الفاتورة
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'المنتج',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 40.w,
-                  child: Text(
-                    'الكمية',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 56.w,
-                  child: Text(
-                    'السعر',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 56.w,
-                  child: Text(
-                    'الإجمالي',
-                    textAlign: TextAlign.end,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8.h),
-            Divider(
-              height: 1,
-              color: AppColors.dividerLight.withValues(alpha: 0.5),
-            ),
-            SizedBox(height: 8.h),
-            // صفوف المنتجات
-            ...cart.items.map((item) {
-              return Padding(
-                padding: EdgeInsets.only(bottom: 10.h),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        item.getProductName(locale),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 40.w,
-                      child: Text(
-                        '${item.quantity}',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 56.w,
-                      child: Text(
-                        item.unitPrice.toStringAsFixed(0),
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 56.w,
-                      child: Text(
-                        item.totalPrice.toStringAsFixed(0),
-                        textAlign: TextAlign.end,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            Divider(height: 20.h, color: AppColors.dividerLight),
-          ],
-          // المجموع الفرعي وما بعده
-          Text(
-            AppLocalizations.of(context)!.subtotal,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          _buildSummaryRow(
-            theme,
-            'المجموع الفرعي ($itemsCount ${itemsCount == 1 ? 'منتج' : 'منتجات'})',
-            '${subtotal.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-          ),
-          SizedBox(height: 8.h),
-          _buildSummaryRow(
-            theme,
-            'الشحن',
-            '${shippingCost.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-          ),
-          if (promotionDiscount > 0) ...[
-            SizedBox(height: 8.h),
-            _buildSummaryRow(
-              theme,
-              'خصم العروض',
-              '-${promotionDiscount.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-              valueColor: AppColors.success,
-            ),
-          ],
-          if (couponDiscount > 0) ...[
-            SizedBox(height: 8.h),
-            _buildSummaryRow(
-              theme,
-              'خصم الكوبون',
-              '-${couponDiscount.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-              valueColor: AppColors.success,
-            ),
-          ],
-          if (taxAmount > 0) ...[
-            SizedBox(height: 8.h),
-            _buildSummaryRow(
-              theme,
-              'الضريبة',
-              '${taxAmount.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-            ),
-          ],
-          Divider(height: 24.h),
-          if (walletAmountToUse > 0) ...[
-            _buildSummaryRow(
-              theme,
-              'المخصوم من المحفظة',
-              '-${walletAmountToUse.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-              valueColor: AppColors.success,
-            ),
-            SizedBox(height: 8.h),
-            _buildSummaryRow(
-              theme,
-              'المتبقي للدفع الآن',
-              '${payableNow.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-            ),
-            Divider(height: 24.h),
-          ],
-          _buildSummaryRow(
-            theme,
-            'الإجمالي',
-            '${total.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-            isTotal: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryRow(
-    ThemeData theme,
-    String label,
-    String value, {
-    Color? valueColor,
-    bool isTotal = false,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: isTotal
-              ? theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                )
-              : theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondaryLight,
-                ),
-        ),
-        Text(
-          value,
-          style: isTotal
-              ? TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                )
-              : theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: valueColor,
-                ),
-        ),
-      ],
+    return CheckoutOrderSummaryCard(
+      session: session,
+      couponDiscount: _resolveCouponDiscount(session),
+      total: total,
+      walletAmountToUse: walletAmountToUse,
+      payableNow: payableNow,
     );
   }
 
@@ -2130,9 +1223,6 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         : (total - walletAmountToUse).clamp(0, total).toDouble();
     final requiresTransferData =
         _isBankTransferMethod(selectedPaymentMethod) && payableNow > 0;
-
-    // تفعيل الزر عند توفر: سلة غير فارغة + عنوان + طريقة دفع
-    // التحقق من المخزون والمنتجات غير النشطة يبقى داخل _handlePlaceOrder مع رسالة للمستخدم
     final canPlaceOrder =
         session.cart.isNotEmpty &&
         _selectedAddressId != null &&
@@ -2141,50 +1231,24 @@ class _CheckoutScreenState extends State<CheckoutScreen>
         session.paymentMethods.isNotEmpty &&
         (!requiresTransferData ||
             (_receiptImagePath != null && _selectedBankAccountId != null));
-
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Opacity(
-          opacity: canPlaceOrder ? 1.0 : 0.5,
-          child: ElevatedButton(
-            onPressed: canPlaceOrder ? () => _handlePlaceOrder(session) : null,
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: 16.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14.r),
-              ),
-            ),
-            child: Text(
-              '${AppLocalizations.of(context)!.confirm} • ${payableNow.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
-      ),
+    return CheckoutPlaceOrderBar(
+      isDark: isDark,
+      canPlaceOrder: canPlaceOrder,
+      payableNow: payableNow,
+      onPlaceOrder: canPlaceOrder ? () => _handlePlaceOrder(session) : null,
     );
   }
 
   Future<void> _handlePlaceOrder(CheckoutSessionEntity session) async {
-    // التحقق من أن السلة ليست فارغة
+    // Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø£Ù† Ø§Ù„Ø³Ù„Ø© Ù„ÙŠØ³Øª ÙØ§Ø±ØºØ©
     if (session.cart.isEmpty) {
-      AppSnackbar.showError(context, 'السلة فارغة');
+      AppSnackbar.showError(context, 'Ø§Ù„Ø³Ù„Ø© ÙØ§Ø±ØºØ©');
       return;
     }
 
     HapticFeedback.mediumImpact();
 
-    // عرض مؤشر التحميل
+    // Ø¹Ø±Ø¶ Ù…Ø¤Ø´Ø± Ø§Ù„ØªØ­Ù…ÙŠÙ„
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -2195,11 +1259,11 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       final cartCubit = context.read<CartCubit>();
       final ordersCubit = context.read<OrdersCubit>();
 
-      // محاولة المزامنة (اختياري - لا يمنع الطلب إذا فشل)
+      // Ù…Ø­Ø§ÙˆÙ„Ø© Ø§Ù„Ù…Ø²Ø§Ù…Ù†Ø© (Ø§Ø®ØªÙŠØ§Ø±ÙŠ - Ù„Ø§ ÙŠÙ…Ù†Ø¹ Ø§Ù„Ø·Ù„Ø¨ Ø¥Ø°Ø§ ÙØ´Ù„)
       try {
         await cartCubit.syncCart(silent: true);
       } catch (_) {
-        // تجاهل أخطاء المزامنة - سيتحقق السيرفر عند إنشاء الطلب
+        // ØªØ¬Ø§Ù‡Ù„ Ø£Ø®Ø·Ø§Ø¡ Ø§Ù„Ù…Ø²Ø§Ù…Ù†Ø© - Ø³ÙŠØªØ­Ù‚Ù‚ Ø§Ù„Ø³ÙŠØ±ÙØ± Ø¹Ù†Ø¯ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø·Ù„Ø¨
       }
 
       if (!mounted) return;
@@ -2231,14 +1295,20 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       }
 
       if (selectedAddress == null) {
-        Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-        AppSnackbar.showError(context, 'يرجى اختيار عنوان التوصيل');
+        Navigator.of(context).pop(); // Ø¥ØºÙ„Ø§Ù‚ Ù…Ø¤Ø´Ø± Ø§Ù„ØªØ­Ù…ÙŠÙ„
+        AppSnackbar.showError(
+          context,
+          'ÙŠØ±Ø¬Ù‰ Ø§Ø®ØªÙŠØ§Ø± Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ØªÙˆØµÙŠÙ„',
+        );
         return;
       }
 
       if (selectedPaymentMethod == null) {
-        Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-        AppSnackbar.showError(context, 'يرجى اختيار طريقة الدفع');
+        Navigator.of(context).pop(); // Ø¥ØºÙ„Ø§Ù‚ Ù…Ø¤Ø´Ø± Ø§Ù„ØªØ­Ù…ÙŠÙ„
+        AppSnackbar.showError(
+          context,
+          'ÙŠØ±Ø¬Ù‰ Ø§Ø®ØªÙŠØ§Ø± Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹',
+        );
         return;
       }
 
@@ -2276,14 +1346,17 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           Navigator.of(context).pop();
           AppSnackbar.showError(
             context,
-            'يرجى اختيار البنك الذي تم التحويل إليه',
+            'ÙŠØ±Ø¬Ù‰ Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ø¨Ù†Ùƒ Ø§Ù„Ø°ÙŠ ØªÙ… Ø§Ù„ØªØ­ÙˆÙŠÙ„ Ø¥Ù„ÙŠÙ‡',
           );
           return;
         }
 
         if (_receiptImagePath == null) {
           Navigator.of(context).pop();
-          AppSnackbar.showError(context, 'يرجى رفع إيصال التحويل البنكي');
+          AppSnackbar.showError(
+            context,
+            'ÙŠØ±Ø¬Ù‰ Ø±ÙØ¹ Ø¥ÙŠØµØ§Ù„ Ø§Ù„ØªØ­ÙˆÙŠÙ„ Ø§Ù„Ø¨Ù†ÙƒÙŠ',
+          );
           return;
         }
 
@@ -2312,7 +1385,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       );
 
       if (!mounted) return;
-      Navigator.of(context).pop(); // إغلاق مؤشر التحميل
+      Navigator.of(context).pop(); // Ø¥ØºÙ„Ø§Ù‚ Ù…Ø¤Ø´Ø± Ø§Ù„ØªØ­Ù…ÙŠÙ„
 
       if (order != null) {
         // Clear local cart after successful order
@@ -2321,12 +1394,15 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
         context.go('/order-details/${order.id}');
       } else {
-        AppSnackbar.showError(context, 'فشل إنشاء الطلب. حاول مرة أخرى.');
+        AppSnackbar.showError(
+          context,
+          'ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø·Ù„Ø¨. Ø­Ø§ÙˆÙ„ Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.',
+        );
       }
     } catch (e) {
       if (!mounted) return;
-      Navigator.of(context).pop(); // إغلاق مؤشر التحميل
-      AppSnackbar.showError(context, 'خطأ: ${e.toString()}');
+      Navigator.of(context).pop(); // Ø¥ØºÙ„Ø§Ù‚ Ù…Ø¤Ø´Ø± Ø§Ù„ØªØ­Ù…ÙŠÙ„
+      AppSnackbar.showError(context, 'Ø®Ø·Ø£: ${e.toString()}');
     }
   }
 
