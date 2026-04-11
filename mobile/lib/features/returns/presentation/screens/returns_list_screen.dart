@@ -37,7 +37,6 @@ class _ReturnsListView extends StatefulWidget {
 }
 
 class _ReturnsListViewState extends State<_ReturnsListView> {
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -55,14 +54,13 @@ class _ReturnsListViewState extends State<_ReturnsListView> {
               context.read<ReturnsCubit>().filterByStatus(status);
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: null,
-                child: Text('الكل'),
+              const PopupMenuItem(value: null, child: Text('الكل')),
+              ...ReturnStatus.values.map(
+                (status) => PopupMenuItem(
+                  value: status,
+                  child: Text(status.displayNameAr),
+                ),
               ),
-              ...ReturnStatus.values.map((status) => PopupMenuItem(
-                    value: status,
-                    child: Text(status.displayNameAr),
-                  )),
             ],
           ),
         ],
@@ -109,7 +107,7 @@ class _ReturnsListViewState extends State<_ReturnsListView> {
               child: ListView.separated(
                 padding: EdgeInsets.all(16.w),
                 itemCount: state.returns.length + (state.hasMore ? 1 : 0),
-                separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                separatorBuilder: (context, index) => SizedBox(height: 12.h),
                 itemBuilder: (context, index) {
                   if (index == state.returns.length) {
                     // Load more button

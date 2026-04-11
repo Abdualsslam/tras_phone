@@ -254,11 +254,14 @@ class CartRemoteDataSourceImpl implements CartRemoteDataSource {
         : '';
 
     final path = '${ApiEndpoints.checkoutSession}$queryString';
-    print('[API] → GET $path');
+    developer.log('GET $path', name: 'CartRemoteDataSource');
 
     final response = await _apiClient.get(path);
 
-    print('[API] ← ${response.statusCode} $path');
+    developer.log(
+      'Response ${response.statusCode} $path',
+      name: 'CartRemoteDataSource',
+    );
 
     final data = response.data['data'] ?? response.data;
 

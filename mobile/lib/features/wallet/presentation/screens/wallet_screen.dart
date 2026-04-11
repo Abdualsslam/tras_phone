@@ -163,7 +163,9 @@ class _WalletScreenState extends State<WalletScreen> {
     final creditLimit = loadedState?.creditLimit ?? 0;
     final creditUsed = loadedState?.creditUsed ?? 0;
     final availableCredit = loadedState?.availableCredit ?? 0;
-    final usageRatio = creditLimit > 0 ? (creditUsed / creditLimit).clamp(0.0, 1.0) : 0.0;
+    final usageRatio = creditLimit > 0
+        ? (creditUsed / creditLimit).clamp(0.0, 1.0)
+        : 0.0;
 
     return Container(
       width: double.infinity,
@@ -177,7 +179,9 @@ class _WalletScreenState extends State<WalletScreen> {
         children: [
           Text(
             AppLocalizations.of(context)!.creditLimit,
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           SizedBox(height: 12.h),
           Row(
@@ -209,9 +213,13 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            AppLocalizations.of(context)!.creditAvailable(availableCredit.toStringAsFixed(2)),
+            AppLocalizations.of(
+              context,
+            )!.creditAvailable(availableCredit.toStringAsFixed(2)),
             style: theme.textTheme.bodySmall?.copyWith(
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
             ),
           ),
         ],
@@ -236,7 +244,9 @@ class _WalletScreenState extends State<WalletScreen> {
         SizedBox(height: 4.h),
         Text(
           '${value.toStringAsFixed(2)} ر.س',
-          style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ],
     );
@@ -307,7 +317,7 @@ class _WalletScreenState extends State<WalletScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: transactions.length,
-              separatorBuilder: (_, __) => Divider(
+              separatorBuilder: (context, index) => Divider(
                 height: 1,
                 indent: 72.w,
                 color: AppColors.dividerLight,

@@ -590,22 +590,23 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
   }
 
   Future<void> _downloadInvoice(BuildContext context) async {
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    final ordersCubit = context.read<OrdersCubit>();
+
+    messenger.showSnackBar(
       const SnackBar(
         content: Text('جاري تحميل الفاتورة...'),
         behavior: SnackBarBehavior.floating,
       ),
     );
     try {
-      final url = await context.read<OrdersCubit>().getOrderInvoice(
-        widget.orderId,
-      );
+      final url = await ordersCubit.getOrderInvoice(widget.orderId);
       if (url.isNotEmpty && mounted) {
         final uri = Uri.tryParse(url);
         if (uri != null && await canLaunchUrl(uri)) {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               const SnackBar(
                 content: Text('تم فتح رابط الفاتورة'),
                 backgroundColor: AppColors.success,
@@ -614,7 +615,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
             );
           }
         } else if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             const SnackBar(
               content: Text('تعذر فتح رابط الفاتورة'),
               behavior: SnackBarBehavior.floating,
@@ -622,7 +623,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
           );
         }
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('لا يوجد رابط للفاتورة'),
             behavior: SnackBarBehavior.floating,
@@ -631,7 +632,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('فشل تحميل الفاتورة: ${e.toString()}'),
             behavior: SnackBarBehavior.floating,
@@ -642,17 +643,18 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
   }
 
   Future<void> _shareInvoice(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ordersCubit = context.read<OrdersCubit>();
+
     try {
-      final url = await context.read<OrdersCubit>().getOrderInvoice(
-        widget.orderId,
-      );
+      final url = await ordersCubit.getOrderInvoice(widget.orderId);
       if (url.isNotEmpty && mounted) {
         await Share.share(
           'فاتورة الطلب ${_order?.orderNumber ?? widget.orderId}\n$url',
           subject: 'فاتورة الطلب ${_order?.orderNumber ?? widget.orderId}',
         );
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('لا يوجد رابط للمشاركة'),
             behavior: SnackBarBehavior.floating,
@@ -661,7 +663,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('فشل المشاركة: ${e.toString()}'),
             behavior: SnackBarBehavior.floating,

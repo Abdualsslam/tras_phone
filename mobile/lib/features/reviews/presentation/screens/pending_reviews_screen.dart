@@ -17,8 +17,18 @@ class PendingReviewsScreen extends StatelessWidget {
 
     // Mock pending reviews
     final pendingProducts = [
-      {'id': '1', 'name': 'شاشة آيفون 15 برو ماكس', 'image': 'assets/images/products/screen_1.jpg', 'orderDate': '15 ديسمبر 2024'},
-      {'id': '2', 'name': 'بطارية آيفون 13', 'image': 'assets/images/products/bettary_1.jpg', 'orderDate': '10 ديسمبر 2024'},
+      {
+        'id': '1',
+        'name': 'شاشة آيفون 15 برو ماكس',
+        'image': 'assets/images/products/screen_1.jpg',
+        'orderDate': '15 ديسمبر 2024',
+      },
+      {
+        'id': '2',
+        'name': 'بطارية آيفون 13',
+        'image': 'assets/images/products/bettary_1.jpg',
+        'orderDate': '10 ديسمبر 2024',
+      },
     ];
 
     return Scaffold(
@@ -28,7 +38,7 @@ class PendingReviewsScreen extends StatelessWidget {
           : ListView.separated(
               padding: EdgeInsets.all(16.w),
               itemCount: pendingProducts.length,
-              separatorBuilder: (_, __) => SizedBox(height: 12.h),
+              separatorBuilder: (context, index) => SizedBox(height: 12.h),
               itemBuilder: (context, index) {
                 final product = pendingProducts[index];
                 return _buildProductCard(context, product, isDark);
@@ -37,7 +47,11 @@ class PendingReviewsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProductCard(BuildContext context, Map<String, String> product, bool isDark) {
+  Widget _buildProductCard(
+    BuildContext context,
+    Map<String, String> product,
+    bool isDark,
+  ) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -61,7 +75,7 @@ class PendingReviewsScreen extends StatelessWidget {
               width: 80.w,
               height: 80.w,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (context, error, stackTrace) => Container(
                 width: 80.w,
                 height: 80.w,
                 color: AppColors.backgroundLight,
@@ -81,7 +95,9 @@ class PendingReviewsScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -91,16 +107,22 @@ class PendingReviewsScreen extends StatelessWidget {
                   'تم الشراء: ${product['orderDate']}',
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                   ),
                 ),
                 SizedBox(height: 12.h),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () => context.push('/write-review/${product['id']}'),
+                    onPressed: () =>
+                        context.push('/write-review/${product['id']}'),
                     icon: Icon(Iconsax.star, size: 18.sp),
-                    label: Text('كتابة تقييم', style: TextStyle(fontSize: 12.sp)),
+                    label: Text(
+                      'كتابة تقييم',
+                      style: TextStyle(fontSize: 12.sp),
+                    ),
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 8.h),
                     ),
@@ -122,7 +144,9 @@ class PendingReviewsScreen extends StatelessWidget {
           Icon(
             Iconsax.star,
             size: 80.sp,
-            color: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+            color: isDark
+                ? AppColors.textTertiaryDark
+                : AppColors.textTertiaryLight,
           ),
           SizedBox(height: 16.h),
           Text(
@@ -130,7 +154,9 @@ class PendingReviewsScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+              color: isDark
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textPrimaryLight,
             ),
           ),
           SizedBox(height: 8.h),
@@ -138,7 +164,9 @@ class PendingReviewsScreen extends StatelessWidget {
             'ستظهر المنتجات هنا بعد استلام طلباتك',
             style: TextStyle(
               fontSize: 14.sp,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
             ),
           ),
         ],

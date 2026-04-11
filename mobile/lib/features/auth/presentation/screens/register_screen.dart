@@ -94,6 +94,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
 
         if (state is AuthAuthenticated) {
+          final router = GoRouter.of(context);
           if (state.user.isPending) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -106,10 +107,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             );
             context.read<AuthCubit>().logout();
             Future.delayed(const Duration(milliseconds: 100), () {
-              if (mounted) context.go('/login');
+              if (mounted) router.go('/login');
             });
           } else {
-            context.go('/home');
+            router.go('/home');
           }
         } else if (state is AuthError) {
           final locale = Localizations.localeOf(context);

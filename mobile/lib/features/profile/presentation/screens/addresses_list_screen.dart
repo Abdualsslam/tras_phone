@@ -71,7 +71,7 @@ class _AddressesListView extends StatelessWidget {
           return ListView.separated(
             padding: EdgeInsets.all(16.w),
             itemCount: addresses.length,
-            separatorBuilder: (_, __) => SizedBox(height: 12.h),
+            separatorBuilder: (context, index) => SizedBox(height: 12.h),
             itemBuilder: (context, index) {
               return _buildAddressCard(
                 context,

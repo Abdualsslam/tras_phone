@@ -75,8 +75,9 @@ class _LoyaltyTiersScreenState extends State<LoyaltyTiersScreen> {
 
           return RefreshIndicator(
             onRefresh: () async {
-              await context.read<WalletCubit>().loadTiers();
-              await context.read<WalletCubit>().loadPoints();
+              final walletCubit = context.read<WalletCubit>();
+              await walletCubit.loadTiers();
+              await walletCubit.loadPoints();
             },
             child: sortedTiers.isEmpty
                 ? Center(
@@ -91,9 +92,7 @@ class _LoyaltyTiersScreenState extends State<LoyaltyTiersScreen> {
                         SizedBox(height: 16.h),
                         Text(
                           'لا توجد مستويات متاحة',
-                          style: TextStyle(
-                            color: AppColors.textTertiaryLight,
-                          ),
+                          style: TextStyle(color: AppColors.textTertiaryLight),
                         ),
                       ],
                     ),
@@ -146,10 +145,7 @@ class _LoyaltyTiersScreenState extends State<LoyaltyTiersScreen> {
         borderRadius: BorderRadius.circular(16.r),
         border: isCurrent
             ? Border.all(color: tierColor, width: 2)
-            : Border.all(
-                color: AppColors.dividerLight,
-                width: 1,
-              ),
+            : Border.all(color: AppColors.dividerLight, width: 1),
         boxShadow: isCurrent
             ? [
                 BoxShadow(
@@ -172,7 +168,8 @@ class _LoyaltyTiersScreenState extends State<LoyaltyTiersScreen> {
                   tier.badgeImage!,
                   width: 48.w,
                   height: 48.w,
-                  errorBuilder: (_, __, ___) => _buildTierIcon(tier, tierColor),
+                  errorBuilder: (context, error, stackTrace) =>
+                      _buildTierIcon(tier, tierColor),
                 )
               else
                 _buildTierIcon(tier, tierColor),
@@ -258,30 +255,15 @@ class _LoyaltyTiersScreenState extends State<LoyaltyTiersScreen> {
                   tierColor,
                 ),
               if (tier.freeShipping)
-                _buildBenefitChip(
-                  'شحن مجاني',
-                  Iconsax.truck,
-                  tierColor,
-                ),
+                _buildBenefitChip('شحن مجاني', Iconsax.truck, tierColor),
               if (tier.prioritySupport)
-                _buildBenefitChip(
-                  'دعم متميز',
-                  Iconsax.headphone,
-                  tierColor,
-                ),
+                _buildBenefitChip('دعم متميز', Iconsax.headphone, tierColor),
               if (tier.earlyAccess)
-                _buildBenefitChip(
-                  'وصول مبكر',
-                  Iconsax.clock,
-                  tierColor,
-                ),
+                _buildBenefitChip('وصول مبكر', Iconsax.clock, tierColor),
               if (tier.customBenefits != null)
                 ...tier.customBenefits!.map(
-                  (benefit) => _buildBenefitChip(
-                    benefit,
-                    Iconsax.gift,
-                    tierColor,
-                  ),
+                  (benefit) =>
+                      _buildBenefitChip(benefit, Iconsax.gift, tierColor),
                 ),
             ],
           ),
@@ -323,11 +305,7 @@ class _LoyaltyTiersScreenState extends State<LoyaltyTiersScreen> {
         color: color.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
-      child: Icon(
-        Iconsax.medal_star,
-        color: color,
-        size: 24.sp,
-      ),
+      child: Icon(Iconsax.medal_star, color: color, size: 24.sp),
     );
   }
 

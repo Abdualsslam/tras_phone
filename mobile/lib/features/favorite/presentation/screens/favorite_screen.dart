@@ -28,9 +28,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   @override
   void initState() {
     super.initState();
-    _cubit = FavoriteCubit(
-      repository: context.read<FavoriteRepository>(),
-    );
+    _cubit = FavoriteCubit(repository: context.read<FavoriteRepository>());
     if (widget.isActive) {
       _cubit.loadFavorites();
     }
@@ -54,7 +52,9 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     await _cubit.removeFromFavorites(productId);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.removedFromFavorites)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.removedFromFavorites),
+        ),
       );
     }
   }
@@ -83,7 +83,9 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       await _cubit.clearFavorites();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.favoritesCleared)),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.favoritesCleared),
+          ),
         );
       }
     }
@@ -135,11 +137,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Iconsax.danger,
-                      size: 64.sp,
-                      color: AppColors.error,
-                    ),
+                    Icon(Iconsax.danger, size: 64.sp, color: AppColors.error),
                     SizedBox(height: 16.h),
                     Text(
                       state.message,
@@ -170,7 +168,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                 child: ListView.separated(
                   padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 100.h),
                   itemCount: state.items.length,
-                  separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                  separatorBuilder: (context, index) => SizedBox(height: 12.h),
                   itemBuilder: (context, index) {
                     return _buildFavoriteCard(
                       context,
@@ -195,11 +193,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Iconsax.heart,
-            size: 80.sp,
-            color: AppColors.textTertiaryLight,
-          ),
+          Icon(Iconsax.heart, size: 80.sp, color: AppColors.textTertiaryLight),
           SizedBox(height: 24.h),
           Text(
             AppLocalizations.of(context)!.emptyFavorites,
@@ -252,7 +246,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                       child: Image.network(
                         product.mainImage!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(
+                        errorBuilder: (context, error, stackTrace) => Icon(
                           Iconsax.image,
                           size: 32.sp,
                           color: AppColors.textTertiaryLight,
@@ -283,7 +277,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
           // Product Details
           Expanded(
             child: GestureDetector(
-              onTap: () => context.push('/product/${product.id}', extra: product),
+              onTap: () =>
+                  context.push('/product/${product.id}', extra: product),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -344,9 +339,13 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                   Row(
                     children: [
                       Icon(
-                        item.isInStock ? Iconsax.tick_circle : Iconsax.close_circle,
+                        item.isInStock
+                            ? Iconsax.tick_circle
+                            : Iconsax.close_circle,
                         size: 14.sp,
-                        color: item.isInStock ? AppColors.success : AppColors.error,
+                        color: item.isInStock
+                            ? AppColors.success
+                            : AppColors.error,
                       ),
                       SizedBox(width: 4.w),
                       Text(
@@ -355,7 +354,9 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                             : AppLocalizations.of(context)!.outOfStock,
                         style: TextStyle(
                           fontSize: 12.sp,
-                          color: item.isInStock ? AppColors.success : AppColors.error,
+                          color: item.isInStock
+                              ? AppColors.success
+                              : AppColors.error,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

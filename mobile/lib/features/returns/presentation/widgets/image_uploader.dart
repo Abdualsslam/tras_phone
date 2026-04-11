@@ -51,6 +51,7 @@ class _ImageUploaderState extends State<ImageUploader> {
         widget.onImagesChanged(newImages);
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('حدث خطأ أثناء اختيار الصورة: $e'),
@@ -82,6 +83,7 @@ class _ImageUploaderState extends State<ImageUploader> {
         widget.onImagesChanged(newImages);
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('حدث خطأ أثناء التقاط الصورة: $e'),

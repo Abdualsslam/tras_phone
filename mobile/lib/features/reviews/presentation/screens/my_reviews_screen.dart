@@ -45,7 +45,7 @@ class MyReviewsScreen extends StatelessWidget {
           : ListView.separated(
               padding: EdgeInsets.all(16.w),
               itemCount: reviews.length,
-              separatorBuilder: (_, __) => SizedBox(height: 12.h),
+              separatorBuilder: (context, index) => SizedBox(height: 12.h),
               itemBuilder: (context, index) =>
                   _buildReviewCard(reviews[index], isDark, context),
             ),

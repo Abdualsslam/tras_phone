@@ -44,7 +44,10 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
 
   void _setupWebSocket() {
     SocketService().joinTicket(widget.ticketId);
-    _unsubTicketMessage = SocketService().on('ticket:message', _onTicketMessage);
+    _unsubTicketMessage = SocketService().on(
+      'ticket:message',
+      _onTicketMessage,
+    );
   }
 
   void _onTicketMessage(dynamic data) {
@@ -56,7 +59,10 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
         context.read<SupportCubit>().addMessageFromSocket(message);
       }
     } catch (e) {
-      developer.log('Failed to parse ticket:message: $e', name: 'TicketChatScreen');
+      developer.log(
+        'Failed to parse ticket:message: $e',
+        name: 'TicketChatScreen',
+      );
     }
   }
 
@@ -82,27 +88,32 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty && _selectedAttachments.isEmpty) {
+    if (_messageController.text.trim().isEmpty &&
+        _selectedAttachments.isEmpty) {
       return;
     }
+
+    final supportCubit = context.read<SupportCubit>();
+    final messenger = ScaffoldMessenger.of(context);
 
     setState(() => _isSending = true);
 
     try {
       List<String> attachmentUrls = [];
-      
+
       // Upload attachments if any
       if (_selectedAttachments.isNotEmpty) {
-        final cubit = context.read<SupportCubit>();
-        attachmentUrls = await cubit.uploadAttachments(_selectedAttachments);
+        attachmentUrls = await supportCubit.uploadAttachments(
+          _selectedAttachments,
+        );
       }
 
       // Send message
-      final message = await context.read<SupportCubit>().addMessage(
-            ticketId: widget.ticketId,
-            content: _messageController.text.trim(),
-            attachments: attachmentUrls.isNotEmpty ? attachmentUrls : null,
-          );
+      final message = await supportCubit.addMessage(
+        ticketId: widget.ticketId,
+        content: _messageController.text.trim(),
+        attachments: attachmentUrls.isNotEmpty ? attachmentUrls : null,
+      );
 
       if (message != null) {
         _messageController.clear();
@@ -111,7 +122,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('فشل إرسال الرسالة: $e'),
             backgroundColor: AppColors.error,
@@ -140,8 +151,7 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
       ),
       body: BlocBuilder<SupportCubit, SupportState>(
         builder: (context, state) {
-          if (state.status == SupportStatus.loading &&
-              state.messages.isEmpty) {
+          if (state.status == SupportStatus.loading && state.messages.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -157,7 +167,9 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
                   SizedBox(height: 16.h),
                   ElevatedButton(
                     onPressed: () {
-                      context.read<SupportCubit>().loadTicketDetails(widget.ticketId);
+                      context.read<SupportCubit>().loadTicketDetails(
+                        widget.ticketId,
+                      );
                     },
                     child: const Text('إعادة المحاولة'),
                   ),
@@ -172,7 +184,9 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
-                    await context.read<SupportCubit>().loadTicketDetails(widget.ticketId);
+                    await context.read<SupportCubit>().loadTicketDetails(
+                      widget.ticketId,
+                    );
                   },
                   child: ListView.builder(
                     controller: _scrollController,
@@ -192,9 +206,14 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
               if (_selectedAttachments.isNotEmpty)
                 Container(
                   height: 100.h,
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
+                  ),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.cardDark : AppColors.backgroundLight,
+                    color: isDark
+                        ? AppColors.cardDark
+                        : AppColors.backgroundLight,
                     border: Border(
                       top: BorderSide(
                         color: isDark
@@ -245,7 +264,10 @@ class _TicketChatScreenState extends State<TicketChatScreen> {
                                 child: IconButton(
                                   padding: EdgeInsets.zero,
                                   iconSize: 14.sp,
-                                  icon: const Icon(Icons.close, color: Colors.white),
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                  ),
                                   onPressed: () {
                                     setState(() {
                                       _selectedAttachments.removeAt(index);

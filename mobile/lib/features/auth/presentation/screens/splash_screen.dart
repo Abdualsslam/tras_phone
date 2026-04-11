@@ -89,24 +89,25 @@ class _SplashScreenState extends State<SplashScreen>
         } else if (state is AuthUnauthenticated) {
           if (state.isFirstLaunch) {
             context.go('/onboarding');
-          } else {
-            // Check if biometric login is available
-            final biometricService = context.read<BiometricService>();
-            final credentialService =
-                context.read<BiometricCredentialService>();
+            } else {
+              // Check if biometric login is available
+              final router = GoRouter.of(context);
+              final biometricService = context.read<BiometricService>();
+              final credentialService =
+                  context.read<BiometricCredentialService>();
             final biometricAvailable = await biometricService.isAvailable();
             final biometricEnabled = await biometricService.isEnabled();
             final hasCredentials = await credentialService.hasCredentials();
 
-            if (mounted &&
-                biometricAvailable &&
-                biometricEnabled &&
-                hasCredentials) {
-              context.go('/biometric-login');
-            } else if (mounted) {
-              context.go('/login');
+              if (mounted &&
+                  biometricAvailable &&
+                  biometricEnabled &&
+                  hasCredentials) {
+                router.go('/biometric-login');
+              } else if (mounted) {
+                router.go('/login');
+              }
             }
-          }
         }
       },
       child: Scaffold(

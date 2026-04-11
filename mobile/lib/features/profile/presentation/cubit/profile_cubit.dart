@@ -44,15 +44,10 @@ class ProfileCubit extends Cubit<ProfileState> {
   /// Print request URL to terminal
   void _printRequestUrl() {
     final fullUrl = '${AppConfig.baseUrl}${ApiEndpoints.profile}';
-    final separator = List.filled(80, '=').join();
-    print('\n$separator');
-    print('🌐 API REQUEST - رابط الطلب');
-    print(separator);
-    print('Method: GET');
-    print('URL: $fullUrl');
-    print('Endpoint: ${ApiEndpoints.profile}');
-    print('Base URL: ${AppConfig.baseUrl}');
-    print('$separator\n');
+    developer.log(
+      'Loading profile from $fullUrl (endpoint: ${ApiEndpoints.profile})',
+      name: 'ProfileCubit',
+    );
   }
 
   /// Update profile
@@ -91,7 +86,7 @@ class ProfileCubit extends Cubit<ProfileState> {
           ),
         );
       } else {
-        emit(const ProfileError('فشل حذف الحساب'));
+        emit(const ProfileError('ÙØ´Ù„ Ø­Ø°Ù Ø§Ù„Ø­Ø³Ø§Ø¨'));
       }
       return success;
     } catch (e) {
@@ -165,7 +160,12 @@ class AddressesCubit extends Cubit<AddressesState> {
       }
 
       _addresses.add(newAddress);
-      emit(AddressOperationSuccess(_addresses, 'تم إضافة العنوان بنجاح'));
+      emit(
+        AddressOperationSuccess(
+          _addresses,
+          'ØªÙ… Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø¹Ù†ÙˆØ§Ù† Ø¨Ù†Ø¬Ø§Ø­',
+        ),
+      );
     } catch (e) {
       developer.log('Error creating address: $e', name: 'AddressesCubit');
       emit(AddressesError(e.toString()));
@@ -212,7 +212,12 @@ class AddressesCubit extends Cubit<AddressesState> {
         _addresses[index] = updated;
       }
 
-      emit(AddressOperationSuccess(_addresses, 'تم تحديث العنوان بنجاح'));
+      emit(
+        AddressOperationSuccess(
+          _addresses,
+          'ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¹Ù†ÙˆØ§Ù† Ø¨Ù†Ø¬Ø§Ø­',
+        ),
+      );
     } catch (e) {
       developer.log('Error updating address: $e', name: 'AddressesCubit');
       emit(AddressesError(e.toString()));
@@ -246,7 +251,12 @@ class AddressesCubit extends Cubit<AddressesState> {
         }).toList();
       }
 
-      emit(AddressOperationSuccess(_addresses, 'تم حذف العنوان بنجاح'));
+      emit(
+        AddressOperationSuccess(
+          _addresses,
+          'ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¹Ù†ÙˆØ§Ù† Ø¨Ù†Ø¬Ø§Ø­',
+        ),
+      );
     } catch (e) {
       developer.log('Error deleting address: $e', name: 'AddressesCubit');
       emit(AddressesError(e.toString()));
@@ -264,7 +274,12 @@ class AddressesCubit extends Cubit<AddressesState> {
         return a.copyWith(isDefault: a.id == id);
       }).toList();
 
-      emit(AddressOperationSuccess(_addresses, 'تم تعيين العنوان الافتراضي'));
+      emit(
+        AddressOperationSuccess(
+          _addresses,
+          'ØªÙ… ØªØ¹ÙŠÙŠÙ† Ø§Ù„Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ',
+        ),
+      );
     } catch (e) {
       developer.log(
         'Error setting default address: $e',

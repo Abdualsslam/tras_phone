@@ -80,8 +80,9 @@ class _LoyaltyPointsScreenState extends State<LoyaltyPointsScreen> {
 
           return RefreshIndicator(
             onRefresh: () async {
-              await context.read<WalletCubit>().loadPoints();
-              await context.read<WalletCubit>().loadTiers();
+              final walletCubit = context.read<WalletCubit>();
+              await walletCubit.loadPoints();
+              await walletCubit.loadTiers();
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -90,14 +91,27 @@ class _LoyaltyPointsScreenState extends State<LoyaltyPointsScreen> {
                 children: [
                   // Points Card
                   if (loyaltyPoints != null)
-                    _buildPointsCard(context, theme, isDark, loyaltyPoints, locale)
+                    _buildPointsCard(
+                      context,
+                      theme,
+                      isDark,
+                      loyaltyPoints,
+                      locale,
+                    )
                   else
                     _buildPointsCardPlaceholder(theme, isDark),
                   SizedBox(height: 24.h),
 
                   // Tier Progress
                   if (loyaltyPoints != null && tiers != null)
-                    _buildTierProgress(context, theme, isDark, loyaltyPoints, tiers, locale)
+                    _buildTierProgress(
+                      context,
+                      theme,
+                      isDark,
+                      loyaltyPoints,
+                      tiers,
+                      locale,
+                    )
                   else
                     _buildTierProgressPlaceholder(theme, isDark),
                   SizedBox(height: 24.h),
@@ -125,10 +139,7 @@ class _LoyaltyPointsScreenState extends State<LoyaltyPointsScreen> {
     String locale,
   ) {
     final tierColor = loyaltyPoints.tier.getColor() ?? Colors.amber;
-    final gradientColors = [
-      tierColor.withValues(alpha: 0.8),
-      tierColor,
-    ];
+    final gradientColors = [tierColor.withValues(alpha: 0.8), tierColor];
 
     return Container(
       width: double.infinity,
@@ -155,11 +166,8 @@ class _LoyaltyPointsScreenState extends State<LoyaltyPointsScreen> {
               loyaltyPoints.tier.badgeImage!,
               width: 64.w,
               height: 64.w,
-              errorBuilder: (_, __, ___) => Icon(
-                Iconsax.medal_star,
-                color: Colors.white,
-                size: 48.sp,
-              ),
+              errorBuilder: (context, error, stackTrace) =>
+                  Icon(Iconsax.medal_star, color: Colors.white, size: 48.sp),
             )
           else
             Icon(Iconsax.medal_star, color: Colors.white, size: 48.sp),
@@ -305,7 +313,8 @@ class _LoyaltyPointsScreenState extends State<LoyaltyPointsScreen> {
               children: sortedTiers.asMap().entries.map((entry) {
                 final index = entry.key;
                 final tier = entry.value;
-                final isActive = tier.id == loyaltyPoints.tier.id ||
+                final isActive =
+                    tier.id == loyaltyPoints.tier.id ||
                     sortedTiers
                         .take(index + 1)
                         .any((t) => t.minPoints <= loyaltyPoints.points);

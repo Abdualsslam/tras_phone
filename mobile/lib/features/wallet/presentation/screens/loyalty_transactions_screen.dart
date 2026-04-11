@@ -21,8 +21,7 @@ class LoyaltyTransactionsScreen extends StatefulWidget {
       _LoyaltyTransactionsScreenState();
 }
 
-class _LoyaltyTransactionsScreenState
-    extends State<LoyaltyTransactionsScreen> {
+class _LoyaltyTransactionsScreenState extends State<LoyaltyTransactionsScreen> {
   @override
   void initState() {
     super.initState();
@@ -35,7 +34,9 @@ class _LoyaltyTransactionsScreenState
     final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.pointsTransactions)),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.pointsTransactions),
+      ),
       body: BlocBuilder<WalletCubit, WalletState>(
         builder: (context, state) {
           if (state is WalletLoading && state is! WalletLoaded) {
@@ -81,9 +82,7 @@ class _LoyaltyTransactionsScreenState
                         SizedBox(height: 16.h),
                         Text(
                           'لا توجد معاملات',
-                          style: TextStyle(
-                            color: AppColors.textTertiaryLight,
-                          ),
+                          style: TextStyle(color: AppColors.textTertiaryLight),
                         ),
                       ],
                     ),
@@ -91,7 +90,7 @@ class _LoyaltyTransactionsScreenState
                 : ListView.separated(
                     padding: EdgeInsets.symmetric(horizontal: 16.w),
                     itemCount: transactions.length,
-                    separatorBuilder: (_, __) => SizedBox(height: 8.h),
+                    separatorBuilder: (context, index) => SizedBox(height: 8.h),
                     itemBuilder: (context, index) => _buildTransactionCard(
                       context,
                       transactions[index],
@@ -155,11 +154,7 @@ class _LoyaltyTransactionsScreenState
               color: iconBg.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Icon(
-              icon,
-              size: 22.sp,
-              color: iconBg,
-            ),
+            child: Icon(icon, size: 22.sp, color: iconBg),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -203,7 +198,8 @@ class _LoyaltyTransactionsScreenState
                     ],
                   ],
                 ),
-                if (transaction.multiplier != null && transaction.multiplier! > 1) ...[
+                if (transaction.multiplier != null &&
+                    transaction.multiplier! > 1) ...[
                   SizedBox(height: 4.h),
                   Container(
                     padding: EdgeInsets.symmetric(

@@ -119,7 +119,8 @@ class OrderCard extends StatelessWidget {
                               itemCount: order.items.length > 3
                                   ? 3
                                   : order.items.length,
-                              separatorBuilder: (_, __) => SizedBox(width: 8.w),
+                              separatorBuilder: (context, index) =>
+                                  SizedBox(width: 8.w),
                               itemBuilder: (context, index) {
                                 final item = order.items[index];
                                 return ClipRRect(
@@ -134,12 +135,14 @@ class OrderCard extends StatelessWidget {
                                         ? Image.network(
                                             item.image!,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) => Icon(
-                                              Iconsax.box,
-                                              color:
-                                                  AppColors.textTertiaryLight,
-                                              size: 24.sp,
-                                            ),
+                                            errorBuilder:
+                                                (context, error, stackTrace) =>
+                                                    Icon(
+                                                      Iconsax.box,
+                                                      color: AppColors
+                                                          .textTertiaryLight,
+                                                      size: 24.sp,
+                                                    ),
                                           )
                                         : Icon(
                                             Iconsax.box,

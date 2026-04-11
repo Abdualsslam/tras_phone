@@ -93,8 +93,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: ListView.separated(
                 controller: _scrollController,
                 padding: EdgeInsets.symmetric(vertical: 8.h),
-                itemCount: state.notifications.length + (state.isLoadingMore ? 1 : 0),
-                separatorBuilder: (_, __) => Divider(
+                itemCount:
+                    state.notifications.length + (state.isLoadingMore ? 1 : 0),
+                separatorBuilder: (context, index) => Divider(
                   height: 1,
                   indent: 72.w,
                   color: AppColors.dividerLight,
@@ -113,7 +114,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     locale: locale,
                     onTap: () => _handleNotificationTap(context, notification),
                     onDismiss: () {
-                      context.read<NotificationsCubit>().deleteNotification(notification.id);
+                      context.read<NotificationsCubit>().deleteNotification(
+                        notification.id,
+                      );
                     },
                   );
                 },
@@ -156,18 +159,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildErrorState(BuildContext context, ThemeData theme, String message) {
+  Widget _buildErrorState(
+    BuildContext context,
+    ThemeData theme,
+    String message,
+  ) {
     return Center(
       child: Padding(
         padding: EdgeInsets.all(24.w),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Iconsax.warning_2,
-              size: 80.sp,
-              color: AppColors.error,
-            ),
+            Icon(Iconsax.warning_2, size: 80.sp, color: AppColors.error),
             SizedBox(height: 24.h),
             Text(
               'حدث خطأ',

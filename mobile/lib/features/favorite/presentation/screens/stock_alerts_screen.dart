@@ -24,9 +24,7 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
   @override
   void initState() {
     super.initState();
-    _cubit = StockAlertsCubit(
-      repository: context.read<FavoriteRepository>(),
-    );
+    _cubit = StockAlertsCubit(repository: context.read<FavoriteRepository>());
     _cubit.loadStockAlerts();
   }
 
@@ -40,7 +38,9 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
     await _cubit.removeStockAlert(alertId);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.stockAlertRemoved)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.stockAlertRemoved),
+        ),
       );
     }
   }
@@ -65,11 +65,7 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Iconsax.danger,
-                      size: 64.sp,
-                      color: AppColors.error,
-                    ),
+                    Icon(Iconsax.danger, size: 64.sp, color: AppColors.error),
                     SizedBox(height: 16.h),
                     Text(
                       state.message,
@@ -128,7 +124,9 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
                       ),
                     ),
                     SizedBox(height: 16.h),
-                    ...state.alerts.map((alert) => _buildAlertCard(alert, isDark)),
+                    ...state.alerts.map(
+                      (alert) => _buildAlertCard(alert, isDark),
+                    ),
                   ],
                 ),
               );
@@ -143,12 +141,12 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
 
   Widget _buildAlertCard(Map<String, dynamic> alert, bool isDark) {
     final productField = alert['productId'];
-    final product =
-        productField is Map<String, dynamic> ? productField : null;
+    final product = productField is Map<String, dynamic> ? productField : null;
     final alertId = alert['_id']?.toString() ?? alert['id']?.toString() ?? '';
     final productName = product?['nameAr'] ?? product?['name'] ?? 'منتج';
-    final isAvailable = alert['status'] == 'available' || alert['isAvailable'] == true;
-    
+    final isAvailable =
+        alert['status'] == 'available' || alert['isAvailable'] == true;
+
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(12.w),
@@ -171,7 +169,7 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
                     child: Image.network(
                       product!['mainImage'],
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(
+                      errorBuilder: (context, error, stackTrace) => Icon(
                         Iconsax.box,
                         size: 28.sp,
                         color: AppColors.textSecondaryLight,

@@ -51,6 +51,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         }
 
         if (state is AuthPasswordResetRequestSubmitted) {
+          final router = GoRouter.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -61,7 +62,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           );
           // Go back after a delay
-          Future.delayed(const Duration(seconds: 2), () => context.pop());
+          Future.delayed(const Duration(seconds: 2), router.pop);
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

@@ -2,7 +2,9 @@
 library;
 
 import 'dart:developer' as developer;
+
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../data/datasources/orders_remote_datasource.dart';
 import '../../data/models/payment_method_model.dart';
 import '../../domain/entities/payment_method_entity.dart';
@@ -22,22 +24,17 @@ class PaymentMethodsCubit extends Cubit<PaymentMethodsState> {
     try {
       final response = await _dataSource.getPaymentMethods();
 
-      // Print raw API response to terminal
-      _printPaymentMethodsRaw(response);
+      _logPaymentMethodsRaw(response);
 
-      // Convert Map to PaymentMethodModel then to Entity
       final paymentMethods =
           response
-              .map((json) => PaymentMethodModel.fromJson(json))
-              .where((model) => model.isActive) // Filter only active methods
+              .map(PaymentMethodModel.fromJson)
+              .where((model) => model.isActive)
               .map((model) => model.toEntity())
               .toList()
-            ..sort(
-              (a, b) => a.sortOrder.compareTo(b.sortOrder),
-            ); // Sort by sortOrder
+            ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
-      // Print parsed payment methods to terminal
-      _printPaymentMethodsParsed(paymentMethods);
+      _logPaymentMethodsParsed(paymentMethods);
 
       emit(PaymentMethodsLoaded(paymentMethods));
     } catch (e) {
@@ -49,49 +46,60 @@ class PaymentMethodsCubit extends Cubit<PaymentMethodsState> {
     }
   }
 
-  /// Print raw API response to terminal
-  void _printPaymentMethodsRaw(List<Map<String, dynamic>> response) {
+  void _logPaymentMethodsRaw(List<Map<String, dynamic>> response) {
     final separator = List.filled(80, '=').join();
-    print('\n$separator');
-    print(
-      '💳 PAYMENT METHODS - Raw API Response (طرق الدفع - الاستجابة الخام)',
-    );
-    print(separator);
-    print('Count: ${response.length}');
+    final buffer = StringBuffer()
+      ..writeln('\n$separator')
+      ..writeln('PAYMENT METHODS - Raw API Response')
+      ..writeln('طرق الدفع - الاستجابة الخام')
+      ..writeln(separator)
+      ..writeln('Count: ${response.length}');
+
     for (var i = 0; i < response.length; i++) {
-      print('\n--- Method ${i + 1} ---');
+      buffer.writeln('\n--- Method ${i + 1} ---');
       response[i].forEach((key, value) {
-        print('  $key: $value');
+        buffer.writeln('  $key: $value');
       });
     }
-    print('\n$separator\n');
+
+    buffer.writeln('\n$separator\n');
+    developer.log(buffer.toString(), name: 'PaymentMethodsCubit');
   }
 
-  /// Print parsed payment methods (entities) to terminal
-  void _printPaymentMethodsParsed(List<PaymentMethodEntity> paymentMethods) {
+  void _logPaymentMethodsParsed(List<PaymentMethodEntity> paymentMethods) {
     final separator = List.filled(80, '=').join();
-    print('\n$separator');
-    print('💳 PAYMENT METHODS - Parsed (طرق الدفع - بعد المعالجة)');
-    print(separator);
-    print('Active count: ${paymentMethods.length}');
+    final buffer = StringBuffer()
+      ..writeln('\n$separator')
+      ..writeln('PAYMENT METHODS - Parsed')
+      ..writeln('طرق الدفع - بعد المعالجة')
+      ..writeln(separator)
+      ..writeln('Active count: ${paymentMethods.length}');
+
     for (var i = 0; i < paymentMethods.length; i++) {
-      final m = paymentMethods[i];
-      print('\n--- ${i + 1}. ${m.nameAr} / ${m.nameEn} ---');
-      print('  id: ${m.id}');
-      print('  nameAr: ${m.nameAr}');
-      print('  nameEn: ${m.nameEn}');
-      print('  type: ${m.type}');
-      print('  descriptionAr: ${m.descriptionAr}');
-      print('  descriptionEn: ${m.descriptionEn}');
-      print('  icon: ${m.icon}');
-      print('  logo: ${m.logo}');
-      print('  isActive: ${m.isActive}');
-      print('  sortOrder: ${m.sortOrder}');
-      print('  orderPaymentMethodValue: ${m.orderPaymentMethodValue}');
-      if (m.bankDetails != null && m.bankDetails!.isNotEmpty) {
-        print('  bankDetails: ${m.bankDetails}');
+      final paymentMethod = paymentMethods[i];
+      buffer.writeln(
+        '\n--- ${i + 1}. ${paymentMethod.nameAr} / ${paymentMethod.nameEn} ---',
+      );
+      buffer.writeln('  id: ${paymentMethod.id}');
+      buffer.writeln('  nameAr: ${paymentMethod.nameAr}');
+      buffer.writeln('  nameEn: ${paymentMethod.nameEn}');
+      buffer.writeln('  type: ${paymentMethod.type}');
+      buffer.writeln('  descriptionAr: ${paymentMethod.descriptionAr}');
+      buffer.writeln('  descriptionEn: ${paymentMethod.descriptionEn}');
+      buffer.writeln('  icon: ${paymentMethod.icon}');
+      buffer.writeln('  logo: ${paymentMethod.logo}');
+      buffer.writeln('  isActive: ${paymentMethod.isActive}');
+      buffer.writeln('  sortOrder: ${paymentMethod.sortOrder}');
+      buffer.writeln(
+        '  orderPaymentMethodValue: ${paymentMethod.orderPaymentMethodValue}',
+      );
+      if (paymentMethod.bankDetails != null &&
+          paymentMethod.bankDetails!.isNotEmpty) {
+        buffer.writeln('  bankDetails: ${paymentMethod.bankDetails}');
       }
     }
-    print('\n$separator\n');
+
+    buffer.writeln('\n$separator\n');
+    developer.log(buffer.toString(), name: 'PaymentMethodsCubit');
   }
 }

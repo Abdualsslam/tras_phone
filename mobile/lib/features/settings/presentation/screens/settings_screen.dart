@@ -148,22 +148,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: _biometricEnabled,
                   onChanged: (value) async {
                     final biometricService = context.read<BiometricService>();
-                    final credentialService =
-                        context.read<BiometricCredentialService>();
+                    final credentialService = context
+                        .read<BiometricCredentialService>();
+                    final authCubit = context.read<AuthCubit>();
+                    final messenger = ScaffoldMessenger.of(context);
+                    final localizations = AppLocalizations.of(context)!;
                     if (value) {
                       // Verify identity before enabling
-                      final authenticated =
-                          await biometricService.verifyIdentityForSetup(
-                        localizedReason: 'يرجى التحقق من هويتك لتفعيل البصمة',
-                      );
+                      final authenticated = await biometricService
+                          .verifyIdentityForSetup(
+                            localizedReason:
+                                'يرجى التحقق من هويتك لتفعيل البصمة',
+                          );
                       if (authenticated) {
                         // Check if we need to save credentials
-                        final hasCredentials =
-                            await credentialService.hasCredentials();
+                        final hasCredentials = await credentialService
+                            .hasCredentials();
                         if (!hasCredentials) {
                           final password = await _showPasswordDialog();
                           if (password == null || !mounted) return;
-                          final authCubit = context.read<AuthCubit>();
                           final user = authCubit.currentUser;
                           if (user == null || !mounted) return;
                           await credentialService.saveCredentials(
@@ -176,18 +179,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           setState(() {
                             _biometricEnabled = true;
                           });
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(
-                              content: Text(AppLocalizations.of(context)!.biometricEnabled),
+                              content: Text(localizations.biometricEnabled),
                               backgroundColor: AppColors.success,
                             ),
                           );
                         }
                       } else {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(
-                              content: Text(AppLocalizations.of(context)!.biometricFailed),
+                              content: Text(localizations.biometricFailed),
                               backgroundColor: AppColors.error,
                             ),
                           );
@@ -200,9 +203,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         setState(() {
                           _biometricEnabled = false;
                         });
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           SnackBar(
-                            content: Text(AppLocalizations.of(context)!.biometricDisabled),
+                            content: Text(localizations.biometricDisabled),
                             backgroundColor: AppColors.success,
                           ),
                         );
@@ -236,14 +239,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Iconsax.share,
                 title: AppLocalizations.of(context)!.shareApp,
                 onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final localizations = AppLocalizations.of(context)!;
                   try {
                     final shareService = context.read<ShareService>();
                     await shareService.shareApp(context: context);
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(
-                          content: Text('${AppLocalizations.of(context)!.shareError}: $e'),
+                          content: Text('${localizations.shareError}: $e'),
                           backgroundColor: AppColors.error,
                         ),
                       );
@@ -507,7 +512,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         enabled: !isLoading,
                         decoration: InputDecoration(
                           labelText: AppLocalizations.of(context)!.deleteReason,
-                          hintText: AppLocalizations.of(context)!.deleteReasonHint,
+                          hintText: AppLocalizations.of(
+                            context,
+                          )!.deleteReasonHint,
                           border: const OutlineInputBorder(),
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 12.w,
@@ -552,14 +559,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(AppLocalizations.of(context)!.deleteAccountSuccess),
+                                  content: Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.deleteAccountSuccess,
+                                  ),
                                   backgroundColor: AppColors.success,
                                 ),
                               );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(AppLocalizations.of(context)!.deleteAccountError),
+                                  content: Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.deleteAccountError,
+                                  ),
                                   backgroundColor: AppColors.error,
                                 ),
                               );
@@ -567,8 +582,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.error,
-                      disabledBackgroundColor:
-                          AppColors.error.withOpacity(0.5),
+                      disabledBackgroundColor: AppColors.error.withValues(
+                        alpha: 0.5,
+                      ),
                     ),
                     child: isLoading
                         ? SizedBox(
@@ -673,10 +689,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
-          fontSize: 12.sp,
-          color: AppColors.textTertiaryLight,
-        ),
+        style: TextStyle(fontSize: 12.sp, color: AppColors.textTertiaryLight),
       ),
       trailing: isSelected
           ? const Icon(Iconsax.tick_circle, color: AppColors.primary)

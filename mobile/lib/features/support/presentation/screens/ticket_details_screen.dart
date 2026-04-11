@@ -43,7 +43,10 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
 
   void _setupWebSocket() {
     SocketService().joinTicket(widget.ticketId);
-    _unsubTicketMessage = SocketService().on('ticket:message', _onTicketMessage);
+    _unsubTicketMessage = SocketService().on(
+      'ticket:message',
+      _onTicketMessage,
+    );
   }
 
   void _onTicketMessage(dynamic data) {
@@ -56,8 +59,10 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
         _scrollToBottom();
       }
     } catch (e) {
-      developer.log('Failed to parse ticket:message: $e',
-          name: 'TicketDetailsScreen');
+      developer.log(
+        'Failed to parse ticket:message: $e',
+        name: 'TicketDetailsScreen',
+      );
     }
   }
 
@@ -83,27 +88,32 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty && _selectedAttachments.isEmpty) {
+    if (_messageController.text.trim().isEmpty &&
+        _selectedAttachments.isEmpty) {
       return;
     }
+
+    final supportCubit = context.read<SupportCubit>();
+    final messenger = ScaffoldMessenger.of(context);
 
     setState(() => _isSending = true);
 
     try {
       List<String> attachmentUrls = [];
-      
+
       // Upload attachments if any
       if (_selectedAttachments.isNotEmpty) {
-        final cubit = context.read<SupportCubit>();
-        attachmentUrls = await cubit.uploadAttachments(_selectedAttachments);
+        attachmentUrls = await supportCubit.uploadAttachments(
+          _selectedAttachments,
+        );
       }
 
       // Send message
-      final message = await context.read<SupportCubit>().addMessage(
-            ticketId: widget.ticketId,
-            content: _messageController.text.trim(),
-            attachments: attachmentUrls.isNotEmpty ? attachmentUrls : null,
-          );
+      final message = await supportCubit.addMessage(
+        ticketId: widget.ticketId,
+        content: _messageController.text.trim(),
+        attachments: attachmentUrls.isNotEmpty ? attachmentUrls : null,
+      );
 
       if (message != null) {
         _messageController.clear();
@@ -112,7 +122,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(getSupportErrorMessage(e)),
             backgroundColor: AppColors.error,
@@ -135,10 +145,10 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
 
     if (result != null && mounted) {
       final success = await context.read<SupportCubit>().rateTicket(
-            ticketId: widget.ticketId,
-            rating: result['rating'] as int,
-            feedback: result['feedback'] as String?,
-          );
+        ticketId: widget.ticketId,
+        rating: result['rating'] as int,
+        feedback: result['feedback'] as String?,
+      );
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -194,7 +204,9 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                   SizedBox(height: 16.h),
                   ElevatedButton(
                     onPressed: () {
-                      context.read<SupportCubit>().loadTicketDetails(widget.ticketId);
+                      context.read<SupportCubit>().loadTicketDetails(
+                        widget.ticketId,
+                      );
                     },
                     child: Text(AppLocalizations.of(context)!.retryAction),
                   ),
@@ -217,7 +229,9 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: () async {
-                    await context.read<SupportCubit>().loadTicketDetails(widget.ticketId);
+                    await context.read<SupportCubit>().loadTicketDetails(
+                      widget.ticketId,
+                    );
                   },
                   child: state.messages.isEmpty
                       ? ListView(
@@ -239,20 +253,26 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                                     SizedBox(height: 16.h),
                                     Text(
                                       'لا توجد رسائل بعد',
-                                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                        color: isDark
-                                            ? AppColors.textSecondaryDark
-                                            : AppColors.textSecondaryLight,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                            color: isDark
+                                                ? AppColors.textSecondaryDark
+                                                : AppColors.textSecondaryLight,
+                                          ),
                                     ),
                                     SizedBox(height: 8.h),
                                     Text(
                                       'اكتب رسالتك أدناه وسيرد فريق الدعم قريباً',
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: isDark
-                                            ? AppColors.textTertiaryDark
-                                            : AppColors.textTertiaryLight,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: isDark
+                                                ? AppColors.textTertiaryDark
+                                                : AppColors.textTertiaryLight,
+                                          ),
                                       textAlign: TextAlign.center,
                                     ),
                                   ],
@@ -279,9 +299,14 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
               if (_selectedAttachments.isNotEmpty)
                 Container(
                   height: 100.h,
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
+                  ),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.cardDark : AppColors.backgroundLight,
+                    color: isDark
+                        ? AppColors.cardDark
+                        : AppColors.backgroundLight,
                     border: Border(
                       top: BorderSide(
                         color: isDark
@@ -332,7 +357,10 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                                 child: IconButton(
                                   padding: EdgeInsets.zero,
                                   iconSize: 14.sp,
-                                  icon: const Icon(Icons.close, color: Colors.white),
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                  ),
                                   onPressed: () {
                                     setState(() {
                                       _selectedAttachments.removeAt(index);

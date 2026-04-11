@@ -32,10 +32,10 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
   void initState() {
     super.initState();
     context.read<WalletCubit>().loadTransactions(
-          page: _page,
-          limit: _limit,
-          transactionType: _selectedType,
-        );
+      page: _page,
+      limit: _limit,
+      transactionType: _selectedType,
+    );
     _scrollController.addListener(_onScroll);
   }
 
@@ -59,10 +59,10 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
       _page++;
     });
     context.read<WalletCubit>().loadTransactions(
-          page: _page,
-          limit: _limit,
-          transactionType: _selectedType,
-        );
+      page: _page,
+      limit: _limit,
+      transactionType: _selectedType,
+    );
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() => _isLoadingMore = false);
@@ -76,7 +76,9 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
     final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.transactionHistoryTitle)),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.transactionHistoryTitle),
+      ),
       body: BlocBuilder<WalletCubit, WalletState>(
         builder: (context, state) {
           if (state is WalletLoading && state is! WalletLoaded) {
@@ -94,10 +96,10 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
                     onPressed: () {
                       _page = 1;
                       context.read<WalletCubit>().loadTransactions(
-                            page: _page,
-                            limit: _limit,
-                            transactionType: _selectedType,
-                          );
+                        page: _page,
+                        limit: _limit,
+                        transactionType: _selectedType,
+                      );
                     },
                     child: Text(AppLocalizations.of(context)!.retryAction),
                   ),
@@ -157,10 +159,10 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
                   onRefresh: () async {
                     _page = 1;
                     await context.read<WalletCubit>().loadTransactions(
-                          page: _page,
-                          limit: _limit,
-                          transactionType: _selectedType,
-                        );
+                      page: _page,
+                      limit: _limit,
+                      transactionType: _selectedType,
+                    );
                   },
                   child: transactions.isEmpty
                       ? Center(
@@ -185,8 +187,10 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
                       : ListView.separated(
                           controller: _scrollController,
                           padding: EdgeInsets.symmetric(horizontal: 16.w),
-                          itemCount: transactions.length + (_isLoadingMore ? 1 : 0),
-                          separatorBuilder: (_, __) => SizedBox(height: 8.h),
+                          itemCount:
+                              transactions.length + (_isLoadingMore ? 1 : 0),
+                          separatorBuilder: (context, index) =>
+                              SizedBox(height: 8.h),
                           itemBuilder: (context, index) {
                             if (index == transactions.length) {
                               return const Center(
@@ -227,10 +231,10 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
           _page = 1;
         });
         context.read<WalletCubit>().loadTransactions(
-              page: _page,
-              limit: _limit,
-              transactionType: type,
-            );
+          page: _page,
+          limit: _limit,
+          transactionType: type,
+        );
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -303,11 +307,7 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
               color: iconBg.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Icon(
-              icon,
-              size: 22.sp,
-              color: iconBg,
-            ),
+            child: Icon(icon, size: 22.sp, color: iconBg),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -351,7 +351,8 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
                     ],
                   ],
                 ),
-                if (transaction.status != WalletTransactionStatus.completed) ...[
+                if (transaction.status !=
+                    WalletTransactionStatus.completed) ...[
                   SizedBox(height: 4.h),
                   Container(
                     padding: EdgeInsets.symmetric(
@@ -388,7 +389,9 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
               ),
               SizedBox(height: 4.h),
               Text(
-                AppLocalizations.of(context)!.balanceAfter(transaction.balanceAfter.toStringAsFixed(2)),
+                AppLocalizations.of(
+                  context,
+                )!.balanceAfter(transaction.balanceAfter.toStringAsFixed(2)),
                 style: TextStyle(
                   fontSize: 11.sp,
                   color: AppColors.textTertiaryLight,

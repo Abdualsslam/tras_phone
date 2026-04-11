@@ -60,7 +60,9 @@ class HtmlContentWidget extends StatelessWidget {
           ),
           margin: Margins.symmetric(vertical: 16),
           padding: HtmlPaddings.only(left: 16),
-          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.05),
+          backgroundColor: Theme.of(
+            context,
+          ).primaryColor.withValues(alpha: 0.05),
         ),
         "code": Style(
           backgroundColor: Theme.of(

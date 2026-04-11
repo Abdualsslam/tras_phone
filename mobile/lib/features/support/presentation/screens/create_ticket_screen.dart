@@ -20,11 +20,7 @@ class CreateTicketScreen extends StatefulWidget {
   final String? orderId;
   final String? productId;
 
-  const CreateTicketScreen({
-    super.key,
-    this.orderId,
-    this.productId,
-  });
+  const CreateTicketScreen({super.key, this.orderId, this.productId});
 
   @override
   State<CreateTicketScreen> createState() => _CreateTicketScreenState();
@@ -120,14 +116,16 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                                       formFieldState.didChange(cat);
                                     });
                                   },
-                                  selectedColor:
-                                      AppColors.primary.withValues(alpha: 0.2),
+                                  selectedColor: AppColors.primary.withValues(
+                                    alpha: 0.2,
+                                  ),
                                   labelStyle: TextStyle(
                                     color: isSelected
                                         ? AppColors.primary
                                         : null,
-                                    fontWeight:
-                                        isSelected ? FontWeight.w600 : null,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : null,
                                   ),
                                 );
                               }).toList(),
@@ -191,8 +189,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     decoration: InputDecoration(
                       hintText: 'اكتب عنوان المشكلة',
                       filled: true,
-                      fillColor:
-                          isDark ? AppColors.cardDark : AppColors.cardLight,
+                      fillColor: isDark
+                          ? AppColors.cardDark
+                          : AppColors.cardLight,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14.r),
                         borderSide: BorderSide.none,
@@ -218,8 +217,9 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                     decoration: InputDecoration(
                       hintText: 'اشرح مشكلتك بالتفصيل...',
                       filled: true,
-                      fillColor:
-                          isDark ? AppColors.cardDark : AppColors.cardLight,
+                      fillColor: isDark
+                          ? AppColors.cardDark
+                          : AppColors.cardLight,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14.r),
                         borderSide: BorderSide.none,
@@ -238,8 +238,11 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Iconsax.shopping_bag,
-                              color: AppColors.info, size: 20.sp),
+                          Icon(
+                            Iconsax.shopping_bag,
+                            color: AppColors.info,
+                            size: 20.sp,
+                          ),
                           SizedBox(width: 8.w),
                           Text(
                             'مرتبطة بالطلب: ${widget.orderId}',
@@ -302,7 +305,6 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     );
   }
 
-
   String _getCustomerName(BuildContext context) {
     final profileState = context.read<ProfileCubit>().state;
     if (profileState is ProfileLoaded) {
@@ -322,10 +324,12 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     final profileState = context.read<ProfileCubit>().state;
     String? email;
     if (profileState is ProfileLoaded) {
-      email = profileState.customer.user?.email ??
+      email =
+          profileState.customer.user?.email ??
           profileState.customer.user?.phone;
     } else if (profileState is ProfileUpdated) {
-      email = profileState.customer.user?.email ??
+      email =
+          profileState.customer.user?.email ??
           profileState.customer.user?.phone;
     }
     if (email != null && email.isNotEmpty) return email;
@@ -341,36 +345,38 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) return;
 
+    final supportCubit = context.read<SupportCubit>();
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    final localizations = AppLocalizations.of(context)!;
+    final customerName = _getCustomerName(context);
+    final customerEmail = _getCustomerEmail(context);
+
     setState(() => _isSubmitting = true);
 
     try {
       // Upload attachments first if any
       List<String> attachmentUrls = [];
       if (_attachmentPaths.isNotEmpty) {
-        attachmentUrls = await context.read<SupportCubit>().uploadAttachments(
-              _attachmentPaths,
-            );
+        attachmentUrls = await supportCubit.uploadAttachments(_attachmentPaths);
       }
 
-      final customerName = _getCustomerName(context);
-      final customerEmail = _getCustomerEmail(context);
-
-      final ticket = await context.read<SupportCubit>().createTicket(
-            categoryId: _selectedCategory!.id,
-            subject: _subjectController.text,
-            description: _descriptionController.text,
-            priority: _selectedPriority,
-            orderId: widget.orderId,
-            productId: widget.productId,
-            attachments: attachmentUrls.isNotEmpty ? attachmentUrls : null,
-            customerName: customerName,
-            customerEmail: customerEmail,
-          );
+      final ticket = await supportCubit.createTicket(
+        categoryId: _selectedCategory!.id,
+        subject: _subjectController.text,
+        description: _descriptionController.text,
+        priority: _selectedPriority,
+        orderId: widget.orderId,
+        productId: widget.productId,
+        attachments: attachmentUrls.isNotEmpty ? attachmentUrls : null,
+        customerName: customerName,
+        customerEmail: customerEmail,
+      );
 
       if (ticket != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.ticketSentSuccess),
+            content: Text(localizations.ticketSentSuccess),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -378,11 +384,11 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
             ),
           ),
         );
-        context.pop();
+        router.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('فشل إرسال التذكرة: $e'),
             backgroundColor: AppColors.error,

@@ -52,6 +52,7 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
         widget.onChanged?.call(updated);
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('حدث خطأ أثناء اختيار الصورة: $e'),
@@ -82,6 +83,7 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
         widget.onChanged?.call(updated);
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('حدث خطأ أثناء التقاط الصورة: $e'),

@@ -131,7 +131,8 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
                           child: ListView.separated(
                             padding: EdgeInsets.all(16.w),
                             itemCount: _reviews.length,
-                            separatorBuilder: (_, __) => SizedBox(height: 16.h),
+                            separatorBuilder: (context, index) =>
+                                SizedBox(height: 16.h),
                             itemBuilder: (context, index) {
                               return ProductReviewCard(
                                 theme: theme,
@@ -153,10 +154,7 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
   }
 
   Widget _buildError(ThemeData theme, bool isDark) {
-    return AppError(
-      message: _error!,
-      onRetry: _loadReviews,
-    );
+    return AppError(message: _error!, onRetry: _loadReviews);
   }
 
   Widget _buildEmptyState(ThemeData theme, bool isDark) {

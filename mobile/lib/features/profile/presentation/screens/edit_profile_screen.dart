@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../auth/domain/entities/customer_entity.dart';
 import '../../domain/enums/customer_enums.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../../data/models/update_customer_profile_dto.dart';
@@ -67,7 +68,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  void _loadInitialData(customer) {
+  void _loadInitialData(CustomerEntity? customer) {
     if (customer != null) {
       _responsiblePersonNameController.text = customer.responsiblePersonName;
       _shopNameController.text = customer.shopName;
