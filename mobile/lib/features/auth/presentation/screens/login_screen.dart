@@ -10,7 +10,6 @@ import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/services/biometric_credential_service.dart';
 import '../../../../core/services/biometric_service.dart';
 import '../../../../core/utils/validators.dart';
@@ -44,8 +43,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _checkBiometricAvailability() async {
-    final biometricService = getIt<BiometricService>();
-    final credentialService = getIt<BiometricCredentialService>();
+    final biometricService = context.read<BiometricService>();
+    final credentialService = context.read<BiometricCredentialService>();
     final biometricAvailable = await biometricService.isAvailable();
     final biometricEnabled = await biometricService.isEnabled();
     final hasCredentials = await credentialService.hasCredentials();

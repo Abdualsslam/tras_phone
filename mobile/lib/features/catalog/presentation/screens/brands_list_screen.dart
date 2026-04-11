@@ -10,7 +10,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
@@ -34,7 +33,8 @@ class BrandsListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) =>
-          BrandsCubit(repository: getIt<CatalogRepository>())..loadBrands(),
+          BrandsCubit(repository: context.read<CatalogRepository>())
+            ..loadBrands(),
       child: _BrandsListView(
         flowMode: flowMode,
         categoryId: categoryId,

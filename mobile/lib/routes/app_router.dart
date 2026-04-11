@@ -4,7 +4,8 @@ library;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
-import '../core/di/injection.dart';
+import 'route_args.dart';
+import '../features/cart/data/datasources/cart_remote_datasource.dart';
 import '../features/cart/presentation/cubit/checkout_session_cubit.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../features/auth/presentation/screens/biometric_login_screen.dart';
@@ -133,20 +134,20 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/otp-verification',
       builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>?;
+        final extra = OtpVerificationRouteArgs.fromExtra(state.extra);
         return OtpVerificationScreen(
-          phone: extra?['phone'] ?? '',
-          purpose: extra?['purpose'] ?? 'verification',
+          phone: extra.phone,
+          purpose: extra.purpose,
         );
       },
     ),
     GoRoute(
       path: '/reset-password',
       builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>?;
+        final extra = ResetPasswordRouteArgs.fromExtra(state.extra);
         return ResetPasswordScreen(
-          phone: extra?['phone'] ?? '',
-          resetToken: extra?['resetToken'] ?? '',
+          phone: extra.phone,
+          resetToken: extra.resetToken,
         );
       },
     ),
@@ -181,14 +182,14 @@ final GoRouter appRouter = GoRouter(
       path: '/product/:id/education',
       builder: (context, state) {
         final id = state.pathParameters['id'] ?? '';
-        final extra = state.extra;
-        final productName = extra is Map<String, dynamic>
-            ? extra['productName'] as String?
-            : state.uri.queryParameters['productName'];
+        final args = ProductEducationRouteArgs.fromNavigation(
+          extra: state.extra,
+          queryParameters: state.uri.queryParameters,
+        );
 
         return ProductEducationListScreen(
           productId: id,
-          productName: productName,
+          productName: args.productName,
         );
       },
     ),
@@ -245,7 +246,9 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/checkout',
       builder: (context, state) => BlocProvider(
-        create: (_) => getIt<CheckoutSessionCubit>(),
+        create: (context) => CheckoutSessionCubit(
+          remoteDataSource: context.read<CartRemoteDataSource>(),
+        ),
         child: const CheckoutScreen(),
       ),
     ),
@@ -294,14 +297,12 @@ final GoRouter appRouter = GoRouter(
       path: '/product/:id/reviews',
       builder: (context, state) {
         final id = state.pathParameters['id'] ?? '';
-        final extra = state.extra;
+        final args = ProductReviewsRouteArgs.fromExtra(state.extra);
         return ProductReviewsScreen(
           productId: id,
-          productName: extra is Map ? extra['productName'] as String? : null,
-          averageRating: extra is Map
-              ? extra['averageRating'] as double?
-              : null,
-          reviewsCount: extra is Map ? extra['reviewsCount'] as int? : null,
+          productName: args.productName,
+          averageRating: args.averageRating,
+          reviewsCount: args.reviewsCount,
         );
       },
     ),
@@ -309,10 +310,8 @@ final GoRouter appRouter = GoRouter(
       path: '/product/:id/write-review',
       builder: (context, state) {
         final id = state.pathParameters['id'] ?? '';
-        final extra = state.extra;
-        final productName = extra is Map
-            ? extra['productName'] as String?
-            : null;
+        final args = WriteReviewRouteArgs.fromExtra(state.extra);
+        final productName = args.productName;
         return WriteReviewScreen(
           productId: id,
           productName: productName ?? 'المنتج',
@@ -366,10 +365,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/map/location-picker',
       builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>?;
+        final extra = MapLocationPickerRouteArgs.fromExtra(state.extra);
         return MapLocationPickerScreen(
-          initialLatitude: extra?['initialLatitude'] as double?,
-          initialLongitude: extra?['initialLongitude'] as double?,
+          initialLatitude: extra.initialLatitude,
+          initialLongitude: extra.initialLongitude,
         );
       },
     ),
@@ -515,9 +514,8 @@ final GoRouter appRouter = GoRouter(
       path: '/order/:id/upload-receipt',
       builder: (context, state) {
         final id = state.pathParameters['id'] ?? '';
-        final extra = state.extra as Map<String, dynamic>?;
-        final amount = (extra?['amount'] as num?)?.toDouble() ?? 0.0;
-        return UploadReceiptScreen(orderId: id, amount: amount);
+        final args = UploadReceiptRouteArgs.fromExtra(state.extra);
+        return UploadReceiptScreen(orderId: id, amount: args.amount);
       },
     ),
     GoRoute(
@@ -625,8 +623,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/search-results',
       builder: (context, state) {
-        final filters = state.extra as Map<String, dynamic>?;
-        return ProductSearchResultsScreen(filters: filters);
+        final args = SearchResultsRouteArgs.fromExtra(state.extra);
+        return ProductSearchResultsScreen(filters: args.filters);
       },
     ),
 

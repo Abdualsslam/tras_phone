@@ -2,12 +2,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../../../core/config/theme/app_theme.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../core/constants/storage_keys.dart';
 import '../../../notifications/presentation/cubit/notifications_cubit.dart';
@@ -34,12 +34,14 @@ class _NotificationSettingsScreenState
   bool _emailNotifications = false;
   bool _smsNotifications = false;
 
-  final NotificationsCubit _notificationsCubit = getIt<NotificationsCubit>();
-  final LocalStorage _localStorage = getIt<LocalStorage>();
+  late final NotificationsCubit _notificationsCubit;
+  late final LocalStorage _localStorage;
 
   @override
   void initState() {
     super.initState();
+    _notificationsCubit = context.read<NotificationsCubit>();
+    _localStorage = context.read<LocalStorage>();
     _loadSettings();
   }
 

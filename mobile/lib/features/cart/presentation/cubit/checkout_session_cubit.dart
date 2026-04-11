@@ -49,19 +49,12 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
       emit(
         CheckoutSessionLoaded(
           session: session,
-          appliedCouponCode:
-              (couponCode?.trim().isNotEmpty ?? false)
-                  ? couponCode!.trim()
-                  : _resolveAppliedCouponCode(session),
+          appliedCouponCode: (couponCode?.trim().isNotEmpty ?? false)
+              ? couponCode!.trim()
+              : _resolveAppliedCouponCode(session),
         ),
       );
 
-      print(
-        '[CheckoutSessionCubit] Checkout session loaded: '
-        '${session.cart.itemsCount} items, '
-        '${session.addresses.length} addresses, '
-        '${session.paymentMethods.length} payment methods',
-      );
       developer.log(
         'Checkout session loaded: ${session.cart.itemsCount} items, '
         '${session.addresses.length} addresses, '

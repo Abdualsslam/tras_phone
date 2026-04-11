@@ -7,9 +7,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/educational_content_entity.dart';
+import '../../domain/repositories/education_repository.dart';
 import '../cubit/education_content_cubit.dart';
 import '../cubit/education_content_state.dart';
 
@@ -21,7 +21,9 @@ class EducationListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => getIt<EducationContentCubit>()
+      create: (context) => EducationContentCubit(
+        repository: context.read<EducationRepository>(),
+      )
         ..loadContent(categoryId: categoryId),
       child: _EducationListView(categoryId: categoryId),
     );

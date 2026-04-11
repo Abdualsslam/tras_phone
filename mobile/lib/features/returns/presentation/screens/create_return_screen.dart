@@ -7,9 +7,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../data/models/return_model.dart';
 import '../../domain/entities/return_entity.dart';
+import '../../domain/repositories/returns_repository.dart';
 import '../cubit/create_return_cubit.dart';
 import '../cubit/create_return_state.dart';
 import '../widgets/image_uploader.dart';
@@ -28,7 +28,9 @@ class _CreateReturnScreenState extends State<CreateReturnScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => getIt<CreateReturnCubit>()..loadReasons(),
+      create: (context) =>
+          CreateReturnCubit(repository: context.read<ReturnsRepository>())
+            ..loadReasons(),
       child: BlocListener<CreateReturnCubit, CreateReturnState>(
         listener: (context, state) {
           if (state is CreateReturnSuccess) {

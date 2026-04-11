@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:injectable/injectable.dart';
 
 import '../../data/datasources/support_remote_datasource.dart';
 import '../../data/models/support_model.dart';
@@ -8,7 +7,6 @@ import '../../utils/support_error_helper.dart';
 
 part 'live_chat_state.dart';
 
-@injectable
 class LiveChatCubit extends Cubit<LiveChatState> {
   final SupportRemoteDataSource _dataSource;
 

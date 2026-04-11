@@ -9,7 +9,6 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/config/theme/app_theme.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/device_entity.dart';
@@ -42,11 +41,12 @@ class DevicesListScreen extends StatelessWidget {
       providers: [
         BlocProvider(
           create: (context) =>
-              BrandsCubit(repository: getIt<CatalogRepository>())..loadBrands(),
+              BrandsCubit(repository: context.read<CatalogRepository>())
+                ..loadBrands(),
         ),
         BlocProvider(
           create: (context) =>
-              DevicesCubit(repository: getIt<CatalogRepository>()),
+              DevicesCubit(repository: context.read<CatalogRepository>()),
         ),
       ],
       child: _DevicesListView(

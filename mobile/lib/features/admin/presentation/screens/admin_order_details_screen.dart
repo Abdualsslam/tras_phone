@@ -2,12 +2,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/constants/api_endpoints.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/network/api_client.dart';
 
 class AdminOrderDetailsScreen extends StatefulWidget {
@@ -434,7 +434,7 @@ class _AdminOrderDetailsScreenState extends State<AdminOrderDetailsScreen> {
     );
 
     try {
-      final apiClient = getIt<ApiClient>();
+      final apiClient = context.read<ApiClient>();
       final response = await apiClient.get(ApiEndpoints.adminOrderInvoice(widget.orderId));
 
       final dynamic payload = response.data;

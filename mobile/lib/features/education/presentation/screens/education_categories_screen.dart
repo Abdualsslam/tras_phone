@@ -7,9 +7,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/educational_category_entity.dart';
+import '../../domain/repositories/education_repository.dart';
 import '../cubit/education_categories_cubit.dart';
 import '../cubit/education_categories_state.dart';
 
@@ -20,7 +20,8 @@ class EducationCategoriesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) =>
-          getIt<EducationCategoriesCubit>()..loadCategories(activeOnly: true),
+          EducationCategoriesCubit(repository: context.read<EducationRepository>())
+            ..loadCategories(activeOnly: true),
       child: const _EducationCategoriesView(),
     );
   }

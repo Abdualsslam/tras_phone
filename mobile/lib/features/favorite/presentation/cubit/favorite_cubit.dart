@@ -2,15 +2,15 @@
 library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/datasources/favorite_remote_datasource.dart';
+import '../../domain/repositories/favorite_repository.dart';
 import 'favorite_state.dart';
 
 /// Cubit for managing favorites
 class FavoriteCubit extends Cubit<FavoriteState> {
-  final FavoriteRemoteDataSource _dataSource;
+  final FavoriteRepository _repository;
 
-  FavoriteCubit({required FavoriteRemoteDataSource dataSource})
-    : _dataSource = dataSource,
+  FavoriteCubit({required FavoriteRepository repository})
+    : _repository = repository,
       super(const FavoriteInitial());
 
   /// Load favorite items
@@ -19,7 +19,7 @@ class FavoriteCubit extends Cubit<FavoriteState> {
     emit(const FavoriteLoading());
 
     try {
-      final items = await _dataSource.getFavorites();
+      final items = await _repository.getFavorites();
       if (isClosed) return;
       emit(FavoriteLoaded(items));
     } catch (e) {
@@ -31,7 +31,7 @@ class FavoriteCubit extends Cubit<FavoriteState> {
   /// Add product to favorites
   Future<void> addToFavorites(String productId) async {
     try {
-      await _dataSource.addToFavorites(productId);
+      await _repository.addToFavorites(productId);
       if (!isClosed) {
         loadFavorites();
       }
@@ -47,7 +47,7 @@ class FavoriteCubit extends Cubit<FavoriteState> {
   /// Remove product from favorites
   Future<void> removeFromFavorites(String productId) async {
     try {
-      await _dataSource.removeFromFavorites(productId);
+      await _repository.removeFromFavorites(productId);
       if (!isClosed) {
         loadFavorites();
       }
@@ -72,7 +72,7 @@ class FavoriteCubit extends Cubit<FavoriteState> {
     }
 
     try {
-      await _dataSource.toggleFavorite(productId, isFavorite);
+      await _repository.toggleFavorite(productId, isFavorite);
       if (!isClosed) {
         loadFavorites();
       }
@@ -88,7 +88,7 @@ class FavoriteCubit extends Cubit<FavoriteState> {
   /// Clear entire favorites
   Future<void> clearFavorites() async {
     try {
-      await _dataSource.clearFavorites();
+      await _repository.clearFavorites();
       if (isClosed) return;
       emit(const FavoriteLoaded([]));
     } catch (e) {

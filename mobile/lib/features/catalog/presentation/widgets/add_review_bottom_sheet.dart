@@ -2,10 +2,10 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../../data/models/product_review_model.dart';
 
@@ -29,7 +29,7 @@ class AddReviewBottomSheet extends StatefulWidget {
 }
 
 class _AddReviewBottomSheetState extends State<AddReviewBottomSheet> {
-  final _catalogRepository = getIt<CatalogRepository>();
+  late final CatalogRepository _catalogRepository;
   int _rating = 0;
   final _titleController = TextEditingController();
   final _commentController = TextEditingController();
@@ -39,6 +39,7 @@ class _AddReviewBottomSheetState extends State<AddReviewBottomSheet> {
   @override
   void initState() {
     super.initState();
+    _catalogRepository = context.read<CatalogRepository>();
     if (widget.existingReview != null) {
       final r = widget.existingReview!;
       _rating = r.rating;

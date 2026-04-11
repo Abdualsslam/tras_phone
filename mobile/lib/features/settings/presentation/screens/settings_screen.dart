@@ -9,7 +9,6 @@ import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/cubit/locale_cubit.dart';
 import '../../../../core/cubit/theme_cubit.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/services/biometric_credential_service.dart';
 import '../../../../core/services/biometric_service.dart';
 import '../../../../core/services/share_service.dart';
@@ -38,7 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _checkBiometricAvailability() async {
-    final biometricService = getIt<BiometricService>();
+    final biometricService = context.read<BiometricService>();
     final isAvailable = await biometricService.isAvailable();
     if (mounted) {
       setState(() {
@@ -48,7 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadBiometricStatus() async {
-    final biometricService = getIt<BiometricService>();
+    final biometricService = context.read<BiometricService>();
     final isEnabled = await biometricService.isEnabled();
     if (mounted) {
       setState(() {
@@ -148,8 +147,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: AppLocalizations.of(context)!.biometricSubtitle,
                   value: _biometricEnabled,
                   onChanged: (value) async {
-                    final biometricService = getIt<BiometricService>();
-                    final credentialService = getIt<BiometricCredentialService>();
+                    final biometricService = context.read<BiometricService>();
+                    final credentialService =
+                        context.read<BiometricCredentialService>();
                     if (value) {
                       // Verify identity before enabling
                       final authenticated =
@@ -237,7 +237,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: AppLocalizations.of(context)!.shareApp,
                 onTap: () async {
                   try {
-                    final shareService = getIt<ShareService>();
+                    final shareService = context.read<ShareService>();
                     await shareService.shareApp(context: context);
                   } catch (e) {
                     if (mounted) {
@@ -469,7 +469,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showDeleteAccountDialog() {
     final reasonController = TextEditingController();
-    final profileCubit = getIt<ProfileCubit>();
+    final profileCubit = context.read<ProfileCubit>();
 
     showDialog(
       context: context,

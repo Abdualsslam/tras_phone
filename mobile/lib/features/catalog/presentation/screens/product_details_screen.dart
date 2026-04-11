@@ -10,14 +10,13 @@ import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../../data/models/product_review_model.dart';
 import '../../../education/domain/entities/educational_content_entity.dart';
 import '../../../education/domain/repositories/education_repository.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../favorite/data/datasources/favorite_remote_datasource.dart';
+import '../../../favorite/domain/repositories/favorite_repository.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../widgets/add_review_bottom_sheet.dart';
 import '../widgets/product_review_card.dart';
@@ -40,7 +39,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   bool _isLoadingFavorite = false;
   bool _productLoading = false;
   late PageController _pageController;
-  late FavoriteRemoteDataSource _favoriteDataSource;
+  late FavoriteRepository _favoriteRepository;
   late CatalogRepository _catalogRepository;
   late EducationRepository _educationRepository;
 
@@ -61,9 +60,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     _product = widget.product;
     _printProductData(_product);
     _pageController = PageController();
-    _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
-    _catalogRepository = getIt<CatalogRepository>();
-    _educationRepository = getIt<EducationRepository>();
+    _favoriteRepository = context.read<FavoriteRepository>();
+    _catalogRepository = context.read<CatalogRepository>();
+    _educationRepository = context.read<EducationRepository>();
     _checkFavoriteStatus();
     _loadProductDetails();
     _loadReviews();
@@ -236,7 +235,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
   Future<void> _checkFavoriteStatus() async {
     try {
-      final isFavorite = await _favoriteDataSource.isFavorite(
+      final isFavorite = await _favoriteRepository.isFavorite(
         widget.product.id,
       );
       if (mounted) {
@@ -248,7 +247,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       // Silently fail - favorite check is optional
       // If check fails, try to get favorites and check if product is in it
       try {
-        final favorites = await _favoriteDataSource.getFavorites();
+        final favorites = await _favoriteRepository.getFavorites();
         final isFavorite = favorites.any(
           (item) => item.productId.toString() == widget.product.id,
         );
@@ -278,7 +277,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     HapticFeedback.lightImpact();
 
     try {
-      final newState = await _favoriteDataSource.toggleFavorite(
+      final newState = await _favoriteRepository.toggleFavorite(
         widget.product.id,
         wasFavorite,
       );

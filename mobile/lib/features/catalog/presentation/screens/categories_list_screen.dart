@@ -10,7 +10,6 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/cache/image_cache_config.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
@@ -26,7 +25,7 @@ class CategoriesListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) =>
-          CategoriesCubit(repository: getIt<CatalogRepository>())
+          CategoriesCubit(repository: context.read<CatalogRepository>())
             ..loadCategories(),
       child: const _CategoriesListView(),
     );

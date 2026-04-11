@@ -2,12 +2,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/shimmer/index.dart';
-import '../../../../core/di/injection.dart';
 import '../../data/services/favorites_service.dart';
 import '../../domain/entities/educational_content_entity.dart';
 import '../../domain/repositories/education_repository.dart';
@@ -21,8 +21,8 @@ class EducationFavoritesScreen extends StatefulWidget {
 }
 
 class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
-  final FavoritesService _favoritesService = getIt<FavoritesService>();
-  final EducationRepository _repository = getIt<EducationRepository>();
+  late final FavoritesService _favoritesService;
+  late final EducationRepository _repository;
 
   List<EducationalContentEntity> _favoriteContent = [];
   bool _isLoading = true;
@@ -32,6 +32,8 @@ class _EducationFavoritesScreenState extends State<EducationFavoritesScreen> {
   @override
   void initState() {
     super.initState();
+    _favoritesService = context.read<FavoritesService>();
+    _repository = context.read<EducationRepository>();
     _loadFavorites();
   }
 

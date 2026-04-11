@@ -2,12 +2,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../core/di/injection.dart';
 import '../../../catalog/domain/repositories/catalog_repository.dart';
 
 class WriteReviewScreen extends StatefulWidget {
@@ -25,11 +25,17 @@ class WriteReviewScreen extends StatefulWidget {
 }
 
 class _WriteReviewScreenState extends State<WriteReviewScreen> {
-  final _catalogRepository = getIt<CatalogRepository>();
+  late final CatalogRepository _catalogRepository;
   int _rating = 0;
   final _commentController = TextEditingController();
   bool _isSubmitting = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _catalogRepository = context.read<CatalogRepository>();
+  }
 
   @override
   void dispose() {

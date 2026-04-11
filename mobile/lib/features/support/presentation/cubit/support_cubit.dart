@@ -1,7 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:injectable/injectable.dart';
 
 import '../../../../core/services/socket_service.dart';
 import '../../data/datasources/support_remote_datasource.dart';
@@ -10,7 +9,6 @@ import '../../utils/support_error_helper.dart';
 
 part 'support_state.dart';
 
-@injectable
 class SupportCubit extends Cubit<SupportState> {
   final SupportRemoteDataSource _dataSource;
 

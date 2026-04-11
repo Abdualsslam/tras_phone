@@ -2,15 +2,15 @@
 library;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/datasources/favorite_remote_datasource.dart';
+import '../../domain/repositories/favorite_repository.dart';
 import 'stock_alerts_state.dart';
 
 /// Cubit for managing stock alerts
 class StockAlertsCubit extends Cubit<StockAlertsState> {
-  final FavoriteRemoteDataSource _dataSource;
+  final FavoriteRepository _repository;
 
-  StockAlertsCubit({required FavoriteRemoteDataSource dataSource})
-      : _dataSource = dataSource,
+  StockAlertsCubit({required FavoriteRepository repository})
+      : _repository = repository,
         super(const StockAlertsInitial());
 
   /// Load stock alerts
@@ -18,7 +18,7 @@ class StockAlertsCubit extends Cubit<StockAlertsState> {
     emit(const StockAlertsLoading());
 
     try {
-      final alerts = await _dataSource.getStockAlerts();
+      final alerts = await _repository.getStockAlerts();
       emit(StockAlertsLoaded(alerts));
     } catch (e) {
       emit(StockAlertsError(e.toString()));
@@ -28,7 +28,7 @@ class StockAlertsCubit extends Cubit<StockAlertsState> {
   /// Create stock alert for product
   Future<void> createStockAlert(String productId) async {
     try {
-      await _dataSource.createStockAlert(productId);
+      await _repository.createStockAlert(productId);
       // Reload to get updated list
       loadStockAlerts();
     } catch (e) {
@@ -39,7 +39,7 @@ class StockAlertsCubit extends Cubit<StockAlertsState> {
   /// Remove stock alert
   Future<void> removeStockAlert(String alertId) async {
     try {
-      await _dataSource.removeStockAlert(alertId);
+      await _repository.removeStockAlert(alertId);
       // Reload to get updated list
       loadStockAlerts();
     } catch (e) {

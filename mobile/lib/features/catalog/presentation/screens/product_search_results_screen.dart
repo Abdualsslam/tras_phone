@@ -2,11 +2,11 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/mixins/product_favorites_mixin.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
@@ -25,7 +25,7 @@ class ProductSearchResultsScreen extends StatefulWidget {
 class _ProductSearchResultsScreenState
     extends State<ProductSearchResultsScreen>
     with ProductFavoritesMixin<ProductSearchResultsScreen> {
-  final _dataSource = getIt<CatalogRemoteDataSource>();
+  late final CatalogRemoteDataSource _dataSource;
   List<ProductEntity> _products = [];
   bool _isLoading = true;
   String _sortBy = 'relevance';
@@ -33,6 +33,7 @@ class _ProductSearchResultsScreenState
   @override
   void initState() {
     super.initState();
+    _dataSource = context.read<CatalogRemoteDataSource>();
     _loadResults();
     loadFavoriteProductIds();
   }

@@ -2,12 +2,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../core/di/injection.dart';
 import '../../../catalog/domain/repositories/catalog_repository.dart';
 import '../../../catalog/data/models/product_review_model.dart';
 import '../../../catalog/presentation/widgets/add_review_bottom_sheet.dart';
@@ -33,7 +33,7 @@ class ProductReviewsScreen extends StatefulWidget {
 }
 
 class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
-  final _catalogRepository = getIt<CatalogRepository>();
+  late final CatalogRepository _catalogRepository;
 
   List<ProductReviewModel> _reviews = [];
   ProductReviewModel? _myReview;
@@ -45,6 +45,7 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
   @override
   void initState() {
     super.initState();
+    _catalogRepository = context.read<CatalogRepository>();
     _averageRating = widget.averageRating;
     _reviewsCount = widget.reviewsCount ?? 0;
     _loadReviews();

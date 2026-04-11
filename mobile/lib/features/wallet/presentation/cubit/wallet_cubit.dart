@@ -6,8 +6,8 @@ import '../../data/models/loyalty_points_model.dart';
 import '../../data/models/loyalty_tier_model.dart';
 import '../../data/models/wallet_summary_model.dart';
 import '../../data/models/wallet_transaction_model.dart';
-import '../../data/repositories/wallet_repository.dart';
 import '../../domain/enums/wallet_enums.dart';
+import '../../domain/repositories/wallet_repository.dart';
 import 'wallet_state.dart';
 
 class WalletCubit extends Cubit<WalletState> {

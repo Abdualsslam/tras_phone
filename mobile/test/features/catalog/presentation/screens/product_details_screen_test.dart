@@ -1,8 +1,8 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:tras_phone/core/errors/failures.dart';
 import 'package:tras_phone/features/catalog/data/models/product_model.dart';
@@ -12,21 +12,19 @@ import 'package:tras_phone/features/catalog/domain/repositories/catalog_reposito
 import 'package:tras_phone/features/catalog/presentation/screens/product_details_screen.dart';
 import 'package:tras_phone/features/education/domain/entities/educational_content_entity.dart';
 import 'package:tras_phone/features/education/domain/repositories/education_repository.dart';
-import 'package:tras_phone/features/favorite/data/datasources/favorite_remote_datasource.dart';
+import 'package:tras_phone/features/favorite/domain/repositories/favorite_repository.dart';
 import 'package:tras_phone/l10n/app_localizations.dart';
 
 import '../../../../fixtures/product_detail_payload_fixture.dart';
 
-class MockFavoriteRemoteDataSource extends Mock
-    implements FavoriteRemoteDataSource {}
+class MockFavoriteRepository extends Mock implements FavoriteRepository {}
 
 class MockCatalogRepository extends Mock implements CatalogRepository {}
 
 class MockEducationRepository extends Mock implements EducationRepository {}
 
 void main() {
-  late GetIt getIt;
-  late MockFavoriteRemoteDataSource favoriteDataSource;
+  late MockFavoriteRepository favoriteRepository;
   late MockCatalogRepository catalogRepository;
   late MockEducationRepository educationRepository;
   late ProductEntity product;
@@ -34,10 +32,7 @@ void main() {
   late ProductEntity inStockProduct;
 
   setUp(() {
-    getIt = GetIt.instance;
-    getIt.reset();
-
-    favoriteDataSource = MockFavoriteRemoteDataSource();
+    favoriteRepository = MockFavoriteRepository();
     catalogRepository = MockCatalogRepository();
     educationRepository = MockEducationRepository();
     product = ProductModel.fromJson(productDetailPayloadData()).toEntity();
@@ -54,7 +49,7 @@ void main() {
     }).toEntity();
 
     when(
-      () => favoriteDataSource.isFavorite(any()),
+      () => favoriteRepository.isFavorite(any()),
     ).thenAnswer((_) async => false);
     when(
       () => catalogRepository.getProduct(any()),
@@ -79,25 +74,30 @@ void main() {
         'pagination': <String, dynamic>{'pages': 1, 'total': 0},
       },
     );
-
-    getIt.registerSingleton<FavoriteRemoteDataSource>(favoriteDataSource);
-    getIt.registerSingleton<CatalogRepository>(catalogRepository);
-    getIt.registerSingleton<EducationRepository>(educationRepository);
-  });
-
-  tearDown(() async {
-    await getIt.reset();
   });
 
   Widget buildTestApp(ProductEntity product) {
     return ScreenUtilInit(
       designSize: const Size(390, 844),
       builder: (context, child) {
-        return MaterialApp(
-          locale: const Locale('ar'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: child,
+        return MultiRepositoryProvider(
+          providers: [
+            RepositoryProvider<FavoriteRepository>.value(
+              value: favoriteRepository,
+            ),
+            RepositoryProvider<CatalogRepository>.value(
+              value: catalogRepository,
+            ),
+            RepositoryProvider<EducationRepository>.value(
+              value: educationRepository,
+            ),
+          ],
+          child: MaterialApp(
+            locale: const Locale('ar'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: child,
+          ),
         );
       },
       child: ProductDetailsScreen(product: product),
@@ -135,7 +135,7 @@ void main() {
       expect(addToCartInkWell.onTap, isNull);
 
       verify(() => catalogRepository.getProduct(initialProduct.id)).called(1);
-      verify(() => favoriteDataSource.isFavorite(product.id)).called(1);
+      verify(() => favoriteRepository.isFavorite(product.id)).called(1);
       verify(() => catalogRepository.getProductReviews(product.id)).called(1);
       verify(() => catalogRepository.getMyReview(product.id)).called(1);
       verify(

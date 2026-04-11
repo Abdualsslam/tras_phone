@@ -1,13 +1,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../di/injection.dart';
-import '../../features/favorite/data/datasources/favorite_remote_datasource.dart';
+import '../../features/favorite/domain/repositories/favorite_repository.dart';
 
 mixin ProductFavoritesMixin<T extends StatefulWidget> on State<T> {
-  late final FavoriteRemoteDataSource favoriteDataSource =
-      getIt<FavoriteRemoteDataSource>();
+  FavoriteRepository get favoriteRepository => context.read<FavoriteRepository>();
 
   final Set<String> favoriteProductIds = <String>{};
 
@@ -16,7 +15,7 @@ mixin ProductFavoritesMixin<T extends StatefulWidget> on State<T> {
 
   Future<void> loadFavoriteProductIds() async {
     try {
-      final favoriteIds = await favoriteDataSource.getFavoriteProductIds();
+      final favoriteIds = await favoriteRepository.getFavoriteProductIds();
       if (!mounted) return;
 
       setState(() {
@@ -41,7 +40,7 @@ mixin ProductFavoritesMixin<T extends StatefulWidget> on State<T> {
     });
 
     try {
-      await favoriteDataSource.toggleFavorite(productId, wasFavorite);
+      await favoriteRepository.toggleFavorite(productId, wasFavorite);
     } catch (_) {
       if (!mounted) return;
 

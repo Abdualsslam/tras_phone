@@ -8,9 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../domain/repositories/catalog_repository.dart';
-import '../../../favorite/data/datasources/favorite_remote_datasource.dart';
+import '../../../favorite/domain/repositories/favorite_repository.dart';
 import '../cubit/products_on_offer_cubit.dart';
 import '../cubit/products_on_offer_state.dart';
 import '../widgets/product_offer_card.dart';
@@ -25,16 +24,16 @@ class ProductsOnOfferScreen extends StatefulWidget {
 class _ProductsOnOfferScreenState extends State<ProductsOnOfferScreen> {
   final ScrollController _scrollController = ScrollController();
   late final ProductsOnOfferCubit _cubit;
-  late final FavoriteRemoteDataSource _favoriteDataSource;
+  late final FavoriteRepository _favoriteRepository;
   final Set<String> _favoriteProductIds = {};
 
   @override
   void initState() {
     super.initState();
     _cubit = ProductsOnOfferCubit(
-      repository: getIt<CatalogRepository>(),
+      repository: context.read<CatalogRepository>(),
     );
-    _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
+    _favoriteRepository = context.read<FavoriteRepository>();
     _cubit.loadProducts();
     _scrollController.addListener(_onScroll);
     _loadFavoriteIds();
@@ -42,7 +41,7 @@ class _ProductsOnOfferScreenState extends State<ProductsOnOfferScreen> {
 
   Future<void> _loadFavoriteIds() async {
     try {
-      final favoriteIds = await _favoriteDataSource.getFavoriteProductIds();
+      final favoriteIds = await _favoriteRepository.getFavoriteProductIds();
       setState(() {
         _favoriteProductIds.clear();
         _favoriteProductIds.addAll(favoriteIds);
@@ -65,7 +64,7 @@ class _ProductsOnOfferScreenState extends State<ProductsOnOfferScreen> {
 
     try {
       HapticFeedback.lightImpact();
-      await _favoriteDataSource.toggleFavorite(productId, isFavorite);
+      await _favoriteRepository.toggleFavorite(productId, isFavorite);
     } catch (e) {
       // Revert on error
       setState(() {

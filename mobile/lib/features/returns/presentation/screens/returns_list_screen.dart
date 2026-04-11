@@ -9,9 +9,9 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/shimmer/index.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/return_enums.dart';
+import '../../domain/repositories/returns_repository.dart';
 import '../cubit/returns_cubit.dart';
 import '../cubit/returns_state.dart';
 
@@ -21,7 +21,9 @@ class ReturnsListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => getIt<ReturnsCubit>()..loadReturns(),
+      create: (context) =>
+          ReturnsCubit(repository: context.read<ReturnsRepository>())
+            ..loadReturns(),
       child: const _ReturnsListView(),
     );
   }

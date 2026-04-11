@@ -8,9 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/shimmer/index.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../data/datasources/favorite_remote_datasource.dart';
+import '../../domain/repositories/favorite_repository.dart';
 import '../cubit/favorite_cubit.dart';
 import '../cubit/favorite_state.dart';
 
@@ -30,7 +29,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   void initState() {
     super.initState();
     _cubit = FavoriteCubit(
-      dataSource: getIt<FavoriteRemoteDataSource>(),
+      repository: context.read<FavoriteRepository>(),
     );
     if (widget.isActive) {
       _cubit.loadFavorites();

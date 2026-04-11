@@ -4,11 +4,11 @@ library;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
-import '../../../favorite/data/datasources/favorite_remote_datasource.dart';
+import '../../../favorite/domain/repositories/favorite_repository.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/extensions/product_offer_extension.dart';
 
@@ -32,7 +32,7 @@ class ProductOfferCard extends StatefulWidget {
 }
 
 class _ProductOfferCardState extends State<ProductOfferCard> {
-  FavoriteRemoteDataSource? _favoriteDataSource;
+  FavoriteRepository? _favoriteRepository;
   bool _isFavoriteLocal = false;
   bool _isTogglingFavorite = false;
 
@@ -47,7 +47,7 @@ class _ProductOfferCardState extends State<ProductOfferCard> {
     _isFavoriteLocal = widget.isFavorite;
 
     if (!_usesExternalFavoriteControl) {
-      _favoriteDataSource = getIt<FavoriteRemoteDataSource>();
+      _favoriteRepository = context.read<FavoriteRepository>();
       _resolveInitialFavoriteState();
     }
   }
@@ -68,11 +68,11 @@ class _ProductOfferCardState extends State<ProductOfferCard> {
   }
 
   Future<void> _resolveInitialFavoriteState() async {
-    final dataSource = _favoriteDataSource;
-    if (dataSource == null) return;
+    final repository = _favoriteRepository;
+    if (repository == null) return;
 
     try {
-      final ids = await dataSource.getFavoriteProductIds();
+      final ids = await repository.getFavoriteProductIds();
       if (!mounted) return;
       setState(() {
         _isFavoriteLocal = ids.contains(widget.product.id);
@@ -91,8 +91,8 @@ class _ProductOfferCardState extends State<ProductOfferCard> {
     }
 
     if (_isTogglingFavorite) return;
-    final dataSource = _favoriteDataSource;
-    if (dataSource == null) return;
+    final repository = _favoriteRepository;
+    if (repository == null) return;
 
     final previous = _isFavoriteLocal;
     setState(() {
@@ -101,7 +101,7 @@ class _ProductOfferCardState extends State<ProductOfferCard> {
     });
 
     try {
-      final next = await dataSource.toggleFavorite(widget.product.id, previous);
+      final next = await repository.toggleFavorite(widget.product.id, previous);
 
       if (!mounted) return;
       setState(() {

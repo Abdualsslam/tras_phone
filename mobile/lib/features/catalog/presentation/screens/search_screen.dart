@@ -4,11 +4,11 @@ library;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/mixins/product_favorites_mixin.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/product_entity.dart';
@@ -26,7 +26,7 @@ class _SearchScreenState extends State<SearchScreen>
     with ProductFavoritesMixin<SearchScreen> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
-  final _dataSource = getIt<CatalogRemoteDataSource>();
+  late final CatalogRemoteDataSource _dataSource;
 
   List<ProductEntity> _searchResults = [];
   final List<String> _recentSearches = [];
@@ -40,6 +40,7 @@ class _SearchScreenState extends State<SearchScreen>
   @override
   void initState() {
     super.initState();
+    _dataSource = context.read<CatalogRemoteDataSource>();
     _loadPopularTags();
     loadFavoriteProductIds();
     WidgetsBinding.instance.addPostFrameCallback((_) {

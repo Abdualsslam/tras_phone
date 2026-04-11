@@ -9,12 +9,12 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../../catalog/domain/entities/product_entity.dart';
 import '../../../catalog/domain/repositories/catalog_repository.dart';
 import '../../data/services/favorites_service.dart';
 import '../../domain/entities/educational_content_entity.dart';
+import '../../domain/repositories/education_repository.dart';
 import '../cubit/education_details_cubit.dart';
 import '../cubit/education_details_state.dart';
 import '../widgets/video_player_widget.dart';
@@ -28,8 +28,9 @@ class EducationDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) =>
-          getIt<EducationDetailsCubit>()..loadContent(contentId),
+      create: (context) => EducationDetailsCubit(
+        repository: context.read<EducationRepository>(),
+      )..loadContent(contentId),
       child: const _EducationDetailsView(),
     );
   }
@@ -43,14 +44,21 @@ class _EducationDetailsView extends StatefulWidget {
 }
 
 class _EducationDetailsViewState extends State<_EducationDetailsView> {
-  final FavoritesService _favoritesService = getIt<FavoritesService>();
-  final CatalogRepository _catalogRepository = getIt<CatalogRepository>();
+  late final FavoritesService _favoritesService;
+  late final CatalogRepository _catalogRepository;
   bool _isFavorite = false;
   String? _favoriteLoadedForContentId;
   String? _relatedProductsLoadedForContentId;
   bool _relatedProductsLoading = false;
   String? _relatedProductsError;
   List<ProductEntity> _relatedProducts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _favoritesService = context.read<FavoritesService>();
+    _catalogRepository = context.read<CatalogRepository>();
+  }
 
   @override
   Widget build(BuildContext context) {

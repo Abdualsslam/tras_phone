@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:tras_phone/core/di/injection.dart';
 import 'package:tras_phone/features/catalog/data/datasources/catalog_remote_datasource.dart';
 import 'package:tras_phone/features/catalog/data/models/product_filter_query.dart';
 import 'package:tras_phone/features/catalog/data/models/product_model.dart';
 import 'package:tras_phone/features/catalog/presentation/screens/products_list_screen.dart';
-import 'package:tras_phone/features/favorite/data/datasources/favorite_remote_datasource.dart';
+import 'package:tras_phone/features/favorite/domain/repositories/favorite_repository.dart';
 
 class _MockCatalogRemoteDataSource extends Mock
     implements CatalogRemoteDataSource {}
 
-class _MockFavoriteRemoteDataSource extends Mock
-    implements FavoriteRemoteDataSource {}
+class _MockFavoriteRepository extends Mock implements FavoriteRepository {}
 
 class _FakeProductFilterQuery extends Fake implements ProductFilterQuery {}
 
 void main() {
   late _MockCatalogRemoteDataSource dataSource;
-  late _MockFavoriteRemoteDataSource favoriteDataSource;
+  late _MockFavoriteRepository favoriteRepository;
 
   void setPhoneViewport(WidgetTester tester) {
     tester.view.physicalSize = const Size(375, 812);
@@ -37,30 +36,30 @@ void main() {
     await tester.pumpWidget(
       ScreenUtilInit(
         designSize: const Size(375, 812),
-        builder: (_, child) => const MaterialApp(
-          home: ProductsListScreen(title: 'اختبار المنتجات'),
+        builder: (_, child) => MultiRepositoryProvider(
+          providers: [
+            RepositoryProvider<CatalogRemoteDataSource>.value(
+              value: dataSource,
+            ),
+            RepositoryProvider<FavoriteRepository>.value(
+              value: favoriteRepository,
+            ),
+          ],
+          child: const MaterialApp(
+            home: ProductsListScreen(title: 'اختبار المنتجات'),
+          ),
         ),
       ),
     );
   }
 
-  setUp(() async {
+  setUp(() {
     dataSource = _MockCatalogRemoteDataSource();
-    favoriteDataSource = _MockFavoriteRemoteDataSource();
+    favoriteRepository = _MockFavoriteRepository();
 
-    await getIt.reset();
-    getIt.registerLazySingleton<CatalogRemoteDataSource>(() => dataSource);
-    getIt.registerLazySingleton<FavoriteRemoteDataSource>(
-      () => favoriteDataSource,
-    );
-
-    when(() => favoriteDataSource.getFavoriteProductIds()).thenAnswer(
-      (_) async => <String>{},
-    );
-  });
-
-  tearDown(() async {
-    await getIt.reset();
+    when(
+      () => favoriteRepository.getFavoriteProductIds(),
+    ).thenAnswer((_) async => <String>{});
   });
 
   testWidgets('shows error state when request fails', (tester) async {

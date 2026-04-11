@@ -2,11 +2,11 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/educational_content_entity.dart';
 import '../../domain/repositories/education_repository.dart';
@@ -28,7 +28,7 @@ class ProductEducationListScreen extends StatefulWidget {
 
 class _ProductEducationListScreenState
     extends State<ProductEducationListScreen> {
-  final EducationRepository _repository = getIt<EducationRepository>();
+  late final EducationRepository _repository;
   final ScrollController _scrollController = ScrollController();
 
   static const int _limit = 20;
@@ -43,6 +43,7 @@ class _ProductEducationListScreenState
   @override
   void initState() {
     super.initState();
+    _repository = context.read<EducationRepository>();
     _scrollController.addListener(_onScroll);
     _loadInitial();
   }

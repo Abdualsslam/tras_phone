@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
-import '../../../../core/di/injection.dart';
+import '../../../orders/data/datasources/orders_remote_datasource.dart';
 import '../../../orders/domain/entities/order_entity.dart';
 import '../../../orders/presentation/cubit/orders_cubit.dart';
 import '../../../orders/presentation/cubit/orders_state.dart';
@@ -23,7 +23,8 @@ class SelectItemsForReturnScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) =>
-          getIt<OrdersCubit>()..loadOrders(status: OrderStatus.delivered),
+          OrdersCubit(dataSource: context.read<OrdersRemoteDataSource>())
+            ..loadOrders(status: OrderStatus.delivered),
       child: const _SelectItemsForReturnView(),
     );
   }

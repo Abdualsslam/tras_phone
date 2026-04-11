@@ -4,8 +4,8 @@ import 'dart:developer' as developer;
 import 'package:bloc/bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/notification_model.dart';
-import '../../data/repositories/notifications_repository.dart';
 import '../../domain/enums/notification_enums.dart';
+import '../../domain/repositories/notifications_repository.dart';
 import 'notifications_state.dart';
 
 class NotificationsCubit extends Cubit<NotificationsState> {

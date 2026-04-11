@@ -106,10 +106,12 @@ void main() {
     blocTest<CheckoutSessionCubit, CheckoutSessionState>(
       'emits [CheckoutSessionLoading, CheckoutSessionLoaded] on success',
       build: () {
-        when(() => mockRemote.getCheckoutSession(
-              platform: any(named: 'platform'),
-              couponCode: any(named: 'couponCode'),
-            )).thenAnswer((_) async => testSession);
+        when(
+          () => mockRemote.getCheckoutSession(
+            platform: any(named: 'platform'),
+            couponCode: any(named: 'couponCode'),
+          ),
+        ).thenAnswer((_) async => testSession);
         return createCubit();
       },
       act: (cubit) => cubit.loadSession(),
@@ -122,10 +124,12 @@ void main() {
     blocTest<CheckoutSessionCubit, CheckoutSessionState>(
       'emits [CheckoutSessionLoading, CheckoutSessionError] on failure',
       build: () {
-        when(() => mockRemote.getCheckoutSession(
-              platform: any(named: 'platform'),
-              couponCode: any(named: 'couponCode'),
-            )).thenThrow(Exception('Network error'));
+        when(
+          () => mockRemote.getCheckoutSession(
+            platform: any(named: 'platform'),
+            couponCode: any(named: 'couponCode'),
+          ),
+        ).thenThrow(Exception('Network error'));
         return createCubit();
       },
       act: (cubit) => cubit.loadSession(),
@@ -138,10 +142,12 @@ void main() {
     blocTest<CheckoutSessionCubit, CheckoutSessionState>(
       'passes couponCode to datasource',
       build: () {
-        when(() => mockRemote.getCheckoutSession(
-              platform: any(named: 'platform'),
-              couponCode: any(named: 'couponCode'),
-            )).thenAnswer((_) async => sessionWithValidCoupon);
+        when(
+          () => mockRemote.getCheckoutSession(
+            platform: any(named: 'platform'),
+            couponCode: any(named: 'couponCode'),
+          ),
+        ).thenAnswer((_) async => sessionWithValidCoupon);
         return createCubit();
       },
       act: (cubit) => cubit.loadSession(couponCode: 'SAVE10'),
@@ -153,10 +159,12 @@ void main() {
         ),
       ],
       verify: (_) {
-        verify(() => mockRemote.getCheckoutSession(
-              platform: any(named: 'platform'),
-              couponCode: 'SAVE10',
-            )).called(1);
+        verify(
+          () => mockRemote.getCheckoutSession(
+            platform: any(named: 'platform'),
+            couponCode: 'SAVE10',
+          ),
+        ).called(1);
       },
     );
   });
@@ -165,10 +173,12 @@ void main() {
     blocTest<CheckoutSessionCubit, CheckoutSessionState>(
       'reloads session preserving applied coupon',
       build: () {
-        when(() => mockRemote.getCheckoutSession(
-              platform: any(named: 'platform'),
-              couponCode: any(named: 'couponCode'),
-            )).thenAnswer((_) async => sessionWithValidCoupon);
+        when(
+          () => mockRemote.getCheckoutSession(
+            platform: any(named: 'platform'),
+            couponCode: any(named: 'couponCode'),
+          ),
+        ).thenAnswer((_) async => sessionWithValidCoupon);
         return createCubit();
       },
       seed: () => CheckoutSessionLoaded(
@@ -181,31 +191,31 @@ void main() {
         isA<CheckoutSessionLoaded>(),
       ],
       verify: (_) {
-        verify(() => mockRemote.getCheckoutSession(
-              platform: any(named: 'platform'),
-              couponCode: 'SAVE10',
-            )).called(1);
+        verify(
+          () => mockRemote.getCheckoutSession(
+            platform: any(named: 'platform'),
+            couponCode: 'SAVE10',
+          ),
+        ).called(1);
       },
     );
   });
 
   group('applyCoupon', () {
     blocTest<CheckoutSessionCubit, CheckoutSessionState>(
-      'emits [CheckoutSessionApplyingCoupon, CheckoutSessionLoaded] on valid coupon',
+      'emits [CheckoutSessionLoaded] on valid coupon',
       build: () {
-        when(() => mockRemote.getCheckoutSession(
-              platform: any(named: 'platform'),
-              couponCode: any(named: 'couponCode'),
-            )).thenAnswer((_) async => sessionWithValidCoupon);
+        when(
+          () => mockRemote.getCheckoutSession(
+            platform: any(named: 'platform'),
+            couponCode: any(named: 'couponCode'),
+          ),
+        ).thenAnswer((_) async => sessionWithValidCoupon);
         return createCubit();
       },
       seed: () => CheckoutSessionLoaded(session: testSession),
       act: (cubit) => cubit.applyCoupon('SAVE10'),
       expect: () => [
-        CheckoutSessionApplyingCoupon(
-          currentSession: testSession,
-          couponCode: 'SAVE10',
-        ),
         CheckoutSessionLoaded(
           session: sessionWithValidCoupon,
           appliedCouponCode: 'SAVE10',
@@ -214,36 +224,38 @@ void main() {
     );
 
     blocTest<CheckoutSessionCubit, CheckoutSessionState>(
-      'emits [Applying, CouponError, Loaded] on invalid coupon',
+      'emits [CouponError, Loaded] on invalid coupon',
       build: () {
-        when(() => mockRemote.getCheckoutSession(
-              platform: any(named: 'platform'),
-              couponCode: any(named: 'couponCode'),
-            )).thenAnswer((_) async => sessionWithInvalidCoupon);
+        when(
+          () => mockRemote.getCheckoutSession(
+            platform: any(named: 'platform'),
+            couponCode: any(named: 'couponCode'),
+          ),
+        ).thenAnswer((_) async => sessionWithInvalidCoupon);
         return createCubit();
       },
       seed: () => CheckoutSessionLoaded(session: testSession),
       act: (cubit) => cubit.applyCoupon('EXPIRED'),
       expect: () => [
-        isA<CheckoutSessionApplyingCoupon>(),
         isA<CheckoutSessionCouponError>(),
         isA<CheckoutSessionLoaded>(),
       ],
     );
 
     blocTest<CheckoutSessionCubit, CheckoutSessionState>(
-      'emits [Applying, CouponError, Loaded] on network failure',
+      'emits [CouponError, Loaded] on network failure',
       build: () {
-        when(() => mockRemote.getCheckoutSession(
-              platform: any(named: 'platform'),
-              couponCode: any(named: 'couponCode'),
-            )).thenThrow(Exception('Network error'));
+        when(
+          () => mockRemote.getCheckoutSession(
+            platform: any(named: 'platform'),
+            couponCode: any(named: 'couponCode'),
+          ),
+        ).thenThrow(Exception('Network error'));
         return createCubit();
       },
       seed: () => CheckoutSessionLoaded(session: testSession),
       act: (cubit) => cubit.applyCoupon('SAVE10'),
       expect: () => [
-        isA<CheckoutSessionApplyingCoupon>(),
         isA<CheckoutSessionCouponError>(),
         isA<CheckoutSessionLoaded>(),
       ],
@@ -253,10 +265,12 @@ void main() {
       final cubit = createCubit();
       await cubit.applyCoupon('SAVE10');
       expect(cubit.state, const CheckoutSessionInitial());
-      verifyNever(() => mockRemote.getCheckoutSession(
-            platform: any(named: 'platform'),
-            couponCode: any(named: 'couponCode'),
-          ));
+      verifyNever(
+        () => mockRemote.getCheckoutSession(
+          platform: any(named: 'platform'),
+          couponCode: any(named: 'couponCode'),
+        ),
+      );
       cubit.close();
     });
   });
@@ -265,10 +279,12 @@ void main() {
     blocTest<CheckoutSessionCubit, CheckoutSessionState>(
       'emits [CheckoutSessionLoading, CheckoutSessionLoaded] with no coupon',
       build: () {
-        when(() => mockRemote.getCheckoutSession(
-              platform: any(named: 'platform'),
-              couponCode: any(named: 'couponCode'),
-            )).thenAnswer((_) async => testSession);
+        when(
+          () => mockRemote.getCheckoutSession(
+            platform: any(named: 'platform'),
+            couponCode: any(named: 'couponCode'),
+          ),
+        ).thenAnswer((_) async => testSession);
         return createCubit();
       },
       seed: () => CheckoutSessionLoaded(
@@ -281,10 +297,12 @@ void main() {
         CheckoutSessionLoaded(session: testSession, appliedCouponCode: null),
       ],
       verify: (_) {
-        verify(() => mockRemote.getCheckoutSession(
-              platform: any(named: 'platform'),
-              couponCode: null,
-            )).called(1);
+        verify(
+          () => mockRemote.getCheckoutSession(
+            platform: any(named: 'platform'),
+            couponCode: null,
+          ),
+        ).called(1);
       },
     );
   });

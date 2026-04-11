@@ -9,10 +9,9 @@ import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/shimmer/index.dart';
-import '../../../../core/di/injection.dart';
 import '../../data/models/notification_model.dart';
-import '../../data/repositories/notifications_repository.dart';
 import '../../domain/enums/notification_enums.dart';
+import '../../domain/repositories/notifications_repository.dart';
 import '../cubit/notifications_cubit.dart';
 
 class NotificationDetailsScreen extends StatefulWidget {
@@ -42,7 +41,7 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
     });
 
     try {
-      final repository = getIt<NotificationsRepository>();
+      final repository = context.read<NotificationsRepository>();
       final result = await repository.getNotificationById(widget.notificationId);
 
       result.fold(

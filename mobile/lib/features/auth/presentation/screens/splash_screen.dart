@@ -9,7 +9,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/security/app_security_service.dart';
 import '../../../../core/services/biometric_credential_service.dart';
 import '../../../../core/services/biometric_service.dart';
@@ -56,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAuth() async {
-    final securityService = getIt<AppSecurityService>();
+    final securityService = context.read<AppSecurityService>();
     final assessment = await securityService.evaluateStartupRisk();
 
     if (!mounted) {
@@ -92,8 +91,9 @@ class _SplashScreenState extends State<SplashScreen>
             context.go('/onboarding');
           } else {
             // Check if biometric login is available
-            final biometricService = getIt<BiometricService>();
-            final credentialService = getIt<BiometricCredentialService>();
+            final biometricService = context.read<BiometricService>();
+            final credentialService =
+                context.read<BiometricCredentialService>();
             final biometricAvailable = await biometricService.isAvailable();
             final biometricEnabled = await biometricService.isEnabled();
             final hasCredentials = await credentialService.hasCredentials();

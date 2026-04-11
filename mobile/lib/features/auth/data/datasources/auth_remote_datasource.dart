@@ -4,7 +4,6 @@ library;
 import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/api_endpoints.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/security/app_security_service.dart';
@@ -86,9 +85,13 @@ abstract class AuthRemoteDataSource {
 /// Implementation of AuthRemoteDataSource using API client
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final ApiClient _apiClient;
+  final AppSecurityService _appSecurityService;
 
-  AuthRemoteDataSourceImpl({required ApiClient apiClient})
-    : _apiClient = apiClient;
+  AuthRemoteDataSourceImpl({
+    required ApiClient apiClient,
+    required AppSecurityService appSecurityService,
+  }) : _apiClient = apiClient,
+       _appSecurityService = appSecurityService;
 
   @override
   Future<AuthResponse> login({
@@ -101,8 +104,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final formattedPhone = Formatters.phoneToInternational(phone);
     developer.log('Formatted phone for API: $formattedPhone', name: 'AuthDataSource');
 
-    final securityPayload = await getIt<AppSecurityService>()
-        .buildAuthIntegrityPayload(requestType: 'auth.login');
+    final securityPayload = await _appSecurityService.buildAuthIntegrityPayload(
+      requestType: 'auth.login',
+    );
 
     final response = await _apiClient.post(
       ApiEndpoints.login,
@@ -138,8 +142,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final formattedPhone = Formatters.phoneToInternational(phone);
 
     try {
-      final securityPayload = await getIt<AppSecurityService>()
-          .buildAuthIntegrityPayload(requestType: 'auth.register');
+      final securityPayload = await _appSecurityService.buildAuthIntegrityPayload(
+        requestType: 'auth.register',
+      );
 
       final requestData = {
         'phone': formattedPhone,

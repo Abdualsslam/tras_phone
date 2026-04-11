@@ -1,40 +1,37 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:tras_phone/core/errors/failures.dart';
 import 'package:tras_phone/core/services/biometric_service.dart';
 import 'package:tras_phone/features/auth/domain/entities/session_entity.dart';
 import 'package:tras_phone/features/auth/domain/entities/user_entity.dart';
 import 'package:tras_phone/features/auth/domain/repositories/auth_repository.dart';
+import 'package:tras_phone/features/auth/domain/services/auth_lifecycle_coordinator.dart';
+import 'package:tras_phone/features/auth/domain/services/auth_notification_navigation_service.dart';
 import 'package:tras_phone/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:tras_phone/features/auth/presentation/cubit/auth_state.dart';
-import 'package:tras_phone/features/cart/presentation/cubit/cart_cubit.dart';
-import 'package:tras_phone/features/catalog/data/services/product_cache_service.dart';
-import 'package:tras_phone/features/home/data/services/home_cache_service.dart';
-import 'package:tras_phone/features/notifications/services/push_notification_manager.dart';
-import 'package:tras_phone/features/profile/presentation/cubit/profile_cubit.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
 class MockBiometricService extends Mock implements BiometricService {}
 
-class MockCartCubit extends Mock implements CartCubit {}
+class MockAuthLifecycleCoordinator extends Mock
+    implements AuthLifecycleCoordinator {}
 
-class MockProductCacheService extends Mock implements ProductCacheService {}
+class MockAuthNotificationNavigationService extends Mock
+    implements AuthNotificationNavigationService {}
 
-class MockHomeCacheService extends Mock implements HomeCacheService {}
-
-class MockPushNotificationManager extends Mock
-    implements PushNotificationManager {}
-
-class MockProfileCubit extends Mock implements ProfileCubit {}
-
-class MockAddressesCubit extends Mock implements AddressesCubit {}
+Future<void> _fakeFcmUpdater({
+  required String fcmToken,
+  Map<String, dynamic>? deviceInfo,
+}) async {}
 
 void main() {
   late MockAuthRepository mockRepository;
+  late MockBiometricService mockBiometricService;
+  late MockAuthLifecycleCoordinator mockLifecycleCoordinator;
+  late MockAuthNotificationNavigationService mockNotificationNavigationService;
 
   final now = DateTime(2024, 1, 1);
 
@@ -59,56 +56,48 @@ void main() {
     createdAt: now,
   );
 
-  setUp(() {
-    mockRepository = MockAuthRepository();
-
-    // Register GetIt mocks for services called inside AuthCubit side-effects
-    final getIt = GetIt.instance;
-    if (!getIt.isRegistered<BiometricService>()) {
-      final mockBiometric = MockBiometricService();
-      when(() => mockBiometric.isEnabled()).thenAnswer((_) async => false);
-      getIt.registerSingleton<BiometricService>(mockBiometric);
-    }
-    if (!getIt.isRegistered<CartCubit>()) {
-      final mockCart = MockCartCubit();
-      when(
-        () => mockCart.syncCart(silent: any(named: 'silent')),
-      ).thenAnswer((_) async => null);
-      getIt.registerSingleton<CartCubit>(mockCart);
-    }
-    if (!getIt.isRegistered<ProductCacheService>()) {
-      final mockProductCache = MockProductCacheService();
-      when(() => mockProductCache.clearAll()).thenAnswer((_) async {});
-      getIt.registerSingleton<ProductCacheService>(mockProductCache);
-    }
-    if (!getIt.isRegistered<HomeCacheService>()) {
-      final mockHomeCache = MockHomeCacheService();
-      when(() => mockHomeCache.clearHomeData()).thenAnswer((_) async {});
-      getIt.registerSingleton<HomeCacheService>(mockHomeCache);
-    }
-    if (!getIt.isRegistered<PushNotificationManager>()) {
-      final mockPush = MockPushNotificationManager();
-      when(
-        () => mockPush.initialize(
-          onNotificationTap: any(named: 'onNotificationTap'),
-        ),
-      ).thenAnswer((_) async {});
-      when(() => mockPush.getToken()).thenAnswer((_) async => null);
-      getIt.registerSingleton<PushNotificationManager>(mockPush);
-    }
-    if (!getIt.isRegistered<ProfileCubit>()) {
-      final mockProfile = MockProfileCubit();
-      when(() => mockProfile.clearCache()).thenReturn(null);
-      getIt.registerSingleton<ProfileCubit>(mockProfile);
-    }
-    if (!getIt.isRegistered<AddressesCubit>()) {
-      final mockAddresses = MockAddressesCubit();
-      when(() => mockAddresses.clearCache()).thenReturn(null);
-      getIt.registerSingleton<AddressesCubit>(mockAddresses);
-    }
+  setUpAll(() {
+    registerFallbackValue(_fakeFcmUpdater);
   });
 
-  AuthCubit createCubit() => AuthCubit(repository: mockRepository);
+  setUp(() {
+    mockRepository = MockAuthRepository();
+    mockBiometricService = MockBiometricService();
+    mockLifecycleCoordinator = MockAuthLifecycleCoordinator();
+    mockNotificationNavigationService = MockAuthNotificationNavigationService();
+
+    when(() => mockBiometricService.isEnabled()).thenAnswer((_) async => false);
+    when(
+      () => mockLifecycleCoordinator.clearCachesOnAuthChange(),
+    ).thenAnswer((_) async {});
+    when(
+      () => mockLifecycleCoordinator.connectSocket(),
+    ).thenAnswer((_) async {});
+    when(
+      () => mockLifecycleCoordinator.initializePushNotifications(
+        onNotificationTap: any(named: 'onNotificationTap'),
+      ),
+    ).thenAnswer((_) async {});
+    when(
+      () => mockLifecycleCoordinator.updateFcmTokenAfterAuth(
+        updater: any(named: 'updater'),
+      ),
+    ).thenAnswer((_) async {});
+    when(
+      () => mockLifecycleCoordinator.syncCartAfterLogin(),
+    ).thenAnswer((_) async {});
+    when(() => mockLifecycleCoordinator.disconnectSocket()).thenReturn(null);
+    when(
+      () => mockNotificationNavigationService.handleNotificationTap(any()),
+    ).thenReturn(null);
+  });
+
+  AuthCubit createCubit() => AuthCubit(
+    repository: mockRepository,
+    biometricService: mockBiometricService,
+    lifecycleCoordinator: mockLifecycleCoordinator,
+    notificationNavigationService: mockNotificationNavigationService,
+  );
 
   group('initial state', () {
     test('should be AuthInitial', () {

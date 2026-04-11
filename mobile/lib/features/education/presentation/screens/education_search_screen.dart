@@ -7,9 +7,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/shimmer/index.dart';
 import '../../domain/entities/educational_content_entity.dart';
+import '../../domain/repositories/education_repository.dart';
 import '../cubit/education_categories_cubit.dart';
 import '../cubit/education_categories_state.dart';
 import '../cubit/education_content_cubit.dart';
@@ -24,10 +24,16 @@ class EducationSearchScreen extends StatelessWidget {
       providers: [
         BlocProvider(
           create: (context) =>
-              getIt<EducationCategoriesCubit>()
+              EducationCategoriesCubit(
+                repository: context.read<EducationRepository>(),
+              )
                 ..loadCategories(activeOnly: true),
         ),
-        BlocProvider(create: (context) => getIt<EducationContentCubit>()),
+        BlocProvider(
+          create: (context) => EducationContentCubit(
+            repository: context.read<EducationRepository>(),
+          ),
+        ),
       ],
       child: const _EducationSearchView(),
     );

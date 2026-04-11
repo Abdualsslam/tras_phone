@@ -2,9 +2,9 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../core/di/injection.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../catalog/data/datasources/catalog_remote_datasource.dart';
 import '../../../catalog/domain/repositories/catalog_repository.dart';
@@ -78,7 +78,7 @@ class BannerNavigationHelper {
 
     try {
       // Load product from API
-      final dataSource = getIt<CatalogRemoteDataSource>();
+      final dataSource = context.read<CatalogRemoteDataSource>();
       final product = await dataSource.getProduct(productId);
 
       // Close loading indicator
@@ -134,7 +134,7 @@ class BannerNavigationHelper {
 
     try {
       // Load brand from API using repository
-      final repository = getIt<CatalogRepository>();
+      final repository = context.read<CatalogRepository>();
       final brandResult = await repository.getBrandById(brandId);
 
       // Close loading indicator

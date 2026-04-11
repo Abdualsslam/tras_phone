@@ -3,14 +3,14 @@ library;
 
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 
 class SocketService {
   static final SocketService _instance = SocketService._internal();
   factory SocketService() => _instance;
   SocketService._internal();
 
-  IO.Socket? _socket;
+  io.Socket? _socket;
   final Map<String, Set<Function>> _listeners = {};
 
   /// Connect to WebSocket server
@@ -24,10 +24,13 @@ class SocketService {
     final port = uri.port != 0 ? uri.port : (uri.scheme == 'https' ? 443 : 80);
     final socketUrl = '${uri.scheme}://${uri.host}:$port/support';
 
-    _socket = IO.io(
+    _socket = io.io(
       socketUrl,
-      IO.OptionBuilder()
-          .setTransports(['websocket', 'polling']) // WebSocket first, polling fallback
+      io.OptionBuilder()
+          .setTransports([
+            'websocket',
+            'polling',
+          ]) // WebSocket first, polling fallback
           .setAuth({'token': token})
           .enableReconnection()
           .setReconnectionDelay(1000)

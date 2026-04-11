@@ -8,7 +8,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../data/models/push_token_model.dart';
-import '../data/repositories/notifications_repository.dart';
+import '../domain/repositories/notifications_repository.dart';
 
 /// Callback type for notification tap handling
 typedef NotificationTapCallback = void Function(Map<String, dynamic> data);

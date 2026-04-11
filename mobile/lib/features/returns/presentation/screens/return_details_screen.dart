@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/di/injection.dart';
+import '../../domain/repositories/returns_repository.dart';
 import '../cubit/return_details_cubit.dart';
 import '../cubit/return_details_state.dart';
 import '../widgets/return_status_card.dart';
@@ -23,7 +23,8 @@ class ReturnDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) =>
-          getIt<ReturnDetailsCubit>()..loadReturn(returnId),
+          ReturnDetailsCubit(repository: context.read<ReturnsRepository>())
+            ..loadReturn(returnId),
       child: const _ReturnDetailsView(),
     );
   }
