@@ -11,7 +11,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -41,12 +40,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
     with WidgetsBindingObserver {
   String? _selectedAddressId;
   String? _selectedPaymentMethodId;
-<<<<<<< HEAD
-  final TextEditingController _transferReferenceController =
-      TextEditingController();
-=======
-  CouponValidation? _appliedCoupon;
->>>>>>> 6ea1b8342100420e4e70631faeb05a81bd2f1bde
+
   final TextEditingController _transferNotesController =
       TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
@@ -634,9 +628,10 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                                   else ...[
                                     Text(
                                       'سيتم الخصم تلقائياً من المحفظة أولاً في جميع الطلبات.',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: AppColors.textSecondaryLight,
-                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.textSecondaryLight,
+                                          ),
                                     ),
                                     SizedBox(height: 8.h),
                                     Text(
@@ -658,12 +653,12 @@ class _CheckoutScreenState extends State<CheckoutScreen>
                         // Coupon Section
                         BlocBuilder<CheckoutSessionCubit, CheckoutSessionState>(
                           builder: (context, _) {
-                            final session =
-                                context
-                                    .read<CheckoutSessionCubit>()
-                                    .currentSession;
+                            final session = context
+                                .read<CheckoutSessionCubit>()
+                                .currentSession;
                             final appliedCode =
-                                session?.coupon?.code ?? session?.cart.couponCode;
+                                session?.coupon?.code ??
+                                session?.cart.couponCode;
                             final appliedDiscount = _resolveCouponDiscount(
                               session,
                             );
@@ -2090,7 +2085,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
 
   double _resolveCouponDiscount(CheckoutSessionEntity? session) {
     if (session == null) return 0;
-    final sessionCouponDiscount = (session.coupon?.discountAmount ?? 0).toDouble();
+    final sessionCouponDiscount = (session.coupon?.discountAmount ?? 0)
+        .toDouble();
     if (sessionCouponDiscount > 0) return sessionCouponDiscount;
     return session.cart.couponDiscount;
   }
@@ -2209,9 +2205,8 @@ class _CheckoutScreenState extends State<CheckoutScreen>
       if (!mounted) return;
 
       // Get coupon code if applied (session coupon first, then cart coupon)
-      final couponCode =
-          (session.coupon?.code?.trim().isNotEmpty ?? false)
-          ? session.coupon!.code.trim()
+      final couponCode = (session.coupon?.code?.trim().isNotEmpty ?? false)
+          ? session.coupon!.code!.trim()
           : ((session.cart.couponCode?.trim().isNotEmpty ?? false)
                 ? session.cart.couponCode!.trim()
                 : null);

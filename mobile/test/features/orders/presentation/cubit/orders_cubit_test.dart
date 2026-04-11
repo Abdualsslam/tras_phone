@@ -210,7 +210,6 @@ void main() {
             paymentMethod: any(named: 'paymentMethod'),
             customerNotes: any(named: 'customerNotes'),
             couponCode: any(named: 'couponCode'),
-            walletAmountUsed: any(named: 'walletAmountUsed'),
           )).thenAnswer((_) async => testOrder);
 
       final cubit = createCubit();
@@ -230,7 +229,6 @@ void main() {
             paymentMethod: any(named: 'paymentMethod'),
             customerNotes: any(named: 'customerNotes'),
             couponCode: any(named: 'couponCode'),
-            walletAmountUsed: any(named: 'walletAmountUsed'),
           )).thenThrow(Exception('Order creation failed'));
 
       final cubit = createCubit();
