@@ -15,6 +15,7 @@ import '../../data/datasources/catalog_remote_datasource.dart';
 import '../../data/models/product_filter_query.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
+import '../widgets/products_list_sections.dart';
 
 class ProductsListScreen extends StatefulWidget {
   final bool? isFeatured;
@@ -374,8 +375,6 @@ class _ProductsListScreenState extends State<ProductsListScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(_resolvedTitle),
@@ -394,14 +393,30 @@ class _ProductsListScreenState extends State<ProductsListScreen>
         onRefresh: _loadProducts,
         child: Column(
           children: [
-            _buildSortBar(isDark),
-            if (_hasFixedCategoryFilter) _buildCategoryFilterBar(isDark),
+            ProductsListTopBar(
+              productsCount: _products.length,
+              isLoading: _isLoading && _hasLoadedOnce,
+              sortLabel: _getSortLabel(),
+              isGridView: _isGridView,
+              onSortTap: _showSortOptions,
+              onLayoutToggle: () => setState(() => _isGridView = !_isGridView),
+            ),
+            if (_hasFixedCategoryFilter)
+              ActiveCategoryFilterBar(categoryName: _activeCategoryName),
             if (_canSelectCategoryFilter)
-              _buildSelectableCategoryFilterBar(isDark),
+              SelectableCategoryFilterBar(
+                isLoadingCategories: _isLoadingCategories,
+                activeCategoryId: _activeCategoryId,
+                categories: _availableCategories,
+                onCategorySelected: (category) => _onCategoryFilterChanged(
+                  categoryId: category?.id,
+                  categoryName: category?.nameAr,
+                ),
+              ),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 180),
-                child: _buildBody(isDark),
+                child: _buildBody(),
               ),
             ),
           ],
@@ -410,430 +425,48 @@ class _ProductsListScreenState extends State<ProductsListScreen>
     );
   }
 
-  Widget _buildBody(bool isDark) {
+  Widget _buildBody() {
     if (_isLoading && !_hasLoadedOnce) {
       return const ProductsGridShimmer();
     }
 
     if (_errorMessage != null && _products.isEmpty) {
-      return _buildErrorState(isDark);
+      return ProductsErrorState(onRetry: _loadProducts);
     }
 
     if (_products.isEmpty) {
-      return _buildEmptyState(isDark);
+      return ProductsEmptyState(
+        isStrictCategoryDeviceFlow: _isStrictCategoryDeviceFlow,
+      );
     }
 
-    return _isGridView ? _buildProductsGrid() : _buildProductsList();
-  }
+    if (_isGridView) {
+      return ProductsGridSection(
+        scrollController: _scrollController,
+        products: _products,
+        isLoadingMore: _isLoadingMore,
+        isProductFavorite: isProductFavorite,
+        onProductTap: _openProductDetails,
+        onToggleFavorite: _toggleProductFavorite,
+      );
+    }
 
-  Widget _buildSortBar(bool isDark) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Text(
-            '${_products.length} منتج',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
-            ),
-          ),
-          if (_isLoading && _hasLoadedOnce) ...[
-            SizedBox(width: 10.w),
-            SizedBox(
-              width: 14.w,
-              height: 14.w,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.primary,
-              ),
-            ),
-          ],
-          const Spacer(),
-          GestureDetector(
-            onTap: _showSortOptions,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.cardDark : AppColors.backgroundLight,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Row(
-                children: [
-                  Icon(Iconsax.sort, size: 16.sp, color: AppColors.primary),
-                  SizedBox(width: 6.w),
-                  Text(
-                    _getSortLabel(),
-                    style: TextStyle(fontSize: 12.sp, color: AppColors.primary),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          GestureDetector(
-            onTap: () => setState(() => _isGridView = !_isGridView),
-            child: Container(
-              padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.cardDark : AppColors.backgroundLight,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Icon(
-                _isGridView ? Iconsax.menu_1 : Iconsax.element_3,
-                size: 18.sp,
-                color: AppColors.primary,
-              ),
-            ),
-          ),
-        ],
-      ),
+    return ProductsListSection(
+      scrollController: _scrollController,
+      products: _products,
+      isLoadingMore: _isLoadingMore,
+      isProductFavorite: isProductFavorite,
+      onProductTap: _openProductDetails,
+      onToggleFavorite: _toggleProductFavorite,
     );
   }
 
-  Widget _buildCategoryFilterBar(bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 10.h),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(Iconsax.filter, size: 14.sp, color: AppColors.primary),
-          SizedBox(width: 8.w),
-          Text(
-            'فلتر الفئة:',
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
-            ),
-          ),
-          SizedBox(width: 8.w),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999.r),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Iconsax.category,
-                      size: 12.sp,
-                      color: AppColors.primary,
-                    ),
-                    SizedBox(width: 6.w),
-                    Text(
-                      _activeCategoryName,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  void _openProductDetails(ProductEntity product) {
+    context.push('/product/${product.id}', extra: product);
   }
 
-  Widget _buildSelectableCategoryFilterBar(bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 10.h),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Iconsax.filter, size: 14.sp, color: AppColors.primary),
-              SizedBox(width: 8.w),
-              Text(
-                'اختر الفئة:',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight,
-                ),
-              ),
-              if (_isLoadingCategories) ...[
-                SizedBox(width: 8.w),
-                SizedBox(
-                  width: 12.w,
-                  height: 12.w,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          SizedBox(height: 8.h),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildCategoryChoiceChip(
-                  label: 'كل الفئات',
-                  isSelected: _activeCategoryId == null,
-                  isDark: isDark,
-                  onTap: () => _onCategoryFilterChanged(
-                    categoryId: null,
-                    categoryName: null,
-                  ),
-                ),
-                for (final category in _availableCategories) ...[
-                  SizedBox(width: 8.w),
-                  _buildCategoryChoiceChip(
-                    label: category.nameAr,
-                    isSelected: _activeCategoryId == category.id,
-                    isDark: isDark,
-                    onTap: () => _onCategoryFilterChanged(
-                      categoryId: category.id,
-                      categoryName: category.nameAr,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryChoiceChip({
-    required String label,
-    required bool isSelected,
-    required bool isDark,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.12)
-              : (isDark ? AppColors.cardDark : AppColors.backgroundLight),
-          borderRadius: BorderRadius.circular(999.r),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.4)
-                : (isDark ? AppColors.dividerDark : AppColors.dividerLight),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isSelected) ...[
-              Icon(Iconsax.category, size: 12.sp, color: AppColors.primary),
-              SizedBox(width: 6.w),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? AppColors.primary
-                    : (isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondaryLight),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProductsGrid() {
-    return GridView.builder(
-      key: const ValueKey('products-grid'),
-      controller: _scrollController,
-      padding: EdgeInsets.all(16.w),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12.h,
-        crossAxisSpacing: 12.w,
-        childAspectRatio: 0.60,
-      ),
-      itemCount: _products.length + (_isLoadingMore ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index >= _products.length) {
-          return const _LoadMoreProductsIndicator();
-        }
-
-        final product = _products[index];
-        return ProductCard(
-          id: product.id.toString(),
-          name: product.name,
-          nameAr: product.nameAr,
-          imageUrl: product.imageUrl,
-          price: product.price,
-          originalPrice: product.originalPrice,
-          stockQuantity: product.stockQuantity,
-          isFavorite: isProductFavorite(product.id),
-          onTap: () => context.push('/product/${product.id}', extra: product),
-          onToggleFavorite: () => toggleFavoriteProduct(product.id),
-        );
-      },
-    );
-  }
-
-  Widget _buildProductsList() {
-    return ListView.separated(
-      key: const ValueKey('products-list'),
-      controller: _scrollController,
-      padding: EdgeInsets.all(16.w),
-      itemCount: _products.length + (_isLoadingMore ? 1 : 0),
-      separatorBuilder: (context, index) => SizedBox(height: 12.h),
-      itemBuilder: (context, index) {
-        if (index >= _products.length) {
-          return const _LoadMoreProductsIndicator();
-        }
-
-        final product = _products[index];
-        return ProductListItem(
-          id: product.id,
-          title: product.nameAr,
-          imageUrl: product.imageUrl,
-          price: product.price,
-          originalPrice: product.originalPrice,
-          isFavorite: isProductFavorite(product.id),
-          onTap: () => context.push('/product/${product.id}', extra: product),
-          onToggleFavorite: () => toggleFavoriteProduct(product.id),
-        );
-      },
-    );
-  }
-
-  Widget _buildEmptyState(bool isDark) {
-    final strictCategoryMessage = _isStrictCategoryDeviceFlow;
-
-    return Center(
-      key: const ValueKey('products-empty-state'),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 32.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Iconsax.box_1,
-              size: 80.sp,
-              color: isDark
-                  ? AppColors.textTertiaryDark
-                  : AppColors.textTertiaryLight,
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              'لا توجد منتجات',
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w600,
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              strictCategoryMessage
-                  ? 'لا توجد منتجات لهذا الجهاز ضمن الفئة المختارة'
-                  : 'لا توجد منتجات حالياً',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondaryLight,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState(bool isDark) {
-    return Center(
-      key: const ValueKey('products-error-state'),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 28.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Iconsax.warning_2, size: 72.sp, color: AppColors.error),
-            SizedBox(height: 16.h),
-            Text(
-              'تعذر تحميل المنتجات',
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w700,
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              'تحقق من الاتصال ثم أعد المحاولة.',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondaryLight,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 18.h),
-            FilledButton.tonal(
-              onPressed: _loadProducts,
-              child: const Text('إعادة المحاولة'),
-            ),
-          ],
-        ),
-      ),
-    );
+  void _toggleProductFavorite(ProductEntity product) {
+    toggleFavoriteProduct(product.id);
   }
 
   String _getSortLabel() {
@@ -860,68 +493,17 @@ class _ProductsListScreenState extends State<ProductsListScreen>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.all(20.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'ترتيب حسب',
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w700,
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            _buildSortOption('createdAt', 'desc', 'الأحدث', isDark),
-            _buildSortOption('createdAt', 'asc', 'الأقدم', isDark),
-            _buildSortOption('price', 'asc', 'السعر: من الأقل للأعلى', isDark),
-            _buildSortOption('price', 'desc', 'السعر: من الأعلى للأقل', isDark),
-            _buildSortOption('salesCount', 'desc', 'الأكثر مبيعاً', isDark),
-            _buildSortOption('name', 'asc', 'الاسم: أ-ي', isDark),
-            SizedBox(height: 20.h),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSortOption(
-    String sortBy,
-    String sortOrder,
-    String label,
-    bool isDark,
-  ) {
-    final isSelected = _sortBy == sortBy && _sortOrder == sortOrder;
-
-    return ListTile(
-      onTap: () {
-        setState(() {
-          _sortBy = sortBy;
-          _sortOrder = sortOrder;
-        });
-        Navigator.pop(context);
-        _loadProducts();
-      },
-      leading: Icon(
-        isSelected ? Iconsax.tick_circle5 : Iconsax.tick_circle,
-        color: isSelected ? AppColors.primary : AppColors.textTertiaryLight,
-      ),
-      title: Text(
-        label,
-        style: TextStyle(
-          fontSize: 14.sp,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-          color: isSelected
-              ? AppColors.primary
-              : (isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight),
-        ),
+      builder: (sheetContext) => ProductsSortSheet(
+        activeSortBy: _sortBy,
+        activeSortOrder: _sortOrder,
+        onSortSelected: (sortBy, sortOrder) {
+          setState(() {
+            _sortBy = sortBy;
+            _sortOrder = sortOrder;
+          });
+          Navigator.pop(sheetContext);
+          _loadProducts();
+        },
       ),
     );
   }
@@ -936,154 +518,18 @@ class _ProductsListScreenState extends State<ProductsListScreen>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
-      builder: (context) => DraggableScrollableSheet(
+      builder: (sheetContext) => DraggableScrollableSheet(
         initialChildSize: 0.65,
         minChildSize: 0.4,
         maxChildSize: 0.9,
         expand: false,
-        builder: (context, scrollController) => Padding(
-          padding: EdgeInsets.all(20.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'تصفية النتائج',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textPrimaryLight,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      'إغلاق',
-                      style: TextStyle(color: AppColors.primary),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20.h),
-              if (_hasCategoryFilter) ...[
-                Text(
-                  'الفئة المطبقة',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimaryLight,
-                  ),
-                ),
-                SizedBox(height: 10.h),
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 10.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Iconsax.category,
-                        size: 16.sp,
-                        color: AppColors.primary,
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: Text(
-                          _activeCategoryName,
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20.h),
-              ],
-              Text(
-                'الترتيب الحالي',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimaryLight,
-                ),
-              ),
-              SizedBox(height: 10.h),
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.cardDark : AppColors.backgroundLight,
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Text(
-                  _getSortLabel(),
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-              SizedBox(height: 20.h),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('تم', style: TextStyle(fontSize: 16.sp)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LoadMoreProductsIndicator extends StatelessWidget {
-  const _LoadMoreProductsIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? AppColors.cardDark
-            : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? AppColors.dividerDark
-              : AppColors.dividerLight,
-        ),
-      ),
-      child: Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.w),
-          child: SizedBox(
-            width: 26.w,
-            height: 26.w,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.2,
-              color: AppColors.primary,
-            ),
+        builder: (context, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          child: ProductsFilterSheet(
+            hasCategoryFilter: _hasCategoryFilter,
+            activeCategoryName: _activeCategoryName,
+            activeSortLabel: _getSortLabel(),
+            onClose: () => Navigator.pop(sheetContext),
           ),
         ),
       ),

@@ -1,14 +1,12 @@
 /// Product Details Screen - Shows detailed product information
 library;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
-import 'package:iconsax/iconsax.dart';
 import '../../../../core/config/theme/app_colors.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/catalog_repository.dart';
@@ -19,8 +17,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../favorite/domain/repositories/favorite_repository.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../widgets/add_review_bottom_sheet.dart';
-import '../widgets/product_review_card.dart';
-import '../widgets/rating_bar_row.dart';
+import '../widgets/product_details_sections.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final ProductEntity product;
@@ -128,7 +125,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _educationError = 'تعذر تحميل المحتوى التعليمي';
+        _educationError = 'ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ø­ØªÙˆÙ‰ Ø§Ù„ØªØ¹Ù„ÙŠÙ…ÙŠ';
         _educationLoading = false;
       });
     }
@@ -142,7 +139,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   void _printProductData(ProductEntity p) {
-    debugPrint('═══════════════════════════════════════════════════');
+    debugPrint(
+      'â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•',
+    );
     debugPrint('Product Details (visited):');
     debugPrint('  id: ${p.id}');
     debugPrint('  sku: ${p.sku}');
@@ -172,7 +171,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         '  description: ${desc.length > 80 ? '${desc.substring(0, 80)}...' : desc}',
       );
     }
-    debugPrint('═══════════════════════════════════════════════════');
+    debugPrint(
+      'â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•',
+    );
   }
 
   Future<void> _loadReviews() async {
@@ -291,7 +292,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              newState ? 'تم الإضافة للمفضلة' : 'تم الإزالة من المفضلة',
+              newState
+                  ? 'ØªÙ… Ø§Ù„Ø¥Ø¶Ø§ÙØ© Ù„Ù„Ù…ÙØ¶Ù„Ø©'
+                  : 'ØªÙ… Ø§Ù„Ø¥Ø²Ø§Ù„Ø© Ù…Ù† Ø§Ù„Ù…ÙØ¶Ù„Ø©',
             ),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
@@ -305,12 +308,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           _isLoadingFavorite = false;
         });
 
-        // 409 = المنتج موجود فعلاً في المفضلة → نحدّث الواجهة ولا نعتبره خطأ
+        // 409 = Ø§Ù„Ù…Ù†ØªØ¬ Ù…ÙˆØ¬ÙˆØ¯ ÙØ¹Ù„Ø§Ù‹ ÙÙŠ Ø§Ù„Ù…ÙØ¶Ù„Ø© â†’ Ù†Ø­Ø¯Ù‘Ø« Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© ÙˆÙ„Ø§ Ù†Ø¹ØªØ¨Ø±Ù‡ Ø®Ø·Ø£
         if (e is DioException && e.response?.statusCode == 409) {
           setState(() => _isFavorite = true);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('المنتج موجود في المفضلة'),
+              content: Text('Ø§Ù„Ù…Ù†ØªØ¬ Ù…ÙˆØ¬ÙˆØ¯ ÙÙŠ Ø§Ù„Ù…ÙØ¶Ù„Ø©'),
               backgroundColor: AppColors.success,
               behavior: SnackBarBehavior.floating,
               duration: Duration(seconds: 2),
@@ -333,6 +336,33 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
   }
 
+  void _addToCart() {
+    final product = _product;
+
+    context.read<CartCubit>().addToCartLocal(
+      productId: product.id,
+      quantity: _quantity,
+      unitPrice: product.effectivePrice,
+      productName: product.name,
+      productNameAr: product.nameAr,
+      productImage:
+          product.mainImage ??
+          (product.images.isNotEmpty ? product.images.first : null),
+      productSku: product.sku,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.addedToCart),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -342,1190 +372,97 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final product = _product;
+    final locale = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
-          // App Bar with Image
-          _buildSliverAppBar(theme, isDark, product),
-
-          // Product Info
+          ProductDetailsSliverAppBar(
+            product: product,
+            pageController: _pageController,
+            currentImageIndex: _currentImageIndex,
+            onPageChanged: (index) {
+              setState(() => _currentImageIndex = index);
+            },
+            isFavorite: _isFavorite,
+            isLoadingFavorite: _isLoadingFavorite,
+            onToggleFavorite: _toggleFavorite,
+            onShare: () {},
+          ),
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.all(16.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Brand & SKU
-                  _buildBrandAndSku(theme, product),
+                  ProductBrandSkuRow(product: product),
                   SizedBox(height: 12.h),
-
-                  // Product Name
                   Text(
-                    product.nameAr,
+                    product.getName(locale),
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   SizedBox(height: 16.h),
-
-                  // Price Section
-                  _buildPriceSection(theme, product),
+                  ProductPriceSection(product: product),
                   SizedBox(height: 24.h),
-
-                  // Description
                   if (product.description != null ||
                       product.descriptionAr != null) ...[
-                    _buildDescription(theme, product),
+                    ProductDescriptionCard(product: product),
                     SizedBox(height: 24.h),
                   ],
-
-                  // Specs (Category & Quality)
                   if ((product.categoryNameAr ?? product.categoryName) !=
                           null ||
                       (product.qualityTypeNameAr ?? product.qualityTypeName) !=
                           null) ...[
-                    _buildProductSpecs(theme, product),
+                    ProductSpecsCard(product: product),
                     SizedBox(height: 24.h),
                   ],
-
                   if (product.compatibleDeviceNames.isNotEmpty ||
                       product.compatibleDeviceNamesAr.isNotEmpty) ...[
-                    _buildCompatibleDevicesSection(theme, product),
+                    ProductCompatibleDevicesCard(
+                      product: product,
+                      isLoading: _productLoading,
+                    ),
                     SizedBox(height: 24.h),
                   ],
-
-                  // Stock Status
-                  _buildStockStatus(theme, product),
+                  ProductStockStatusCard(product: product),
                   SizedBox(height: 24.h),
-
-                  _buildRelatedEducationalContentSection(theme, isDark),
+                  ProductEducationSection(
+                    relatedContent: _relatedEducationalContent,
+                    isLoading: _educationLoading,
+                    error: _educationError,
+                    hasMore: _educationHasMore,
+                    onRetry: _loadRelatedEducationalContent,
+                    onOpenAll: _openAllEducationalContent,
+                  ),
                   SizedBox(height: 24.h),
-
-                  // Reviews Section (inline)
-                  _buildReviewsSection(theme, isDark, product),
-                  SizedBox(height: 100.h), // Space for bottom bar
+                  ProductReviewsSection(
+                    reviews: _reviews,
+                    isLoading: _reviewsLoading,
+                    error: _reviewsError,
+                    averageRating: _reviewsAverageRating,
+                    reviewsCount: _reviewsCount,
+                    onRetry: _loadReviews,
+                    onAddReview: _onAddReviewPressed,
+                  ),
+                  SizedBox(height: 100.h),
                 ],
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomBar(theme, product),
-    );
-  }
-
-  Widget _buildSliverAppBar(
-    ThemeData theme,
-    bool isDark,
-    ProductEntity product,
-  ) {
-    final images = product.images.isNotEmpty
-        ? product.images
-        : (product.imageUrl != null ? [product.imageUrl!] : <String>[]);
-
-    return SliverAppBar(
-      expandedHeight: 350.h,
-      pinned: true,
-      backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
-      systemOverlayStyle: isDark
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
-      leading: Container(
-        margin: EdgeInsets.all(8.w),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.glassDark : AppColors.glassLight,
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.glassBorder, width: 1),
-        ),
-        child: IconButton(
-          icon: const Icon(Iconsax.arrow_right_3),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      actions: [
-        Container(
-          margin: EdgeInsets.all(8.w),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.glassDark : AppColors.glassLight,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.glassBorder, width: 1),
-          ),
-          child: IconButton(
-            icon: _isLoadingFavorite
-                ? SizedBox(
-                    width: 20.sp,
-                    height: 20.sp,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _isFavorite ? AppColors.error : AppColors.primary,
-                      ),
-                    ),
-                  )
-                : Icon(
-                    _isFavorite ? Iconsax.heart5 : Iconsax.heart,
-                    color: _isFavorite ? AppColors.error : null,
-                  ),
-            onPressed: _toggleFavorite,
-          ),
-        ),
-        Container(
-          margin: EdgeInsets.only(left: 8.w, top: 8.w, bottom: 8.w),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.glassDark : AppColors.glassLight,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.glassBorder, width: 1),
-          ),
-          child: IconButton(
-            icon: const Icon(Iconsax.share),
-            onPressed: () {
-              // Share product
-            },
-          ),
-        ),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          children: [
-            // Image PageView
-            if (images.isNotEmpty)
-              PageView.builder(
-                controller: _pageController,
-                itemCount: images.length,
-                onPageChanged: (index) {
-                  setState(() => _currentImageIndex = index);
-                },
-                itemBuilder: (context, index) {
-                  final imageUrl = images[index];
-                  final isLocalAsset = imageUrl.startsWith('assets/');
-
-                  return Container(
-                    color: isDark ? AppColors.surfaceDark : Colors.grey[100],
-                    child: isLocalAsset
-                        ? Image.asset(
-                            imageUrl,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) => Center(
-                              child: Icon(
-                                Iconsax.image,
-                                size: 80.sp,
-                                color: AppColors.textTertiaryLight,
-                              ),
-                            ),
-                          )
-                        : CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            fit: BoxFit.contain,
-                            placeholder: (context, url) => Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            errorWidget: (context, url, error) => Center(
-                              child: Icon(
-                                Iconsax.image,
-                                size: 80.sp,
-                                color: AppColors.textTertiaryLight,
-                              ),
-                            ),
-                          ),
-                  );
-                },
-              )
-            else
-              Container(
-                color: isDark ? AppColors.surfaceDark : Colors.grey[100],
-                child: Center(
-                  child: Icon(
-                    Iconsax.image,
-                    size: 80.sp,
-                    color: AppColors.textTertiaryLight,
-                  ),
-                ),
-              ),
-
-            // Image Indicator
-            if (images.length > 1)
-              Positioned(
-                bottom: 16.h,
-                left: 0,
-                right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    images.length,
-                    (index) => Container(
-                      width: _currentImageIndex == index ? 24.w : 8.w,
-                      height: 8.h,
-                      margin: EdgeInsets.symmetric(horizontal: 4.w),
-                      decoration: BoxDecoration(
-                        color: _currentImageIndex == index
-                            ? AppColors.primary
-                            : Colors.grey.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(4.r),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-            // Discount Badge
-            if (product.hasDiscount)
-              Positioned(
-                top: 100.h,
-                right: 16.w,
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 6.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.error,
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Text(
-                    '-${product.discountPercentage.toInt()}%',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBrandAndSku(ThemeData theme, ProductEntity product) {
-    final brandName = product.brandNameAr ?? product.brandName;
-    return Row(
-      children: [
-        if (brandName != null && brandName.isNotEmpty)
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6.r),
-            ),
-            child: Text(
-              brandName,
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        const Spacer(),
-        Text(
-          'SKU: ${product.sku}',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.textTertiaryLight,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPriceSection(ThemeData theme, ProductEntity product) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          '${product.price.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-          style: TextStyle(
-            fontSize: 28.sp,
-            fontWeight: FontWeight.w700,
-            color: AppColors.primary,
-          ),
-        ),
-        if (product.hasDiscount) ...[
-          SizedBox(width: 12.w),
-          Text(
-            '${product.originalPrice!.toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textTertiaryLight,
-              decoration: TextDecoration.lineThrough,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildQuantityButton({
-    required IconData icon,
-    VoidCallback? onPressed,
-    bool compact = false,
-  }) {
-    final w = compact ? 36.w : 44.w;
-    final h = compact ? 36.h : 44.h;
-    final iconSize = compact ? 18.sp : 20.sp;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          onPressed?.call();
-          HapticFeedback.selectionClick();
-        },
-        borderRadius: BorderRadius.circular(compact ? 10.r : 12.r),
-        child: Container(
-          width: w,
-          height: h,
-          alignment: Alignment.center,
-          child: Icon(
-            icon,
-            size: iconSize,
-            color: onPressed == null ? AppColors.textTertiaryLight : null,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDescription(ThemeData theme, ProductEntity product) {
-    final isDark = theme.brightness == Brightness.dark;
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            AppLocalizations.of(context)!.description,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            product.descriptionAr ?? product.description ?? '',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondaryLight,
-              height: 1.6,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductSpecs(ThemeData theme, ProductEntity product) {
-    final isDark = theme.brightness == Brightness.dark;
-
-    final hasCategory =
-        product.categoryNameAr != null || product.categoryName != null;
-    final hasQuality =
-        product.qualityTypeNameAr != null || product.qualityTypeName != null;
-
-    if (!hasCategory && !hasQuality) return const SizedBox.shrink();
-
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'المواصفات',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          if (hasCategory)
-            _buildSpecRow(
-              theme,
-              'القسم:',
-              product.categoryNameAr ?? product.categoryName ?? '',
-            ),
-          if (hasCategory && hasQuality)
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 4.h),
-              child: Divider(
-                color: isDark ? AppColors.glassBorder : Colors.grey[200],
-              ),
-            ),
-          if (hasQuality)
-            _buildSpecRow(
-              theme,
-              'درجة الجودة:',
-              product.qualityTypeNameAr ?? product.qualityTypeName ?? '',
-              highlight: true,
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompatibleDevicesSection(
-    ThemeData theme,
-    ProductEntity product,
-  ) {
-    final isDark = theme.brightness == Brightness.dark;
-    final locale = Localizations.localeOf(context).languageCode;
-    final devices = locale == 'ar'
-        ? (product.compatibleDeviceNamesAr.isNotEmpty
-              ? product.compatibleDeviceNamesAr
-              : product.compatibleDeviceNames)
-        : (product.compatibleDeviceNames.isNotEmpty
-              ? product.compatibleDeviceNames
-              : product.compatibleDeviceNamesAr);
-
-    if (devices.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'الأجهزة المتوافقة',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              if (_productLoading) ...[
-                SizedBox(width: 8.w),
-                SizedBox(
-                  width: 14.w,
-                  height: 14.h,
-                  child: const CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ],
-            ],
-          ),
-          SizedBox(height: 12.h),
-          Wrap(
-            spacing: 8.w,
-            runSpacing: 8.h,
-            children: devices
-                .map(
-                  (device) => Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(999.r),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Text(
-                      device,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSpecRow(
-    ThemeData theme,
-    String label,
-    String value, {
-    bool highlight = false,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.textSecondaryLight,
-          ),
-        ),
-        Container(
-          padding: highlight
-              ? EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h)
-              : null,
-          decoration: highlight
-              ? BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6.r),
-                )
-              : null,
-          child: Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: highlight ? FontWeight.w600 : FontWeight.w500,
-              color: highlight ? AppColors.primary : null,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStockStatus(ThemeData theme, ProductEntity product) {
-    final isInStock = product.isInStock;
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: (isInStock ? AppColors.success : AppColors.error).withValues(
-          alpha: 0.1,
-        ),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: (isInStock ? AppColors.success : AppColors.error).withValues(
-            alpha: 0.3,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isInStock ? Iconsax.tick_circle : Iconsax.close_circle,
-            color: isInStock ? AppColors.success : AppColors.error,
-            size: 24.sp,
-          ),
-          SizedBox(width: 12.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                product.isInStock
-                    ? AppLocalizations.of(context)!.inStock
-                    : AppLocalizations.of(context)!.outOfStock,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: isInStock ? AppColors.success : AppColors.error,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReviewsSection(
-    ThemeData theme,
-    bool isDark,
-    ProductEntity product,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'التقييمات والمراجعات',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: 16.h),
-        if (_reviewsLoading)
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 24.h),
-              child: SizedBox(
-                width: 32.w,
-                height: 32.h,
-                child: const CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          )
-        else if (_reviewsError != null)
-          Container(
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: AppColors.error.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadowLight,
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Icon(Iconsax.warning_2, color: AppColors.error, size: 32.sp),
-                SizedBox(height: 8.h),
-                Text(
-                  _reviewsError!,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                SizedBox(height: 12.h),
-                TextButton(
-                  onPressed: _loadReviews,
-                  child: const Text('إعادة المحاولة'),
-                ),
-              ],
-            ),
-          )
-        else if (_reviews.isEmpty)
-          Container(
-            padding: EdgeInsets.all(24.w),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.cardDark : AppColors.cardLight,
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadowLight,
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Iconsax.message_question,
-                  size: 48.sp,
-                  color: AppColors.textTertiaryLight,
-                ),
-                SizedBox(height: 12.h),
-                Text('لا توجد تقييمات بعد', style: theme.textTheme.titleMedium),
-                SizedBox(height: 8.h),
-                Text(
-                  'كن أول من يقيم هذا المنتج',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textTertiaryLight,
-                  ),
-                ),
-                SizedBox(height: 16.h),
-                FilledButton.icon(
-                  onPressed: _onAddReviewPressed,
-                  icon: const Icon(Iconsax.edit, size: 20),
-                  label: const Text('أضف تقييم'),
-                ),
-              ],
-            ),
-          )
-        else
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: EdgeInsets.all(16.w),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.cardDark : AppColors.cardLight,
-                  borderRadius: BorderRadius.circular(12.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.shadowLight,
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Column(
-                      children: [
-                        Text(
-                          _reviewsAverageRating.toStringAsFixed(1),
-                          style: TextStyle(
-                            fontSize: 32.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        Row(
-                          children: List.generate(5, (index) {
-                            return Icon(
-                              index < _reviewsAverageRating.floor()
-                                  ? Iconsax.star5
-                                  : Iconsax.star,
-                              size: 14.sp,
-                              color: Colors.amber,
-                            );
-                          }),
-                        ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          '$_reviewsCount تقييم',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textTertiaryLight,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(width: 24.w),
-                    Expanded(
-                      child: Column(
-                        children: List.generate(5, (i) {
-                          final star = 5 - i;
-                          final count = _reviews
-                              .where((r) => r.rating == star)
-                              .length;
-                          final pct = _reviews.isEmpty
-                              ? 0.0
-                              : count / _reviews.length;
-                          return Padding(
-                            padding: EdgeInsets.only(bottom: 6.h),
-                            child: RatingBarRow(
-                              theme: theme,
-                              stars: star,
-                              percentage: pct,
-                            ),
-                          );
-                        }),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16.h),
-              ...List.generate(
-                _reviews.length,
-                (index) => Padding(
-                  padding: EdgeInsets.only(bottom: 12.h),
-                  child: ProductReviewCard(
-                    theme: theme,
-                    isDark: isDark,
-                    review: _reviews[index],
-                  ),
-                ),
-              ),
-              SizedBox(height: 8.h),
-              OutlinedButton.icon(
-                onPressed: _onAddReviewPressed,
-                icon: const Icon(Iconsax.edit, size: 20),
-                label: const Text('أضف تقييم'),
-              ),
-            ],
-          ),
-      ],
-    );
-  }
-
-  Widget _buildRelatedEducationalContentSection(ThemeData theme, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'المحتوى التعليمي الخاص بالمنتج',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: 12.h),
-        if (_educationLoading)
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.cardDark : AppColors.cardLight,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: const Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          )
-        else if (_educationError != null)
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: AppColors.error.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(
-                color: AppColors.error.withValues(alpha: 0.25),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _educationError!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.error,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                TextButton.icon(
-                  onPressed: _loadRelatedEducationalContent,
-                  icon: const Icon(Iconsax.refresh),
-                  label: const Text('إعادة المحاولة'),
-                ),
-              ],
-            ),
-          )
-        else if (_relatedEducationalContent.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.cardDark : AppColors.cardLight,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'لا يوجد محتوى تعليمي مرتبط بهذا المنتج حاليا',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondaryLight,
-                  ),
-                ),
-                SizedBox(height: 10.h),
-                FilledButton.tonalIcon(
-                  onPressed: () => context.push('/education'),
-                  icon: const Icon(Iconsax.book_1),
-                  label: const Text('استكشف المركز التعليمي'),
-                ),
-              ],
-            ),
-          )
-        else
-          Column(
-            children: _relatedEducationalContent
-                .map(
-                  (content) => Padding(
-                    padding: EdgeInsets.only(bottom: 10.h),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12.r),
-                      onTap: () =>
-                          context.push('/education/details/${content.slug}'),
-                      child: Container(
-                        padding: EdgeInsets.all(12.w),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.cardDark
-                              : AppColors.cardLight,
-                          borderRadius: BorderRadius.circular(12.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.shadowLight,
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (content.featuredImage != null)
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8.r),
-                                child: CachedNetworkImage(
-                                  imageUrl: content.featuredImage!,
-                                  width: 72.w,
-                                  height: 72.h,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (context, url, error) =>
-                                      Container(
-                                        width: 72.w,
-                                        height: 72.h,
-                                        color: AppColors.inputBackgroundLight,
-                                        child: Icon(
-                                          Iconsax.book,
-                                          size: 20.sp,
-                                          color: AppColors.textTertiaryLight,
-                                        ),
-                                      ),
-                                ),
-                              )
-                            else
-                              Container(
-                                width: 72.w,
-                                height: 72.h,
-                                decoration: BoxDecoration(
-                                  color: AppColors.inputBackgroundLight,
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                                child: Icon(
-                                  Iconsax.book,
-                                  size: 20.sp,
-                                  color: AppColors.textTertiaryLight,
-                                ),
-                              ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    content.getTitle('ar'),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  SizedBox(height: 6.h),
-                                  Text(
-                                    content.type.getName('ar'),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  if (content.getExcerpt('ar') != null)
-                                    Padding(
-                                      padding: EdgeInsets.only(top: 4.h),
-                                      child: Text(
-                                        content.getExcerpt('ar')!,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color:
-                                                  AppColors.textSecondaryLight,
-                                            ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Iconsax.arrow_left_2,
-                              size: 16.sp,
-                              color: AppColors.textTertiaryLight,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        if (!_educationLoading &&
-            _educationError == null &&
-            _relatedEducationalContent.isNotEmpty) ...[
-          SizedBox(height: 8.h),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _openAllEducationalContent,
-              icon: Icon(
-                _educationHasMore ? Iconsax.arrow_left_2 : Iconsax.book,
-                size: 18.sp,
-              ),
-              label: const Text('عرض كل المحتوى التعليمي'),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildBottomBar(ThemeData theme, ProductEntity product) {
-    final isDark = theme.brightness == Brightness.dark;
-    return Container(
-      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 10,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            // Total Price
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.total,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textTertiaryLight,
-                    ),
-                  ),
-                  Text(
-                    '${(product.price * _quantity).toStringAsFixed(0)} ${AppLocalizations.of(context)!.currency}',
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Quantity Stepper (compact)
-            Container(
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.backgroundDark
-                    : AppColors.inputBackgroundLight,
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildQuantityButton(
-                    icon: Iconsax.minus,
-                    onPressed: _quantity > 1
-                        ? () => setState(() => _quantity--)
-                        : null,
-                    compact: true,
-                  ),
-                  SizedBox(
-                    width: 36.w,
-                    child: Text(
-                      '$_quantity',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  _buildQuantityButton(
-                    icon: Iconsax.add,
-                    onPressed: _quantity < product.stockQuantity
-                        ? () => setState(() => _quantity++)
-                        : null,
-                    compact: true,
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 12.w),
-
-            // Add to Cart Button (primary gradient, min touch 48)
-            Expanded(
-              flex: 2,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: product.isInStock
-                      ? () {
-                          HapticFeedback.mediumImpact();
-                          context.read<CartCubit>().addToCartLocal(
-                            productId: product.id,
-                            quantity: _quantity,
-                            unitPrice: product.effectivePrice,
-                            productName: product.name,
-                            productNameAr: product.nameAr,
-                            productImage:
-                                product.mainImage ??
-                                (product.images.isNotEmpty
-                                    ? product.images.first
-                                    : null),
-                            productSku: product.sku,
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                AppLocalizations.of(context)!.addedToCart,
-                              ),
-                              backgroundColor: AppColors.success,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                            ),
-                          );
-                        }
-                      : null,
-                  borderRadius: BorderRadius.circular(14.r),
-                  child: Container(
-                    height: 48.h,
-                    decoration: BoxDecoration(
-                      gradient: product.isInStock
-                          ? AppColors.primaryGradient
-                          : null,
-                      color: product.isInStock
-                          ? null
-                          : AppColors.textTertiaryLight.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(14.r),
-                      boxShadow: product.isInStock
-                          ? [
-                              BoxShadow(
-                                color: AppColors.shadowPrimary,
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Iconsax.shopping_cart,
-                          size: 20.sp,
-                          color: Colors.white,
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          AppLocalizations.of(context)!.addToCart,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14.sp,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+      bottomNavigationBar: ProductDetailsBottomBar(
+        product: product,
+        quantity: _quantity,
+        onDecrease: _quantity > 1 ? () => setState(() => _quantity--) : null,
+        onIncrease: _quantity < product.stockQuantity
+            ? () => setState(() => _quantity++)
+            : null,
+        onAddToCart: _addToCart,
       ),
     );
   }

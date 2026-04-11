@@ -16,6 +16,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../profile/presentation/cubit/profile_cubit.dart';
 import '../../../profile/presentation/cubit/profile_state.dart';
+import '../widgets/settings_sections.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -76,199 +77,203 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Appearance Section
-            _buildSectionTitle(theme, AppLocalizations.of(context)!.settings),
-            _buildSettingsCard(isDark, [
-              BlocBuilder<ThemeCubit, ThemeState>(
-                builder: (context, themeState) {
-                  return _buildNavigationTile(
-                    theme,
-                    icon: Iconsax.moon,
-                    title: AppLocalizations.of(context)!.appearance,
-                    subtitle: _getThemeName(context, themeState.themeMode),
-                    onTap: () => _showThemeDialog(context),
-                  );
-                },
-              ),
-              _buildDivider(),
-              BlocBuilder<LocaleCubit, LocaleState>(
-                builder: (context, state) {
-                  final isArabic = state.locale.languageCode == 'ar';
-                  return _buildNavigationTile(
-                    theme,
-                    icon: Iconsax.language_square,
-                    title: AppLocalizations.of(context)!.language,
-                    subtitle: isArabic
-                        ? AppLocalizations.of(context)!.arabic
-                        : AppLocalizations.of(context)!.english,
-                    onTap: () => _showLanguageDialog(),
-                  );
-                },
-              ),
-            ]),
+            SettingsSectionTitle(title: AppLocalizations.of(context)!.settings),
+            SettingsCard(
+              isDark: isDark,
+              children: [
+                BlocBuilder<ThemeCubit, ThemeState>(
+                  builder: (context, themeState) {
+                    return SettingsNavigationTile(
+                      icon: Iconsax.moon,
+                      title: AppLocalizations.of(context)!.appearance,
+                      subtitle: _getThemeName(context, themeState.themeMode),
+                      onTap: () => _showThemeDialog(context),
+                    );
+                  },
+                ),
+                const SettingsDivider(),
+                BlocBuilder<LocaleCubit, LocaleState>(
+                  builder: (context, state) {
+                    final isArabic = state.locale.languageCode == 'ar';
+                    return SettingsNavigationTile(
+                      icon: Iconsax.language_square,
+                      title: AppLocalizations.of(context)!.language,
+                      subtitle: isArabic
+                          ? AppLocalizations.of(context)!.arabic
+                          : AppLocalizations.of(context)!.english,
+                      onTap: () => _showLanguageDialog(),
+                    );
+                  },
+                ),
+              ],
+            ),
             SizedBox(height: 24.h),
 
             // Notifications Section
-            _buildSectionTitle(
-              theme,
-              AppLocalizations.of(context)!.notifications,
+            SettingsSectionTitle(
+              title: AppLocalizations.of(context)!.notifications,
             ),
-            _buildSettingsCard(isDark, [
-              _buildSwitchTile(
-                theme,
-                icon: Iconsax.notification,
-                title: AppLocalizations.of(context)!.notifications,
-                subtitle: null,
-                value: _notificationsEnabled,
-                onChanged: (value) {
-                  setState(() => _notificationsEnabled = value);
-                },
-              ),
-            ]),
+            SettingsCard(
+              isDark: isDark,
+              children: [
+                SettingsSwitchTile(
+                  icon: Iconsax.notification,
+                  title: AppLocalizations.of(context)!.notifications,
+                  subtitle: null,
+                  value: _notificationsEnabled,
+                  onChanged: (value) {
+                    setState(() => _notificationsEnabled = value);
+                  },
+                ),
+              ],
+            ),
             SizedBox(height: 24.h),
 
             // Privacy Section
-            _buildSectionTitle(
-              theme,
-              AppLocalizations.of(context)!.privacyPolicy,
+            SettingsSectionTitle(
+              title: AppLocalizations.of(context)!.privacyPolicy,
             ),
-            _buildSettingsCard(isDark, [
-              _buildNavigationTile(
-                theme,
-                icon: Iconsax.lock,
-                title: AppLocalizations.of(context)!.changePassword,
-                onTap: () => context.push('/change-password'),
-              ),
-              _buildDivider(),
-              if (_biometricAvailable)
-                _buildSwitchTile(
-                  theme,
-                  icon: Iconsax.finger_scan,
-                  title: AppLocalizations.of(context)!.biometric,
-                  subtitle: AppLocalizations.of(context)!.biometricSubtitle,
-                  value: _biometricEnabled,
-                  onChanged: (value) async {
-                    final biometricService = context.read<BiometricService>();
-                    final credentialService = context
-                        .read<BiometricCredentialService>();
-                    final authCubit = context.read<AuthCubit>();
-                    final messenger = ScaffoldMessenger.of(context);
-                    final localizations = AppLocalizations.of(context)!;
-                    if (value) {
-                      // Verify identity before enabling
-                      final authenticated = await biometricService
-                          .verifyIdentityForSetup(
-                            localizedReason:
-                                'يرجى التحقق من هويتك لتفعيل البصمة',
-                          );
-                      if (authenticated) {
-                        // Check if we need to save credentials
-                        final hasCredentials = await credentialService
-                            .hasCredentials();
-                        if (!hasCredentials) {
-                          final password = await _showPasswordDialog();
-                          if (password == null || !mounted) return;
-                          final user = authCubit.currentUser;
-                          if (user == null || !mounted) return;
-                          await credentialService.saveCredentials(
-                            phone: user.phone,
-                            password: password,
-                          );
+            SettingsCard(
+              isDark: isDark,
+              children: [
+                SettingsNavigationTile(
+                  icon: Iconsax.lock,
+                  title: AppLocalizations.of(context)!.changePassword,
+                  onTap: () => context.push('/change-password'),
+                ),
+                const SettingsDivider(),
+                if (_biometricAvailable)
+                  SettingsSwitchTile(
+                    icon: Iconsax.finger_scan,
+                    title: AppLocalizations.of(context)!.biometric,
+                    subtitle: AppLocalizations.of(context)!.biometricSubtitle,
+                    value: _biometricEnabled,
+                    onChanged: (value) async {
+                      final biometricService = context.read<BiometricService>();
+                      final credentialService = context
+                          .read<BiometricCredentialService>();
+                      final authCubit = context.read<AuthCubit>();
+                      final messenger = ScaffoldMessenger.of(context);
+                      final localizations = AppLocalizations.of(context)!;
+                      if (value) {
+                        // Verify identity before enabling
+                        final authenticated = await biometricService
+                            .verifyIdentityForSetup(
+                              localizedReason:
+                                  'ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ù‡ÙˆÙŠØªÙƒ Ù„ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø¨ØµÙ…Ø©',
+                            );
+                        if (authenticated) {
+                          // Check if we need to save credentials
+                          final hasCredentials = await credentialService
+                              .hasCredentials();
+                          if (!hasCredentials) {
+                            final password = await _showPasswordDialog();
+                            if (password == null || !mounted) return;
+                            final user = authCubit.currentUser;
+                            if (user == null || !mounted) return;
+                            await credentialService.saveCredentials(
+                              phone: user.phone,
+                              password: password,
+                            );
+                          }
+                          await biometricService.setEnabled(true);
+                          if (mounted) {
+                            setState(() {
+                              _biometricEnabled = true;
+                            });
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(localizations.biometricEnabled),
+                                backgroundColor: AppColors.success,
+                              ),
+                            );
+                          }
+                        } else {
+                          if (mounted) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(localizations.biometricFailed),
+                                backgroundColor: AppColors.error,
+                              ),
+                            );
+                          }
                         }
-                        await biometricService.setEnabled(true);
+                      } else {
+                        await credentialService.clearCredentials();
+                        await biometricService.setEnabled(false);
                         if (mounted) {
                           setState(() {
-                            _biometricEnabled = true;
+                            _biometricEnabled = false;
                           });
                           messenger.showSnackBar(
                             SnackBar(
-                              content: Text(localizations.biometricEnabled),
+                              content: Text(localizations.biometricDisabled),
                               backgroundColor: AppColors.success,
                             ),
                           );
                         }
-                      } else {
-                        if (mounted) {
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(localizations.biometricFailed),
-                              backgroundColor: AppColors.error,
-                            ),
-                          );
-                        }
                       }
-                    } else {
-                      await credentialService.clearCredentials();
-                      await biometricService.setEnabled(false);
+                    },
+                  ),
+                const SettingsDivider(),
+                SettingsNavigationTile(
+                  icon: Iconsax.shield_tick,
+                  title: AppLocalizations.of(context)!.privacyPolicy,
+                  onTap: () => context.push('/privacy'),
+                ),
+              ],
+            ),
+            SizedBox(height: 24.h),
+
+            // About Section
+            SettingsSectionTitle(title: AppLocalizations.of(context)!.aboutUs),
+            SettingsCard(
+              isDark: isDark,
+              children: [
+                SettingsNavigationTile(
+                  icon: Iconsax.info_circle,
+                  title: AppLocalizations.of(context)!.aboutUs,
+                  subtitle: 'Ø§Ù„Ø¥ØµØ¯Ø§Ø± 1.0.0',
+                  onTap: () => context.push('/about'),
+                ),
+                const SettingsDivider(),
+                SettingsNavigationTile(
+                  icon: Iconsax.share,
+                  title: AppLocalizations.of(context)!.shareApp,
+                  onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final localizations = AppLocalizations.of(context)!;
+                    try {
+                      final shareService = context.read<ShareService>();
+                      await shareService.shareApp(context: context);
+                    } catch (e) {
                       if (mounted) {
-                        setState(() {
-                          _biometricEnabled = false;
-                        });
                         messenger.showSnackBar(
                           SnackBar(
-                            content: Text(localizations.biometricDisabled),
-                            backgroundColor: AppColors.success,
+                            content: Text('${localizations.shareError}: $e'),
+                            backgroundColor: AppColors.error,
                           ),
                         );
                       }
                     }
                   },
                 ),
-              _buildDivider(),
-              _buildNavigationTile(
-                theme,
-                icon: Iconsax.shield_tick,
-                title: AppLocalizations.of(context)!.privacyPolicy,
-                onTap: () => context.push('/privacy'),
-              ),
-            ]),
-            SizedBox(height: 24.h),
-
-            // About Section
-            _buildSectionTitle(theme, AppLocalizations.of(context)!.aboutUs),
-            _buildSettingsCard(isDark, [
-              _buildNavigationTile(
-                theme,
-                icon: Iconsax.info_circle,
-                title: AppLocalizations.of(context)!.aboutUs,
-                subtitle: 'الإصدار 1.0.0',
-                onTap: () => context.push('/about'),
-              ),
-              _buildDivider(),
-              _buildNavigationTile(
-                theme,
-                icon: Iconsax.share,
-                title: AppLocalizations.of(context)!.shareApp,
-                onTap: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  final localizations = AppLocalizations.of(context)!;
-                  try {
-                    final shareService = context.read<ShareService>();
-                    await shareService.shareApp(context: context);
-                  } catch (e) {
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text('${localizations.shareError}: $e'),
-                          backgroundColor: AppColors.error,
-                        ),
-                      );
-                    }
-                  }
-                },
-              ),
-            ]),
+              ],
+            ),
             SizedBox(height: 24.h),
 
             // Danger Zone
-            _buildSettingsCard(isDark, [
-              _buildNavigationTile(
-                theme,
-                icon: Iconsax.trash,
-                title: AppLocalizations.of(context)!.deleteAccount,
-                titleColor: AppColors.error,
-                onTap: () => _showDeleteAccountDialog(),
-              ),
-            ]),
+            SettingsCard(
+              isDark: isDark,
+              children: [
+                SettingsNavigationTile(
+                  icon: Iconsax.trash,
+                  title: AppLocalizations.of(context)!.deleteAccount,
+                  titleColor: AppColors.error,
+                  onTap: () => _showDeleteAccountDialog(),
+                ),
+              ],
+            ),
             SizedBox(height: 32.h),
 
             // Version
@@ -284,115 +289,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(ThemeData theme, String title) {
-    return Padding(
-      padding: EdgeInsets.only(right: 4.w, bottom: 8.h),
-      child: Text(
-        title,
-        style: theme.textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w600,
-          color: AppColors.textSecondaryLight,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsCard(bool isDark, List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Divider(height: 1, indent: 56.w, color: AppColors.dividerLight);
-  }
-
-  Widget _buildSwitchTile(
-    ThemeData theme, {
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return ListTile(
-      leading: Container(
-        width: 40.w,
-        height: 40.w,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-        child: Icon(icon, color: AppColors.primary, size: 20.sp),
-      ),
-      title: Text(
-        title,
-        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-      ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textTertiaryLight,
-              ),
-            )
-          : null,
-      trailing: Switch.adaptive(
-        value: value,
-        onChanged: onChanged,
-        activeThumbColor: AppColors.primary,
-      ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-    );
-  }
-
-  Widget _buildNavigationTile(
-    ThemeData theme, {
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    Color? titleColor,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      onTap: onTap,
-      leading: Container(
-        width: 40.w,
-        height: 40.w,
-        decoration: BoxDecoration(
-          color: (titleColor ?? AppColors.primary).withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-        child: Icon(icon, color: titleColor ?? AppColors.primary, size: 20.sp),
-      ),
-      title: Text(
-        title,
-        style: theme.textTheme.bodyLarge?.copyWith(
-          fontWeight: FontWeight.w500,
-          color: titleColor,
-        ),
-      ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textTertiaryLight,
-              ),
-            )
-          : null,
-      trailing: Icon(
-        Iconsax.arrow_left_2,
-        size: 18.sp,
-        color: AppColors.textTertiaryLight,
-      ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
     );
   }
 
@@ -423,11 +319,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildLanguageOption(BuildContext ctx, String name, String code) {
     final currentLocale = context.read<LocaleCubit>().state.locale.languageCode;
     final isSelected = currentLocale == code;
-    return ListTile(
-      title: Text(name),
-      trailing: isSelected
-          ? const Icon(Iconsax.tick_circle, color: AppColors.primary)
-          : null,
+    return SettingsOptionTile(
+      title: name,
+      isSelected: isSelected,
       onTap: () {
         context.read<LocaleCubit>().changeLocale(Locale(code));
         Navigator.pop(ctx);
@@ -675,25 +569,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ThemeMode themeMode,
     bool isSelected,
   ) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isSelected ? AppColors.primary : AppColors.textSecondaryLight,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          color: isSelected ? AppColors.primary : null,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(fontSize: 12.sp, color: AppColors.textTertiaryLight),
-      ),
-      trailing: isSelected
-          ? const Icon(Iconsax.tick_circle, color: AppColors.primary)
-          : null,
+    return SettingsOptionTile(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      isSelected: isSelected,
       onTap: () {
         context.read<ThemeCubit>().changeTheme(themeMode);
         Navigator.pop(dialogContext);
