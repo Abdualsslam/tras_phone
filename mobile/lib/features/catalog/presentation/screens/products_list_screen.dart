@@ -7,14 +7,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/mixins/product_favorites_mixin.dart';
-import '../../../../core/widgets/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../core/mixins/product_favorites_mixin.dart';
 import '../../data/datasources/catalog_remote_datasource.dart';
 import '../../data/models/product_filter_query.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
+import 'products_list_screen_helpers.dart';
 import '../widgets/products_list_sections.dart';
 
 class ProductsListScreen extends StatefulWidget {
@@ -373,8 +372,21 @@ class _ProductsListScreenState extends State<ProductsListScreen>
     }
   }
 
+  void _openProductDetails(ProductEntity product) {
+    context.push('/product/${product.id}', extra: product);
+  }
+
+  void _toggleProductFavorite(ProductEntity product) {
+    toggleFavoriteProduct(product.id);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final sortLabel = getProductsListSortLabel(
+      sortBy: _sortBy,
+      sortOrder: _sortOrder,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_resolvedTitle),
@@ -384,7 +396,12 @@ class _ProductsListScreenState extends State<ProductsListScreen>
             icon: Icon(Iconsax.search_normal, size: 22.sp),
           ),
           IconButton(
-            onPressed: _showFilterSheet,
+            onPressed: () => showProductsListFilterSheet(
+              context: context,
+              hasCategoryFilter: _hasCategoryFilter,
+              activeCategoryName: _activeCategoryName,
+              activeSortLabel: sortLabel,
+            ),
             icon: Icon(Iconsax.filter, size: 22.sp),
           ),
         ],
@@ -396,9 +413,20 @@ class _ProductsListScreenState extends State<ProductsListScreen>
             ProductsListTopBar(
               productsCount: _products.length,
               isLoading: _isLoading && _hasLoadedOnce,
-              sortLabel: _getSortLabel(),
+              sortLabel: sortLabel,
               isGridView: _isGridView,
-              onSortTap: _showSortOptions,
+              onSortTap: () => showProductsListSortSheet(
+                context: context,
+                sortBy: _sortBy,
+                sortOrder: _sortOrder,
+                onSortSelected: (sortBy, sortOrder) {
+                  setState(() {
+                    _sortBy = sortBy;
+                    _sortOrder = sortOrder;
+                  });
+                  _loadProducts();
+                },
+              ),
               onLayoutToggle: () => setState(() => _isGridView = !_isGridView),
             ),
             if (_hasFixedCategoryFilter)
@@ -416,121 +444,23 @@ class _ProductsListScreenState extends State<ProductsListScreen>
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 180),
-                child: _buildBody(),
+                child: ProductsListBody(
+                  isLoading: _isLoading,
+                  hasLoadedOnce: _hasLoadedOnce,
+                  errorMessage: _errorMessage,
+                  products: _products,
+                  isStrictCategoryDeviceFlow: _isStrictCategoryDeviceFlow,
+                  isGridView: _isGridView,
+                  scrollController: _scrollController,
+                  isLoadingMore: _isLoadingMore,
+                  isProductFavorite: isProductFavorite,
+                  onProductTap: _openProductDetails,
+                  onToggleFavorite: _toggleProductFavorite,
+                  onRetry: _loadProducts,
+                ),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_isLoading && !_hasLoadedOnce) {
-      return const ProductsGridShimmer();
-    }
-
-    if (_errorMessage != null && _products.isEmpty) {
-      return ProductsErrorState(onRetry: _loadProducts);
-    }
-
-    if (_products.isEmpty) {
-      return ProductsEmptyState(
-        isStrictCategoryDeviceFlow: _isStrictCategoryDeviceFlow,
-      );
-    }
-
-    if (_isGridView) {
-      return ProductsGridSection(
-        scrollController: _scrollController,
-        products: _products,
-        isLoadingMore: _isLoadingMore,
-        isProductFavorite: isProductFavorite,
-        onProductTap: _openProductDetails,
-        onToggleFavorite: _toggleProductFavorite,
-      );
-    }
-
-    return ProductsListSection(
-      scrollController: _scrollController,
-      products: _products,
-      isLoadingMore: _isLoadingMore,
-      isProductFavorite: isProductFavorite,
-      onProductTap: _openProductDetails,
-      onToggleFavorite: _toggleProductFavorite,
-    );
-  }
-
-  void _openProductDetails(ProductEntity product) {
-    context.push('/product/${product.id}', extra: product);
-  }
-
-  void _toggleProductFavorite(ProductEntity product) {
-    toggleFavoriteProduct(product.id);
-  }
-
-  String _getSortLabel() {
-    switch (_sortBy) {
-      case 'createdAt':
-        return _sortOrder == 'desc' ? 'الأحدث' : 'الأقدم';
-      case 'price':
-        return _sortOrder == 'asc' ? 'السعر: الأقل' : 'السعر: الأعلى';
-      case 'name':
-        return 'الاسم';
-      case 'salesCount':
-        return 'الأكثر مبيعاً';
-      default:
-        return 'ترتيب';
-    }
-  }
-
-  void _showSortOptions() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder: (sheetContext) => ProductsSortSheet(
-        activeSortBy: _sortBy,
-        activeSortOrder: _sortOrder,
-        onSortSelected: (sortBy, sortOrder) {
-          setState(() {
-            _sortBy = sortBy;
-            _sortOrder = sortOrder;
-          });
-          Navigator.pop(sheetContext);
-          _loadProducts();
-        },
-      ),
-    );
-  }
-
-  void _showFilterSheet() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder: (sheetContext) => DraggableScrollableSheet(
-        initialChildSize: 0.65,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => SingleChildScrollView(
-          controller: scrollController,
-          child: ProductsFilterSheet(
-            hasCategoryFilter: _hasCategoryFilter,
-            activeCategoryName: _activeCategoryName,
-            activeSortLabel: _getSortLabel(),
-            onClose: () => Navigator.pop(sheetContext),
-          ),
         ),
       ),
     );
