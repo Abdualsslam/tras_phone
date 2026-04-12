@@ -2,29 +2,26 @@
 library;
 
 import 'package:json_annotation/json_annotation.dart';
+
 import '../../../profile/domain/enums/customer_enums.dart';
 import '../../domain/entities/customer_entity.dart';
 import 'user_model.dart';
 
 part 'customer_model.g.dart';
+part 'customer_model_parsing.dart';
 
 @JsonSerializable()
 class CustomerModel {
   @JsonKey(name: 'id', readValue: _readId)
   final String id;
-
   @JsonKey(name: 'userId', readValue: _readUserId)
   final String? userId;
-
   final UserModel? user;
-
   final String responsiblePersonName;
   final String shopName;
   final String? shopNameAr;
   @JsonKey(defaultValue: 'shop')
   final String businessType;
-
-  // Location
   @JsonKey(name: 'cityId', readValue: _readNestedId)
   final String? cityId;
   @JsonKey(name: 'marketId', readValue: _readOptionalNestedId)
@@ -32,26 +29,18 @@ class CustomerModel {
   final String? address;
   final double? latitude;
   final double? longitude;
-
-  // Pricing & Credit
   @JsonKey(name: 'priceLevelId', readValue: _readOptionalNestedId)
   final String? priceLevelId;
   @JsonKey(defaultValue: 0.0)
   final double creditLimit;
   @JsonKey(defaultValue: 0.0)
   final double creditUsed;
-
-  // Wallet
   @JsonKey(defaultValue: 0.0)
   final double walletBalance;
-
-  // Loyalty
   @JsonKey(defaultValue: 0)
   final int loyaltyPoints;
   @JsonKey(defaultValue: 'bronze')
   final String loyaltyTier;
-
-  // Statistics
   @JsonKey(defaultValue: 0)
   final int totalOrders;
   @JsonKey(defaultValue: 0.0)
@@ -59,23 +48,16 @@ class CustomerModel {
   @JsonKey(defaultValue: 0.0)
   final double averageOrderValue;
   final DateTime? lastOrderAt;
-
-  // Preferences
   final String? preferredPaymentMethod;
   final String? preferredShippingTime;
   @JsonKey(defaultValue: 'whatsapp')
   final String preferredContactMethod;
-
-  // Social
   final String? instagramHandle;
   final String? twitterHandle;
-
-  // Payment & Refund Permissions
   @JsonKey(defaultValue: false)
   final bool canCashRefund;
   @JsonKey(defaultValue: true)
   final bool canCashOnDelivery;
-
   final DateTime? approvedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -115,50 +97,23 @@ class CustomerModel {
     required this.updatedAt,
   });
 
-  /// Handle MongoDB _id or id field
-  static Object? _readId(Map<dynamic, dynamic> json, String key) {
-    final value = json['_id'] ?? json['id'];
-    if (value is Map) {
-      return value['\$oid'] ?? value.toString();
-    }
-    return value?.toString();
-  }
+  static Object? _readId(Map<dynamic, dynamic> json, String key) =>
+      _customerReadId(json, key);
 
-  /// Handle userId which can be String or populated User object
-  static Object? _readUserId(Map<dynamic, dynamic> json, String key) {
-    final value = json['userId'];
-    if (value == null) return null;
-    if (value is String) return value;
-    if (value is Map) {
-      return value['_id']?.toString() ?? value['\$oid']?.toString();
-    }
-    return value.toString();
-  }
+  static Object? _readUserId(Map<dynamic, dynamic> json, String key) =>
+      _customerReadUserId(json, key);
 
-  /// Handle nested ID fields that may be populated objects
-  static Object? _readNestedId(Map<dynamic, dynamic> json, String key) {
-    final value = json[key];
-    if (value == null) return null;
-    if (value is String) return value;
-    if (value is Map) {
-      return value['_id']?.toString() ?? value['\$oid']?.toString();
-    }
-    return value.toString();
-  }
+  static Object? _readNestedId(Map<dynamic, dynamic> json, String key) =>
+      _customerReadNestedId(json, key);
 
-  /// Handle optional nested ID fields
-  static Object? _readOptionalNestedId(Map<dynamic, dynamic> json, String key) {
-    final value = json[key];
-    if (value == null) return null;
-    if (value is String) return value;
-    if (value is Map) {
-      return value['_id']?.toString() ?? value['\$oid']?.toString();
-    }
-    return value.toString();
-  }
+  static Object? _readOptionalNestedId(
+    Map<dynamic, dynamic> json,
+    String key,
+  ) => _customerReadOptionalNestedId(json, key);
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) =>
       _$CustomerModelFromJson(json);
+
   Map<String, dynamic> toJson() => _$CustomerModelToJson(this);
 
   CustomerEntity toEntity() {

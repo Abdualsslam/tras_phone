@@ -10,9 +10,24 @@ import '../datasources/notifications_remote_datasource.dart';
 import '../models/notification_model.dart';
 import '../models/push_token_model.dart';
 
-/// Implementation of NotificationsRepository
+part 'notifications_repository_support.dart';
+part 'notifications_repository_notifications.dart';
+part 'notifications_repository_settings.dart';
+
 class NotificationsRepositoryImpl implements NotificationsRepository {
   final NotificationsRemoteDataSource _remoteDataSource;
+  late final _NotificationsRepositorySupport _support =
+      _NotificationsRepositorySupport();
+  late final _NotificationsRepositoryCrudDelegate _notifications =
+      _NotificationsRepositoryCrudDelegate(
+        remoteDataSource: _remoteDataSource,
+        support: _support,
+      );
+  late final _NotificationsRepositorySettingsDelegate _settings =
+      _NotificationsRepositorySettingsDelegate(
+        remoteDataSource: _remoteDataSource,
+        support: _support,
+      );
 
   NotificationsRepositoryImpl({
     required NotificationsRemoteDataSource remoteDataSource,
@@ -24,123 +39,52 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     int limit = 20,
     NotificationCategory? category,
     bool? isRead,
-  }) async {
-    try {
-      final result = await _remoteDataSource.getMyNotifications(
-        page: page,
-        limit: limit,
-        category: category,
-        isRead: isRead,
-      );
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  }) => _notifications.getMyNotifications(
+    page: page,
+    limit: limit,
+    category: category,
+    isRead: isRead,
+  );
 
   @override
-  Future<Either<Failure, NotificationModel>> getNotificationById(
-    String id,
-  ) async {
-    try {
-      final result = await _remoteDataSource.getNotificationById(id);
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  Future<Either<Failure, NotificationModel>> getNotificationById(String id) =>
+      _notifications.getNotificationById(id);
 
   @override
-  Future<Either<Failure, bool>> markAsRead(String id) async {
-    try {
-      final result = await _remoteDataSource.markAsRead(id);
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  Future<Either<Failure, bool>> markAsRead(String id) =>
+      _notifications.markAsRead(id);
 
   @override
-  Future<Either<Failure, bool>> markAllAsRead() async {
-    try {
-      final result = await _remoteDataSource.markAllAsRead();
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  Future<Either<Failure, bool>> markAllAsRead() =>
+      _notifications.markAllAsRead();
 
   @override
-  Future<Either<Failure, bool>> deleteNotification(String id) async {
-    try {
-      final result = await _remoteDataSource.deleteNotification(id);
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  Future<Either<Failure, bool>> deleteNotification(String id) =>
+      _notifications.deleteNotification(id);
 
   @override
-  Future<Either<Failure, bool>> deleteAllNotifications() async {
-    try {
-      final result = await _remoteDataSource.deleteAllNotifications();
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  Future<Either<Failure, bool>> deleteAllNotifications() =>
+      _notifications.deleteAllNotifications();
 
   @override
-  Future<Either<Failure, int>> getUnreadCount() async {
-    try {
-      final result = await _remoteDataSource.getUnreadCount();
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  Future<Either<Failure, int>> getUnreadCount() =>
+      _notifications.getUnreadCount();
 
   @override
-  Future<Either<Failure, NotificationSettingsModel>> getSettings() async {
-    try {
-      final result = await _remoteDataSource.getSettings();
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  Future<Either<Failure, NotificationSettingsModel>> getSettings() =>
+      _settings.getSettings();
 
   @override
   Future<Either<Failure, NotificationSettingsModel>> updateSettings(
     NotificationSettingsModel settings,
-  ) async {
-    try {
-      final result = await _remoteDataSource.updateSettings(settings);
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  ) => _settings.updateSettings(settings);
 
   @override
   Future<Either<Failure, PushTokenModel>> registerPushToken(
     PushTokenRequest request,
-  ) async {
-    try {
-      final result = await _remoteDataSource.registerPushToken(request);
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  ) => _settings.registerPushToken(request);
 
   @override
-  Future<Either<Failure, bool>> unregisterPushToken(String token) async {
-    try {
-      final result = await _remoteDataSource.unregisterPushToken(token);
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  Future<Either<Failure, bool>> unregisterPushToken(String token) =>
+      _settings.unregisterPushToken(token);
 }

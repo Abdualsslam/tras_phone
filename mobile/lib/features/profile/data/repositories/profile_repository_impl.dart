@@ -6,147 +6,99 @@ import '../../domain/entities/address_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../datasources/profile_remote_datasource.dart';
 import '../models/address_model.dart';
-import '../models/wallet_model.dart';
 import '../models/referral_model.dart';
 import '../models/update_customer_profile_dto.dart';
+import '../models/wallet_model.dart';
+
+part 'profile_repository_impl_profile.dart';
+part 'profile_repository_impl_addresses.dart';
+part 'profile_repository_impl_wallet.dart';
+part 'profile_repository_impl_locations.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
   final ProfileRemoteDataSource _dataSource;
+  late final _ProfileRepositoryProfileDelegate _profile =
+      _ProfileRepositoryProfileDelegate(dataSource: _dataSource);
+  late final _ProfileRepositoryAddressesDelegate _addresses =
+      _ProfileRepositoryAddressesDelegate(dataSource: _dataSource);
+  late final _ProfileRepositoryWalletDelegate _wallet =
+      _ProfileRepositoryWalletDelegate(dataSource: _dataSource);
+  late final _ProfileRepositoryLocationsDelegate _locations =
+      _ProfileRepositoryLocationsDelegate(dataSource: _dataSource);
 
   ProfileRepositoryImpl({required ProfileRemoteDataSource dataSource})
-      : _dataSource = dataSource;
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PROFILE
-  // ═══════════════════════════════════════════════════════════════════════════
+    : _dataSource = dataSource;
 
   @override
-  Future<CustomerEntity> getProfile() async {
-    return await _dataSource.getProfile();
-  }
+  Future<CustomerEntity> getProfile() => _profile.getProfile();
 
   @override
-  Future<CustomerEntity> updateProfile(UpdateCustomerProfileDto dto) async {
-    return await _dataSource.updateProfile(dto);
-  }
+  Future<CustomerEntity> updateProfile(UpdateCustomerProfileDto dto) =>
+      _profile.updateProfile(dto);
 
   @override
-  Future<bool> deleteAccount({String? reason}) async {
-    return await _dataSource.deleteAccount(reason: reason);
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ADDRESSES
-  // ═══════════════════════════════════════════════════════════════════════════
+  Future<bool> deleteAccount({String? reason}) =>
+      _profile.deleteAccount(reason: reason);
 
   @override
-  Future<List<AddressEntity>> getAddresses() async {
-    final models = await _dataSource.getAddresses();
-    return models.map((m) => m.toEntity()).toList();
-  }
+  Future<List<AddressEntity>> getAddresses() => _addresses.getAddresses();
 
   @override
-  Future<AddressEntity> getAddressById(String id) async {
-    final model = await _dataSource.getAddressById(id);
-    return model.toEntity();
-  }
+  Future<AddressEntity> getAddressById(String id) =>
+      _addresses.getAddressById(id);
 
   @override
-  Future<AddressEntity> createAddress(AddressRequest request) async {
-    final model = await _dataSource.createAddress(request);
-    return model.toEntity();
-  }
+  Future<AddressEntity> createAddress(AddressRequest request) =>
+      _addresses.createAddress(request);
 
   @override
   Future<AddressEntity> updateAddress(
     String id,
     Map<String, dynamic> updates,
-  ) async {
-    final model = await _dataSource.updateAddress(id, updates);
-    return model.toEntity();
-  }
+  ) => _addresses.updateAddress(id, updates);
 
   @override
-  Future<bool> deleteAddress(String id) async {
-    return await _dataSource.deleteAddress(id);
-  }
+  Future<bool> deleteAddress(String id) => _addresses.deleteAddress(id);
 
   @override
-  Future<bool> setDefaultAddress(String id) async {
-    return await _dataSource.setDefaultAddress(id);
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // WALLET
-  // ═══════════════════════════════════════════════════════════════════════════
+  Future<bool> setDefaultAddress(String id) => _addresses.setDefaultAddress(id);
 
   @override
-  Future<WalletModel> getWallet() async {
-    return await _dataSource.getWallet();
-  }
+  Future<WalletModel> getWallet() => _wallet.getWallet();
 
   @override
   Future<List<WalletTransactionModel>> getWalletTransactions({
     int page = 1,
     int limit = 20,
     String? type,
-  }) async {
-    return await _dataSource.getWalletTransactions(
-      page: page,
-      limit: limit,
-      type: type,
-    );
-  }
+  }) => _wallet.getWalletTransactions(page: page, limit: limit, type: type);
 
   @override
-  Future<bool> requestWithdrawal(double amount, String bankDetails) async {
-    return await _dataSource.requestWithdrawal(amount, bankDetails);
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LOYALTY
-  // ═══════════════════════════════════════════════════════════════════════════
+  Future<bool> requestWithdrawal(double amount, String bankDetails) =>
+      _wallet.requestWithdrawal(amount, bankDetails);
 
   @override
-  Future<LoyaltyModel> getLoyaltyPoints() async {
-    return await _dataSource.getLoyaltyPoints();
-  }
+  Future<LoyaltyModel> getLoyaltyPoints() => _wallet.getLoyaltyPoints();
 
   @override
-  Future<bool> redeemPoints(int points) async {
-    return await _dataSource.redeemPoints(points);
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // REFERRAL
-  // ═══════════════════════════════════════════════════════════════════════════
+  Future<bool> redeemPoints(int points) => _wallet.redeemPoints(points);
 
   @override
-  Future<ReferralInfoModel> getReferralInfo() async {
-    return await _dataSource.getReferralInfo();
-  }
+  Future<ReferralInfoModel> getReferralInfo() => _wallet.getReferralInfo();
 
   @override
-  Future<bool> applyReferralCode(String code) async {
-    return await _dataSource.applyReferralCode(code);
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LOCATIONS
-  // ═══════════════════════════════════════════════════════════════════════════
+  Future<bool> applyReferralCode(String code) =>
+      _wallet.applyReferralCode(code);
 
   @override
-  Future<List<Map<String, dynamic>>> getCountries() async {
-    return await _dataSource.getCountries();
-  }
+  Future<List<Map<String, dynamic>>> getCountries() =>
+      _locations.getCountries();
 
   @override
-  Future<List<Map<String, dynamic>>> getCities(String countryId) async {
-    return await _dataSource.getCities(countryId);
-  }
+  Future<List<Map<String, dynamic>>> getCities(String countryId) =>
+      _locations.getCities(countryId);
 
   @override
-  Future<List<Map<String, dynamic>>> getAreas(String cityId) async {
-    return await _dataSource.getAreas(cityId);
-  }
+  Future<List<Map<String, dynamic>>> getAreas(String cityId) =>
+      _locations.getAreas(cityId);
 }
