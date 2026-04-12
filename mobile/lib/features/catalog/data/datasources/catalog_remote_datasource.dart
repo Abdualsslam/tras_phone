@@ -2,9 +2,10 @@
 library;
 
 import 'dart:developer' as developer;
-import '../../../../core/network/api_client.dart';
-import '../../../../core/constants/api_endpoints.dart';
+
 import '../../../../core/config/app_config.dart';
+import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/network/api_client.dart';
 import '../../domain/entities/banner_entity.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/category_entity.dart';
@@ -15,14 +16,17 @@ import '../models/banner_model.dart';
 import '../models/brand_model.dart';
 import '../models/category_model.dart';
 import '../models/device_model.dart';
-import '../models/product_model.dart';
 import '../models/product_filter_query.dart';
+import '../models/product_model.dart';
 import '../models/product_review_model.dart';
 import '../models/quality_type_model.dart';
 
-/// Abstract interface for catalog data source
+part 'catalog_remote_datasource_support.dart';
+part 'catalog_remote_datasource_taxonomy.dart';
+part 'catalog_remote_datasource_products.dart';
+part 'catalog_remote_datasource_reviews.dart';
+
 abstract class CatalogRemoteDataSource {
-  // Categories
   Future<List<CategoryEntity>> getCategories();
   Future<CategoryWithBreadcrumb?> getCategoryById(String id);
   Future<List<CategoryEntity>> getCategoryChildren(String parentId);
@@ -39,7 +43,6 @@ abstract class CatalogRemoteDataSource {
     String? qualityTypeId,
   });
 
-  // Brands
   Future<List<BrandEntity>> getBrands({bool? featured});
   Future<BrandEntity?> getBrandBySlug(String slug);
   Future<BrandEntity?> getBrandById(String id);
@@ -53,7 +56,6 @@ abstract class CatalogRemoteDataSource {
     String? sortOrder,
   });
 
-  // Devices
   Future<List<DeviceEntity>> getDevices({int? limit, bool? popular});
   Future<List<DeviceEntity>> getDevicesByBrand(String brandId);
   Future<DeviceEntity?> getDeviceBySlug(String slug);
@@ -69,10 +71,8 @@ abstract class CatalogRemoteDataSource {
     String? qualityTypeId,
   });
 
-  // Quality Types
   Future<List<QualityTypeEntity>> getQualityTypes();
 
-  // Products
   Future<List<ProductEntity>> getProducts({
     String? categoryId,
     String? brandId,
@@ -102,7 +102,6 @@ abstract class CatalogRemoteDataSource {
     String? brandId,
   });
 
-  // Search
   Future<List<ProductEntity>> searchProducts(
     String query, {
     int page,
@@ -110,8 +109,6 @@ abstract class CatalogRemoteDataSource {
   });
   Future<List<String>> getSearchSuggestions(String query);
   Future<List<String>> getPopularSearches();
-
-  // Advanced Search
   Future<List<ProductEntity>> advancedSearch({
     required String query,
     List<String>? tags,
@@ -134,7 +131,6 @@ abstract class CatalogRemoteDataSource {
   Future<List<String>> getAllTags();
   Future<List<Map<String, dynamic>>> getPopularTags({int? limit});
 
-  // Reviews
   Future<List<ProductReviewModel>> getProductReviews(String productId);
   Future<ProductReviewModel?> getMyReview(String productId);
   Future<ProductReviewModel> addReview({
@@ -153,159 +149,40 @@ abstract class CatalogRemoteDataSource {
     List<String>? images,
   });
 
-  // Banners
   Future<List<BannerEntity>> getBanners({String? placement});
 }
 
-/// Implementation of CatalogRemoteDataSource using API client
 class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
   final ApiClient _apiClient;
 
+  late final _CatalogRemoteSupport _support;
+  late final _CatalogTaxonomyRemote _taxonomyRemote;
+  late final _CatalogProductsRemote _productsRemote;
+  late final _CatalogReviewsRemote _reviewsRemote;
+
   CatalogRemoteDataSourceImpl({required ApiClient apiClient})
-    : _apiClient = apiClient;
-
-  /// Helper method to log API URL
-  void _printApiUrl(String endpoint, {Map<String, dynamic>? queryParams}) {
-    final uri = Uri.parse('${AppConfig.baseUrl}$endpoint');
-    final finalUri = queryParams != null && queryParams.isNotEmpty
-        ? uri.replace(
-            queryParameters: queryParams.map(
-              (k, v) => MapEntry(k, v.toString()),
-            ),
-          )
-        : uri;
-
-    developer.log('API URL: ${finalUri.toString()}', name: 'CatalogDataSource');
-  }
-
-  int _toInt(dynamic value, {int fallback = 0}) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    if (value is String) return int.tryParse(value) ?? fallback;
-    return fallback;
-  }
-
-  List<ProductEntity> _parseProductsList(
-    dynamic data, {
-    String source = 'products',
-  }) {
-    final list = data is List ? data : const [];
-    final products = <ProductEntity>[];
-
-    for (final item in list) {
-      if (item is! Map) continue;
-      try {
-        products.add(
-          ProductModel.fromJson(Map<String, dynamic>.from(item)).toEntity(),
-        );
-      } catch (e, stackTrace) {
-        developer.log(
-          'Skipping invalid product payload in $source',
-          name: 'CatalogDataSource',
-          error: e,
-          stackTrace: stackTrace,
-        );
-      }
-    }
-
-    return products;
-  }
-
-  Map<String, dynamic> _extractPagination(
-    Map<String, dynamic> responseData, {
-    required int page,
-    required int limit,
-    required int fallbackTotal,
-  }) {
-    final raw = responseData['pagination'] ?? responseData['meta'];
-
-    if (raw is Map) {
-      final rawMap = Map<String, dynamic>.from(raw);
-      final parsedPage = _toInt(rawMap['page'], fallback: page);
-      final parsedLimit = _toInt(rawMap['limit'], fallback: limit);
-      final parsedTotal = _toInt(rawMap['total'], fallback: fallbackTotal);
-      final parsedPages = _toInt(
-        rawMap['pages'] ?? rawMap['totalPages'],
-        fallback: parsedTotal > 0 ? (parsedTotal / parsedLimit).ceil() : 1,
-      );
-
-      return {
-        ...rawMap,
-        'page': parsedPage,
-        'limit': parsedLimit,
-        'total': parsedTotal,
-        'pages': parsedPages,
-      };
-    }
-
-    final total = _toInt(responseData['total'], fallback: fallbackTotal);
-    final pages = total > 0 ? (total / limit).ceil() : 1;
-
-    return {'page': page, 'limit': limit, 'total': total, 'pages': pages};
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CATEGORIES
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  @override
-  Future<List<CategoryEntity>> getCategories() async {
-    developer.log('Fetching root categories', name: 'CatalogDataSource');
-
-    final response = await _apiClient.get(ApiEndpoints.categories);
-
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => CategoryModel.fromJson(json).toEntity()).toList();
+    : _apiClient = apiClient {
+    _support = _CatalogRemoteSupport(apiClient: _apiClient);
+    _taxonomyRemote = _CatalogTaxonomyRemote(_support);
+    _productsRemote = _CatalogProductsRemote(_support);
+    _reviewsRemote = _CatalogReviewsRemote(_support);
   }
 
   @override
-  Future<CategoryWithBreadcrumb?> getCategoryById(String id) async {
-    developer.log('Fetching category: $id', name: 'CatalogDataSource');
-
-    try {
-      final response = await _apiClient.get('${ApiEndpoints.categories}/$id');
-      final data = response.data['data'] ?? response.data;
-
-      // Use CategoryWithBreadcrumbModel for JSON deserialization
-      final categoryWithBreadcrumbModel = CategoryWithBreadcrumbModel.fromJson(
-        data,
-      );
-      return categoryWithBreadcrumbModel.toEntity();
-    } catch (e) {
-      developer.log('Category not found: $id', name: 'CatalogDataSource');
-      return null;
-    }
-  }
+  Future<List<CategoryEntity>> getCategories() =>
+      _taxonomyRemote.getCategories();
 
   @override
-  Future<List<CategoryEntity>> getCategoryChildren(String parentId) async {
-    developer.log(
-      'Fetching category children: $parentId',
-      name: 'CatalogDataSource',
-    );
-
-    final response = await _apiClient.get(
-      '${ApiEndpoints.categories}/$parentId/children',
-    );
-
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => CategoryModel.fromJson(json).toEntity()).toList();
-  }
+  Future<CategoryWithBreadcrumb?> getCategoryById(String id) =>
+      _taxonomyRemote.getCategoryById(id);
 
   @override
-  Future<List<CategoryEntity>> getCategoriesTree() async {
-    developer.log('Fetching categories tree', name: 'CatalogDataSource');
+  Future<List<CategoryEntity>> getCategoryChildren(String parentId) =>
+      _taxonomyRemote.getCategoryChildren(parentId);
 
-    final response = await _apiClient.get(ApiEndpoints.categoriesTree);
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => CategoryModel.fromJson(json).toEntity()).toList();
-  }
+  @override
+  Future<List<CategoryEntity>> getCategoriesTree() =>
+      _taxonomyRemote.getCategoriesTree();
 
   @override
   Future<Map<String, dynamic>> getCategoryProducts(
@@ -318,121 +195,29 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     String? sortOrder,
     String? brandId,
     String? qualityTypeId,
-  }) async {
-    developer.log(
-      'Fetching products for category: $categoryIdentifier (page: $page)',
-      name: 'CatalogDataSource',
-    );
-
-    final queryParams = <String, dynamic>{'page': page, 'limit': limit};
-
-    if (minPrice != null) queryParams['minPrice'] = minPrice;
-    if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
-    if (sortBy != null) queryParams['sortBy'] = sortBy;
-    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
-    if (brandId != null) queryParams['brandId'] = brandId;
-    if (qualityTypeId != null) queryParams['qualityTypeId'] = qualityTypeId;
-
-    final endpoint = ApiEndpoints.categoryProducts(categoryIdentifier);
-    _printApiUrl(endpoint, queryParams: queryParams);
-
-    final response = await _apiClient.get(
-      endpoint,
-      queryParameters: queryParams,
-    );
-
-    developer.log('Response: ${response.data}', name: 'CatalogDataSource');
-
-    final responseData = response.data as Map<String, dynamic>;
-    final data = responseData['data'];
-    final products = _parseProductsList(data, source: 'categoryProducts');
-    final pagination = _extractPagination(
-      responseData,
-      page: page,
-      limit: limit,
-      fallbackTotal: products.length,
-    );
-
-    return {'products': products, 'pagination': pagination};
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // BRANDS
-  // ═══════════════════════════════════════════════════════════════════════════
+  }) => _taxonomyRemote.getCategoryProducts(
+    categoryIdentifier,
+    page: page,
+    limit: limit,
+    minPrice: minPrice,
+    maxPrice: maxPrice,
+    sortBy: sortBy,
+    sortOrder: sortOrder,
+    brandId: brandId,
+    qualityTypeId: qualityTypeId,
+  );
 
   @override
-  Future<List<BrandEntity>> getBrands({bool? featured}) async {
-    developer.log('Fetching brands', name: 'CatalogDataSource');
-
-    final queryParams = <String, dynamic>{
-      if (featured != null) 'featured': featured,
-    };
-
-    _printApiUrl(
-      ApiEndpoints.brands,
-      queryParams: queryParams.isNotEmpty ? queryParams : null,
-    );
-
-    final response = await _apiClient.get(
-      ApiEndpoints.brands,
-      queryParameters: queryParams,
-    );
-
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => BrandModel.fromJson(json).toEntity()).toList();
-  }
+  Future<List<BrandEntity>> getBrands({bool? featured}) =>
+      _taxonomyRemote.getBrands(featured: featured);
 
   @override
-  Future<BrandEntity?> getBrandBySlug(String slug) async {
-    developer.log('Fetching brand: $slug', name: 'CatalogDataSource');
-
-    try {
-      final endpoint = '${ApiEndpoints.brands}/$slug';
-      _printApiUrl(endpoint);
-
-      final response = await _apiClient.get(endpoint);
-      final data = response.data['data'] ?? response.data;
-      return BrandModel.fromJson(data).toEntity();
-    } catch (e) {
-      developer.log('Brand not found: $slug', name: 'CatalogDataSource');
-      return null;
-    }
-  }
+  Future<BrandEntity?> getBrandBySlug(String slug) =>
+      _taxonomyRemote.getBrandBySlug(slug);
 
   @override
-  Future<BrandEntity?> getBrandById(String id) async {
-    developer.log('Fetching brand by ID: $id', name: 'CatalogDataSource');
-
-    try {
-      // First, try to use ID as slug (in case backend supports it)
-      final endpoint = '${ApiEndpoints.brands}/$id';
-      _printApiUrl(endpoint);
-
-      try {
-        final response = await _apiClient.get(endpoint);
-        final data = response.data['data'] ?? response.data;
-        return BrandModel.fromJson(data).toEntity();
-      } catch (e) {
-        // If that fails, search in all brands list
-        developer.log(
-          'Brand not found by ID as slug, searching in brands list',
-          name: 'CatalogDataSource',
-        );
-
-        final brands = await getBrands();
-        final brand = brands.firstWhere(
-          (b) => b.id == id,
-          orElse: () => throw Exception('Brand not found'),
-        );
-        return brand;
-      }
-    } catch (e) {
-      developer.log('Brand not found by ID: $id', name: 'CatalogDataSource');
-      return null;
-    }
-  }
+  Future<BrandEntity?> getBrandById(String id) =>
+      _taxonomyRemote.getBrandById(id);
 
   @override
   Future<Map<String, dynamic>> getBrandProducts(
@@ -443,103 +228,27 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     double? maxPrice,
     String? sortBy,
     String? sortOrder,
-  }) async {
-    developer.log(
-      'Fetching products for brand ID: $brandId (page: $page)',
-      name: 'CatalogDataSource',
-    );
-
-    final queryParams = <String, dynamic>{'page': page, 'limit': limit};
-
-    if (minPrice != null) queryParams['minPrice'] = minPrice;
-    if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
-    if (sortBy != null) queryParams['sortBy'] = sortBy;
-    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
-
-    final endpoint = ApiEndpoints.brandProducts(brandId);
-    _printApiUrl(endpoint, queryParams: queryParams);
-
-    final response = await _apiClient.get(
-      endpoint,
-      queryParameters: queryParams,
-    );
-
-    developer.log('Response: ${response.data}', name: 'CatalogDataSource');
-
-    final responseData = response.data as Map<String, dynamic>;
-    final data = responseData['data'];
-    final products = _parseProductsList(data, source: 'brandProducts');
-    final pagination = _extractPagination(
-      responseData,
-      page: page,
-      limit: limit,
-      fallbackTotal: products.length,
-    );
-
-    return {'products': products, 'pagination': pagination};
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // DEVICES
-  // ═══════════════════════════════════════════════════════════════════════════
+  }) => _taxonomyRemote.getBrandProducts(
+    brandId,
+    page: page,
+    limit: limit,
+    minPrice: minPrice,
+    maxPrice: maxPrice,
+    sortBy: sortBy,
+    sortOrder: sortOrder,
+  );
 
   @override
-  Future<List<DeviceEntity>> getDevices({int? limit, bool? popular}) async {
-    developer.log('Fetching devices', name: 'CatalogDataSource');
-
-    final queryParams = <String, dynamic>{};
-    if (limit != null) queryParams['limit'] = limit;
-    if (popular != null) queryParams['popular'] = popular;
-
-    _printApiUrl(
-      ApiEndpoints.devices,
-      queryParams: queryParams.isNotEmpty ? queryParams : null,
-    );
-
-    final response = await _apiClient.get(
-      ApiEndpoints.devices,
-      queryParameters: queryParams,
-    );
-
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => DeviceModel.fromJson(json).toEntity()).toList();
-  }
+  Future<List<DeviceEntity>> getDevices({int? limit, bool? popular}) =>
+      _taxonomyRemote.getDevices(limit: limit, popular: popular);
 
   @override
-  Future<List<DeviceEntity>> getDevicesByBrand(String brandId) async {
-    developer.log(
-      'Fetching devices for brand: $brandId',
-      name: 'CatalogDataSource',
-    );
-
-    final response = await _apiClient.get(
-      '${ApiEndpoints.devices}/brand/$brandId',
-    );
-
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => DeviceModel.fromJson(json).toEntity()).toList();
-  }
+  Future<List<DeviceEntity>> getDevicesByBrand(String brandId) =>
+      _taxonomyRemote.getDevicesByBrand(brandId);
 
   @override
-  Future<DeviceEntity?> getDeviceBySlug(String slug) async {
-    developer.log('Fetching device: $slug', name: 'CatalogDataSource');
-
-    try {
-      final endpoint = '${ApiEndpoints.devices}/$slug';
-      _printApiUrl(endpoint);
-
-      final response = await _apiClient.get(endpoint);
-      final data = response.data['data'] ?? response.data;
-      return DeviceModel.fromJson(data).toEntity();
-    } catch (e) {
-      developer.log('Device not found: $slug', name: 'CatalogDataSource');
-      return null;
-    }
-  }
+  Future<DeviceEntity?> getDeviceBySlug(String slug) =>
+      _taxonomyRemote.getDeviceBySlug(slug);
 
   @override
   Future<Map<String, dynamic>> getDeviceProducts(
@@ -552,65 +261,21 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     String? sortOrder,
     String? brandId,
     String? qualityTypeId,
-  }) async {
-    developer.log(
-      'Fetching products for device: $deviceIdentifier (page: $page)',
-      name: 'CatalogDataSource',
-    );
-
-    final queryParams = <String, dynamic>{'page': page, 'limit': limit};
-
-    if (minPrice != null) queryParams['minPrice'] = minPrice;
-    if (maxPrice != null) queryParams['maxPrice'] = maxPrice;
-    if (sortBy != null) queryParams['sortBy'] = sortBy;
-    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
-    if (brandId != null) queryParams['brandId'] = brandId;
-    if (qualityTypeId != null) queryParams['qualityTypeId'] = qualityTypeId;
-
-    final endpoint = ApiEndpoints.deviceProducts(deviceIdentifier);
-    _printApiUrl(endpoint, queryParams: queryParams);
-
-    final response = await _apiClient.get(
-      endpoint,
-      queryParameters: queryParams,
-    );
-
-    developer.log('Response: ${response.data}', name: 'CatalogDataSource');
-
-    final responseData = response.data as Map<String, dynamic>;
-    final data = responseData['data'];
-    final products = _parseProductsList(data, source: 'deviceProducts');
-    final pagination = _extractPagination(
-      responseData,
-      page: page,
-      limit: limit,
-      fallbackTotal: products.length,
-    );
-
-    return {'products': products, 'pagination': pagination};
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // QUALITY TYPES
-  // ═══════════════════════════════════════════════════════════════════════════
+  }) => _taxonomyRemote.getDeviceProducts(
+    deviceIdentifier,
+    page: page,
+    limit: limit,
+    minPrice: minPrice,
+    maxPrice: maxPrice,
+    sortBy: sortBy,
+    sortOrder: sortOrder,
+    brandId: brandId,
+    qualityTypeId: qualityTypeId,
+  );
 
   @override
-  Future<List<QualityTypeEntity>> getQualityTypes() async {
-    developer.log('Fetching quality types', name: 'CatalogDataSource');
-
-    final response = await _apiClient.get(ApiEndpoints.qualityTypes);
-
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list
-        .map((json) => QualityTypeModel.fromJson(json).toEntity())
-        .toList();
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PRODUCTS
-  // ═══════════════════════════════════════════════════════════════════════════
+  Future<List<QualityTypeEntity>> getQualityTypes() =>
+      _taxonomyRemote.getQualityTypes();
 
   @override
   Future<List<ProductEntity>> getProducts({
@@ -623,181 +288,45 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     String? sortOrder,
     int page = 1,
     int limit = 20,
-  }) async {
-    developer.log('Fetching products (page: $page)', name: 'CatalogDataSource');
-
-    final response = await _apiClient.get(
-      ApiEndpoints.products,
-      queryParameters: {
-        'page': page,
-        'limit': limit,
-        if (categoryId != null) 'categoryId': categoryId,
-        if (brandId != null) 'brandId': brandId,
-        if (deviceId != null) 'deviceId': deviceId,
-        if (featured != null) 'isFeatured': featured,
-        if (search != null && search.isNotEmpty) 'search': search,
-        if (sortBy != null) 'sortBy': sortBy,
-        if (sortOrder != null) 'sortOrder': sortOrder,
-      },
-    );
-
-    final data = response.data['data'] ?? response.data;
-    return _parseProductsList(data, source: 'products');
-  }
+  }) => _productsRemote.getProducts(
+    categoryId: categoryId,
+    brandId: brandId,
+    deviceId: deviceId,
+    featured: featured,
+    search: search,
+    sortBy: sortBy,
+    sortOrder: sortOrder,
+    page: page,
+    limit: limit,
+  );
 
   @override
-  Future<ProductsResponse> getProductsWithFilter(
-    ProductFilterQuery filter,
-  ) async {
-    developer.log(
-      'Fetching products with filter (page: ${filter.page})',
-      name: 'CatalogDataSource',
-    );
-
-    _printApiUrl(
-      ApiEndpoints.products,
-      queryParams: filter.toQueryParameters(),
-    );
-
-    final response = await _apiClient.get(
-      ApiEndpoints.products,
-      queryParameters: filter.toQueryParameters(),
-    );
-
-    final responseData = response.data;
-    if (responseData is Map<String, dynamic>) {
-      final isSuccess =
-          responseData['success'] == true ||
-          responseData['status'] == 'success' ||
-          responseData['statusCode'] == 200;
-
-      if (isSuccess || responseData.containsKey('data')) {
-        return ProductsResponse.fromJson(responseData);
-      }
-
-      throw Exception(responseData['messageAr'] ?? 'Failed to fetch products');
-    }
-
-    if (responseData is List) {
-      return ProductsResponse.fromJson({
-        'data': responseData,
-        'meta': {
-          'page': filter.page,
-          'limit': filter.limit,
-          'total': responseData.length,
-          'pages': 1,
-        },
-      });
-    }
-
-    throw Exception('Failed to fetch products');
-  }
+  Future<ProductsResponse> getProductsWithFilter(ProductFilterQuery filter) =>
+      _productsRemote.getProductsWithFilter(filter);
 
   @override
-  Future<ProductEntity?> getProduct(String identifier) async {
-    developer.log('Fetching product: $identifier', name: 'CatalogDataSource');
-
-    try {
-      final response = await _apiClient.get(
-        '${ApiEndpoints.products}/$identifier',
-      );
-      final data = response.data['data'] ?? response.data;
-      return ProductModel.fromJson(data).toEntity();
-    } catch (e) {
-      developer.log(
-        'Failed to parse/fetch product $identifier: $e',
-        name: 'CatalogDataSource',
-        error: e,
-      );
-      return null;
-    }
-  }
+  Future<ProductEntity?> getProduct(String identifier) =>
+      _productsRemote.getProduct(identifier);
 
   @override
-  Future<ProductEntity?> getProductById(String id) async {
-    developer.log('Fetching product: $id', name: 'CatalogDataSource');
-
-    try {
-      final response = await _apiClient.get('${ApiEndpoints.products}/$id');
-      final data = response.data['data'] ?? response.data;
-      return ProductModel.fromJson(data).toEntity();
-    } catch (e) {
-      developer.log(
-        'Failed to parse/fetch product $id: $e',
-        name: 'CatalogDataSource',
-        error: e,
-      );
-      return null;
-    }
-  }
+  Future<ProductEntity?> getProductById(String id) =>
+      _productsRemote.getProductById(id);
 
   @override
-  Future<ProductEntity?> getProductBySku(String sku) async {
-    developer.log('Fetching product by SKU: $sku', name: 'CatalogDataSource');
-
-    try {
-      final response = await _apiClient.get(
-        ApiEndpoints.products,
-        queryParameters: {'sku': sku},
-      );
-      final data = response.data['data'] ?? response.data;
-      if (data is List && data.isNotEmpty) {
-        return ProductModel.fromJson(data.first).toEntity();
-      }
-      return null;
-    } catch (e) {
-      developer.log(
-        'Product not found by SKU: $sku',
-        name: 'CatalogDataSource',
-      );
-      return null;
-    }
-  }
+  Future<ProductEntity?> getProductBySku(String sku) =>
+      _productsRemote.getProductBySku(sku);
 
   @override
-  Future<List<ProductEntity>> getFeaturedProducts({int? limit}) async {
-    developer.log('Fetching featured products', name: 'CatalogDataSource');
-
-    final queryParams = <String, dynamic>{};
-    if (limit != null) queryParams['limit'] = limit;
-
-    final response = await _apiClient.get(
-      ApiEndpoints.productsFeatured,
-      queryParameters: queryParams.isNotEmpty ? queryParams : null,
-    );
-    final data = response.data['data'] ?? response.data;
-    return _parseProductsList(data, source: 'featuredProducts');
-  }
+  Future<List<ProductEntity>> getFeaturedProducts({int? limit}) =>
+      _productsRemote.getFeaturedProducts(limit: limit);
 
   @override
-  Future<List<ProductEntity>> getNewArrivals({int? limit}) async {
-    developer.log('Fetching new arrivals', name: 'CatalogDataSource');
-
-    final queryParams = <String, dynamic>{};
-    if (limit != null) queryParams['limit'] = limit;
-
-    final response = await _apiClient.get(
-      ApiEndpoints.productsNewArrivals,
-      queryParameters: queryParams.isNotEmpty ? queryParams : null,
-    );
-    final data = response.data['data'] ?? response.data;
-    return _parseProductsList(data, source: 'newArrivals');
-  }
+  Future<List<ProductEntity>> getNewArrivals({int? limit}) =>
+      _productsRemote.getNewArrivals(limit: limit);
 
   @override
-  Future<List<ProductEntity>> getBestSellers({int? limit}) async {
-    developer.log('Fetching best sellers', name: 'CatalogDataSource');
-
-    final queryParams = <String, dynamic>{};
-    if (limit != null) queryParams['limit'] = limit;
-
-    final response = await _apiClient.get(
-      ApiEndpoints.productsBestSellers,
-      queryParameters: queryParams.isNotEmpty ? queryParams : null,
-    );
-    final data = response.data['data'] ?? response.data;
-    return _parseProductsList(data, source: 'bestSellers');
-  }
+  Future<List<ProductEntity>> getBestSellers({int? limit}) =>
+      _productsRemote.getBestSellers(limit: limit);
 
   @override
   Future<ProductsResponse> getProductsOnOffer({
@@ -809,115 +338,31 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     double? maxDiscount,
     String? categoryId,
     String? brandId,
-  }) async {
-    developer.log(
-      'Fetching products on offer (page: $page)',
-      name: 'CatalogDataSource',
-    );
-
-    final queryParams = <String, dynamic>{'page': page, 'limit': limit};
-
-    if (sortBy != null) queryParams['sortBy'] = sortBy;
-    if (sortOrder != null) queryParams['sortOrder'] = sortOrder;
-    if (minDiscount != null) queryParams['minDiscount'] = minDiscount;
-    if (maxDiscount != null) queryParams['maxDiscount'] = maxDiscount;
-    if (categoryId != null) queryParams['categoryId'] = categoryId;
-    if (brandId != null) queryParams['brandId'] = brandId;
-
-    final response = await _apiClient.get(
-      ApiEndpoints.productsOnOffer,
-      queryParameters: queryParams,
-    );
-
-    final responseData = response.data;
-    if (responseData is Map<String, dynamic>) {
-      final isSuccess =
-          responseData['success'] == true ||
-          responseData['status'] == 'success' ||
-          responseData['statusCode'] == 200;
-
-      if (isSuccess || responseData.containsKey('data')) {
-        return ProductsResponse.fromJson(responseData);
-      }
-
-      throw Exception(
-        responseData['messageAr'] ?? 'Failed to fetch products on offer',
-      );
-    }
-
-    if (responseData is List) {
-      return ProductsResponse.fromJson({
-        'data': responseData,
-        'meta': {
-          'page': page,
-          'limit': limit,
-          'total': responseData.length,
-          'pages': 1,
-        },
-      });
-    }
-
-    throw Exception('Failed to fetch products on offer');
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SEARCH
-  // ═══════════════════════════════════════════════════════════════════════════
+  }) => _productsRemote.getProductsOnOffer(
+    page: page,
+    limit: limit,
+    sortBy: sortBy,
+    sortOrder: sortOrder,
+    minDiscount: minDiscount,
+    maxDiscount: maxDiscount,
+    categoryId: categoryId,
+    brandId: brandId,
+  );
 
   @override
   Future<List<ProductEntity>> searchProducts(
     String query, {
     int page = 1,
     int limit = 20,
-  }) async {
-    developer.log('Searching products: $query', name: 'CatalogDataSource');
-
-    final response = await _apiClient.get(
-      ApiEndpoints.productsSearch,
-      queryParameters: {'q': query, 'page': page, 'limit': limit},
-    );
-
-    final data = response.data['data'] ?? response.data;
-    return _parseProductsList(data, source: 'searchProducts');
-  }
+  }) => _productsRemote.searchProducts(query, page: page, limit: limit);
 
   @override
-  Future<List<String>> getSearchSuggestions(String query) async {
-    developer.log(
-      'Getting search suggestions: $query',
-      name: 'CatalogDataSource',
-    );
-
-    if (query.isEmpty) return [];
-
-    final response = await _apiClient.get(
-      ApiEndpoints.searchSuggestions,
-      queryParameters: {'q': query},
-    );
-
-    final data = response.data['data'] ?? response.data;
-    if (data is List) {
-      return data.map((e) => e.toString()).toList();
-    }
-    return [];
-  }
+  Future<List<String>> getSearchSuggestions(String query) =>
+      _productsRemote.getSearchSuggestions(query);
 
   @override
-  Future<List<String>> getPopularSearches() async {
-    developer.log('Getting popular searches', name: 'CatalogDataSource');
-
-    final response = await _apiClient.get(ApiEndpoints.searchPopular);
-    final data = response.data['data'] ?? response.data;
-
-    if (data is List) {
-      return data.map((e) => e.toString()).toList();
-    }
-    return [];
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ADVANCED SEARCH
-  // ═══════════════════════════════════════════════════════════════════════════
+  Future<List<String>> getPopularSearches() =>
+      _productsRemote.getPopularSearches();
 
   @override
   Future<List<ProductEntity>> advancedSearch({
@@ -933,159 +378,45 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     double? maxPrice,
     int page = 1,
     int limit = 20,
-  }) async {
-    developer.log('Advanced search: $query', name: 'CatalogDataSource');
-
-    final queryParams = <String, dynamic>{
-      'query': query,
-      'page': page,
-      'limit': limit,
-      if (tags != null && tags.isNotEmpty) 'tags': tags,
-      if (tagMode != null) 'tagMode': tagMode,
-      if (fuzzy != null) 'fuzzy': fuzzy,
-      if (sortBy != null) 'sortBy': sortBy,
-      if (sortOrder != null) 'sortOrder': sortOrder,
-      if (brandId != null) 'brandId': brandId,
-      if (categoryId != null) 'categoryId': categoryId,
-      if (minPrice != null) 'minPrice': minPrice,
-      if (maxPrice != null) 'maxPrice': maxPrice,
-    };
-
-    final response = await _apiClient.get(
-      '${ApiEndpoints.products}/search/advanced',
-      queryParameters: queryParams,
-    );
-
-    final data = response.data['data'] ?? response.data;
-    return _parseProductsList(data, source: 'advancedSearch');
-  }
+  }) => _productsRemote.advancedSearch(
+    query: query,
+    tags: tags,
+    tagMode: tagMode,
+    fuzzy: fuzzy,
+    sortBy: sortBy,
+    sortOrder: sortOrder,
+    brandId: brandId,
+    categoryId: categoryId,
+    minPrice: minPrice,
+    maxPrice: maxPrice,
+    page: page,
+    limit: limit,
+  );
 
   @override
   Future<Map<String, dynamic>> getAdvancedSearchSuggestions(
     String query, {
     int? limit,
-  }) async {
-    developer.log(
-      'Getting advanced search suggestions: $query',
-      name: 'CatalogDataSource',
-    );
-
-    if (query.isEmpty) return {'suggestions': [], 'tags': [], 'products': []};
-
-    final response = await _apiClient.get(
-      '${ApiEndpoints.products}/search/suggestions',
-      queryParameters: {'query': query, if (limit != null) 'limit': limit},
-    );
-
-    final data = response.data['data'] ?? response.data;
-    if (data is Map) {
-      return Map<String, dynamic>.from(data);
-    }
-    return {'suggestions': [], 'tags': [], 'products': []};
-  }
+  }) => _productsRemote.getAdvancedSearchSuggestions(query, limit: limit);
 
   @override
-  Future<List<String>> getAutocompleteSuggestions(
-    String query, {
-    int? limit,
-  }) async {
-    developer.log(
-      'Getting autocomplete suggestions: $query',
-      name: 'CatalogDataSource',
-    );
-
-    if (query.isEmpty) return [];
-
-    final response = await _apiClient.get(
-      '${ApiEndpoints.products}/search/autocomplete',
-      queryParameters: {'query': query, if (limit != null) 'limit': limit},
-    );
-
-    final data = response.data['data'] ?? response.data;
-    if (data is List) {
-      return data.map((e) => e.toString()).toList();
-    }
-    return [];
-  }
+  Future<List<String>> getAutocompleteSuggestions(String query, {int? limit}) =>
+      _productsRemote.getAutocompleteSuggestions(query, limit: limit);
 
   @override
-  Future<List<String>> getAllTags() async {
-    developer.log('Getting all tags', name: 'CatalogDataSource');
-
-    final response = await _apiClient.get(
-      '${ApiEndpoints.products}/search/tags',
-    );
-
-    final data = response.data['data'] ?? response.data;
-    if (data is List) {
-      return data.map((e) => e.toString()).toList();
-    }
-    return [];
-  }
+  Future<List<String>> getAllTags() => _productsRemote.getAllTags();
 
   @override
-  Future<List<Map<String, dynamic>>> getPopularTags({int? limit}) async {
-    developer.log('Getting popular tags', name: 'CatalogDataSource');
-
-    final response = await _apiClient.get(
-      '${ApiEndpoints.products}/search/popular-tags',
-      queryParameters: {if (limit != null) 'limit': limit},
-    );
-
-    final data = response.data['data'] ?? response.data;
-    if (data is List) {
-      return data.map((e) => Map<String, dynamic>.from(e)).toList();
-    }
-    return [];
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // REVIEWS
-  // ═══════════════════════════════════════════════════════════════════════════
+  Future<List<Map<String, dynamic>>> getPopularTags({int? limit}) =>
+      _productsRemote.getPopularTags(limit: limit);
 
   @override
-  Future<List<ProductReviewModel>> getProductReviews(String productId) async {
-    developer.log(
-      'Fetching reviews for product: $productId',
-      name: 'CatalogDataSource',
-    );
-
-    final response = await _apiClient.get(
-      ApiEndpoints.productReviews(productId),
-    );
-
-    final status = response.data['status'] as String?;
-    final success = response.data['success'] == true;
-    final statusOk = status == 'success' || response.data['statusCode'] == 200;
-    if (success || statusOk) {
-      final data = response.data['data'] ?? [];
-      final List<dynamic> list = data is List ? data : [];
-      return list.map((json) => ProductReviewModel.fromJson(json)).toList();
-    }
-    throw Exception(response.data['messageAr'] ?? 'Failed to fetch reviews');
-  }
+  Future<List<ProductReviewModel>> getProductReviews(String productId) =>
+      _reviewsRemote.getProductReviews(productId);
 
   @override
-  Future<ProductReviewModel?> getMyReview(String productId) async {
-    try {
-      final response = await _apiClient.get(
-        ApiEndpoints.productReviewsMine(productId),
-      );
-      final success =
-          response.data['success'] == true ||
-          response.data['statusCode'] == 200;
-      if (success) {
-        final data = response.data['data'];
-        if (data == null) return null;
-        return ProductReviewModel.fromJson(
-          data is Map<String, dynamic> ? data : Map<String, dynamic>.from(data),
-        );
-      }
-      return null;
-    } catch (_) {
-      return null;
-    }
-  }
+  Future<ProductReviewModel?> getMyReview(String productId) =>
+      _reviewsRemote.getMyReview(productId);
 
   @override
   Future<ProductReviewModel> addReview({
@@ -1094,33 +425,13 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     String? title,
     String? comment,
     List<String>? images,
-  }) async {
-    developer.log(
-      'Adding review for product: $productId',
-      name: 'CatalogDataSource',
-    );
-
-    final response = await _apiClient.post(
-      ApiEndpoints.productReviews(productId),
-      data: {
-        'rating': rating,
-        if (title != null) 'title': title,
-        if (comment != null) 'comment': comment,
-        if (images != null && images.isNotEmpty) 'images': images,
-      },
-    );
-
-    final status = response.data['status'] as String?;
-    final success = response.data['success'] == true;
-    final statusOk =
-        status == 'success' ||
-        response.data['statusCode'] == 200 ||
-        response.data['statusCode'] == 201;
-    if (success || statusOk) {
-      return ProductReviewModel.fromJson(response.data['data']);
-    }
-    throw Exception(response.data['messageAr'] ?? 'Failed to add review');
-  }
+  }) => _reviewsRemote.addReview(
+    productId: productId,
+    rating: rating,
+    title: title,
+    comment: comment,
+    images: images,
+  );
 
   @override
   Future<ProductReviewModel> updateReview({
@@ -1130,40 +441,16 @@ class CatalogRemoteDataSourceImpl implements CatalogRemoteDataSource {
     String? title,
     String? comment,
     List<String>? images,
-  }) async {
-    final response = await _apiClient.put(
-      ApiEndpoints.productReviewUpdate(productId, reviewId),
-      data: {
-        'rating': rating,
-        if (title != null) 'title': title,
-        if (comment != null) 'comment': comment,
-        if (images != null && images.isNotEmpty) 'images': images,
-      },
-    );
-    final success =
-        response.data['success'] == true || response.data['statusCode'] == 200;
-    if (success) {
-      return ProductReviewModel.fromJson(response.data['data']);
-    }
-    throw Exception(response.data['messageAr'] ?? 'Failed to update review');
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // BANNERS
-  // ═══════════════════════════════════════════════════════════════════════════
+  }) => _reviewsRemote.updateReview(
+    productId: productId,
+    reviewId: reviewId,
+    rating: rating,
+    title: title,
+    comment: comment,
+    images: images,
+  );
 
   @override
-  Future<List<BannerEntity>> getBanners({String? placement}) async {
-    developer.log('Fetching banners', name: 'CatalogDataSource');
-
-    final response = await _apiClient.get(
-      ApiEndpoints.banners,
-      queryParameters: {if (placement != null) 'placement': placement},
-    );
-
-    final data = response.data['data'] ?? response.data;
-    final List<dynamic> list = data is List ? data : [];
-
-    return list.map((json) => BannerModel.fromJson(json).toEntity()).toList();
-  }
+  Future<List<BannerEntity>> getBanners({String? placement}) =>
+      _taxonomyRemote.getBanners(placement: placement);
 }

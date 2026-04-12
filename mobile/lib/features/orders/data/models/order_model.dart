@@ -2,15 +2,16 @@
 library;
 
 import 'package:json_annotation/json_annotation.dart';
+
 import '../../domain/entities/order_entity.dart';
 import 'shipping_address_model.dart';
 
 part 'order_model.g.dart';
+part 'order_model_parsing.dart';
+part 'orders_response.dart';
 
-/// Order Item Model
 @JsonSerializable()
 class OrderItemModel {
-  /// MongoDB ObjectId for order item - used for returns API (orderItemId)
   @JsonKey(name: '_id', readValue: _readOrderItemId)
   final String? id;
   @JsonKey(name: 'productId', readValue: _readProductId)
@@ -56,29 +57,15 @@ class OrderItemModel {
     this.attributes,
   });
 
-  /// Handle _id for order item (MongoDB ObjectId)
-  static Object? _readOrderItemId(Map<dynamic, dynamic> json, String key) {
-    final value = json['_id'] ?? json['id'];
-    if (value == null) return null;
-    if (value is String) return value;
-    if (value is Map) {
-      return value['\$oid']?.toString() ?? value.toString();
-    }
-    return value.toString();
-  }
+  static Object? _readOrderItemId(Map<dynamic, dynamic> json, String key) =>
+      _orderItemReadId(json, key);
 
-  /// Handle productId which can be String or populated object
-  static Object? _readProductId(Map<dynamic, dynamic> json, String key) {
-    final value = json['productId'];
-    if (value is String) return value;
-    if (value is Map) {
-      return value['_id']?.toString() ?? value['\$oid']?.toString();
-    }
-    return value?.toString();
-  }
+  static Object? _readProductId(Map<dynamic, dynamic> json, String key) =>
+      _orderItemReadProductId(json, key);
 
   factory OrderItemModel.fromJson(Map<String, dynamic> json) =>
       _$OrderItemModelFromJson(json);
+
   Map<String, dynamic> toJson() => _$OrderItemModelToJson(this);
 
   OrderItemEntity toEntity() {
@@ -106,25 +93,17 @@ class OrderItemModel {
   }
 }
 
-/// Order Model
 @JsonSerializable()
 class OrderModel {
   @JsonKey(name: 'id', readValue: _readId)
   final String id;
-
   final String orderNumber;
-
   @JsonKey(name: 'customerId', readValue: _readCustomerId)
   final String customerId;
-
-  /// Price level ID used when order was created (from pricing rules)
   @JsonKey(name: 'priceLevelId', readValue: _readPriceLevelId)
   final String? priceLevelId;
-
   @JsonKey(defaultValue: 'pending')
   final String status;
-
-  // Amounts
   @JsonKey(defaultValue: 0.0)
   final double subtotal;
   @JsonKey(defaultValue: 0.0)
@@ -151,8 +130,6 @@ class OrderModel {
   final double total;
   @JsonKey(defaultValue: 0.0)
   final double paidAmount;
-
-  // Payment
   @JsonKey(defaultValue: 'unpaid')
   final String paymentStatus;
   final String? paymentMethod;
@@ -163,47 +140,29 @@ class OrderModel {
   final DateTime? transferDate;
   final DateTime? transferVerifiedAt;
   final String? rejectionReason;
-
-  // Shipping
   @JsonKey(name: 'shippingAddressId', readValue: _readShippingAddressId)
   final String? shippingAddressId;
   final ShippingAddressModel? shippingAddress;
   final DateTime? estimatedDeliveryDate;
-
-  // Coupon
   final String? couponId;
   final String? couponCode;
-
-  // Source
   @JsonKey(defaultValue: 'mobile')
   final String source;
-
-  // Notes
   final String? customerNotes;
-
-  // Timestamps
   final DateTime? confirmedAt;
   final DateTime? shippedAt;
   final DateTime? deliveredAt;
   final DateTime? completedAt;
   final DateTime? cancelledAt;
   final String? cancellationReason;
-
-  // Shipping Label
   final String? shippingLabelUrl;
-
-  // Rating
-  final int? customerRating; // 1-5
+  final int? customerRating;
   final String? customerRatingComment;
   final DateTime? ratedAt;
-
-  // Items
   @JsonKey(defaultValue: [])
   final List<OrderItemModel> items;
-
   @JsonKey(defaultValue: false)
   final bool cancellable;
-
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -257,55 +216,23 @@ class OrderModel {
     required this.updatedAt,
   });
 
-  /// Handle MongoDB _id or id field
-  static Object? _readId(Map<dynamic, dynamic> json, String key) {
-    final value = json['_id'] ?? json['id'];
-    if (value is Map) {
-      return value['\$oid'] ?? value.toString();
-    }
-    return value?.toString();
-  }
+  static Object? _readId(Map<dynamic, dynamic> json, String key) =>
+      _orderReadId(json, key);
 
-  /// Handle customerId which can be String or populated object
-  static Object? _readCustomerId(Map<dynamic, dynamic> json, String key) {
-    final value = json['customerId'];
-    if (value is String) return value;
-    if (value is Map) {
-      return value['_id']?.toString() ?? value['\$oid']?.toString();
-    }
-    return value?.toString();
-  }
+  static Object? _readCustomerId(Map<dynamic, dynamic> json, String key) =>
+      _orderReadCustomerId(json, key);
 
-  /// Handle shippingAddressId which can be String or populated object
   static Object? _readShippingAddressId(
     Map<dynamic, dynamic> json,
     String key,
-  ) {
-    final value = json['shippingAddressId'];
-    if (value == null) return null;
-    if (value is String) return value;
-    if (value is Map) {
-      return value['_id']?.toString() ?? value['\$oid']?.toString();
-    }
-    return value.toString();
-  }
+  ) => _orderReadShippingAddressId(json, key);
 
-  /// Handle priceLevelId which can be String or populated object
-  static Object? _readPriceLevelId(
-    Map<dynamic, dynamic> json,
-    String key,
-  ) {
-    final value = json['priceLevelId'];
-    if (value == null) return null;
-    if (value is String) return value;
-    if (value is Map) {
-      return value['_id']?.toString() ?? value['\$oid']?.toString();
-    }
-    return value.toString();
-  }
+  static Object? _readPriceLevelId(Map<dynamic, dynamic> json, String key) =>
+      _orderReadPriceLevelId(json, key);
 
   factory OrderModel.fromJson(Map<String, dynamic> json) =>
       _$OrderModelFromJson(json);
+
   Map<String, dynamic> toJson() => _$OrderModelToJson(this);
 
   OrderEntity toEntity() {
@@ -341,17 +268,7 @@ class OrderModel {
       transferVerifiedAt: transferVerifiedAt,
       paymentRejectionReason: rejectionReason,
       shippingAddressId: shippingAddressId,
-      shippingAddress: shippingAddress != null
-          ? ShippingAddressEntity(
-              fullName: shippingAddress!.fullName,
-              phone: shippingAddress!.phone,
-              address: shippingAddress!.address,
-              city: shippingAddress!.city,
-              district: shippingAddress!.district,
-              postalCode: shippingAddress!.postalCode,
-              notes: shippingAddress!.notes,
-            )
-          : null,
+      shippingAddress: _mapShippingAddressEntity(shippingAddress),
       estimatedDeliveryDate: estimatedDeliveryDate,
       couponId: couponId,
       couponCode: couponCode,
@@ -367,7 +284,7 @@ class OrderModel {
       customerRating: customerRating,
       customerRatingComment: customerRatingComment,
       ratedAt: ratedAt,
-      items: items.map((i) => i.toEntity()).toList(),
+      items: items.map((item) => item.toEntity()).toList(),
       cancellable: cancellable,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -375,46 +292,17 @@ class OrderModel {
   }
 }
 
-/// Request model for creating an order
-class CreateOrderRequest {
-  final String? shippingAddressId;
-  final ShippingAddressModel? shippingAddress;
-  final String? paymentMethod;
-  final String? customerNotes;
-  final String? couponCode;
-
-  const CreateOrderRequest({
-    this.shippingAddressId,
-    this.shippingAddress,
-    this.paymentMethod,
-    this.customerNotes,
-    this.couponCode,
-  });
-
-  Map<String, dynamic> toJson() => {
-    if (shippingAddressId != null) 'shippingAddressId': shippingAddressId,
-    if (shippingAddress != null) 'shippingAddress': shippingAddress!.toJson(),
-    if (paymentMethod != null) 'paymentMethod': paymentMethod,
-    if (customerNotes != null) 'customerNotes': customerNotes,
-    if (couponCode != null) 'couponCode': couponCode,
-  };
-}
-
-/// Response for paginated orders
-class OrdersResponse {
-  final List<OrderModel> orders;
-  final int total;
-
-  OrdersResponse({required this.orders, required this.total});
-
-  factory OrdersResponse.fromJson(Map<String, dynamic> json) {
-    return OrdersResponse(
-      orders: (json['data'] as List? ?? [])
-          .map((o) => OrderModel.fromJson(o))
-          .toList(),
-      total: json['meta']?['total'] ?? 0,
-    );
-  }
-
-  List<OrderEntity> toEntities() => orders.map((o) => o.toEntity()).toList();
+ShippingAddressEntity? _mapShippingAddressEntity(
+  ShippingAddressModel? shippingAddress,
+) {
+  if (shippingAddress == null) return null;
+  return ShippingAddressEntity(
+    fullName: shippingAddress.fullName,
+    phone: shippingAddress.phone,
+    address: shippingAddress.address,
+    city: shippingAddress.city,
+    district: shippingAddress.district,
+    postalCode: shippingAddress.postalCode,
+    notes: shippingAddress.notes,
+  );
 }

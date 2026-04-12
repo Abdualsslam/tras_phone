@@ -2,9 +2,12 @@
 library;
 
 import 'package:json_annotation/json_annotation.dart';
+
 import '../../domain/entities/product_entity.dart';
 
 part 'product_model.g.dart';
+part 'product_model_parsing.dart';
+part 'products_response.dart';
 
 @JsonSerializable()
 class ProductModel {
@@ -20,7 +23,6 @@ class ProductModel {
   final String? shortDescription;
   final String? shortDescriptionAr;
 
-  // Relations - can be String or populated object
   @JsonKey(name: 'brandId', readValue: _readRelationId)
   final String brandId;
 
@@ -49,21 +51,16 @@ class ProductModel {
   )
   final List<String>? relatedEducationalContent;
 
-  // Images
   final String? mainImage;
   @JsonKey(defaultValue: [])
   final List<String> images;
   final String? video;
 
-  // Pricing
   @JsonKey(defaultValue: 0.0)
   final double basePrice;
   final double? compareAtPrice;
-
-  /// Customer tier price (returned when logged in - see 16-pricing-rules)
   final double? price;
 
-  // Inventory
   @JsonKey(defaultValue: 0)
   final int stockQuantity;
   @JsonKey(defaultValue: 5)
@@ -73,14 +70,12 @@ class ProductModel {
   @JsonKey(defaultValue: false)
   final bool allowBackorder;
 
-  // Order
   @JsonKey(defaultValue: 1)
   final int minOrderQuantity;
   final int? maxOrderQuantity;
   @JsonKey(defaultValue: 1)
   final int quantityStep;
 
-  // Status
   @JsonKey(defaultValue: 'active')
   final String status;
   @JsonKey(defaultValue: true)
@@ -92,17 +87,14 @@ class ProductModel {
   @JsonKey(defaultValue: false)
   final bool isBestSeller;
 
-  // Specifications
   final Map<String, dynamic>? specifications;
   final double? weight;
   final String? dimensions;
   final String? color;
 
-  // Warranty
   final int? warrantyDays;
   final String? warrantyDescription;
 
-  // Stats
   @JsonKey(defaultValue: 0)
   final int viewsCount;
   @JsonKey(defaultValue: 0)
@@ -116,7 +108,6 @@ class ProductModel {
   @JsonKey(defaultValue: 0)
   final int favoriteCount;
 
-  // Tags
   @JsonKey(defaultValue: [])
   final List<String> tags;
 
@@ -124,7 +115,6 @@ class ProductModel {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  // Populated relation names (extracted from objects)
   @JsonKey(includeFromJson: false, includeToJson: false)
   final String? brandName;
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -199,299 +189,22 @@ class ProductModel {
     this.qualityTypeNameAr,
   });
 
-  /// Handle MongoDB _id or id field
-  static Object? _readId(Map<dynamic, dynamic> json, String key) {
-    final value = json['_id'] ?? json['id'];
-    if (value is Map) {
-      return value['\$oid'] ?? value.toString();
-    }
-    return value?.toString();
-  }
+  static Object? _readId(Map<dynamic, dynamic> json, String key) =>
+      _productReadId(json, key);
 
-  /// Handle relation IDs which can be String or populated object
-  static Object? _readRelationId(Map<dynamic, dynamic> json, String key) {
-    final value = json[key];
-    if (value is String) return value;
-    if (value is Map) {
-      return value['_id']?.toString() ?? value['\$oid']?.toString();
-    }
-    return value?.toString() ?? '';
-  }
+  static Object? _readRelationId(Map<dynamic, dynamic> json, String key) =>
+      _productReadRelationId(json, key);
 
-  /// Handle related products which can be `List<String>` or List of objects
-  static Object? _readRelatedProducts(Map<dynamic, dynamic> json, String key) {
-    final value = json[key];
-    if (value == null) return null;
-    if (value is List) {
-      return value
-          .map((p) {
-            if (p is String) return p;
-            if (p is Map) {
-              return p['_id']?.toString() ??
-                  p['\$oid']?.toString() ??
-                  p['id']?.toString();
-            }
-            return p.toString();
-          })
-          .toList()
-          .cast<String>();
-    }
-    return null;
-  }
+  static Object? _readRelatedProducts(Map<dynamic, dynamic> json, String key) =>
+      _productReadRelatedProducts(json, key);
 
   static Object? _readRelatedEducationalContent(
     Map<dynamic, dynamic> json,
     String key,
-  ) {
-    final value = json[key];
-    if (value == null) return null;
-    if (value is List) {
-      return value
-          .map((item) {
-            if (item is String) return item;
-            if (item is Map) {
-              return item['_id']?.toString() ??
-                  item['\$oid']?.toString() ??
-                  item['id']?.toString();
-            }
-            return item.toString();
-          })
-          .whereType<String>()
-          .where((id) => id.isNotEmpty)
-          .toList();
-    }
-    return null;
-  }
+  ) => _productReadRelatedEducationalContent(json, key);
 
-  static List<String> _readStringList(dynamic value) {
-    if (value is! List) return const [];
-
-    final result = <String>[];
-    for (final item in value) {
-      if (item is String) {
-        final trimmed = item.trim();
-        if (trimmed.isNotEmpty) result.add(trimmed);
-        continue;
-      }
-
-      if (item is Map) {
-        final map = Map<String, dynamic>.from(item);
-        final nested =
-            map['url'] ??
-            map['secureUrl'] ??
-            map['secure_url'] ??
-            map['path'] ??
-            map['src'] ??
-            map['_id'] ??
-            map['id'] ??
-            map['\$oid'];
-        final value = nested?.toString().trim();
-        if (value != null && value.isNotEmpty) result.add(value);
-        continue;
-      }
-
-      final fallback = item.toString().trim();
-      if (fallback.isNotEmpty) result.add(fallback);
-    }
-
-    return result;
-  }
-
-  static List<String> _readIdList(dynamic value) {
-    if (value is! List) return const [];
-
-    final result = <String>[];
-    for (final item in value) {
-      if (item is String) {
-        final trimmed = item.trim();
-        if (trimmed.isNotEmpty) result.add(trimmed);
-        continue;
-      }
-
-      if (item is Map) {
-        final map = Map<String, dynamic>.from(item);
-        final id = map['_id'] ?? map['id'] ?? map['\$oid'];
-        final value = id?.toString().trim();
-        if (value != null && value.isNotEmpty) result.add(value);
-      }
-    }
-
-    return result;
-  }
-
-  static List<String> _readCompatibleDeviceNames(
-    Map<String, dynamic> json, {
-    required bool arabic,
-  }) {
-    final directKey = arabic
-        ? 'compatibleDeviceNamesAr'
-        : 'compatibleDeviceNames';
-    final direct = _readStringList(json[directKey]);
-    if (direct.isNotEmpty) return direct;
-
-    final value = json['compatibleDevices'];
-    if (value is! List) return const [];
-
-    final names = <String>[];
-    for (final item in value) {
-      if (item is! Map) continue;
-      final map = Map<String, dynamic>.from(item);
-      final rawName = arabic
-          ? (map['nameAr'] ?? map['name'])
-          : (map['name'] ?? map['nameAr']);
-      final name = rawName?.toString().trim();
-      if (name != null && name.isNotEmpty) {
-        names.add(name);
-      }
-    }
-    return names;
-  }
-
-  factory ProductModel.fromJson(Map<String, dynamic> json) {
-    final nowIso = DateTime.now().toIso8601String();
-    final normalized = Map<String, dynamic>.from(json);
-
-    String normalizeDate(dynamic value) {
-      if (value is String && value.isNotEmpty) return value;
-      if (value is DateTime) return value.toIso8601String();
-      if (value is Map) {
-        final map = Map<String, dynamic>.from(value);
-        final nested = map['\$date'] ?? map['date'];
-        if (nested is String && nested.isNotEmpty) return nested;
-      }
-      return nowIso;
-    }
-
-    normalized['id'] = _readId(json, 'id')?.toString() ?? '';
-    normalized['sku'] = (json['sku'] ?? '').toString();
-    normalized['name'] = (json['name'] ?? '').toString();
-    normalized['nameAr'] = (json['nameAr'] ?? json['name'] ?? '').toString();
-    normalized['slug'] =
-        (json['slug'] ?? normalized['name'] ?? normalized['id'] ?? '')
-            .toString();
-    normalized['createdAt'] = normalizeDate(
-      json['createdAt'] ?? json['updatedAt'],
-    );
-    normalized['updatedAt'] = normalizeDate(
-      json['updatedAt'] ?? json['createdAt'],
-    );
-
-    normalized['brandId'] = _readRelationId(json, 'brandId')?.toString() ?? '';
-    normalized['categoryId'] =
-        _readRelationId(json, 'categoryId')?.toString() ?? '';
-    normalized['qualityTypeId'] =
-        _readRelationId(json, 'qualityTypeId')?.toString() ?? '';
-
-    // Normalize list fields that can come as objects from populated APIs.
-    normalized['compatibleDevices'] = _readIdList(json['compatibleDevices']);
-    normalized['additionalCategories'] = _readIdList(
-      json['additionalCategories'],
-    );
-    normalized['images'] = _readStringList(json['images']);
-    normalized['tags'] = _readStringList(json['tags']);
-
-    // Extract populated relation data
-    String? brandName, brandNameAr;
-    String? categoryName, categoryNameAr;
-    String? qualityTypeName, qualityTypeNameAr;
-    final compatibleDeviceNames = _readCompatibleDeviceNames(
-      json,
-      arabic: false,
-    );
-    final compatibleDeviceNamesAr = _readCompatibleDeviceNames(
-      json,
-      arabic: true,
-    );
-
-    final brandData = json['brandId'];
-    if (brandData is Map<String, dynamic>) {
-      brandName = brandData['name'] as String?;
-      brandNameAr = brandData['nameAr'] as String?;
-    } else {
-      brandName = json['brandName']?.toString();
-      brandNameAr = json['brandNameAr']?.toString();
-    }
-
-    final categoryData = json['categoryId'];
-    if (categoryData is Map<String, dynamic>) {
-      categoryName = categoryData['name'] as String?;
-      categoryNameAr = categoryData['nameAr'] as String?;
-    } else {
-      categoryName = json['categoryName']?.toString();
-      categoryNameAr = json['categoryNameAr']?.toString();
-    }
-
-    final qualityData = json['qualityTypeId'];
-    if (qualityData is Map<String, dynamic>) {
-      qualityTypeName = qualityData['name'] as String?;
-      qualityTypeNameAr = qualityData['nameAr'] as String?;
-    } else {
-      qualityTypeName = json['qualityTypeName']?.toString();
-      qualityTypeNameAr = json['qualityTypeNameAr']?.toString();
-    }
-
-    final model = _$ProductModelFromJson(normalized);
-    return ProductModel(
-      id: model.id,
-      sku: model.sku,
-      name: model.name,
-      nameAr: model.nameAr,
-      slug: model.slug,
-      description: model.description,
-      descriptionAr: model.descriptionAr,
-      shortDescription: model.shortDescription,
-      shortDescriptionAr: model.shortDescriptionAr,
-      brandId: model.brandId,
-      categoryId: model.categoryId,
-      additionalCategories: model.additionalCategories,
-      qualityTypeId: model.qualityTypeId,
-      compatibleDevices: model.compatibleDevices,
-      compatibleDeviceNames: compatibleDeviceNames,
-      compatibleDeviceNamesAr: compatibleDeviceNamesAr,
-      mainImage: model.mainImage,
-      images: model.images,
-      video: model.video,
-      basePrice: model.basePrice,
-      compareAtPrice: model.compareAtPrice,
-      price: model.price,
-      stockQuantity: model.stockQuantity,
-      lowStockThreshold: model.lowStockThreshold,
-      trackInventory: model.trackInventory,
-      allowBackorder: model.allowBackorder,
-      minOrderQuantity: model.minOrderQuantity,
-      maxOrderQuantity: model.maxOrderQuantity,
-      quantityStep: model.quantityStep,
-      status: model.status,
-      isActive: model.isActive,
-      isFeatured: model.isFeatured,
-      isNewArrival: model.isNewArrival,
-      isBestSeller: model.isBestSeller,
-      specifications: model.specifications,
-      weight: model.weight,
-      dimensions: model.dimensions,
-      color: model.color,
-      warrantyDays: model.warrantyDays,
-      warrantyDescription: model.warrantyDescription,
-      viewsCount: model.viewsCount,
-      ordersCount: model.ordersCount,
-      salesCount: model.salesCount,
-      reviewsCount: model.reviewsCount,
-      averageRating: model.averageRating,
-      favoriteCount: model.favoriteCount,
-      relatedProducts: model.relatedProducts,
-      relatedEducationalContent: model.relatedEducationalContent,
-      tags: model.tags,
-      publishedAt: model.publishedAt,
-      createdAt: model.createdAt,
-      updatedAt: model.updatedAt,
-      brandName: brandName,
-      brandNameAr: brandNameAr,
-      categoryName: categoryName,
-      categoryNameAr: categoryNameAr,
-      qualityTypeName: qualityTypeName,
-      qualityTypeNameAr: qualityTypeNameAr,
-    );
-  }
+  factory ProductModel.fromJson(Map<String, dynamic> json) =>
+      _ProductModelParser.parse(json);
 
   Map<String, dynamic> toJson() => _$ProductModelToJson(this);
 
@@ -557,53 +270,4 @@ class ProductModel {
       qualityTypeNameAr: qualityTypeNameAr,
     );
   }
-}
-
-/// Response for paginated products
-class ProductsResponse {
-  final List<ProductModel> products;
-  final int total;
-  final int page;
-  final int pages;
-
-  ProductsResponse({
-    required this.products,
-    required this.total,
-    required this.page,
-    required this.pages,
-  });
-
-  static int _asInt(dynamic value, {int fallback = 0}) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    if (value is String) return int.tryParse(value) ?? fallback;
-    return fallback;
-  }
-
-  factory ProductsResponse.fromJson(Map<String, dynamic> json) {
-    final metaRaw = json['meta'] ?? json['pagination'];
-    final meta = metaRaw is Map<String, dynamic>
-        ? metaRaw
-        : metaRaw is Map
-        ? Map<String, dynamic>.from(metaRaw)
-        : <String, dynamic>{};
-
-    final data = json['data'];
-    final dataList = data is List ? data : const [];
-
-    return ProductsResponse(
-      products: dataList
-          .whereType<Map>()
-          .map((p) => ProductModel.fromJson(Map<String, dynamic>.from(p)))
-          .toList(),
-      total: _asInt(meta['total'], fallback: dataList.length),
-      page: _asInt(meta['page'], fallback: 1),
-      pages: _asInt(meta['pages'] ?? meta['totalPages'], fallback: 1),
-    );
-  }
-
-  List<ProductEntity> toEntities() =>
-      products.map((p) => p.toEntity()).toList();
-
-  bool get hasNextPage => page < pages;
 }
