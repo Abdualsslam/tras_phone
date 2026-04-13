@@ -14,67 +14,46 @@ class _NotificationsRepositoryCrudDelegate {
     int limit = 20,
     NotificationCategory? category,
     bool? isRead,
-  }) async {
-    try {
-      final result = await remoteDataSource.getMyNotifications(
+  }) {
+    return support.guard(
+      () => remoteDataSource.getMyNotifications(
         page: page,
         limit: limit,
         category: category,
         isRead: isRead,
+      ),
+      source: 'NotificationsRepository.getMyNotifications',
+    );
+  }
+
+  Future<Either<Failure, NotificationModel>> getNotificationById(String id) =>
+      support.guard(
+        () => remoteDataSource.getNotificationById(id),
+        source: 'NotificationsRepository.getNotificationById',
       );
-      return Right(result);
-    } catch (error) {
-      return Left(support.failure(error));
-    }
-  }
 
-  Future<Either<Failure, NotificationModel>> getNotificationById(
-    String id,
-  ) async {
-    try {
-      return Right(await remoteDataSource.getNotificationById(id));
-    } catch (error) {
-      return Left(support.failure(error));
-    }
-  }
+  Future<Either<Failure, bool>> markAsRead(String id) => support.guard(
+    () => remoteDataSource.markAsRead(id),
+    source: 'NotificationsRepository.markAsRead',
+  );
 
-  Future<Either<Failure, bool>> markAsRead(String id) async {
-    try {
-      return Right(await remoteDataSource.markAsRead(id));
-    } catch (error) {
-      return Left(support.failure(error));
-    }
-  }
+  Future<Either<Failure, bool>> markAllAsRead() => support.guard(
+    remoteDataSource.markAllAsRead,
+    source: 'NotificationsRepository.markAllAsRead',
+  );
 
-  Future<Either<Failure, bool>> markAllAsRead() async {
-    try {
-      return Right(await remoteDataSource.markAllAsRead());
-    } catch (error) {
-      return Left(support.failure(error));
-    }
-  }
+  Future<Either<Failure, bool>> deleteNotification(String id) => support.guard(
+    () => remoteDataSource.deleteNotification(id),
+    source: 'NotificationsRepository.deleteNotification',
+  );
 
-  Future<Either<Failure, bool>> deleteNotification(String id) async {
-    try {
-      return Right(await remoteDataSource.deleteNotification(id));
-    } catch (error) {
-      return Left(support.failure(error));
-    }
-  }
+  Future<Either<Failure, bool>> deleteAllNotifications() => support.guard(
+    remoteDataSource.deleteAllNotifications,
+    source: 'NotificationsRepository.deleteAllNotifications',
+  );
 
-  Future<Either<Failure, bool>> deleteAllNotifications() async {
-    try {
-      return Right(await remoteDataSource.deleteAllNotifications());
-    } catch (error) {
-      return Left(support.failure(error));
-    }
-  }
-
-  Future<Either<Failure, int>> getUnreadCount() async {
-    try {
-      return Right(await remoteDataSource.getUnreadCount());
-    } catch (error) {
-      return Left(support.failure(error));
-    }
-  }
+  Future<Either<Failure, int>> getUnreadCount() => support.guard(
+    remoteDataSource.getUnreadCount,
+    source: 'NotificationsRepository.getUnreadCount',
+  );
 }

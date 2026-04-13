@@ -2,19 +2,23 @@
 library;
 
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/exceptions.dart';
+
 import '../../../../core/errors/failures.dart';
+import '../../../../core/errors/repository_guard.dart';
 import '../../domain/entities/return_entity.dart';
 import '../../domain/repositories/returns_repository.dart';
 import '../datasources/returns_remote_datasource.dart';
 import '../models/return_model.dart';
 
-/// Implementation of ReturnsRepository using remote data source
 class ReturnsRepositoryImpl implements ReturnsRepository {
   final ReturnsRemoteDataSource _remoteDataSource;
+  final RepositoryGuard _repositoryGuard;
 
-  ReturnsRepositoryImpl({required ReturnsRemoteDataSource remoteDataSource})
-    : _remoteDataSource = remoteDataSource;
+  ReturnsRepositoryImpl({
+    required ReturnsRemoteDataSource remoteDataSource,
+    required RepositoryGuard repositoryGuard,
+  }) : _remoteDataSource = remoteDataSource,
+       _repositoryGuard = repositoryGuard;
 
   @override
   Future<Either<Failure, List<ReturnEntity>>> getMyReturns({
@@ -22,115 +26,81 @@ class ReturnsRepositoryImpl implements ReturnsRepository {
     int page = 1,
     int limit = 20,
   }) async {
-    try {
-      final returns = await _remoteDataSource.getMyReturns(
+    final result = await _repositoryGuard.guardEither(
+      () => _remoteDataSource.getMyReturns(
         status: status,
         page: page,
         limit: limit,
-      );
-      return Right(returns.map((model) => model.toEntity()).toList());
-    } on AppException catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
+      ),
+      source: 'ReturnsRepository.getMyReturns',
+    );
+
+    return result.fold(
+      Left.new,
+      (returns) => Right(returns.map((model) => model.toEntity()).toList()),
+    );
   }
 
   @override
   Future<Either<Failure, ReturnEntity>> getReturnById(String id) async {
-    try {
-      final returnModel = await _remoteDataSource.getReturnById(id);
-      return Right(returnModel.toEntity());
-    } on AppException catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
+    final result = await _repositoryGuard.guardEither(
+      () => _remoteDataSource.getReturnById(id),
+      source: 'ReturnsRepository.getReturnById',
+    );
+
+    return result.fold(
+      Left.new,
+      (returnModel) => Right(returnModel.toEntity()),
+    );
   }
 
   @override
   Future<Either<Failure, ReturnEntity>> createReturn(
     CreateReturnRequest request,
   ) async {
-    try {
-      final returnModel = await _remoteDataSource.createReturn(request);
-      return Right(returnModel.toEntity());
-    } on AppException catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
+    final result = await _repositoryGuard.guardEither(
+      () => _remoteDataSource.createReturn(request),
+      source: 'ReturnsRepository.createReturn',
+    );
+
+    return result.fold(
+      Left.new,
+      (returnModel) => Right(returnModel.toEntity()),
+    );
   }
 
   @override
-  Future<Either<Failure, bool>> cancelReturn(String id) async {
-    try {
-      final result = await _remoteDataSource.cancelReturn(id);
-      return Right(result);
-    } on AppException catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  Future<Either<Failure, bool>> cancelReturn(String id) =>
+      _repositoryGuard.guardEither(
+        () => _remoteDataSource.cancelReturn(id),
+        source: 'ReturnsRepository.cancelReturn',
+      );
 
   @override
   Future<Either<Failure, List<ReturnReasonEntity>>> getReturnReasons() async {
-    try {
-      final reasons = await _remoteDataSource.getReturnReasons();
-      return Right(reasons.map((model) => model.toEntity()).toList());
-    } on AppException catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
+    final result = await _repositoryGuard.guardEither(
+      _remoteDataSource.getReturnReasons,
+      source: 'ReturnsRepository.getReturnReasons',
+    );
+
+    return result.fold(
+      Left.new,
+      (reasons) => Right(reasons.map((model) => model.toEntity()).toList()),
+    );
   }
 
   @override
   Future<Either<Failure, List<String>>> uploadReturnImages(
     List<String> imagePaths,
-  ) async {
-    try {
-      final urls = await _remoteDataSource.uploadReturnImages(imagePaths);
-      return Right(urls);
-    } on AppException catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  ) => _repositoryGuard.guardEither(
+    () => _remoteDataSource.uploadReturnImages(imagePaths),
+    source: 'ReturnsRepository.uploadReturnImages',
+  );
 
   @override
-  Future<Either<Failure, Map<String, dynamic>>> getReturnPolicy() async {
-    try {
-      final policy = await _remoteDataSource.getReturnPolicy();
-      return Right(policy);
-    } on AppException catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
-
-  /// Map AppException to Failure
-  Failure _mapExceptionToFailure(AppException exception) {
-    if (exception is ServerException) {
-      return ServerFailure(message: exception.message);
-    } else if (exception is NetworkException) {
-      return const NetworkFailure();
-    } else if (exception is TimeoutException) {
-      return const TimeoutFailure();
-    } else if (exception is UnauthorizedException) {
-      return AuthFailure(message: exception.message);
-    } else if (exception is ValidationException) {
-      return ValidationFailure(
-        message: exception.message,
-        errors: exception.errors,
+  Future<Either<Failure, Map<String, dynamic>>> getReturnPolicy() =>
+      _repositoryGuard.guardEither(
+        _remoteDataSource.getReturnPolicy,
+        source: 'ReturnsRepository.getReturnPolicy',
       );
-    } else if (exception is NotFoundException) {
-      return NotFoundFailure(message: exception.message);
-    } else {
-      return UnknownFailure(message: exception.message);
-    }
-  }
 }

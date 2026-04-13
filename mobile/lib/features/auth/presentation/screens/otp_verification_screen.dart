@@ -116,7 +116,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.message),
+              content: Text(state.failure.message),
               backgroundColor: AppColors.error,
             ),
           );

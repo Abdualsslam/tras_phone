@@ -7,6 +7,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/errors/repository_guard.dart';
 import '../../domain/entities/brand_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/device_entity.dart';
@@ -27,6 +28,7 @@ part 'catalog_repository_impl_reviews.dart';
 class CatalogRepositoryImpl implements CatalogRepository {
   final CatalogRemoteDataSource _remoteDataSource;
   final ProductCacheService? _cacheService;
+  final RepositoryGuard _repositoryGuard;
 
   late final _CatalogRepositorySupport _support;
   late final _CatalogTaxonomyRepositoryDelegate _taxonomyDelegate;
@@ -36,9 +38,14 @@ class CatalogRepositoryImpl implements CatalogRepository {
   CatalogRepositoryImpl({
     required CatalogRemoteDataSource remoteDataSource,
     ProductCacheService? cacheService,
+    required RepositoryGuard repositoryGuard,
   }) : _remoteDataSource = remoteDataSource,
-       _cacheService = cacheService {
-    _support = _CatalogRepositorySupport(cacheService: _cacheService);
+       _cacheService = cacheService,
+       _repositoryGuard = repositoryGuard {
+    _support = _CatalogRepositorySupport(
+      cacheService: _cacheService,
+      repositoryGuard: _repositoryGuard,
+    );
     _taxonomyDelegate = _CatalogTaxonomyRepositoryDelegate(
       remoteDataSource: _remoteDataSource,
       support: _support,

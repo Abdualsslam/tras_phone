@@ -4,6 +4,8 @@ library;
 import 'dart:convert';
 import 'package:hive_ce/hive_ce.dart';
 
+import '../errors/exceptions.dart';
+
 class HiveCacheService {
   static const String _cacheBoxName = 'app_cache';
   Box? _box;
@@ -17,7 +19,10 @@ class HiveCacheService {
       _box = await Hive.openBox(_cacheBoxName);
       _isInitialized = true;
     } catch (e) {
-      throw Exception('Failed to initialize Hive cache: $e');
+      throw CacheException(
+        message: 'Failed to initialize Hive cache: $e',
+        originalError: e,
+      );
     }
   }
 
@@ -83,7 +88,10 @@ class HiveCacheService {
         await _box!.put('${key}_expires', expirationTime.toIso8601String());
       }
     } catch (e) {
-      throw Exception('Failed to set cache value: $e');
+      throw CacheException(
+        message: 'Failed to set cache value: $e',
+        originalError: e,
+      );
     }
   }
 
@@ -110,7 +118,10 @@ class HiveCacheService {
     try {
       await _box!.clear();
     } catch (e) {
-      throw Exception('Failed to clear cache: $e');
+      throw CacheException(
+        message: 'Failed to clear cache: $e',
+        originalError: e,
+      );
     }
   }
 

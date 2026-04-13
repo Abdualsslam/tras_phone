@@ -4,6 +4,7 @@ library;
 import 'dart:convert';
 import 'dart:developer' as developer;
 import '../constants/storage_keys.dart';
+import '../errors/exceptions.dart';
 import '../storage/secure_storage.dart';
 
 /// Token data model
@@ -210,7 +211,7 @@ class TokenManager {
     final refreshToken = data['refreshToken'] as String?;
 
     if (accessToken == null || refreshToken == null) {
-      throw Exception('Invalid token response');
+      throw const AuthException(message: 'Invalid token response');
     }
 
     DateTime? expiresAt;

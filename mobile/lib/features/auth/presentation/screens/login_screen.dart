@@ -102,12 +102,9 @@ class _LoginScreenState extends State<LoginScreen> {
           _saveLastPhone(_phoneController.text.trim());
           context.go('/home');
         } else if (state is AuthError) {
-          final locale = Localizations.localeOf(context);
-          final isArabic = locale.languageCode == 'ar';
           AuthErrorHelper.showErrorSnackBar(
             context,
-            state.message,
-            isArabic: isArabic,
+            state.failure,
           );
         }
       },

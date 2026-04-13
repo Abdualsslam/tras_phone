@@ -25,7 +25,7 @@ class _LocationsCatalogDelegate {
       response.data,
       fallbackMessage: 'Failed to get countries',
     );
-    throw Exception('No countries data found');
+    throw const NotFoundException(message: 'No countries data found');
   }
 
   Future<List<CityModel>> getCities({String? countryId}) async {
@@ -52,7 +52,7 @@ class _LocationsCatalogDelegate {
       fallbackMessage: 'Failed to get cities',
       allowStatusError: true,
     );
-    throw Exception('No cities data found');
+    throw const NotFoundException(message: 'No cities data found');
   }
 
   Future<CityModel> getCityById(String cityId) async {

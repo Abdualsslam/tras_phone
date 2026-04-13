@@ -6,7 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+
 import '../../../../core/config/theme/app_colors.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../../features/auth/presentation/cubit/auth_cubit.dart';
 import '../../../../features/auth/presentation/cubit/auth_state.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -44,157 +46,129 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     return BlocConsumer<AuthCubit, AuthState>(
       listener: (context, state) {
-        if (state is AuthLoading) {
-          setState(() => _isLoading = true);
-        } else {
-          setState(() => _isLoading = false);
+        if (mounted) {
+          setState(() => _isLoading = state is AuthLoading);
         }
 
         if (state is AuthPasswordResetSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('تم تغيير كلمة المرور بنجاح'),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-            ),
-          );
-          // Logout and navigate to login screen
+          AppSnackbar.showSuccess(context, 'تم تغيير كلمة المرور بنجاح');
           context.read<AuthCubit>().logout().then((_) {
             if (context.mounted) {
               context.go('/login');
             }
           });
         } else if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          AppSnackbar.showFailure(context, state.failure);
         }
       },
       builder: (context, state) {
         return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.changePassword),
-        leading: IconButton(
-          icon: const Icon(Iconsax.arrow_right_3),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Security Icon
-              Center(
-                child: Container(
-                  width: 80.w,
-                  height: 80.w,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Iconsax.lock,
-                    size: 40.sp,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-              SizedBox(height: 32.h),
-
-              // Current Password
-              _buildPasswordField(
-                theme,
-                isDark,
-                controller: _currentPasswordController,
-                label: 'كلمة المرور الحالية',
-                showPassword: _showCurrentPassword,
-                onToggle: () => setState(
-                  () => _showCurrentPassword = !_showCurrentPassword,
-                ),
-              ),
-              SizedBox(height: 16.h),
-
-              // New Password
-              _buildPasswordField(
-                theme,
-                isDark,
-                controller: _newPasswordController,
-                label: 'كلمة المرور الجديدة',
-                showPassword: _showNewPassword,
-                onToggle: () =>
-                    setState(() => _showNewPassword = !_showNewPassword),
-              ),
-              SizedBox(height: 16.h),
-
-              // Confirm Password
-              _buildPasswordField(
-                theme,
-                isDark,
-                controller: _confirmPasswordController,
-                label: 'تأكيد كلمة المرور الجديدة',
-                showPassword: _showConfirmPassword,
-                onToggle: () => setState(
-                  () => _showConfirmPassword = !_showConfirmPassword,
-                ),
-              ),
-              SizedBox(height: 16.h),
-
-              // Password Requirements
-              Container(
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'متطلبات كلمة المرور:',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+          backgroundColor: theme.scaffoldBackgroundColor,
+          appBar: AppBar(
+            title: Text(AppLocalizations.of(context)!.changePassword),
+            leading: IconButton(
+              icon: const Icon(Iconsax.arrow_right_3),
+              onPressed: () => context.pop(),
+            ),
+          ),
+          body: SingleChildScrollView(
+            padding: EdgeInsets.all(16.w),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 80.w,
+                      height: 80.w,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Iconsax.lock,
+                        size: 40.sp,
+                        color: AppColors.primary,
                       ),
                     ),
-                    SizedBox(height: 8.h),
-                    _buildRequirement('8 أحرف على الأقل'),
-                    _buildRequirement('حرف كبير واحد على الأقل'),
-                    _buildRequirement('رقم واحد على الأقل'),
-                  ],
-                ),
-              ),
-              SizedBox(height: 32.h),
-
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _changePassword,
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14.r),
+                  ),
+                  SizedBox(height: 32.h),
+                  _buildPasswordField(
+                    theme,
+                    isDark,
+                    controller: _currentPasswordController,
+                    label: 'كلمة المرور الحالية',
+                    showPassword: _showCurrentPassword,
+                    onToggle: () => setState(
+                      () => _showCurrentPassword = !_showCurrentPassword,
                     ),
                   ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('تغيير كلمة المرور'),
-                ),
+                  SizedBox(height: 16.h),
+                  _buildPasswordField(
+                    theme,
+                    isDark,
+                    controller: _newPasswordController,
+                    label: 'كلمة المرور الجديدة',
+                    showPassword: _showNewPassword,
+                    onToggle: () =>
+                        setState(() => _showNewPassword = !_showNewPassword),
+                  ),
+                  SizedBox(height: 16.h),
+                  _buildPasswordField(
+                    theme,
+                    isDark,
+                    controller: _confirmPasswordController,
+                    label: 'تأكيد كلمة المرور الجديدة',
+                    showPassword: _showConfirmPassword,
+                    onToggle: () => setState(
+                      () => _showConfirmPassword = !_showConfirmPassword,
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  Container(
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'متطلبات كلمة المرور:',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+                        _buildRequirement('8 أحرف على الأقل'),
+                        _buildRequirement('حرف كبير واحد على الأقل'),
+                        _buildRequirement('رقم واحد على الأقل'),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 32.h),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _changePassword,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14.r),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('تغيير كلمة المرور'),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }
@@ -270,21 +244,18 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   void _changePassword() {
-    if (_formKey.currentState!.validate()) {
-      if (_newPasswordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('كلمات المرور غير متطابقة'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        return;
-      }
-
-      context.read<AuthCubit>().changePassword(
-        oldPassword: _currentPasswordController.text,
-        newPassword: _newPasswordController.text,
-      );
+    if (!_formKey.currentState!.validate()) {
+      return;
     }
+
+    if (_newPasswordController.text != _confirmPasswordController.text) {
+      AppSnackbar.showError(context, 'كلمات المرور غير متطابقة');
+      return;
+    }
+
+    context.read<AuthCubit>().changePassword(
+      oldPassword: _currentPasswordController.text,
+      newPassword: _newPasswordController.text,
+    );
   }
 }

@@ -2,11 +2,12 @@
 library;
 
 import 'package:dio/dio.dart';
-import '../../../../core/network/api_client.dart';
+
 import '../../../../core/errors/exceptions.dart';
-import '../models/promotion_model.dart';
+import '../../../../core/network/api_client.dart';
 import '../models/coupon_model.dart';
 import '../models/coupon_validation_model.dart';
+import '../models/promotion_model.dart';
 
 /// Abstract interface for promotions data source
 abstract class PromotionsRemoteDataSource {
@@ -38,7 +39,10 @@ class PromotionsRemoteDataSourceImpl implements PromotionsRemoteDataSource {
     if (data['success'] == true) {
       return (data['data'] as List).map((p) => Promotion.fromJson(p)).toList();
     }
-    throw Exception(data['messageAr'] ?? 'فشل في جلب العروض');
+
+    throw ServerException(
+      message: data['messageAr']?.toString() ?? 'فشل في جلب العروض',
+    );
   }
 
   @override
@@ -49,7 +53,10 @@ class PromotionsRemoteDataSourceImpl implements PromotionsRemoteDataSource {
     if (data['success'] == true) {
       return (data['data'] as List).map((c) => Coupon.fromJson(c)).toList();
     }
-    throw Exception(data['messageAr'] ?? 'فشل في جلب الكوبونات');
+
+    throw ServerException(
+      message: data['messageAr']?.toString() ?? 'فشل في جلب الكوبونات',
+    );
   }
 
   @override
@@ -72,32 +79,33 @@ class PromotionsRemoteDataSourceImpl implements PromotionsRemoteDataSource {
       if (data['success'] == true) {
         return CouponValidation.fromJson(data['data']);
       }
-      
-      // Handle case where API returns success: false but with validation data
+
       if (data['data'] != null) {
         return CouponValidation.fromJson(data['data']);
       }
-      
-      throw Exception(data['messageAr'] ?? data['message'] ?? 'فشل في التحقق من الكوبون');
+
+      throw ValidationException(
+        message:
+            data['messageAr']?.toString() ??
+            data['message']?.toString() ??
+            'فشل في التحقق من الكوبون',
+      );
     } on ServerException catch (e) {
-      // Try to extract validation data from error response if available
-      if (e.originalError != null && e.originalError is DioException) {
-        final dioError = e.originalError as DioException;
-        if (dioError.response != null) {
-          final errorData = dioError.response!.data;
-          if (errorData is Map) {
-            // Check if we have validation data in the error response
-            if (errorData['data'] != null) {
-              try {
-                return CouponValidation.fromJson(errorData['data']);
-              } catch (_) {
-                // If parsing fails, continue to throw original exception
-              }
-            }
-            // Extract error message for better error handling
-            final message = errorData['messageAr'] ?? errorData['message'] ?? e.message;
-            throw Exception(message);
+      if (e.originalError case final DioException dioError?) {
+        final errorData = dioError.response?.data;
+        if (errorData is Map && errorData['data'] != null) {
+          try {
+            return CouponValidation.fromJson(errorData['data']);
+          } catch (_) {
+            // Preserve the original server exception if parsing fails.
           }
+        }
+        if (errorData is Map) {
+          final message =
+              errorData['messageAr']?.toString() ??
+              errorData['message']?.toString() ??
+              e.message;
+          throw ValidationException(message: message);
         }
       }
       rethrow;
@@ -105,7 +113,7 @@ class PromotionsRemoteDataSourceImpl implements PromotionsRemoteDataSource {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception(e.toString());
+      throw UnknownException(message: e.toString(), originalError: e);
     }
   }
 }

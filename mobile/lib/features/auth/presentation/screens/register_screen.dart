@@ -113,11 +113,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             router.go('/home');
           }
         } else if (state is AuthError) {
-          final locale = Localizations.localeOf(context);
           AuthErrorHelper.showErrorSnackBar(
             context,
-            state.message,
-            isArabic: locale.languageCode == 'ar',
+            state.failure,
           );
         }
       },

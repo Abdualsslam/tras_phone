@@ -6,6 +6,7 @@ import '../../../features/address/data/datasources/locations_remote_datasource.d
 import '../../../features/address/data/repositories/locations_repository_impl.dart';
 import '../../../features/address/domain/repositories/locations_repository.dart';
 import '../../../features/address/presentation/cubit/locations_cubit.dart';
+import '../../errors/repository_guard.dart';
 import '../../network/api_client.dart';
 
 void registerLocationsDependencies(GetIt getIt) {
@@ -15,6 +16,7 @@ void registerLocationsDependencies(GetIt getIt) {
   getIt.registerLazySingleton<LocationsRepository>(
     () => LocationsRepositoryImpl(
       dataSource: getIt<LocationsRemoteDataSource>(),
+      repositoryGuard: getIt<RepositoryGuard>(),
     ),
   );
   getIt.registerFactory<LocationsCubit>(

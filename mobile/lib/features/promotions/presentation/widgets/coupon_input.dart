@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/errors/failure_ui_model.dart';
+import '../../../../core/errors/failures.dart';
+import '../../../../l10n/app_localizations.dart';
+
 class CouponInput extends StatefulWidget {
   final String? appliedCode;
   final double appliedDiscount;
-  final Future<String?> Function(String code) onApplyCoupon;
+  final Future<Failure?> Function(String code) onApplyCoupon;
   final Future<void> Function() onRemoveCoupon;
 
   const CouponInput({
@@ -35,8 +39,13 @@ class _CouponInputState extends State<CouponInput> {
     try {
       final applyError = await widget.onApplyCoupon(code);
       if (!mounted) return;
-      if (applyError != null && applyError.isNotEmpty) {
-        setState(() => errorMessage = applyError);
+      if (applyError != null) {
+        final uiModel = FailureUiModel.fromFailure(
+          applyError,
+          AppLocalizations.of(context)!,
+          preferredDisplayType: FailureDisplayType.inline,
+        );
+        setState(() => errorMessage = uiModel.message);
       } else {
         controller.clear();
       }

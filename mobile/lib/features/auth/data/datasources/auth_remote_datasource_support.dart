@@ -44,8 +44,9 @@ class _AuthRemoteSupport {
     required String fallbackMessage,
   }) {
     if (responseBody['success'] == true) return;
-    throw Exception(
-      responseBody['messageAr']?.toString() ??
+    throw ServerException(
+      message:
+          responseBody['messageAr']?.toString() ??
           responseBody['message']?.toString() ??
           fallbackMessage,
     );
@@ -54,7 +55,12 @@ class _AuthRemoteSupport {
   Never rethrowRegistrationError(Object error) {
     if (error is ServerException) {
       log('Registration failed: ${error.message}');
-      throw Exception(error.message);
+      throw ServerException(
+        message: error.message,
+        code: error.code,
+        originalError: error.originalError,
+        statusCode: error.statusCode,
+      );
     }
     log('Registration error: $error');
     throw error;

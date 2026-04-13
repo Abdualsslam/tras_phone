@@ -24,7 +24,10 @@ class _CatalogReviewsRemote {
       );
     }
 
-    throw Exception(responseData['messageAr'] ?? 'Failed to fetch reviews');
+    throw ServerException(
+      message:
+          responseData['messageAr']?.toString() ?? 'Failed to fetch reviews',
+    );
   }
 
   Future<ProductReviewModel?> getMyReview(String productId) async {
@@ -83,7 +86,9 @@ class _CatalogReviewsRemote {
       );
     }
 
-    throw Exception(responseData['messageAr'] ?? 'Failed to add review');
+    throw ServerException(
+      message: responseData['messageAr']?.toString() ?? 'Failed to add review',
+    );
   }
 
   Future<ProductReviewModel> updateReview({
@@ -114,6 +119,9 @@ class _CatalogReviewsRemote {
       );
     }
 
-    throw Exception(responseData['messageAr'] ?? 'Failed to update review');
+    throw ServerException(
+      message:
+          responseData['messageAr']?.toString() ?? 'Failed to update review',
+    );
   }
 }

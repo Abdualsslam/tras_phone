@@ -5,6 +5,7 @@ import 'dart:developer' as developer;
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/network/api_client.dart';
 import '../../domain/entities/banner_entity.dart';
 import '../../domain/entities/brand_entity.dart';

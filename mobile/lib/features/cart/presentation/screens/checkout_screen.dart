@@ -79,7 +79,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
           if (sessionState is CheckoutSessionLoaded) {
             _flowController.syncLoadedSession(sessionState.session);
           } else if (sessionState is CheckoutSessionCouponError) {
-            AppSnackbar.showError(context, sessionState.message);
+            AppSnackbar.showFailure(context, sessionState.failure);
           }
         },
         builder: (context, sessionState) {
@@ -95,7 +95,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>
               title: AppLocalizations.of(context)!.checkout,
               body: AppError(
                 title: 'حدث خطأ أثناء تحميل البيانات',
-                message: sessionState.message,
+                failure: sessionState.failure,
                 onRetry: () =>
                     context.read<CheckoutSessionCubit>().loadSession(),
               ),

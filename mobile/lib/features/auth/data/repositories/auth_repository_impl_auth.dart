@@ -10,24 +10,25 @@ class _AuthRepositoryAuthDelegate {
     required String phone,
     required String password,
   }) async {
-    try {
-      final authResponse = await _support.dataSource.login(
-        phone: phone,
-        password: password,
-      );
-      await _support.persistLogin(authResponse);
-
-      final savedToken = await _support.secureStorage.read(
-        StorageKeys.accessToken,
-      );
-      _support.log(
-        'Login: Token saved verification: ${savedToken != null && savedToken.isNotEmpty}',
-      );
-      return Right(authResponse.user.toEntity());
-    } catch (error) {
-      _support.log('Login error: $error', error: error);
-      return Left(_support.authFailure(error));
+    final result = await _support.guardEither(
+      () => _support.dataSource.login(phone: phone, password: password),
+      source: 'AuthRepository.login',
+    );
+    Failure? failure;
+    AuthResponse? authResponse;
+    result.fold((left) => failure = left, (right) => authResponse = right);
+    if (failure != null) {
+      return Left(_support.authFailure(failure!));
     }
+
+    await _support.persistLogin(authResponse!);
+    final savedToken = await _support.secureStorage.read(
+      StorageKeys.accessToken,
+    );
+    _support.log(
+      'Login: Token saved verification: ${savedToken != null && savedToken.isNotEmpty}',
+    );
+    return Right(authResponse!.user.toEntity());
   }
 
   Future<Either<Failure, UserEntity>> register({
@@ -40,8 +41,8 @@ class _AuthRepositoryAuthDelegate {
     String? cityId,
     String? businessType,
   }) async {
-    try {
-      final authResponse = await _support.dataSource.register(
+    final result = await _support.guardEither(
+      () => _support.dataSource.register(
         phone: phone,
         password: password,
         email: email,
@@ -50,24 +51,32 @@ class _AuthRepositoryAuthDelegate {
         shopNameAr: shopNameAr,
         cityId: cityId,
         businessType: businessType,
-      );
-      await _support.persistLogin(authResponse);
-      return Right(authResponse.user.toEntity());
-    } catch (error) {
-      return Left(_support.authFailure(error));
+      ),
+      source: 'AuthRepository.register',
+    );
+    Failure? failure;
+    AuthResponse? authResponse;
+    result.fold((left) => failure = left, (right) => authResponse = right);
+    if (failure != null) {
+      return Left(_support.authFailure(failure!));
     }
+
+    await _support.persistLogin(authResponse!);
+    return Right(authResponse!.user.toEntity());
   }
 
   Future<Either<Failure, void>> sendOtp({
     required String phone,
     required String purpose,
   }) async {
-    try {
-      await _support.dataSource.sendOtp(phone: phone, purpose: purpose);
-      return const Right(null);
-    } catch (error) {
-      return Left(_support.serverFailure(error));
-    }
+    final result = await _support.guardEither(
+      () => _support.dataSource.sendOtp(phone: phone, purpose: purpose),
+      source: 'AuthRepository.sendOtp',
+    );
+    return result.fold(
+      (failure) => Left(_support.serverFailure(failure)),
+      (_) => const Right(null),
+    );
   }
 
   Future<Either<Failure, bool>> verifyOtp({
@@ -75,86 +84,102 @@ class _AuthRepositoryAuthDelegate {
     required String otp,
     required String purpose,
   }) async {
-    try {
-      final result = await _support.dataSource.verifyOtp(
+    final result = await _support.guardEither(
+      () => _support.dataSource.verifyOtp(
         phone: phone,
         otp: otp,
         purpose: purpose,
-      );
-      return Right(result);
-    } catch (error) {
-      return Left(_support.validationFailure(error));
-    }
+      ),
+      source: 'AuthRepository.verifyOtp',
+    );
+    return result.fold(
+      (failure) => Left(_support.validationFailure(failure)),
+      Right.new,
+    );
   }
 
   Future<Either<Failure, String>> forgotPassword({
     required String phone,
     String? customerNotes,
   }) async {
-    try {
-      final requestNumber = await _support.dataSource.forgotPassword(
+    final result = await _support.guardEither(
+      () => _support.dataSource.forgotPassword(
         phone: phone,
         customerNotes: customerNotes,
-      );
-      return Right(requestNumber);
-    } catch (error) {
-      return Left(_support.serverFailure(error));
-    }
+      ),
+      source: 'AuthRepository.forgotPassword',
+    );
+    return result.fold(
+      (failure) => Left(_support.serverFailure(failure)),
+      Right.new,
+    );
   }
 
   Future<Either<Failure, String>> verifyResetOtp({
     required String phone,
     required String otp,
   }) async {
-    try {
-      final resetToken = await _support.dataSource.verifyResetOtp(
+    final result = await _support.guardEither(
+      () => _support.dataSource.verifyResetOtp(
         phone: phone,
         otp: otp,
-      );
-      return Right(resetToken);
-    } catch (error) {
-      return Left(_support.validationFailure(error));
-    }
+      ),
+      source: 'AuthRepository.verifyResetOtp',
+    );
+    return result.fold(
+      (failure) => Left(_support.validationFailure(failure)),
+      Right.new,
+    );
   }
 
   Future<Either<Failure, bool>> resetPassword({
     required String resetToken,
     required String newPassword,
   }) async {
-    try {
-      final result = await _support.dataSource.resetPassword(
+    final result = await _support.guardEither(
+      () => _support.dataSource.resetPassword(
         resetToken: resetToken,
         newPassword: newPassword,
-      );
-      return Right(result);
-    } catch (error) {
-      return Left(_support.serverFailure(error));
-    }
+      ),
+      source: 'AuthRepository.resetPassword',
+    );
+    return result.fold(
+      (failure) => Left(_support.serverFailure(failure)),
+      Right.new,
+    );
   }
 
   Future<Either<Failure, UserEntity>> getProfile() async {
-    try {
-      final user = await _support.dataSource.getProfile();
-      await _support.saveUserToStorage(user);
-      return Right(user.toEntity());
-    } catch (error) {
-      return Left(_support.authFailure(error));
+    final result = await _support.guardEither(
+      _support.dataSource.getProfile,
+      source: 'AuthRepository.getProfile',
+    );
+    Failure? failure;
+    UserModel? user;
+    result.fold((left) => failure = left, (right) => user = right);
+    if (failure != null) {
+      return Left(_support.authFailure(failure!));
     }
+
+    await _support.saveUserToStorage(user!);
+    return Right(user!.toEntity());
   }
 
   Future<Either<Failure, bool>> changePassword({
     required String oldPassword,
     required String newPassword,
   }) async {
-    try {
-      final result = await _support.dataSource.changePassword(
+    final result = await _support.guardEither(
+      () => _support.dataSource.changePassword(
         oldPassword: oldPassword,
         newPassword: newPassword,
-      );
-      return Right(result);
-    } catch (error) {
-      return Left(_support.validationFailure(error));
-    }
+      ),
+      source: 'AuthRepository.changePassword',
+    );
+    return result.fold(
+      (failure) => Left(_support.validationFailure(failure)),
+      Right.new,
+    );
   }
 
   Future<Either<Failure, void>> logout() async {

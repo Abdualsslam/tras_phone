@@ -10,6 +10,7 @@ import '../../../features/catalog/presentation/cubit/brands_cubit.dart';
 import '../../../features/catalog/presentation/cubit/categories_cubit.dart';
 import '../../../features/catalog/presentation/cubit/devices_cubit.dart';
 import '../../../features/catalog/presentation/cubit/quality_types_cubit.dart';
+import '../../errors/repository_guard.dart';
 import '../../network/api_client.dart';
 
 void registerCatalogDependencies(GetIt getIt) {
@@ -21,6 +22,7 @@ void registerCatalogDependencies(GetIt getIt) {
     () => CatalogRepositoryImpl(
       remoteDataSource: getIt<CatalogRemoteDataSource>(),
       cacheService: getIt<ProductCacheService>(),
+      repositoryGuard: getIt<RepositoryGuard>(),
     ),
   );
 

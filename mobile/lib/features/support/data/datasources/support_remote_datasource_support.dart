@@ -37,8 +37,9 @@ class _SupportRemoteSupport {
     if (payload['success'] == true) return payload;
 
     final outer = extractMap(raw);
-    throw Exception(
-      payload['messageAr']?.toString() ??
+    throw ServerException(
+      message:
+          payload['messageAr']?.toString() ??
           payload['message']?.toString() ??
           outer['messageAr']?.toString() ??
           outer['message']?.toString() ??

@@ -13,7 +13,7 @@ class _SupportRemoteUploadsDelegate {
     for (final path in filePaths) {
       final file = File(path);
       if (!await file.exists()) {
-        throw Exception('File does not exist: $path');
+        throw NotFoundException(message: 'File does not exist: $path');
       }
       files.add(file);
     }
@@ -30,8 +30,9 @@ class _SupportRemoteUploadsDelegate {
       return urls.map((url) => url.toString()).toList();
     }
 
-    throw Exception(
-      _support.extractMap(response.data)['messageAr'] ??
+    throw ServerException(
+      message:
+          _support.extractMap(response.data)['messageAr'] ??
           _support.extractMap(response.data)['message'] ??
           'Failed to upload files',
     );

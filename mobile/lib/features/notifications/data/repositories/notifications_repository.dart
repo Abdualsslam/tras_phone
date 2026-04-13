@@ -4,6 +4,7 @@ library;
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/errors/failures.dart';
+import '../../../../core/errors/repository_guard.dart';
 import '../../domain/enums/notification_enums.dart';
 import '../../domain/repositories/notifications_repository.dart';
 import '../datasources/notifications_remote_datasource.dart';
@@ -16,8 +17,9 @@ part 'notifications_repository_settings.dart';
 
 class NotificationsRepositoryImpl implements NotificationsRepository {
   final NotificationsRemoteDataSource _remoteDataSource;
+  final RepositoryGuard _repositoryGuard;
   late final _NotificationsRepositorySupport _support =
-      _NotificationsRepositorySupport();
+      _NotificationsRepositorySupport(repositoryGuard: _repositoryGuard);
   late final _NotificationsRepositoryCrudDelegate _notifications =
       _NotificationsRepositoryCrudDelegate(
         remoteDataSource: _remoteDataSource,
@@ -31,7 +33,9 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
 
   NotificationsRepositoryImpl({
     required NotificationsRemoteDataSource remoteDataSource,
-  }) : _remoteDataSource = remoteDataSource;
+    required RepositoryGuard repositoryGuard,
+  }) : _remoteDataSource = remoteDataSource,
+       _repositoryGuard = repositoryGuard;
 
   @override
   Future<Either<Failure, NotificationsResponse>> getMyNotifications({

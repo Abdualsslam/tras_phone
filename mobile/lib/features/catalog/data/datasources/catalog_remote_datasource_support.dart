@@ -134,7 +134,9 @@ class _CatalogRemoteSupport {
         return ProductsResponse.fromJson(responseData);
       }
 
-      throw Exception(responseData['messageAr'] ?? failureMessage);
+      throw ServerException(
+        message: responseData['messageAr']?.toString() ?? failureMessage,
+      );
     }
 
     if (responseData is List) {
@@ -149,6 +151,6 @@ class _CatalogRemoteSupport {
       });
     }
 
-    throw Exception(failureMessage);
+    throw ServerException(message: failureMessage);
   }
 }

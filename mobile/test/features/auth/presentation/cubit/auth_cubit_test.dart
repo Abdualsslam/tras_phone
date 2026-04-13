@@ -246,7 +246,7 @@ void main() {
       act: (cubit) => cubit.login(phone: '+966500000000', password: 'wrong'),
       expect: () => [
         isA<AuthLoading>(),
-        const AuthError('Invalid credentials'),
+        const AuthError(AuthFailure(message: 'Invalid credentials')),
       ],
     );
   });
@@ -298,7 +298,7 @@ void main() {
           cubit.register(phone: '+966500000000', password: 'pass123'),
       expect: () => [
         isA<AuthLoading>(),
-        const AuthError('Phone already exists'),
+        const AuthError(ServerFailure(message: 'Phone already exists')),
       ],
     );
   });
@@ -338,7 +338,10 @@ void main() {
       },
       act: (cubit) =>
           cubit.sendOtp(phone: '+966500000000', purpose: 'registration'),
-      expect: () => [isA<AuthLoading>(), const AuthError('OTP failed')],
+      expect: () => [
+        isA<AuthLoading>(),
+        const AuthError(ServerFailure(message: 'OTP failed')),
+      ],
     );
   });
 
@@ -385,7 +388,10 @@ void main() {
         otp: '0000',
         purpose: 'registration',
       ),
-      expect: () => [isA<AuthLoading>(), const AuthError('Invalid OTP')],
+      expect: () => [
+        isA<AuthLoading>(),
+        const AuthError(AuthFailure(message: 'Invalid OTP')),
+      ],
     );
   });
 
@@ -414,7 +420,10 @@ void main() {
         return createCubit();
       },
       act: (cubit) => cubit.logout(),
-      expect: () => [isA<AuthLoading>(), const AuthError('Logout failed')],
+      expect: () => [
+        isA<AuthLoading>(),
+        const AuthError(ServerFailure(message: 'Logout failed')),
+      ],
     );
   });
 
@@ -451,7 +460,10 @@ void main() {
         return createCubit();
       },
       act: (cubit) => cubit.forgotPassword(phone: '+966500000000'),
-      expect: () => [isA<AuthLoading>(), const AuthError('Not found')],
+      expect: () => [
+        isA<AuthLoading>(),
+        const AuthError(ServerFailure(message: 'Not found')),
+      ],
     );
   });
 
@@ -491,7 +503,10 @@ void main() {
         return createCubit();
       },
       act: (cubit) => cubit.verifyResetOtp(phone: '+966500000000', otp: '0000'),
-      expect: () => [isA<AuthLoading>(), const AuthError('Invalid OTP')],
+      expect: () => [
+        isA<AuthLoading>(),
+        const AuthError(AuthFailure(message: 'Invalid OTP')),
+      ],
     );
   });
 
@@ -532,7 +547,7 @@ void main() {
       ),
       expect: () => [
         isA<AuthLoading>(),
-        const AuthError('Invalid reset token'),
+        const AuthError(ServerFailure(message: 'Invalid reset token')),
       ],
     );
   });
@@ -572,7 +587,7 @@ void main() {
           cubit.changePassword(oldPassword: 'wrong', newPassword: 'new'),
       expect: () => [
         isA<AuthLoading>(),
-        const AuthError('Wrong current password'),
+        const AuthError(AuthFailure(message: 'Wrong current password')),
       ],
     );
   });
@@ -602,7 +617,10 @@ void main() {
         return createCubit();
       },
       act: (cubit) => cubit.getSessions(),
-      expect: () => [isA<AuthLoading>(), const AuthError('Unauthorized')],
+      expect: () => [
+        isA<AuthLoading>(),
+        const AuthError(ServerFailure(message: 'Unauthorized')),
+      ],
     );
   });
 
@@ -636,7 +654,10 @@ void main() {
         return createCubit();
       },
       act: (cubit) => cubit.deleteSession('bad-id'),
-      expect: () => [isA<AuthLoading>(), const AuthError('Not found')],
+      expect: () => [
+        isA<AuthLoading>(),
+        const AuthError(ServerFailure(message: 'Not found')),
+      ],
     );
   });
 

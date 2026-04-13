@@ -4,12 +4,14 @@ class _AuthRepositorySupport {
   final AuthRemoteDataSource dataSource;
   final LocalStorage localStorage;
   final SecureStorage secureStorage;
+  final RepositoryGuard repositoryGuard;
   UserModel? _cachedUser;
 
   _AuthRepositorySupport({
     required this.dataSource,
     required this.localStorage,
     required this.secureStorage,
+    required this.repositoryGuard,
   });
 
   void log(String message, {Object? error}) {
@@ -129,11 +131,23 @@ class _AuthRepositorySupport {
     return _cachedUser?.toEntity();
   }
 
-  Failure authFailure(Object error) => AuthFailure(message: error.toString());
+  Future<Either<Failure, T>> guardEither<T>(
+    Future<T> Function() operation, {
+    required String source,
+  }) => repositoryGuard.guardEither(operation, source: source);
 
-  Failure serverFailure(Object error) =>
-      ServerFailure(message: error.toString());
+  Failure authFailure(Failure failure) =>
+      failure is AuthFailure
+          ? failure
+          : AuthFailure(message: failure.message, code: failure.code);
 
-  Failure validationFailure(Object error) =>
-      ValidationFailure(message: error.toString());
+  Failure serverFailure(Failure failure) =>
+      failure is ServerFailure
+          ? failure
+          : ServerFailure(message: failure.message, code: failure.code);
+
+  Failure validationFailure(Failure failure) =>
+      failure is ValidationFailure
+          ? failure
+          : ValidationFailure(message: failure.message, code: failure.code);
 }

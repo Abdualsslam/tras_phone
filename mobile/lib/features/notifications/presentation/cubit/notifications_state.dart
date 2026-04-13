@@ -1,6 +1,7 @@
 // Notifications States - State classes for NotificationsCubit
 
 import 'package:equatable/equatable.dart';
+import '../../../../core/errors/failures.dart';
 import '../../data/models/notification_model.dart';
 import '../../domain/enums/notification_enums.dart';
 
@@ -81,10 +82,10 @@ class NotificationsLoaded extends NotificationsState {
 
 /// Error state
 class NotificationsError extends NotificationsState {
-  final String message;
+  final Failure failure;
 
-  const NotificationsError({required this.message});
+  const NotificationsError({required this.failure});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [failure];
 }

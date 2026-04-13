@@ -47,7 +47,7 @@ class _BiometricLoginScreenState extends State<BiometricLoginScreen> {
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.message),
+              content: Text(state.failure.message),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
             ),

@@ -8,6 +8,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/constants/storage_keys.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/errors/repository_guard.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../domain/entities/session_entity.dart';
@@ -25,10 +26,12 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _dataSource;
   final LocalStorage _localStorage;
   final SecureStorage _secureStorage;
+  final RepositoryGuard _repositoryGuard;
   late final _AuthRepositorySupport _support = _AuthRepositorySupport(
     dataSource: _dataSource,
     localStorage: _localStorage,
     secureStorage: _secureStorage,
+    repositoryGuard: _repositoryGuard,
   );
   late final _AuthRepositoryAuthDelegate _auth = _AuthRepositoryAuthDelegate(
     support: _support,
@@ -40,9 +43,11 @@ class AuthRepositoryImpl implements AuthRepository {
     required AuthRemoteDataSource dataSource,
     required LocalStorage localStorage,
     required SecureStorage secureStorage,
+    required RepositoryGuard repositoryGuard,
   }) : _dataSource = dataSource,
        _localStorage = localStorage,
-       _secureStorage = secureStorage;
+       _secureStorage = secureStorage,
+       _repositoryGuard = repositoryGuard;
 
   @override
   Future<bool> isLoggedIn() => _support.isLoggedIn();

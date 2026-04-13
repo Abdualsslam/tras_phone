@@ -2,8 +2,12 @@ library;
 
 import 'package:get_it/get_it.dart';
 
+import '../../cubit/app_bloc_observer.dart';
 import '../../cache/hive_cache_service.dart';
 import '../../config/app_config.dart';
+import '../../errors/app_error_reporter.dart';
+import '../../errors/app_failure_mapper.dart';
+import '../../errors/repository_guard.dart';
 import '../../network/api_client.dart';
 import '../../network/network_info.dart';
 import '../../network/token_manager.dart';
@@ -18,6 +22,20 @@ Future<void> registerCoreDependencies(
   GetIt getIt, {
   required Future<void> Function() onForcedLogout,
 }) async {
+  getIt.registerLazySingleton<AppErrorReporter>(
+    () => const DeveloperAppErrorReporter(),
+  );
+  getIt.registerLazySingleton<AppFailureMapper>(AppFailureMapper.new);
+  getIt.registerLazySingleton<RepositoryGuard>(
+    () => RepositoryGuard(
+      mapper: getIt<AppFailureMapper>(),
+      reporter: getIt<AppErrorReporter>(),
+    ),
+  );
+  getIt.registerLazySingleton<AppBlocObserver>(
+    () => AppBlocObserver(errorReporter: getIt<AppErrorReporter>()),
+  );
+
   final localStorage = LocalStorage();
   await localStorage.init();
   getIt.registerSingleton<LocalStorage>(localStorage);

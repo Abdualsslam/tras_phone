@@ -2,16 +2,17 @@ part of 'catalog_repository_impl.dart';
 
 class _CatalogRepositorySupport {
   final ProductCacheService? cacheService;
+  final RepositoryGuard repositoryGuard;
 
-  const _CatalogRepositorySupport({required this.cacheService});
+  const _CatalogRepositorySupport({
+    required this.cacheService,
+    required this.repositoryGuard,
+  });
 
-  Future<Either<Failure, T>> guard<T>(Future<T> Function() operation) async {
-    try {
-      return Right(await operation());
-    } catch (error) {
-      return Left(ServerFailure(message: error.toString()));
-    }
-  }
+  Future<Either<Failure, T>> guard<T>(
+    Future<T> Function() operation, {
+    String source = 'CatalogRepository',
+  }) => repositoryGuard.guardEither(operation, source: source);
 
   Either<Failure, T> notFound<T>(String message) {
     return Left(NotFoundFailure(message: message));

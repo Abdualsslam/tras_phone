@@ -2,16 +2,20 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:iconsax/iconsax.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:iconsax/iconsax.dart';
+
+import '../../../l10n/app_localizations.dart';
 import '../../config/theme/app_colors.dart';
+import '../../errors/failure_ui_model.dart';
+import '../../errors/failures.dart';
 
 class AppSnackbar {
   static void showNetworkError(BuildContext context) {
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final title = isArabic ? 'لا يوجد اتصال' : 'No Connection';
-    final message = isArabic 
-        ? 'تحقق من اتصالك بالإنترنت وحاول مرة أخرى' 
+    final message = isArabic
+        ? 'تحقق من اتصالك بالإنترنت وحاول مرة أخرى'
         : 'Please check your internet connection and try again';
 
     _show(
@@ -31,13 +35,30 @@ class AppSnackbar {
       return;
     }
 
-    final cleanMsg = _cleanMessage(message);
+    _show(
+      context,
+      message: _cleanMessage(message),
+      icon: Iconsax.warning_2,
+      backgroundColor: AppColors.error,
+    );
+  }
+
+  static void showFailure(BuildContext context, Failure failure) {
+    final uiModel = FailureUiModel.fromFailure(
+      failure,
+      AppLocalizations.of(context)!,
+      preferredDisplayType: FailureDisplayType.snackbar,
+    );
 
     _show(
       context,
-      message: cleanMsg,
-      icon: Iconsax.warning_2,
-      backgroundColor: AppColors.error,
+      title: uiModel.title,
+      message: _cleanMessage(uiModel.message),
+      icon: uiModel.isNetworkRelated ? Icons.wifi_off_rounded : Iconsax.warning_2,
+      backgroundColor:
+          uiModel.isNetworkRelated ? AppColors.warning : AppColors.error,
+      textColor: uiModel.isNetworkRelated ? Colors.black87 : Colors.white,
+      iconColor: uiModel.isNetworkRelated ? Colors.black87 : Colors.white,
     );
   }
 
@@ -52,37 +73,41 @@ class AppSnackbar {
 
   static bool _isNetworkError(String message) {
     final lower = message.toLowerCase();
-    return lower.contains('network_error') || 
-           lower.contains('socketexception') ||
-           lower.contains('لا يوجد اتصال') ||
-           lower.contains('network failure') ||
-           lower.contains('no internet') ||
-           lower.contains('failed host lookup') ||
-           lower.contains('networkexception');
+    return lower.contains('network_error') ||
+        lower.contains('socketexception') ||
+        lower.contains('لا يوجد اتصال') ||
+        lower.contains('network failure') ||
+        lower.contains('no internet') ||
+        lower.contains('failed host lookup') ||
+        lower.contains('networkexception');
   }
 
   static String _cleanMessage(String message) {
-    String clean = message;
-    
-    // Remove exception prefixes
+    var clean = message;
+
     final prefixes = [
-      'AppException:', 'ServerException:', 'NetworkException:', 
-      'CacheException:', 'AuthException:', 'UnauthorizedException:', 
-      'ConflictException:', 'ValidationException:', 'Exception:', 'Failure:'
+      'AppException:',
+      'ServerException:',
+      'NetworkException:',
+      'CacheException:',
+      'AuthException:',
+      'UnauthorizedException:',
+      'ConflictException:',
+      'ValidationException:',
+      'Exception:',
+      'Failure:',
     ];
     for (final prefix in prefixes) {
       if (clean.contains(prefix)) {
         clean = clean.split(prefix).last.trim();
-        break; // Only remove the first matched prefix
+        break;
       }
     }
 
-    // Remove code suffix like (code: NETWORK_ERROR)
     if (clean.contains('(code:')) {
       clean = clean.split('(code:').first.trim();
     }
 
-    // Remove generic "Exception: " at the beginning if present
     if (clean.startsWith('Exception: ')) {
       clean = clean.substring(11).trim();
     }
@@ -99,9 +124,8 @@ class AppSnackbar {
     Color textColor = Colors.white,
     Color iconColor = Colors.white,
   }) {
-    // Hide current snackbar if any
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -136,7 +160,8 @@ class AppSnackbar {
                     message,
                     style: TextStyle(
                       fontSize: 14.sp,
-                      fontWeight: title != null ? FontWeight.w500 : FontWeight.w600,
+                      fontWeight:
+                          title != null ? FontWeight.w500 : FontWeight.w600,
                       color: textColor,
                     ),
                     maxLines: 2,
@@ -149,12 +174,10 @@ class AppSnackbar {
         ),
         backgroundColor: backgroundColor,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-        margin: EdgeInsets.only(
-          bottom: 20.h,
-          left: 16.w,
-          right: 16.w,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
         ),
+        margin: EdgeInsets.only(bottom: 20.h, left: 16.w, right: 16.w),
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         duration: const Duration(seconds: 4),
         elevation: 6,

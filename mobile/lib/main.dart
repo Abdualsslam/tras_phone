@@ -2,61 +2,87 @@
 library;
 
 import 'dart:async';
+import 'dart:ui';
 
+import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'app.dart';
+import 'core/cubit/app_bloc_observer.dart';
 import 'core/di/injection.dart';
+import 'core/errors/app_error_reporter.dart';
 import 'core/security/app_security_service.dart';
 import 'features/notifications/services/push_notification_manager.dart';
 
-void main() async {
-  // Ensure Flutter bindings are initialized
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Hive for caching
-  await Hive.initFlutter();
+  await runZonedGuarded(() async {
+    await Hive.initFlutter();
 
-  // Initialize Firebase
-  // Note: Make sure to add google-services.json (Android) and GoogleService-Info.plist (iOS)
-  // from Firebase Console to the respective platform directories
-  try {
-    await Firebase.initializeApp();
+    try {
+      await Firebase.initializeApp();
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    } catch (error) {
+      debugPrint('Firebase initialization failed: $error');
+      debugPrint(
+        'Note: Add Firebase configuration files to enable push notifications',
+      );
+    }
 
-    // Register background message handler
-    // This must be a top-level function (defined in push_notification_manager.dart)
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  } catch (e) {
-    // Firebase initialization failed - log error but continue app startup
-    // This allows the app to work without Firebase if configuration files are missing
-    debugPrint('Firebase initialization failed: $e');
-    debugPrint(
-      'Note: Add Firebase configuration files to enable push notifications',
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
     );
-  }
 
-  // Set preferred orientations
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+    await setupDependencies();
 
-  // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      statusBarBrightness: Brightness.light,
-    ),
-  );
+    final errorReporter = getIt<AppErrorReporter>();
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      errorReporter.recordError(
+        details.exception,
+        details.stack ?? StackTrace.current,
+        source: 'FlutterError',
+        fatal: true,
+      );
+    };
 
-  // Setup dependency injection
-  await setupDependencies();
-  unawaited(getIt<AppSecurityService>().warmUpIntegrityProvider());
+    PlatformDispatcher.instance.onError = (error, stackTrace) {
+      errorReporter.recordError(
+        error,
+        stackTrace,
+        source: 'PlatformDispatcher',
+        fatal: true,
+      );
+      return true;
+    };
 
-  // Run the app
-  runApp(const TrasPhoneApp());
+    unawaited(getIt<AppSecurityService>().warmUpIntegrityProvider());
+    Bloc.observer = getIt<AppBlocObserver>();
+    runApp(const TrasPhoneApp());
+  }, (error, stackTrace) {
+    if (getIt.isRegistered<AppErrorReporter>()) {
+      getIt<AppErrorReporter>().recordError(
+        error,
+        stackTrace,
+        source: 'runZonedGuarded',
+        fatal: true,
+      );
+      return;
+    }
+
+    debugPrint('Unhandled startup error: $error');
+  });
 }

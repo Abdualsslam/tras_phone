@@ -4,10 +4,11 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
+
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/shimmer/index.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/enums/notification_enums.dart';
 import '../cubit/notifications_cubit.dart';
@@ -28,7 +29,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    // Load notifications on init
     context.read<NotificationsCubit>().loadNotifications();
   }
 
@@ -80,7 +80,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           if (state is NotificationsError) {
-            return _buildErrorState(context, theme, state.message);
+            return AppError(
+              failure: state.failure,
+              onRetry: () => context.read<NotificationsCubit>().refresh(),
+            );
           }
 
           if (state is NotificationsLoaded) {
@@ -159,70 +162,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildErrorState(
-    BuildContext context,
-    ThemeData theme,
-    String message,
-  ) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Iconsax.warning_2, size: 80.sp, color: AppColors.error),
-            SizedBox(height: 24.h),
-            Text(
-              'حدث خطأ',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.textTertiaryLight,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 24.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    context.read<NotificationsCubit>().refresh();
-                  },
-                  icon: const Icon(Iconsax.refresh),
-                  label: const Text('إعادة المحاولة'),
-                ),
-                SizedBox(width: 12.w),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    // Try to load with default settings
-                    context.read<NotificationsCubit>().loadNotifications();
-                  },
-                  icon: const Icon(Iconsax.refresh_circle),
-                  label: const Text('إعادة التحميل'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _handleNotificationTap(BuildContext context, notification) {
-    // Mark as read if not already
     if (!notification.isRead) {
       context.read<NotificationsCubit>().markAsRead(notification.id);
     }
 
-    // Navigate based on action type
     if (notification.hasAction) {
       switch (notification.actionTypeEnum) {
         case NotificationActionType.order:
@@ -241,7 +185,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
           break;
         case NotificationActionType.url:
-          // Handle URL action - could use url_launcher
           break;
         case null:
           break;

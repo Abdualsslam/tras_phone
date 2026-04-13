@@ -62,8 +62,11 @@ class _SupportRemoteTicketsDelegate {
     final messagesJson = dataMap['messages'];
 
     if (ticketData is! Map) {
-      throw Exception(
-        payload['messageAr'] ?? payload['message'] ?? 'Invalid ticket response',
+      throw ServerException(
+        message:
+            payload['messageAr'] ??
+            payload['message'] ??
+            'Invalid ticket response',
       );
     }
 
@@ -102,8 +105,11 @@ class _SupportRemoteTicketsDelegate {
     );
     final data = payload['data'];
     if (data is! Map) {
-      throw Exception(
-        payload['messageAr'] ?? payload['message'] ?? 'Invalid ticket response',
+      throw ServerException(
+        message:
+            payload['messageAr'] ??
+            payload['message'] ??
+            'Invalid ticket response',
       );
     }
 
@@ -131,8 +137,9 @@ class _SupportRemoteTicketsDelegate {
     );
     final data = payload['data'];
     if (data is! Map) {
-      throw Exception(
-        payload['messageAr'] ??
+      throw ServerException(
+        message:
+            payload['messageAr'] ??
             payload['message'] ??
             'Invalid message response',
       );

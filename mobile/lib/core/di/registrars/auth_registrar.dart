@@ -9,6 +9,7 @@ import '../../../features/auth/domain/services/auth_device_info_service.dart';
 import '../../../features/auth/domain/services/auth_lifecycle_coordinator.dart';
 import '../../../features/auth/domain/services/auth_notification_navigation_service.dart';
 import '../../../features/auth/presentation/cubit/auth_cubit.dart';
+import '../../errors/repository_guard.dart';
 import '../../network/api_client.dart';
 import '../../network/token_manager.dart';
 import '../../security/app_security_service.dart';
@@ -35,6 +36,7 @@ void registerAuthDependencies(GetIt getIt) {
       dataSource: getIt<AuthRemoteDataSource>(),
       localStorage: getIt<LocalStorage>(),
       secureStorage: getIt<SecureStorage>(),
+      repositoryGuard: getIt<RepositoryGuard>(),
     ),
   );
 

@@ -39,6 +39,6 @@ class _LocationsRemoteSupport {
         map['success'] == false ||
         (allowStatusError && map['status'] == 'error');
     if (!failed) return;
-    throw Exception(errorMessage(raw, fallbackMessage));
+    throw ServerException(message: errorMessage(raw, fallbackMessage));
   }
 }

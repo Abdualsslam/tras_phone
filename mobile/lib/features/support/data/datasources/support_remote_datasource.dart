@@ -6,6 +6,7 @@ import 'dart:developer' as developer;
 import 'dart:io';
 
 import '../../../../core/constants/api_endpoints.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/network/api_client.dart';
 import '../helpers/file_upload_helper.dart';
 import '../models/support_model.dart';

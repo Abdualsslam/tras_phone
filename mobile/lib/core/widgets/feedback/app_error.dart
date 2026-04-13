@@ -4,46 +4,60 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:iconsax/iconsax.dart';
+
+import '../../../l10n/app_localizations.dart';
 import '../../config/theme/app_colors.dart';
+import '../../errors/failure_ui_model.dart';
+import '../../errors/failures.dart';
 import '../buttons/app_button.dart';
 
 /// Full page error state
 class AppError extends StatelessWidget {
   final String? title;
-  final String message;
+  final String? message;
   final String? buttonText;
   final VoidCallback? onRetry;
   final IconData? icon;
+  final Failure? failure;
 
   const AppError({
     super.key,
     this.title,
-    required this.message,
+    this.message,
     this.buttonText,
     this.onRetry,
     this.icon,
-  });
+    this.failure,
+  }) : assert(
+         message != null || failure != null,
+         'Either message or failure must be provided.',
+       );
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final isNetwork = message.toLowerCase().contains('network') || 
-                      message.contains('اتصال') || 
-                      message.toLowerCase().contains('internet') ||
-                      message.toLowerCase().contains('socketexception') ||
-                      message.toLowerCase().contains('no connection');
-
-    final displayIcon = isNetwork ? Icons.wifi_off_rounded : (icon ?? Iconsax.warning_2);
+    final l10n = AppLocalizations.of(context)!;
+    final uiModel = failure == null
+        ? null
+        : FailureUiModel.fromFailure(failure!, l10n);
+    final resolvedMessage = uiModel?.message ?? _cleanMessage(message!);
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
-    final displayTitle = isNetwork ? (isArabic ? 'لا يوجد اتصال' : 'No Connection') : title;
-    final displayMessage = isNetwork 
-        ? (isArabic ? 'تحقق من اتصالك بالإنترنت وحاول مرة أخرى' : 'Please check your internet connection and try again') 
-        : _cleanMessage(message);
-    final displayButtonText = isNetwork 
-        ? (isArabic ? 'إعادة المحاولة' : 'Try Again') 
-        : (buttonText ?? (isArabic ? 'إعادة المحاولة' : 'Try Again'));
-    final containerColor = isNetwork ? AppColors.warning.withValues(alpha: 0.1) : AppColors.error.withValues(alpha: 0.1);
+    final isNetwork = uiModel?.isNetworkRelated == true ||
+        resolvedMessage.toLowerCase().contains('network') ||
+        resolvedMessage.contains('اتصال') ||
+        resolvedMessage.toLowerCase().contains('internet') ||
+        resolvedMessage.toLowerCase().contains('socketexception') ||
+        resolvedMessage.toLowerCase().contains('no connection');
+
+    final displayIcon =
+        isNetwork ? Icons.wifi_off_rounded : (icon ?? Iconsax.warning_2);
+    final displayTitle =
+        title ?? uiModel?.title ?? (isArabic ? 'حدث خطأ' : 'Error');
+    final displayButtonText =
+        buttonText ?? uiModel?.retryLabel ?? l10n.retryAction;
+    final containerColor = isNetwork
+        ? AppColors.warning.withValues(alpha: 0.1)
+        : AppColors.error.withValues(alpha: 0.1);
     final iconColor = isNetwork ? AppColors.warning : AppColors.error;
 
     return Center(
@@ -59,29 +73,23 @@ class AppError extends StatelessWidget {
                 color: containerColor,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                displayIcon,
-                size: 40.sp,
-                color: iconColor,
-              ),
+              child: Icon(displayIcon, size: 40.sp, color: iconColor),
             ),
             SizedBox(height: 24.h),
-            if (displayTitle != null) ...[
-              Text(
-                displayTitle,
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textPrimaryLight,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 8.h),
-            ],
             Text(
-              displayMessage,
+              displayTitle,
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w600,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              resolvedMessage,
               style: TextStyle(
                 fontSize: 15.sp,
                 color: isDark
@@ -107,12 +115,18 @@ class AppError extends StatelessWidget {
   }
 
   static String _cleanMessage(String message) {
-    String clean = message;
-    
+    var clean = message;
     final prefixes = [
-      'AppException:', 'ServerException:', 'NetworkException:', 
-      'CacheException:', 'AuthException:', 'UnauthorizedException:', 
-      'ConflictException:', 'ValidationException:', 'Exception:', 'Failure:'
+      'AppException:',
+      'ServerException:',
+      'NetworkException:',
+      'CacheException:',
+      'AuthException:',
+      'UnauthorizedException:',
+      'ConflictException:',
+      'ValidationException:',
+      'Exception:',
+      'Failure:',
     ];
     for (final prefix in prefixes) {
       if (clean.contains(prefix)) {
@@ -141,13 +155,9 @@ class NetworkError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     return AppError(
       icon: Icons.wifi_off_rounded,
-      title: isArabic ? 'لا يوجد اتصال' : 'No Connection',
-      message: isArabic 
-          ? 'تحقق من اتصالك بالإنترنت وحاول مرة أخرى' 
-          : 'Please check your internet connection and try again',
+      failure: const NetworkFailure(),
       onRetry: onRetry,
     );
   }

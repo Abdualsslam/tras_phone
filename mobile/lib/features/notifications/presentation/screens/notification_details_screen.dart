@@ -7,8 +7,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../../../core/config/theme/app_colors.dart';
-import '../../../../core/shimmer/index.dart';
+import '../../../../core/errors/failures.dart';
+import '../../../../core/widgets/widgets.dart';
 import '../../data/models/notification_model.dart';
 import '../../domain/enums/notification_enums.dart';
 import '../../domain/repositories/notifications_repository.dart';
@@ -20,13 +22,14 @@ class NotificationDetailsScreen extends StatefulWidget {
   const NotificationDetailsScreen({super.key, required this.notificationId});
 
   @override
-  State<NotificationDetailsScreen> createState() => _NotificationDetailsScreenState();
+  State<NotificationDetailsScreen> createState() =>
+      _NotificationDetailsScreenState();
 }
 
 class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
   NotificationModel? _notification;
   bool _isLoading = true;
-  String? _errorMessage;
+  Failure? _failure;
 
   @override
   void initState() {
@@ -37,38 +40,32 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
   Future<void> _loadNotification() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
+      _failure = null;
     });
 
-    try {
-      final repository = context.read<NotificationsRepository>();
-      final result = await repository.getNotificationById(widget.notificationId);
+    final repository = context.read<NotificationsRepository>();
+    final result = await repository.getNotificationById(widget.notificationId);
 
-      result.fold(
-        (failure) {
-          setState(() {
-            _errorMessage = failure.message;
-            _isLoading = false;
-          });
-        },
-        (notification) {
-          setState(() {
-            _notification = notification;
-            _isLoading = false;
-          });
+    result.fold(
+      (failure) {
+        if (!mounted) return;
+        setState(() {
+          _failure = failure;
+          _isLoading = false;
+        });
+      },
+      (notification) {
+        if (!mounted) return;
+        setState(() {
+          _notification = notification;
+          _isLoading = false;
+        });
 
-          // Mark as read if not already read
-          if (!notification.isRead) {
-            context.read<NotificationsCubit>().markAsRead(notification.id);
-          }
-        },
-      );
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
-    }
+        if (!notification.isRead) {
+          context.read<NotificationsCubit>().markAsRead(notification.id);
+        }
+      },
+    );
   }
 
   @override
@@ -89,56 +86,15 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
       ),
       body: _isLoading
           ? const NotificationDetailsShimmer()
-          : _errorMessage != null
-              ? _buildErrorState(context, isDark)
+          : _failure != null
+              ? AppError(failure: _failure!, onRetry: _loadNotification)
               : _notification == null
-                  ? _buildEmptyState(context, isDark)
+                  ? _buildEmptyState(context)
                   : _buildNotificationContent(context, isDark, locale),
     );
   }
 
-  Widget _buildErrorState(BuildContext context, bool isDark) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Iconsax.warning_2,
-              size: 64.sp,
-              color: AppColors.error,
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              'حدث خطأ',
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              _errorMessage ?? 'فشل تحميل الإشعار',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: AppColors.textSecondaryLight,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 24.h),
-            ElevatedButton.icon(
-              onPressed: _loadNotification,
-              icon: const Icon(Iconsax.refresh),
-              label: const Text('إعادة المحاولة'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context, bool isDark) {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -151,17 +107,18 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
           SizedBox(height: 16.h),
           Text(
             'الإشعار غير موجود',
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationContent(BuildContext context, bool isDark, String locale) {
+  Widget _buildNotificationContent(
+    BuildContext context,
+    bool isDark,
+    String locale,
+  ) {
     final notification = _notification!;
     final category = notification.categoryEnum;
     final iconData = category.icon;
@@ -172,7 +129,6 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icon & Type
           Row(
             children: [
               Container(
@@ -182,11 +138,7 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
                   color: iconColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  iconData,
-                  size: 28.sp,
-                  color: iconColor,
-                ),
+                child: Icon(iconData, size: 28.sp, color: iconColor),
               ),
               SizedBox(width: 16.w),
               Expanded(
@@ -215,15 +167,11 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
             ],
           ),
           SizedBox(height: 24.h),
-
-          // Title
           Text(
             notification.getTitle(locale),
             style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w700),
           ),
           SizedBox(height: 12.h),
-
-          // Image if available
           if (notification.image != null) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(12.r),
@@ -232,13 +180,12 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
                 width: double.infinity,
                 height: 200.h,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
               ),
             ),
             SizedBox(height: 16.h),
           ],
-
-          // Body
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(16.w),
@@ -257,10 +204,7 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
               ),
             ),
           ),
-
           const Spacer(),
-
-          // Action Button
           if (notification.hasAction)
             SizedBox(
               width: double.infinity,
@@ -287,7 +231,6 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
     if (diff.inDays == 1) return 'أمس';
     if (diff.inDays < 7) return 'منذ ${diff.inDays} أيام';
 
-    // Format: DD/MM/YYYY HH:MM
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
@@ -355,11 +298,11 @@ class _NotificationDetailsScreenState extends State<NotificationDetailsScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              context.read<NotificationsCubit>().deleteNotification(_notification!.id);
-              context.pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('تم حذف الإشعار')),
+              context.read<NotificationsCubit>().deleteNotification(
+                _notification!.id,
               );
+              context.pop();
+              AppSnackbar.showSuccess(context, 'تم حذف الإشعار');
             },
             child: Text('حذف', style: TextStyle(color: AppColors.error)),
           ),

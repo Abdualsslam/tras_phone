@@ -24,7 +24,7 @@ class _CatalogProductsRepositoryDelegate {
       final response = await remoteDataSource.getProductsWithFilter(filter);
       await support.saveProductsResponseCache(response, filter);
       return response;
-    });
+    }, source: 'CatalogRepository.getProducts');
   }
 
   Future<void> _refreshProducts(ProductFilterQuery filter) async {
@@ -35,23 +35,29 @@ class _CatalogProductsRepositoryDelegate {
   }
 
   Future<Either<Failure, ProductEntity>> getProduct(String identifier) async {
-    try {
-      final cachedProduct = await support.getValidProductCache(identifier);
-      if (cachedProduct != null) {
-        unawaited(_refreshProduct(identifier));
-        return Right(cachedProduct);
-      }
-
-      final product = await remoteDataSource.getProduct(identifier);
-      if (product == null) {
-        return support.notFound<ProductEntity>('المنتج غير موجود');
-      }
-
-      await support.saveProductCache(identifier, product);
-      return Right(product);
-    } catch (error) {
-      return Left(ServerFailure(message: error.toString()));
+    final cachedProduct = await support.getValidProductCache(identifier);
+    if (cachedProduct != null) {
+      unawaited(_refreshProduct(identifier));
+      return Right(cachedProduct);
     }
+
+    final result = await support.guard(
+      () => remoteDataSource.getProduct(identifier),
+      source: 'CatalogRepository.getProduct',
+    );
+    Failure? failure;
+    ProductEntity? product;
+    result.fold((left) => failure = left, (right) => product = right);
+
+    if (failure != null) {
+      return Left(failure!);
+    }
+    if (product == null) {
+      return support.notFound<ProductEntity>('المنتج غير موجود');
+    }
+
+    await support.saveProductCache(identifier, product!);
+    return Right(product!);
   }
 
   Future<void> _refreshProduct(String identifier) async {
@@ -68,15 +74,22 @@ class _CatalogProductsRepositoryDelegate {
   }) {
     return support.guard(
       () => remoteDataSource.getFeaturedProducts(limit: limit),
+      source: 'CatalogRepository.getFeaturedProducts',
     );
   }
 
   Future<Either<Failure, List<ProductEntity>>> getNewArrivals({int? limit}) {
-    return support.guard(() => remoteDataSource.getNewArrivals(limit: limit));
+    return support.guard(
+      () => remoteDataSource.getNewArrivals(limit: limit),
+      source: 'CatalogRepository.getNewArrivals',
+    );
   }
 
   Future<Either<Failure, List<ProductEntity>>> getBestSellers({int? limit}) {
-    return support.guard(() => remoteDataSource.getBestSellers(limit: limit));
+    return support.guard(
+      () => remoteDataSource.getBestSellers(limit: limit),
+      source: 'CatalogRepository.getBestSellers',
+    );
   }
 
   Future<Either<Failure, ProductsResponse>> getProductsOnOffer({
@@ -100,6 +113,7 @@ class _CatalogProductsRepositoryDelegate {
         categoryId: categoryId,
         brandId: brandId,
       ),
+      source: 'CatalogRepository.getProductsOnOffer',
     );
   }
 }

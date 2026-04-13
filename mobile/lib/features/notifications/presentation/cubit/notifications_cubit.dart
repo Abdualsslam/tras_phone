@@ -48,7 +48,7 @@ class NotificationsCubit extends Cubit<NotificationsState> {
           'Failed to load notifications: ${failure.message}',
           name: 'NotificationsCubit',
         );
-        emit(NotificationsError(message: failure.message));
+        emit(NotificationsError(failure: failure));
       },
       (response) {
         emit(

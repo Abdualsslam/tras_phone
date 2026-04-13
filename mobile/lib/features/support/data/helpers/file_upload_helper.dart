@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/errors/exceptions.dart';
+
 /// File data for upload
 class FileUploadData {
   final String base64;
@@ -42,7 +44,7 @@ class FileUploadHelper {
   static Future<FileUploadData> convertFilePathToBase64(String filePath) async {
     final file = File(filePath);
     if (!await file.exists()) {
-      throw Exception('File does not exist: $filePath');
+      throw NotFoundException(message: 'File does not exist: $filePath');
     }
 
     final bytes = await file.readAsBytes();

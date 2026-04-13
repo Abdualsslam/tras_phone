@@ -3,13 +3,18 @@ library;
 
 import 'dart:developer' as developer;
 import 'dart:io';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/errors/app_failure_mapper.dart';
+import '../../../../core/errors/failures.dart';
 import '../../data/datasources/cart_remote_datasource.dart';
 import '../../domain/entities/checkout_session_entity.dart';
 import 'checkout_session_state.dart';
 
 class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
   final CartRemoteDataSource _remoteDataSource;
+  final AppFailureMapper _failureMapper = const AppFailureMapper();
 
   CheckoutSessionCubit({required CartRemoteDataSource remoteDataSource})
     : _remoteDataSource = remoteDataSource,
@@ -28,12 +33,10 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
     return null;
   }
 
-  /// Load checkout session from server
   Future<void> loadSession({String? couponCode}) async {
     emit(const CheckoutSessionLoading());
 
     try {
-      // Determine platform
       String? platform;
       if (Platform.isAndroid) {
         platform = 'android';
@@ -61,17 +64,16 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
         '${session.paymentMethods.length} payment methods',
         name: 'CheckoutSessionCubit',
       );
-    } catch (e) {
+    } catch (error) {
       developer.log(
-        'Error loading checkout session: $e',
+        'Error loading checkout session: $error',
         name: 'CheckoutSessionCubit',
-        error: e,
+        error: error,
       );
-      emit(CheckoutSessionError(message: e.toString()));
+      emit(CheckoutSessionError(failure: _failureMapper.map(error)));
     }
   }
 
-  /// Reload session (refresh)
   Future<void> refresh() async {
     final currentCoupon = state is CheckoutSessionLoaded
         ? (state as CheckoutSessionLoaded).appliedCouponCode
@@ -79,14 +81,14 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
     await loadSession(couponCode: currentCoupon);
   }
 
-  /// Apply coupon code
-  Future<String?> applyCoupon(String code) async {
+  Future<Failure?> applyCoupon(String code) async {
     final currentSession = _getCurrentSession();
-    if (currentSession == null) return 'تعذر تحميل بيانات الدفع';
+    if (currentSession == null) {
+      return const ServerFailure(message: 'تعذر تحميل بيانات الدفع');
+    }
     final previousCouponCode = _resolveAppliedCouponCode(currentSession);
 
     try {
-      // Determine platform
       String? platform;
       if (Platform.isAndroid) {
         platform = 'android';
@@ -99,7 +101,6 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
         couponCode: code,
       );
 
-      // Check if coupon was valid
       if (session.coupon != null && session.coupon!.isValid) {
         emit(
           CheckoutSessionLoaded(
@@ -113,60 +114,57 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
           name: 'CheckoutSessionCubit',
         );
         return null;
-      } else {
-        // Coupon was invalid
-        final errorMessage = session.coupon?.message ?? 'الكوبون غير صالح';
-        emit(
-          CheckoutSessionCouponError(
-            message: errorMessage,
-            currentSession: currentSession,
-          ),
-        );
-
-        // After showing error, revert to loaded state without coupon
-        emit(
-          CheckoutSessionLoaded(
-            session: currentSession,
-            appliedCouponCode: previousCouponCode,
-          ),
-        );
-        return errorMessage;
       }
-    } catch (e) {
-      developer.log(
-        'Error applying coupon: $e',
-        name: 'CheckoutSessionCubit',
-        error: e,
+
+      final failure = ValidationFailure(
+        message: session.coupon?.message ?? 'الكوبون غير صالح',
       );
       emit(
         CheckoutSessionCouponError(
-          message: e.toString(),
+          failure: failure,
           currentSession: currentSession,
         ),
       );
-
-      // Revert to previous state
       emit(
         CheckoutSessionLoaded(
           session: currentSession,
           appliedCouponCode: previousCouponCode,
         ),
       );
-
-      return e.toString();
+      return failure;
+    } catch (error) {
+      developer.log(
+        'Error applying coupon: $error',
+        name: 'CheckoutSessionCubit',
+        error: error,
+      );
+      final failure = _failureMapper.map(error);
+      emit(
+        CheckoutSessionCouponError(
+          failure: failure,
+          currentSession: currentSession,
+        ),
+      );
+      emit(
+        CheckoutSessionLoaded(
+          session: currentSession,
+          appliedCouponCode: previousCouponCode,
+        ),
+      );
+      return failure;
     }
   }
 
-  /// Remove applied coupon
-  Future<String?> removeCoupon() async {
+  Future<Failure?> removeCoupon() async {
     final currentSession = _getCurrentSession();
-    if (currentSession == null) return 'تعذر تحميل بيانات الدفع';
+    if (currentSession == null) {
+      return const ServerFailure(message: 'تعذر تحميل بيانات الدفع');
+    }
     final previousCouponCode = _resolveAppliedCouponCode(currentSession);
 
     emit(const CheckoutSessionLoading());
 
     try {
-      // Reload session without coupon
       String? platform;
       if (Platform.isAndroid) {
         platform = 'android';
@@ -183,25 +181,23 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
 
       developer.log('Coupon removed', name: 'CheckoutSessionCubit');
       return null;
-    } catch (e) {
+    } catch (error) {
       developer.log(
-        'Error removing coupon: $e',
+        'Error removing coupon: $error',
         name: 'CheckoutSessionCubit',
-        error: e,
+        error: error,
       );
 
-      // Revert to previous state
       emit(
         CheckoutSessionLoaded(
           session: currentSession,
           appliedCouponCode: previousCouponCode,
         ),
       );
-      return e.toString();
+      return _failureMapper.map(error);
     }
   }
 
-  /// Get current session from state
   CheckoutSessionEntity? _getCurrentSession() {
     if (state is CheckoutSessionLoaded) {
       return (state as CheckoutSessionLoaded).session;
@@ -215,16 +211,12 @@ class CheckoutSessionCubit extends Cubit<CheckoutSessionState> {
     return null;
   }
 
-  /// Check if session is loaded
   bool get isLoaded => state is CheckoutSessionLoaded;
 
-  /// Get current session (if loaded)
   CheckoutSessionEntity? get currentSession => _getCurrentSession();
 
-  /// Check if coupon is being applied
   bool get isApplyingCoupon => state is CheckoutSessionApplyingCoupon;
 
-  /// Check if cart can proceed to checkout
   bool get canCheckout {
     final session = _getCurrentSession();
     return session != null && session.canCheckout;

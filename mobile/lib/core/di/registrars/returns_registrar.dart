@@ -8,6 +8,7 @@ import '../../../features/returns/domain/repositories/returns_repository.dart';
 import '../../../features/returns/presentation/cubit/create_return_cubit.dart';
 import '../../../features/returns/presentation/cubit/return_details_cubit.dart';
 import '../../../features/returns/presentation/cubit/returns_cubit.dart';
+import '../../errors/repository_guard.dart';
 import '../../network/api_client.dart';
 
 void registerReturnsDependencies(GetIt getIt) {
@@ -17,6 +18,7 @@ void registerReturnsDependencies(GetIt getIt) {
   getIt.registerLazySingleton<ReturnsRepository>(
     () => ReturnsRepositoryImpl(
       remoteDataSource: getIt<ReturnsRemoteDataSource>(),
+      repositoryGuard: getIt<RepositoryGuard>(),
     ),
   );
   getIt.registerFactory<ReturnsCubit>(
