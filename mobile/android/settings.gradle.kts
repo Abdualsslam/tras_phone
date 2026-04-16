@@ -24,3 +24,4 @@ plugins {
 }
 
 include(":app")
+rootProject.name = "tras_phone_android"
